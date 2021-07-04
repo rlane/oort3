@@ -7,4 +7,3 @@ edition = "2018"
 
 [dependencies]
 macroquad = "0.3.6"
-rand = "0.8.4"
