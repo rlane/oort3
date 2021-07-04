@@ -65,6 +65,20 @@ async fn main() {
             shapes::draw_circle(ball.x, ball.y, ball.r, color::YELLOW);
         }
 
+        let n = balls.len();
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let dist_squared = (balls[i].x - balls[j].x).powf(2.0) + (balls[i].y - balls[j].y).powf(2.0);
+                if dist_squared < (balls[i].r + balls[j].r).powf(2.0) {
+                    balls[i].vx *= -1.0;
+                    balls[i].vy *= -1.0;
+                    balls[j].vx *= -1.0;
+                    balls[j].vy *= -1.0;
+                }
+            }
+        }
+
+
         window::next_frame().await
     }
 }
