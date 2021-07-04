@@ -1,5 +1,4 @@
-use macroquad::{window, color, shapes};
-use rand::Rng;
+use macroquad::{window, color, shapes, rand};
 
 struct Ball {
     x: f32,
@@ -12,16 +11,15 @@ struct Ball {
 #[macroquad::main("Oort")]
 async fn main() {
     let mut balls = vec![];
-    let mut rng = rand::thread_rng();
 
     for _ in 0..10 {
-        let r = rng.gen_range(10.0..20.0);
+        let r = rand::gen_range(10.0, 20.0);
         let s = 10.0;
         balls.push(Ball {
-            x: rng.gen_range(r .. (window::screen_width() - r)),
-            y: rng.gen_range(r .. (window::screen_height() - r)),
-            vx: rng.gen_range(-s..s),
-            vy: rng.gen_range(-s..s),
+            x: rand::gen_range(r, window::screen_width() - r),
+            y: rand::gen_range(r, window::screen_height() - r),
+            vx: rand::gen_range(-s, s),
+            vy: rand::gen_range(-s, s),
             r: r,
         });
     }
