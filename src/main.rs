@@ -1,4 +1,4 @@
-use macroquad::{window, color, shapes, rand};
+use macroquad::{audio, window, color, shapes, rand};
 
 struct Ball {
     x: f32,
@@ -11,6 +11,7 @@ struct Ball {
 #[macroquad::main("Oort")]
 async fn main() {
     let mut balls = vec![];
+    let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
 
     for _ in 0..10 {
         let r = rand::gen_range(10.0, 20.0);
@@ -72,6 +73,7 @@ async fn main() {
                     balls[i].vy *= -1.0;
                     balls[j].vx *= -1.0;
                     balls[j].vy *= -1.0;
+                    audio::play_sound_once(collision_sound);
                 }
             }
         }
