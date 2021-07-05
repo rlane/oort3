@@ -5,19 +5,11 @@ mod simulation;
 use macroquad::input::KeyCode;
 use macroquad::math::vec2;
 use macroquad::{audio, camera, color, input, rand, text, window};
-use rapier2d_f64::prelude::*;
-
-pub struct Ball {
-    body: RigidBodyHandle,
-    r: f32,
-}
-
-pub const WORLD_SIZE: f32 = 1000.0;
+use simulation::WORLD_SIZE;
 
 #[macroquad::main("Oort")]
 async fn main() {
     let mut sim = simulation::Simulation::new();
-    let mut balls: Vec<Ball> = vec![];
     let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
     let mut zoom = 0.001;
     let mut camera_target = vec2(0.0, 0.0);
@@ -30,38 +22,8 @@ async fn main() {
         let y = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
         let vx = rand::gen_range(-s, s);
         let vy = rand::gen_range(-s, s);
-        let rigid_body = RigidBodyBuilder::new_dynamic()
-            .translation(vector![x.into(), y.into()])
-            .linvel(vector![vx.into(), vy.into()])
-            .build();
-        let handle = sim.bodies.insert(rigid_body);
-        let collider = ColliderBuilder::ball(r.into())
-            .restitution(1.0)
-            .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-            .build();
-        sim.colliders
-            .insert_with_parent(collider, handle, &mut sim.bodies);
-        balls.push(Ball { body: handle, r: r });
+        sim.add_ball(x, y, vx, vy, r);
     }
-
-    let mut make_edge = |x: f32, y: f32, a: f32| {
-        let edge_length = WORLD_SIZE;
-        let edge_width = 1.0;
-        let rigid_body = RigidBodyBuilder::new_static()
-            .translation(vector![x.into(), y.into()])
-            .rotation(a.into())
-            .build();
-        let handle = sim.bodies.insert(rigid_body);
-        let collider = ColliderBuilder::cuboid(edge_length as f64, edge_width)
-            .restitution(1.0)
-            .build();
-        sim.colliders
-            .insert_with_parent(collider, handle, &mut sim.bodies);
-    };
-    make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
-    make_edge(0.0, -WORLD_SIZE / 2.0, 0.0);
-    make_edge(WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
-    make_edge(-WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
 
     loop {
         frame_timer.start("frame");
@@ -100,7 +62,7 @@ async fn main() {
         frame_timer.end("simulate");
 
         frame_timer.start("render");
-        renderer::render(camera_target, zoom, &sim, &balls);
+        renderer::render(camera_target, zoom, &sim);
         frame_timer.end("render");
 
         if sim.collision_event_handler.collision.load() {

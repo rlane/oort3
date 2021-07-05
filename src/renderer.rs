@@ -1,9 +1,8 @@
-use crate::simulation::Simulation;
-use crate::{Ball, WORLD_SIZE};
+use crate::simulation::{Simulation, WORLD_SIZE};
 use macroquad::math::{vec2, Vec2};
 use macroquad::{camera, color, shapes, window};
 
-pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation, balls: &[Ball]) {
+pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
     window::clear_background(color::BLACK);
 
     camera::set_camera(&camera::Camera2D {
@@ -44,7 +43,7 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation, balls: &[Ball]) 
         shapes::draw_line(v, -v, v, v, 1.0, color::RED);
     }
 
-    for ball in balls {
+    for ball in &sim.balls {
         let body = sim.bodies.get(ball.body).unwrap();
         shapes::draw_circle(
             body.position().translation.x as f32,

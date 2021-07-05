@@ -1,6 +1,14 @@
 use rapier2d_f64::prelude::*;
 
+pub struct Ball {
+    pub body: RigidBodyHandle,
+    pub r: f32,
+}
+
+pub const WORLD_SIZE: f32 = 1000.0;
+
 pub struct Simulation {
+    pub balls: Vec<Ball>,
     pub bodies: RigidBodySet,
     pub colliders: ColliderSet,
     pub joints: JointSet,
@@ -15,7 +23,8 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new() -> Simulation {
-        return Simulation {
+        let mut sim = Simulation {
+            balls: vec![],
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
             joints: JointSet::new(),
@@ -27,6 +36,42 @@ impl Simulation {
             narrow_phase: NarrowPhase::new(),
             ccd_solver: CCDSolver::new(),
         };
+
+        let mut make_edge = |x: f32, y: f32, a: f32| {
+            let edge_length = WORLD_SIZE;
+            let edge_width = 1.0;
+            let rigid_body = RigidBodyBuilder::new_static()
+                .translation(vector![x.into(), y.into()])
+                .rotation(a.into())
+                .build();
+            let handle = sim.bodies.insert(rigid_body);
+            let collider = ColliderBuilder::cuboid(edge_length as f64, edge_width)
+                .restitution(1.0)
+                .build();
+            sim.colliders
+                .insert_with_parent(collider, handle, &mut sim.bodies);
+        };
+        make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
+        make_edge(0.0, -WORLD_SIZE / 2.0, 0.0);
+        make_edge(WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
+        make_edge(-WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
+
+        return sim;
+    }
+
+    pub fn add_ball(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32, r: f32) {
+        let rigid_body = RigidBodyBuilder::new_dynamic()
+            .translation(vector![x.into(), y.into()])
+            .linvel(vector![vx.into(), vy.into()])
+            .build();
+        let handle = self.bodies.insert(rigid_body);
+        let collider = ColliderBuilder::ball(r.into())
+            .restitution(1.0)
+            .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+            .build();
+        self.colliders
+            .insert_with_parent(collider, handle, &mut self.bodies);
+        self.balls.push(Ball { body: handle, r: r });
     }
 
     pub fn step(self: &mut Simulation) {
