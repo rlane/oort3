@@ -1,4 +1,5 @@
-use crate::{Ball, Simulation, WORLD_SIZE};
+use crate::simulation::Simulation;
+use crate::{Ball, WORLD_SIZE};
 use macroquad::math::{vec2, Vec2};
 use macroquad::{camera, color, shapes, window};
 
