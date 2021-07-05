@@ -7,6 +7,8 @@ edition = "2018"
 
 [dependencies]
 macroquad = "0.3.6"
+rapier2d-f64 = "0.9"
+crossbeam = "0.8"
 
 [profile.dev.package.'*']
 opt-level = 3

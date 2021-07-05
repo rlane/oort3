@@ -3,12 +3,10 @@ mod frame_timer;
 use macroquad::input::KeyCode;
 use macroquad::math::{vec2, Vec2};
 use macroquad::{audio, camera, color, input, rand, shapes, text, window};
+use rapier2d_f64::prelude::*;
 
 struct Ball {
-    x: f32,
-    y: f32,
-    vx: f32,
-    vy: f32,
+    body: RigidBodyHandle,
     r: f32,
 }
 
@@ -16,23 +14,52 @@ const WORLD_SIZE: f32 = 1000.0;
 
 #[macroquad::main("Oort")]
 async fn main() {
-    let mut balls = vec![];
+    let mut sim = Simulation::new();
+    let mut balls: Vec<Ball> = vec![];
     let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
     let mut zoom = 0.001;
     let mut camera_target = vec2(0.0, 0.0);
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
 
     for _ in 0..100 {
+        let s = 500.0;
         let r = rand::gen_range(10.0, 20.0);
-        let s = 10.0;
-        balls.push(Ball {
-            x: rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r),
-            y: rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r),
-            vx: rand::gen_range(-s, s),
-            vy: rand::gen_range(-s, s),
-            r: r,
-        });
+        let x = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
+        let y = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
+        let vx = rand::gen_range(-s, s);
+        let vy = rand::gen_range(-s, s);
+        let rigid_body = RigidBodyBuilder::new_dynamic()
+            .translation(vector![x.into(), y.into()])
+            .linvel(vector![vx.into(), vy.into()])
+            .build();
+        let handle = sim.bodies.insert(rigid_body);
+        let collider = ColliderBuilder::ball(r.into())
+            .restitution(1.0)
+            .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+            .build();
+        sim.colliders
+            .insert_with_parent(collider, handle, &mut sim.bodies);
+        balls.push(Ball { body: handle, r: r });
     }
+
+    let mut make_edge = |x: f32, y: f32, a: f32| {
+        let edge_length = WORLD_SIZE;
+        let edge_width = 1.0;
+        let rigid_body = RigidBodyBuilder::new_static()
+            .translation(vector![x.into(), y.into()])
+            .rotation(a.into())
+            .build();
+        let handle = sim.bodies.insert(rigid_body);
+        let collider = ColliderBuilder::cuboid(edge_length as f64, edge_width)
+            .restitution(1.0)
+            .build();
+        sim.colliders
+            .insert_with_parent(collider, handle, &mut sim.bodies);
+    };
+    make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
+    make_edge(0.0, -WORLD_SIZE / 2.0, 0.0);
+    make_edge(WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
+    make_edge(-WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
 
     loop {
         frame_timer.start("frame");
@@ -67,12 +94,17 @@ async fn main() {
         }
 
         frame_timer.start("simulate");
-        simulate(&mut balls, collision_sound);
+        sim.step();
         frame_timer.end("simulate");
 
         frame_timer.start("render");
-        render(camera_target, zoom, &balls);
+        render(camera_target, zoom, &sim, &balls);
         frame_timer.end("render");
+
+        if sim.collision_event_handler.collision.load() {
+            sim.collision_event_handler.collision.store(false);
+            audio::play_sound_once(collision_sound);
+        }
 
         frame_timer.end("frame");
 
@@ -107,37 +139,82 @@ async fn main() {
     );
 }
 
-fn simulate(balls: &mut Vec<Ball>, collision_sound: audio::Sound) {
-    for ball in balls.iter_mut() {
-        ball.x += ball.vx;
-        ball.y += ball.vy;
+struct Simulation {
+    pub bodies: RigidBodySet,
+    pub colliders: ColliderSet,
+    pub joints: JointSet,
+    pub collision_event_handler: CollisionEventHandler,
+    integration_parameters: IntegrationParameters,
+    physics_pipeline: PhysicsPipeline,
+    island_manager: IslandManager,
+    broad_phase: BroadPhase,
+    narrow_phase: NarrowPhase,
+    ccd_solver: CCDSolver,
+}
 
-        if ball.x - ball.r < -WORLD_SIZE / 2.0 || ball.x + ball.r > WORLD_SIZE / 2.0 {
-            ball.vx *= -1.0;
-        }
-
-        if ball.y - ball.r < -WORLD_SIZE / 2.0 || ball.y + ball.r > WORLD_SIZE / 2.0 {
-            ball.vy *= -1.0;
-        }
+impl Simulation {
+    pub fn new() -> Simulation {
+        return Simulation {
+            bodies: RigidBodySet::new(),
+            colliders: ColliderSet::new(),
+            joints: JointSet::new(),
+            collision_event_handler: CollisionEventHandler::new(),
+            integration_parameters: IntegrationParameters::default(),
+            physics_pipeline: PhysicsPipeline::new(),
+            island_manager: IslandManager::new(),
+            broad_phase: BroadPhase::new(),
+            narrow_phase: NarrowPhase::new(),
+            ccd_solver: CCDSolver::new(),
+        };
     }
 
-    let n = balls.len();
-    for i in 0..n {
-        for j in (i + 1)..n {
-            let dist_squared =
-                (balls[i].x - balls[j].x).powf(2.0) + (balls[i].y - balls[j].y).powf(2.0);
-            if dist_squared < (balls[i].r + balls[j].r).powf(2.0) {
-                balls[i].vx *= -1.0;
-                balls[i].vy *= -1.0;
-                balls[j].vx *= -1.0;
-                balls[j].vy *= -1.0;
-                audio::play_sound_once(collision_sound);
+    pub fn step(self: &mut Simulation) {
+        let gravity = vector![0.0, 0.0];
+        let physics_hooks = ();
+
+        self.physics_pipeline.step(
+            &gravity,
+            &self.integration_parameters,
+            &mut self.island_manager,
+            &mut self.broad_phase,
+            &mut self.narrow_phase,
+            &mut self.bodies,
+            &mut self.colliders,
+            &mut self.joints,
+            &mut self.ccd_solver,
+            &physics_hooks,
+            &self.collision_event_handler,
+        );
+    }
+}
+
+struct CollisionEventHandler {
+    collision: crossbeam::atomic::AtomicCell<bool>,
+}
+
+impl CollisionEventHandler {
+    pub fn new() -> CollisionEventHandler {
+        return CollisionEventHandler {
+            collision: crossbeam::atomic::AtomicCell::new(false),
+        };
+    }
+}
+
+impl EventHandler for CollisionEventHandler {
+    fn handle_intersection_event(&self, _event: IntersectionEvent) {}
+
+    fn handle_contact_event(&self, event: ContactEvent, _contact_pair: &ContactPair) {
+        match event {
+            ContactEvent::Started(_, _) => {
+                self.collision.store(true);
+                //println!("Collision: {:?}", event);
             }
+            _ => {}
         }
     }
 }
 
-fn render(camera_target: Vec2, zoom: f32, balls: &[Ball]) {
+fn render(camera_target: Vec2, zoom: f32, sim: &Simulation, balls: &[Ball]) {
     window::clear_background(color::BLACK);
 
     camera::set_camera(&camera::Camera2D {
@@ -179,6 +256,12 @@ fn render(camera_target: Vec2, zoom: f32, balls: &[Ball]) {
     }
 
     for ball in balls {
-        shapes::draw_circle(ball.x, ball.y, ball.r, color::YELLOW);
+        let body = sim.bodies.get(ball.body).unwrap();
+        shapes::draw_circle(
+            body.position().translation.x as f32,
+            body.position().translation.y as f32,
+            ball.r,
+            color::YELLOW,
+        );
     }
 }
