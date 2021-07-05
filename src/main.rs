@@ -1,6 +1,6 @@
-use macroquad::{audio, window, color, shapes, rand, camera, input};
-use macroquad::math::{vec2};
 use macroquad::input::KeyCode;
+use macroquad::math::vec2;
+use macroquad::{audio, camera, color, input, rand, shapes, text, window};
 
 struct Ball {
     x: f32,
@@ -49,6 +49,9 @@ async fn main() {
         }
         if input::is_key_down(KeyCode::X) {
             zoom *= 1.01;
+        }
+        if input::is_key_down(KeyCode::Q) | input::is_key_down(KeyCode::Escape) {
+            break;
         }
 
         window::clear_background(color::BLACK);
@@ -121,4 +124,13 @@ async fn main() {
 
         window::next_frame().await
     }
+
+    camera::set_default_camera();
+    text::draw_text(
+        format!("Game over").as_str(),
+        window::screen_width() / 2.0,
+        window::screen_height() / 2.0,
+        100.0,
+        color::RED,
+    );
 }
