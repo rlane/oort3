@@ -57,14 +57,17 @@ async fn main() {
         window::clear_background(color::BLACK);
 
         camera::set_camera(&camera::Camera2D {
-            zoom: vec2(zoom, zoom * window::screen_width() / window::screen_height()),
+            zoom: vec2(
+                zoom,
+                zoom * window::screen_width() / window::screen_height(),
+            ),
             target: camera_target,
             ..Default::default()
         });
 
         let grid_size = 100.0;
         let n = 1 + (world_size / grid_size) as i32;
-        for i in -(n/2)..(n/2+1) {
+        for i in -(n / 2)..(n / 2 + 1) {
             shapes::draw_line(
                 (i as f32) * grid_size,
                 -world_size / 2.0,
@@ -83,9 +86,8 @@ async fn main() {
             );
         }
 
-
         {
-            let v = - world_size / 2.0;
+            let v = -world_size / 2.0;
             shapes::draw_line(-v, -v, v, -v, 1.0, color::RED);
             shapes::draw_line(-v, v, v, v, 1.0, color::RED);
             shapes::draw_line(-v, -v, -v, v, 1.0, color::RED);
@@ -110,7 +112,8 @@ async fn main() {
         let n = balls.len();
         for i in 0..n {
             for j in (i + 1)..n {
-                let dist_squared = (balls[i].x - balls[j].x).powf(2.0) + (balls[i].y - balls[j].y).powf(2.0);
+                let dist_squared =
+                    (balls[i].x - balls[j].x).powf(2.0) + (balls[i].y - balls[j].y).powf(2.0);
                 if dist_squared < (balls[i].r + balls[j].r).powf(2.0) {
                     balls[i].vx *= -1.0;
                     balls[i].vy *= -1.0;
@@ -120,7 +123,6 @@ async fn main() {
                 }
             }
         }
-
 
         window::next_frame().await
     }
