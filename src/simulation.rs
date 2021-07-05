@@ -1,14 +1,9 @@
 use rapier2d_f64::prelude::*;
 
-pub struct Ball {
-    pub body: RigidBodyHandle,
-    pub r: f32,
-}
-
 pub const WORLD_SIZE: f32 = 1000.0;
 
 pub struct Simulation {
-    pub balls: Vec<Ball>,
+    pub ships: Vec<Ship>,
     pub bodies: RigidBodySet,
     pub colliders: ColliderSet,
     pub joints: JointSet,
@@ -24,7 +19,7 @@ pub struct Simulation {
 impl Simulation {
     pub fn new() -> Simulation {
         let mut sim = Simulation {
-            balls: vec![],
+            ships: vec![],
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
             joints: JointSet::new(),
@@ -38,40 +33,45 @@ impl Simulation {
         };
 
         let mut make_edge = |x: f32, y: f32, a: f32| {
-            let edge_length = WORLD_SIZE;
-            let edge_width = 1.0;
+            let edge_length = WORLD_SIZE as f64;
+            let edge_width = 10.0;
             let rigid_body = RigidBodyBuilder::new_static()
                 .translation(vector![x.into(), y.into()])
                 .rotation(a.into())
                 .build();
             let handle = sim.bodies.insert(rigid_body);
-            let collider = ColliderBuilder::cuboid(edge_length as f64, edge_width)
+            let collider = ColliderBuilder::cuboid(edge_length / 2.0, edge_width / 2.0)
                 .restitution(1.0)
                 .build();
             sim.colliders
                 .insert_with_parent(collider, handle, &mut sim.bodies);
         };
         make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
-        make_edge(0.0, -WORLD_SIZE / 2.0, 0.0);
+        make_edge(0.0, -WORLD_SIZE / 2.0, std::f32::consts::PI);
         make_edge(WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
-        make_edge(-WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
+        make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f32::consts::PI / 2.0);
 
         sim
     }
 
-    pub fn add_ball(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32, r: f32) {
+    pub fn add_ship(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32) {
         let rigid_body = RigidBodyBuilder::new_dynamic()
             .translation(vector![x.into(), y.into()])
             .linvel(vector![vx.into(), vy.into()])
             .build();
         let handle = self.bodies.insert(rigid_body);
-        let collider = ColliderBuilder::ball(r.into())
+        let vertices = crate::model::ship()
+            .iter()
+            .map(|&v| point![v.x as f64, v.y as f64])
+            .collect::<Vec<_>>();
+        let collider = ColliderBuilder::convex_hull(&vertices)
+            .unwrap()
             .restitution(1.0)
             .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
             .build();
         self.colliders
             .insert_with_parent(collider, handle, &mut self.bodies);
-        self.balls.push(Ball { body: handle, r });
+        self.ships.push(Ship { body: handle });
     }
 
     pub fn step(self: &mut Simulation) {
@@ -115,4 +115,8 @@ impl EventHandler for CollisionEventHandler {
             //println!("Collision: {:?}", event);
         }
     }
+}
+
+pub struct Ship {
+    pub body: RigidBodyHandle,
 }

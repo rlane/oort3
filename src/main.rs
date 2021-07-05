@@ -1,4 +1,5 @@
 mod frame_timer;
+mod model;
 mod renderer;
 mod simulation;
 
@@ -22,7 +23,7 @@ async fn main() {
         let y = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
         let vx = rand::gen_range(-s, s);
         let vy = rand::gen_range(-s, s);
-        sim.add_ball(x, y, vx, vy, r);
+        sim.add_ship(x, y, vx, vy);
     }
 
     loop {

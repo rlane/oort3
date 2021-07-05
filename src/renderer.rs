@@ -1,6 +1,6 @@
 use crate::simulation::{Simulation, WORLD_SIZE};
 use macroquad::math::{vec2, Vec2};
-use macroquad::{camera, color, shapes, window};
+use macroquad::{camera, color, math, shapes, window};
 
 pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
     window::clear_background(color::BLACK);
@@ -43,13 +43,18 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
         shapes::draw_line(v, -v, v, v, 1.0, color::RED);
     }
 
-    for ball in &sim.balls {
-        let body = sim.bodies.get(ball.body).unwrap();
-        shapes::draw_circle(
-            body.position().translation.x as f32,
-            body.position().translation.y as f32,
-            ball.r,
-            color::YELLOW,
-        );
+    for ship in &sim.ships {
+        let body = sim.bodies.get(ship.body).unwrap();
+        let x = body.position().translation.x as f32;
+        let y = body.position().translation.y as f32;
+        let h = body.position().rotation.angle() as f32;
+        let matrix = math::Mat2::from_angle(h);
+        let translation = vec2(x, y);
+
+        let vertices = crate::model::ship()
+            .iter()
+            .map(|&v| translation + matrix.mul_vec2(v))
+            .collect::<Vec<_>>();
+        shapes::draw_triangle(vertices[0], vertices[1], vertices[2], color::YELLOW);
     }
 }
