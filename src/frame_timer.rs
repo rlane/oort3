@@ -33,7 +33,7 @@ impl FrameTimer {
     // Returns worst latency in (last frame, short history, long history).
     pub fn get(self: &FrameTimer, name: &str) -> (f64, f64, f64) {
         let v = self.elapsed_times.get(name).unwrap();
-        if v.len() == 0 {
+        if v.is_empty() {
             return (0.0, 0.0, 0.0);
         }
         return (
@@ -46,6 +46,6 @@ impl FrameTimer {
     }
 
     pub fn get_names(self: &FrameTimer) -> &[String] {
-        return &self.names[..];
+        &self.names[..]
     }
 }

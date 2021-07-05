@@ -56,7 +56,7 @@ impl Simulation {
         make_edge(WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
         make_edge(-WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
 
-        return sim;
+        sim
     }
 
     pub fn add_ball(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32, r: f32) {
@@ -71,7 +71,7 @@ impl Simulation {
             .build();
         self.colliders
             .insert_with_parent(collider, handle, &mut self.bodies);
-        self.balls.push(Ball { body: handle, r: r });
+        self.balls.push(Ball { body: handle, r });
     }
 
     pub fn step(self: &mut Simulation) {
@@ -100,9 +100,9 @@ pub struct CollisionEventHandler {
 
 impl CollisionEventHandler {
     pub fn new() -> CollisionEventHandler {
-        return CollisionEventHandler {
+        CollisionEventHandler {
             collision: crossbeam::atomic::AtomicCell::new(false),
-        };
+        }
     }
 }
 
@@ -110,12 +110,9 @@ impl EventHandler for CollisionEventHandler {
     fn handle_intersection_event(&self, _event: IntersectionEvent) {}
 
     fn handle_contact_event(&self, event: ContactEvent, _contact_pair: &ContactPair) {
-        match event {
-            ContactEvent::Started(_, _) => {
-                self.collision.store(true);
-                //println!("Collision: {:?}", event);
-            }
-            _ => {}
+        if let ContactEvent::Started(_, _) = event {
+            self.collision.store(true);
+            //println!("Collision: {:?}", event);
         }
     }
 }

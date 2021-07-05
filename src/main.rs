@@ -95,7 +95,7 @@ async fn main() {
 
     camera::set_default_camera();
     text::draw_text(
-        format!("Game over").as_str(),
+        "Game over",
         window::screen_width() / 2.0,
         window::screen_height() / 2.0,
         100.0,
