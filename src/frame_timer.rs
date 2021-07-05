@@ -1,44 +1,51 @@
 use macroquad::time;
 
+const SHORT_HISTORY_LENGTH: usize = 60;
+const LONG_HISTORY_LENGTH: usize = 300;
+
 #[derive(Default)]
 pub struct FrameTimer {
-    frame_start_time: f64,
-    ewma: f64,
-    frame_times: Vec<f64>,
-    frame_start_times: Vec<f64>,
+    start_times: std::collections::HashMap<String, f64>,
+    elapsed_times: std::collections::HashMap<String, Vec<f64>>,
+    names: Vec<String>,
 }
 
 impl FrameTimer {
-    pub fn start_frame(self: &mut FrameTimer) {
-        self.frame_start_time = time::get_time();
-    }
-
-    pub fn end_frame(self: &mut FrameTimer) {
-        let frame_time = time::get_time() - self.frame_start_time;
-        self.ewma = self.ewma * 0.9 + frame_time * 0.1;
-        self.frame_times.push(frame_time);
-        if self.frame_times.len() > 120 {
-            self.frame_times.remove(0);
-        }
-        self.frame_start_times.push(self.frame_start_time);
-        if self.frame_start_times.len() > 120 {
-            self.frame_start_times.remove(0);
+    pub fn start(self: &mut FrameTimer, name: &str) {
+        self.start_times.insert(name.to_string(), time::get_time());
+        if !self.elapsed_times.contains_key(name) {
+            self.elapsed_times.insert(name.to_string(), Vec::new());
+            self.names.push(name.to_string());
         }
     }
 
-    pub fn get_moving_average(self: &FrameTimer) -> f64 {
-        return self.ewma;
+    pub fn end(self: &mut FrameTimer, name: &str) {
+        let now = time::get_time();
+        let start_time = *self.start_times.get(name).unwrap_or(&now);
+        let elapsed = now - start_time;
+        let v = self.elapsed_times.get_mut(name).unwrap();
+        v.push(elapsed);
+        if v.len() > LONG_HISTORY_LENGTH {
+            v.remove(0);
+        }
     }
 
-    pub fn get_recent_max(self: &FrameTimer) -> f64 {
-        return self
-            .frame_times
-            .iter()
-            .fold(f64::NEG_INFINITY, |a, &b| f64::max(a, b));
+    // Returns worst latency in (last frame, short history, long history).
+    pub fn get(self: &FrameTimer, name: &str) -> (f64, f64, f64) {
+        let v = self.elapsed_times.get(name).unwrap();
+        if v.len() == 0 {
+            return (0.0, 0.0, 0.0);
+        }
+        return (
+            v[0],
+            v[..std::cmp::min(v.len(), SHORT_HISTORY_LENGTH)]
+                .iter()
+                .fold(f64::NEG_INFINITY, |a, &b| f64::max(a, b)),
+            v.iter().fold(f64::NEG_INFINITY, |a, &b| f64::max(a, b)),
+        );
     }
 
-    pub fn get_fps(self: &FrameTimer) -> usize {
-        let past = time::get_time() - 1.0;
-        return self.frame_start_times.iter().filter(|&&x| x > past).count();
+    pub fn get_names(self: &FrameTimer) -> &[String] {
+        return &self.names[..];
     }
 }

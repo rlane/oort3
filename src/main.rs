@@ -35,7 +35,7 @@ async fn main() {
     }
 
     loop {
-        frame_timer.start_frame();
+        frame_timer.start("frame");
 
         let camera_step = 0.01 / zoom;
         if input::is_key_down(KeyCode::W) {
@@ -59,32 +59,40 @@ async fn main() {
         if input::is_key_down(KeyCode::Q) | input::is_key_down(KeyCode::Escape) {
             break;
         }
+        if input::is_key_pressed(KeyCode::U) {
+            for name in frame_timer.get_names() {
+                let (a, b, c) = frame_timer.get(name);
+                println!("{}: {:.1}/{:.1}/{:.1} ms", name, a * 1e3, b * 1e3, c * 1e3);
+            }
+        }
 
+        frame_timer.start("simulate");
         simulate(&mut balls, collision_sound);
-        render(camera_target, zoom, &balls);
+        frame_timer.end("simulate");
 
-        frame_timer.end_frame();
+        frame_timer.start("render");
+        render(camera_target, zoom, &balls);
+        frame_timer.end("render");
+
+        frame_timer.end("frame");
 
         camera::set_default_camera();
-        text::draw_text(
-            format!("FPS: {}", frame_timer.get_fps()).as_str(),
-            window::screen_width() - 100.0,
-            20.0,
-            30.0,
-            color::WHITE,
-        );
-        text::draw_text(
-            format!(
-                "Frame time: {:.1}/{:.1} ms",
-                frame_timer.get_moving_average() * 1e3,
-                frame_timer.get_recent_max() * 1e3
-            )
-            .as_str(),
-            window::screen_width() - 300.0,
-            40.0,
-            30.0,
-            color::WHITE,
-        );
+        {
+            let (a, b, c) = frame_timer.get("frame");
+            text::draw_text(
+                format!(
+                    "Frame time: {:.1}/{:.1}/{:.1} ms",
+                    a * 1e3,
+                    b * 1e3,
+                    c * 1e3
+                )
+                .as_str(),
+                window::screen_width() - 400.0,
+                20.0,
+                32.0,
+                color::WHITE,
+            );
+        }
 
         window::next_frame().await
     }
