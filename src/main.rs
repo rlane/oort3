@@ -1,3 +1,5 @@
+mod frame_timer;
+
 use macroquad::input::KeyCode;
 use macroquad::math::{vec2, Vec2};
 use macroquad::{audio, camera, color, input, rand, shapes, text, window};
@@ -18,8 +20,9 @@ async fn main() {
     let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
     let mut zoom = 0.001;
     let mut camera_target = vec2(0.0, 0.0);
+    let mut frame_timer: frame_timer::FrameTimer = Default::default();
 
-    for _ in 0..10 {
+    for _ in 0..100 {
         let r = rand::gen_range(10.0, 20.0);
         let s = 10.0;
         balls.push(Ball {
@@ -32,6 +35,8 @@ async fn main() {
     }
 
     loop {
+        frame_timer.start_frame();
+
         let camera_step = 0.01 / zoom;
         if input::is_key_down(KeyCode::W) {
             camera_target.y += camera_step;
@@ -57,6 +62,29 @@ async fn main() {
 
         simulate(&mut balls, collision_sound);
         render(camera_target, zoom, &balls);
+
+        frame_timer.end_frame();
+
+        camera::set_default_camera();
+        text::draw_text(
+            format!("FPS: {}", frame_timer.get_fps()).as_str(),
+            window::screen_width() - 100.0,
+            20.0,
+            30.0,
+            color::WHITE,
+        );
+        text::draw_text(
+            format!(
+                "Frame time: {:.1}/{:.1} ms",
+                frame_timer.get_moving_average() * 1e3,
+                frame_timer.get_recent_max() * 1e3
+            )
+            .as_str(),
+            window::screen_width() - 300.0,
+            40.0,
+            30.0,
+            color::WHITE,
+        );
 
         window::next_frame().await
     }
