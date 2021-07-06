@@ -6,9 +6,9 @@ pub const WORLD_SIZE: f64 = 1000.0;
 pub struct Simulation {
     pub ships: IndexSet,
     pub bullets: IndexSet,
-    pub bodies: RigidBodySet,
-    pub colliders: ColliderSet,
-    pub joints: JointSet,
+    bodies: RigidBodySet,
+    colliders: ColliderSet,
+    joints: JointSet,
     pub collision_event_handler: CollisionEventHandler,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
@@ -80,6 +80,13 @@ impl Simulation {
         body_handle.0
     }
 
+    pub fn ship(self: &Simulation, index: Index) -> ShipAccessor {
+        ShipAccessor {
+            simulation: self,
+            index,
+        }
+    }
+
     pub fn fire_weapon(self: &mut Simulation, index: Index) {
         let body = self.bodies.get(RigidBodyHandle(index)).unwrap();
         let x = body.position().translation.x;
@@ -104,6 +111,13 @@ impl Simulation {
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies);
         self.bullets.insert(body_handle.0);
+    }
+
+    pub fn bullet(self: &Simulation, index: Index) -> BulletAccessor {
+        BulletAccessor {
+            simulation: self,
+            index,
+        }
     }
 
     pub fn thrust_main(self: &mut Simulation, index: Index, force: f64) {
@@ -146,6 +160,46 @@ impl Simulation {
 impl Default for Simulation {
     fn default() -> Self {
         Simulation::new()
+    }
+}
+
+pub struct ShipAccessor<'a> {
+    simulation: &'a Simulation,
+    index: Index,
+}
+
+impl<'a> ShipAccessor<'a> {
+    pub fn body(&self) -> &'a RigidBody {
+        self.simulation
+            .bodies
+            .get(RigidBodyHandle(self.index))
+            .unwrap()
+    }
+
+    pub fn position(&self) -> Translation<Real> {
+        self.body().position().translation
+    }
+
+    pub fn velocity(&self) -> Vector<Real> {
+        *self.body().linvel()
+    }
+
+    pub fn heading(&self) -> Real {
+        self.body().rotation().angle()
+    }
+}
+
+pub struct BulletAccessor<'a> {
+    simulation: &'a Simulation,
+    index: Index,
+}
+
+impl<'a> BulletAccessor<'a> {
+    pub fn body(&self) -> &'a RigidBody {
+        self.simulation
+            .bodies
+            .get(RigidBodyHandle(self.index))
+            .unwrap()
     }
 }
 

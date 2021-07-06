@@ -1,7 +1,6 @@
 use crate::simulation::{Simulation, WORLD_SIZE};
 use macroquad::math::{vec2, Vec2};
 use macroquad::{camera, color, math, shapes, window};
-use rapier2d_f64::dynamics::RigidBodyHandle;
 
 pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
     window::clear_background(color::BLACK);
@@ -45,7 +44,8 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
     }
 
     for &index in sim.bullets.iter() {
-        let body = sim.bodies.get(RigidBodyHandle(index)).unwrap();
+        let bullet = sim.bullet(index);
+        let body = bullet.body();
         let x = body.position().translation.x as f32;
         let y = body.position().translation.y as f32;
         let vx = body.linvel().x as f32;
@@ -55,10 +55,10 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
     }
 
     for &index in sim.ships.iter() {
-        let body = sim.bodies.get(RigidBodyHandle(index)).unwrap();
-        let x = body.position().translation.x as f32;
-        let y = body.position().translation.y as f32;
-        let h = body.position().rotation.angle() as f32;
+        let ship = sim.ship(index);
+        let x = ship.position().x as f32;
+        let y = ship.position().y as f32;
+        let h = ship.heading() as f32;
         let matrix = math::Mat2::from_angle(h);
         let translation = vec2(x, y);
 

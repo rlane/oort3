@@ -1,7 +1,6 @@
 use macroquad::rand;
 use oort::simulation;
 use oort::simulation::WORLD_SIZE;
-use rapier2d_f64::dynamics::RigidBodyHandle;
 
 #[test]
 fn test_world_edge() {
@@ -23,11 +22,11 @@ fn test_world_edge() {
     }
 
     for &index in sim.ships.iter() {
-        let body = sim.bodies.get(RigidBodyHandle(index)).unwrap();
-        assert!(body.position().translation.x >= -WORLD_SIZE / 2.0);
-        assert!(body.position().translation.x <= WORLD_SIZE / 2.0);
-        assert!(body.position().translation.y >= -WORLD_SIZE / 2.0);
-        assert!(body.position().translation.y <= WORLD_SIZE / 2.0);
+        let ship = sim.ship(index);
+        assert!(ship.position().x >= -WORLD_SIZE / 2.0);
+        assert!(ship.position().x <= WORLD_SIZE / 2.0);
+        assert!(ship.position().y >= -WORLD_SIZE / 2.0);
+        assert!(ship.position().y <= WORLD_SIZE / 2.0);
     }
 }
 
@@ -38,13 +37,13 @@ fn test_head_on_collision() {
     let ship0 = sim.add_ship(-100.0, 0.0, 100.0, 0.0, 0.0);
     let ship1 = sim.add_ship(100.0, 0.0, -100.0, 0.0, 0.0);
 
-    assert!(sim.bodies.get(RigidBodyHandle(ship0)).unwrap().linvel().x > 0.0);
-    assert!(sim.bodies.get(RigidBodyHandle(ship1)).unwrap().linvel().x < 0.0);
+    assert!(sim.ship(ship0).velocity().x > 0.0);
+    assert!(sim.ship(ship1).velocity().x < 0.0);
 
     for _ in 0..1000 {
         sim.step();
     }
 
-    assert!(sim.bodies.get(RigidBodyHandle(ship0)).unwrap().linvel().x < 0.0);
-    assert!(sim.bodies.get(RigidBodyHandle(ship1)).unwrap().linvel().x > 0.0);
+    assert!(sim.ship(ship0).velocity().x < 0.0);
+    assert!(sim.ship(ship1).velocity().x > 0.0);
 }
