@@ -12,7 +12,7 @@ async fn main() {
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
 
     sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
-    sim.add_ship(100.0, 0.0, 0.0, 0.0, std::f32::consts::PI);
+    sim.add_ship(100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
 
     loop {
         frame_timer.start("frame");

@@ -14,7 +14,7 @@ fn test_world_edge() {
         let h = rand::gen_range(0.0, 2.0 * std::f32::consts::PI);
         let vx = rand::gen_range(-s, s);
         let vy = rand::gen_range(-s, s);
-        sim.add_ship(x, y, vx, vy, h);
+        sim.add_ship(x as f64, y as f64, vx as f64, vy as f64, h as f64);
     }
 
     for _ in 0..1000 {

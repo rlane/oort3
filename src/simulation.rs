@@ -1,7 +1,6 @@
-use macroquad::math::{vec2, Vec2};
 use rapier2d_f64::prelude::*;
 
-pub const WORLD_SIZE: f32 = 1000.0;
+pub const WORLD_SIZE: f64 = 1000.0;
 
 pub struct Simulation {
     pub ships: Vec<Ship>,
@@ -35,12 +34,12 @@ impl Simulation {
             ccd_solver: CCDSolver::new(),
         };
 
-        let mut make_edge = |x: f32, y: f32, a: f32| {
+        let mut make_edge = |x: f64, y: f64, a: f64| {
             let edge_length = WORLD_SIZE as f64;
             let edge_width = 10.0;
             let rigid_body = RigidBodyBuilder::new_static()
-                .translation(vector![x.into(), y.into()])
-                .rotation(a.into())
+                .translation(vector![x, y])
+                .rotation(a)
                 .build();
             let handle = sim.bodies.insert(rigid_body);
             let collider = ColliderBuilder::cuboid(edge_length / 2.0, edge_width / 2.0)
@@ -50,18 +49,18 @@ impl Simulation {
                 .insert_with_parent(collider, handle, &mut sim.bodies);
         };
         make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
-        make_edge(0.0, -WORLD_SIZE / 2.0, std::f32::consts::PI);
-        make_edge(WORLD_SIZE / 2.0, 0.0, std::f32::consts::PI / 2.0);
-        make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f32::consts::PI / 2.0);
+        make_edge(0.0, -WORLD_SIZE / 2.0, std::f64::consts::PI);
+        make_edge(WORLD_SIZE / 2.0, 0.0, std::f64::consts::PI / 2.0);
+        make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
 
         sim
     }
 
-    pub fn add_ship(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32, h: f32) {
+    pub fn add_ship(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, h: f64) {
         let rigid_body = RigidBodyBuilder::new_dynamic()
-            .translation(vector![x.into(), y.into()])
-            .linvel(vector![vx.into(), vy.into()])
-            .rotation(h as f64)
+            .translation(vector![x, y])
+            .linvel(vector![vx, vy])
+            .rotation(h)
             .build();
         let handle = self.bodies.insert(rigid_body);
         let vertices = crate::model::ship()
@@ -85,13 +84,13 @@ impl Simulation {
         let v2 = body.position().rotation.into_inner() * 100.0;
         let vx = body.linvel().x + v2.re;
         let vy = body.linvel().y + v2.im;
-        self.add_bullet(x as f32, y as f32, vx as f32, vy as f32);
+        self.add_bullet(x as f64, y as f64, vx as f64, vy as f64);
     }
 
-    pub fn add_bullet(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32) {
+    pub fn add_bullet(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64) {
         let rigid_body = RigidBodyBuilder::new_dynamic()
-            .translation(vector![x.into(), y.into()])
-            .linvel(vector![vx.into(), vy.into()])
+            .translation(vector![x, y])
+            .linvel(vector![vx, vy])
             .build();
         let handle = self.bodies.insert(rigid_body);
         let collider = ColliderBuilder::ball(1.0)
@@ -180,16 +179,14 @@ pub struct Ship {
 }
 
 impl Ship {
-    pub fn position(self: &Ship, sim: &Simulation) -> Vec2 {
+    pub fn position(self: &Ship, sim: &Simulation) -> Translation<Real> {
         let body = sim.bodies.get(self.body).unwrap();
-        let translation = body.position().translation;
-        vec2(translation.x as f32, translation.y as f32)
+        body.position().translation
     }
 
-    pub fn velocity(self: &Ship, sim: &Simulation) -> Vec2 {
+    pub fn velocity(self: &Ship, sim: &Simulation) -> Vector<Real> {
         let body = sim.bodies.get(self.body).unwrap();
-        let v = body.linvel();
-        vec2(v.x as f32, v.y as f32)
+        *body.linvel()
     }
 
     pub fn rotation(self: &Ship, sim: &Simulation) -> Rotation<Real> {
@@ -197,8 +194,8 @@ impl Ship {
         body.position().rotation
     }
 
-    pub fn heading(self: &Ship, sim: &Simulation) -> f32 {
-        self.rotation(sim).angle() as f32
+    pub fn heading(self: &Ship, sim: &Simulation) -> f64 {
+        self.rotation(sim).angle()
     }
 }
 
