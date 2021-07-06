@@ -45,6 +45,29 @@ async fn main() {
                 println!("{}: {:.1}/{:.1}/{:.1} ms", name, a * 1e3, b * 1e3, c * 1e3);
             }
         }
+
+        let ship_handle = sim.ships[0].body;
+        let force = 1e4;
+        if input::is_key_down(KeyCode::Up) {
+            sim.thrust_main(ship_handle, force);
+        }
+        if input::is_key_down(KeyCode::Down) {
+            sim.thrust_main(ship_handle, -force);
+        }
+        if input::is_key_down(KeyCode::Left) {
+            if input::is_key_down(KeyCode::LeftShift) {
+                sim.thrust_lateral(ship_handle, force);
+            } else {
+                sim.thrust_angular(ship_handle, force);
+            }
+        }
+        if input::is_key_down(KeyCode::Right) {
+            if input::is_key_down(KeyCode::LeftShift) {
+                sim.thrust_lateral(ship_handle, -force);
+            } else {
+                sim.thrust_angular(ship_handle, -force);
+            }
+        }
         if input::is_key_pressed(KeyCode::F) {
             sim.fire_weapon(sim.ships[0].body);
         }

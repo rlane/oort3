@@ -103,6 +103,23 @@ impl Simulation {
         self.bullets.push(Bullet { body: handle });
     }
 
+    pub fn thrust_main(self: &mut Simulation, body_handle: RigidBodyHandle, force: f64) {
+        let body = self.bodies.get_mut(body_handle).unwrap();
+        let rotation_matrix = body.position().rotation.to_rotation_matrix();
+        body.apply_force(rotation_matrix * vector![force, 0.0], true);
+    }
+
+    pub fn thrust_lateral(self: &mut Simulation, body_handle: RigidBodyHandle, force: f64) {
+        let body = self.bodies.get_mut(body_handle).unwrap();
+        let rotation_matrix = body.position().rotation.to_rotation_matrix();
+        body.apply_force(rotation_matrix * vector![0.0, force], true);
+    }
+
+    pub fn thrust_angular(self: &mut Simulation, body_handle: RigidBodyHandle, torque: f64) {
+        let body = self.bodies.get_mut(body_handle).unwrap();
+        body.apply_torque(torque, true);
+    }
+
     pub fn step(self: &mut Simulation) {
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
