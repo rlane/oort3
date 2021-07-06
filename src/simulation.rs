@@ -61,6 +61,7 @@ impl Simulation {
             .translation(vector![x, y])
             .linvel(vector![vx, vy])
             .rotation(h)
+            .ccd_enabled(true)
             .build();
         let handle = self.bodies.insert(rigid_body);
         let vertices = crate::model::ship()
@@ -81,7 +82,7 @@ impl Simulation {
         let body = self.bodies.get(body_handle).unwrap();
         let x = body.position().translation.x;
         let y = body.position().translation.y;
-        let v2 = body.position().rotation.into_inner() * 100.0;
+        let v2 = body.position().rotation.into_inner() * 1000.0;
         let vx = body.linvel().x + v2.re;
         let vy = body.linvel().y + v2.im;
         self.add_bullet(x as f64, y as f64, vx as f64, vy as f64);
@@ -91,6 +92,7 @@ impl Simulation {
         let rigid_body = RigidBodyBuilder::new_dynamic()
             .translation(vector![x, y])
             .linvel(vector![vx, vy])
+            .ccd_enabled(true)
             .build();
         let handle = self.bodies.insert(rigid_body);
         let collider = ColliderBuilder::ball(1.0)
