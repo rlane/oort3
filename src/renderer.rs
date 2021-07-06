@@ -44,8 +44,8 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
         shapes::draw_line(v, -v, v, v, 1.0, color::RED);
     }
 
-    for bullet in &sim.bullets {
-        let body = sim.bodies.get(bullet.body).unwrap();
+    for &index in sim.bullets.iter() {
+        let body = sim.bodies.get(RigidBodyHandle(index)).unwrap();
         let x = body.position().translation.x as f32;
         let y = body.position().translation.y as f32;
         let vx = body.linvel().x as f32;

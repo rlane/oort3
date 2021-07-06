@@ -5,7 +5,7 @@ pub const WORLD_SIZE: f64 = 1000.0;
 
 pub struct Simulation {
     pub ships: IndexSet,
-    pub bullets: Vec<Bullet>,
+    pub bullets: IndexSet,
     pub bodies: RigidBodySet,
     pub colliders: ColliderSet,
     pub joints: JointSet,
@@ -22,7 +22,7 @@ impl Simulation {
     pub fn new() -> Simulation {
         let mut sim = Simulation {
             ships: IndexSet::new(),
-            bullets: vec![],
+            bullets: IndexSet::new(),
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
             joints: JointSet::new(),
@@ -110,7 +110,7 @@ impl Simulation {
             .build();
         self.colliders
             .insert_with_parent(collider, handle, &mut self.bodies);
-        self.bullets.push(Bullet { body: handle });
+        self.bullets.insert(handle.0);
     }
 
     pub fn thrust_main(self: &mut Simulation, body_handle: RigidBodyHandle, force: f64) {
@@ -183,8 +183,4 @@ impl Default for CollisionEventHandler {
     fn default() -> Self {
         CollisionEventHandler::new()
     }
-}
-
-pub struct Bullet {
-    pub body: RigidBodyHandle,
 }
