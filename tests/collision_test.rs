@@ -38,13 +38,13 @@ fn test_head_on_collision() {
     let ship0 = sim.add_ship(-100.0, 0.0, 100.0, 0.0, 0.0);
     let ship1 = sim.add_ship(100.0, 0.0, -100.0, 0.0, 0.0);
 
-    assert!(sim.bodies.get(ship0).unwrap().linvel().x > 0.0);
-    assert!(sim.bodies.get(ship1).unwrap().linvel().x < 0.0);
+    assert!(sim.bodies.get(RigidBodyHandle(ship0)).unwrap().linvel().x > 0.0);
+    assert!(sim.bodies.get(RigidBodyHandle(ship1)).unwrap().linvel().x < 0.0);
 
     for _ in 0..1000 {
         sim.step();
     }
 
-    assert!(sim.bodies.get(ship0).unwrap().linvel().x < 0.0);
-    assert!(sim.bodies.get(ship1).unwrap().linvel().x > 0.0);
+    assert!(sim.bodies.get(RigidBodyHandle(ship0)).unwrap().linvel().x < 0.0);
+    assert!(sim.bodies.get(RigidBodyHandle(ship1)).unwrap().linvel().x > 0.0);
 }

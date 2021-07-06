@@ -1,4 +1,4 @@
-use crate::index_set::IndexSet;
+use crate::index_set::{Index, IndexSet};
 use rapier2d_f64::prelude::*;
 
 pub const WORLD_SIZE: f64 = 1000.0;
@@ -42,12 +42,12 @@ impl Simulation {
                 .translation(vector![x, y])
                 .rotation(a)
                 .build();
-            let handle = sim.bodies.insert(rigid_body);
+            let body_handle = sim.bodies.insert(rigid_body);
             let collider = ColliderBuilder::cuboid(edge_length / 2.0, edge_width / 2.0)
                 .restitution(1.0)
                 .build();
             sim.colliders
-                .insert_with_parent(collider, handle, &mut sim.bodies);
+                .insert_with_parent(collider, body_handle, &mut sim.bodies);
         };
         make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
         make_edge(0.0, -WORLD_SIZE / 2.0, std::f64::consts::PI);
@@ -57,21 +57,14 @@ impl Simulation {
         sim
     }
 
-    pub fn add_ship(
-        self: &mut Simulation,
-        x: f64,
-        y: f64,
-        vx: f64,
-        vy: f64,
-        h: f64,
-    ) -> RigidBodyHandle {
+    pub fn add_ship(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, h: f64) -> Index {
         let rigid_body = RigidBodyBuilder::new_dynamic()
             .translation(vector![x, y])
             .linvel(vector![vx, vy])
             .rotation(h)
             .ccd_enabled(true)
             .build();
-        let handle = self.bodies.insert(rigid_body);
+        let body_handle = self.bodies.insert(rigid_body);
         let vertices = crate::model::ship()
             .iter()
             .map(|&v| point![v.x as f64, v.y as f64])
@@ -82,13 +75,13 @@ impl Simulation {
             .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
             .build();
         self.colliders
-            .insert_with_parent(collider, handle, &mut self.bodies);
-        self.ships.insert(handle.0);
-        handle
+            .insert_with_parent(collider, body_handle, &mut self.bodies);
+        self.ships.insert(body_handle.0);
+        body_handle.0
     }
 
-    pub fn fire_weapon(self: &mut Simulation, body_handle: RigidBodyHandle) {
-        let body = self.bodies.get(body_handle).unwrap();
+    pub fn fire_weapon(self: &mut Simulation, index: Index) {
+        let body = self.bodies.get(RigidBodyHandle(index)).unwrap();
         let x = body.position().translation.x;
         let y = body.position().translation.y;
         let v2 = body.position().rotation.into_inner() * 1000.0;
@@ -103,30 +96,30 @@ impl Simulation {
             .linvel(vector![vx, vy])
             .ccd_enabled(true)
             .build();
-        let handle = self.bodies.insert(rigid_body);
+        let body_handle = self.bodies.insert(rigid_body);
         let collider = ColliderBuilder::ball(1.0)
             .restitution(1.0)
             .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
             .build();
         self.colliders
-            .insert_with_parent(collider, handle, &mut self.bodies);
-        self.bullets.insert(handle.0);
+            .insert_with_parent(collider, body_handle, &mut self.bodies);
+        self.bullets.insert(body_handle.0);
     }
 
-    pub fn thrust_main(self: &mut Simulation, body_handle: RigidBodyHandle, force: f64) {
-        let body = self.bodies.get_mut(body_handle).unwrap();
+    pub fn thrust_main(self: &mut Simulation, index: Index, force: f64) {
+        let body = self.bodies.get_mut(RigidBodyHandle(index)).unwrap();
         let rotation_matrix = body.position().rotation.to_rotation_matrix();
         body.apply_force(rotation_matrix * vector![force, 0.0], true);
     }
 
-    pub fn thrust_lateral(self: &mut Simulation, body_handle: RigidBodyHandle, force: f64) {
-        let body = self.bodies.get_mut(body_handle).unwrap();
+    pub fn thrust_lateral(self: &mut Simulation, index: Index, force: f64) {
+        let body = self.bodies.get_mut(RigidBodyHandle(index)).unwrap();
         let rotation_matrix = body.position().rotation.to_rotation_matrix();
         body.apply_force(rotation_matrix * vector![0.0, force], true);
     }
 
-    pub fn thrust_angular(self: &mut Simulation, body_handle: RigidBodyHandle, torque: f64) {
-        let body = self.bodies.get_mut(body_handle).unwrap();
+    pub fn thrust_angular(self: &mut Simulation, index: Index, torque: f64) {
+        let body = self.bodies.get_mut(RigidBodyHandle(index)).unwrap();
         body.apply_torque(torque, true);
     }
 

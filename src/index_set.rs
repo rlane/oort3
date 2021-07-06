@@ -1,4 +1,4 @@
-use rapier2d_f64::data::arena::Index;
+pub use rapier2d_f64::data::arena::Index;
 use std::collections::HashMap;
 
 pub struct IndexSet {
