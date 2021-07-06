@@ -1,10 +1,10 @@
+use crate::index_set::IndexSet;
 use rapier2d_f64::prelude::*;
-use std::collections::HashMap;
 
 pub const WORLD_SIZE: f64 = 1000.0;
 
 pub struct Simulation {
-    pub ships: HashMap<RigidBodyHandle, Ship>,
+    pub ships: IndexSet,
     pub bullets: Vec<Bullet>,
     pub bodies: RigidBodySet,
     pub colliders: ColliderSet,
@@ -21,7 +21,7 @@ pub struct Simulation {
 impl Simulation {
     pub fn new() -> Simulation {
         let mut sim = Simulation {
-            ships: HashMap::new(),
+            ships: IndexSet::new(),
             bullets: vec![],
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
@@ -83,7 +83,7 @@ impl Simulation {
             .build();
         self.colliders
             .insert_with_parent(collider, handle, &mut self.bodies);
-        self.ships.insert(handle, Ship { body: handle });
+        self.ships.insert(handle.0);
         handle
     }
 
@@ -182,31 +182,6 @@ impl EventHandler for CollisionEventHandler {
 impl Default for CollisionEventHandler {
     fn default() -> Self {
         CollisionEventHandler::new()
-    }
-}
-
-pub struct Ship {
-    pub body: RigidBodyHandle,
-}
-
-impl Ship {
-    pub fn position(self: &Ship, sim: &Simulation) -> Translation<Real> {
-        let body = sim.bodies.get(self.body).unwrap();
-        body.position().translation
-    }
-
-    pub fn velocity(self: &Ship, sim: &Simulation) -> Vector<Real> {
-        let body = sim.bodies.get(self.body).unwrap();
-        *body.linvel()
-    }
-
-    pub fn rotation(self: &Ship, sim: &Simulation) -> Rotation<Real> {
-        let body = sim.bodies.get(self.body).unwrap();
-        body.position().rotation
-    }
-
-    pub fn heading(self: &Ship, sim: &Simulation) -> f64 {
-        self.rotation(sim).angle()
     }
 }
 

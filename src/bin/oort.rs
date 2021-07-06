@@ -46,7 +46,7 @@ async fn main() {
             }
         }
 
-        let ship_handle = sim.ships[&ship0].body;
+        let ship_handle = ship0;
         let force = 1e4;
         if input::is_key_down(KeyCode::Up) {
             sim.thrust_main(ship_handle, force);
