@@ -1,12 +1,8 @@
-mod frame_timer;
-mod model;
-mod renderer;
-mod simulation;
-
 use macroquad::input::KeyCode;
 use macroquad::math::vec2;
 use macroquad::{audio, camera, color, input, rand, text, window};
-use simulation::WORLD_SIZE;
+use oort::simulation::WORLD_SIZE;
+use oort::{frame_timer, renderer, simulation};
 
 #[macroquad::main("Oort")]
 async fn main() {

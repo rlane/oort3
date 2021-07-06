@@ -1,3 +1,4 @@
+use macroquad::math::{vec2, Vec2};
 use rapier2d_f64::prelude::*;
 
 pub const WORLD_SIZE: f32 = 1000.0;
@@ -119,4 +120,12 @@ impl EventHandler for CollisionEventHandler {
 
 pub struct Ship {
     pub body: RigidBodyHandle,
+}
+
+impl Ship {
+    pub fn position(self: &Ship, sim: &Simulation) -> Vec2 {
+        let body = sim.bodies.get(self.body).unwrap();
+        let translation = body.position().translation;
+        vec2(translation.x as f32, translation.y as f32)
+    }
 }
