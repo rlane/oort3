@@ -5,6 +5,7 @@ pub const WORLD_SIZE: f32 = 1000.0;
 
 pub struct Simulation {
     pub ships: Vec<Ship>,
+    pub bullets: Vec<Bullet>,
     pub bodies: RigidBodySet,
     pub colliders: ColliderSet,
     pub joints: JointSet,
@@ -21,6 +22,7 @@ impl Simulation {
     pub fn new() -> Simulation {
         let mut sim = Simulation {
             ships: vec![],
+            bullets: vec![],
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
             joints: JointSet::new(),
@@ -74,6 +76,31 @@ impl Simulation {
         self.colliders
             .insert_with_parent(collider, handle, &mut self.bodies);
         self.ships.push(Ship { body: handle });
+    }
+
+    pub fn fire_weapon(self: &mut Simulation, body_handle: RigidBodyHandle) {
+        let body = self.bodies.get(body_handle).unwrap();
+        let x = body.position().translation.x;
+        let y = body.position().translation.y;
+        let v2 = body.position().rotation.into_inner() * 100.0;
+        let vx = body.linvel().x + v2.re;
+        let vy = body.linvel().y + v2.im;
+        self.add_bullet(x as f32, y as f32, vx as f32, vy as f32);
+    }
+
+    pub fn add_bullet(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32) {
+        let rigid_body = RigidBodyBuilder::new_dynamic()
+            .translation(vector![x.into(), y.into()])
+            .linvel(vector![vx.into(), vy.into()])
+            .build();
+        let handle = self.bodies.insert(rigid_body);
+        let collider = ColliderBuilder::ball(1.0)
+            .restitution(1.0)
+            .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+            .build();
+        self.colliders
+            .insert_with_parent(collider, handle, &mut self.bodies);
+        self.bullets.push(Bullet { body: handle });
     }
 
     pub fn step(self: &mut Simulation) {
@@ -147,4 +174,17 @@ impl Ship {
         let v = body.linvel();
         vec2(v.x as f32, v.y as f32)
     }
+
+    pub fn rotation(self: &Ship, sim: &Simulation) -> Rotation<Real> {
+        let body = sim.bodies.get(self.body).unwrap();
+        body.position().rotation
+    }
+
+    pub fn heading(self: &Ship, sim: &Simulation) -> f32 {
+        self.rotation(sim).angle() as f32
+    }
+}
+
+pub struct Bullet {
+    pub body: RigidBodyHandle,
 }

@@ -45,6 +45,9 @@ async fn main() {
                 println!("{}: {:.1}/{:.1}/{:.1} ms", name, a * 1e3, b * 1e3, c * 1e3);
             }
         }
+        if input::is_key_pressed(KeyCode::F) {
+            sim.fire_weapon(sim.ships[0].body);
+        }
 
         frame_timer.start("simulate");
         sim.step();

@@ -57,4 +57,11 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
             .collect::<Vec<_>>();
         shapes::draw_triangle(vertices[0], vertices[1], vertices[2], color::YELLOW);
     }
+
+    for bullet in &sim.bullets {
+        let body = sim.bodies.get(bullet.body).unwrap();
+        let x = body.position().translation.x as f32;
+        let y = body.position().translation.y as f32;
+        shapes::draw_circle(x, y, 1.0, color::ORANGE);
+    }
 }
