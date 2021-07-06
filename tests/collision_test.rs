@@ -11,9 +11,10 @@ fn test_world_edge() {
         let r = rand::gen_range(10.0, 20.0);
         let x = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
         let y = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
+        let h = rand::gen_range(0.0, 2.0 * std::f32::consts::PI);
         let vx = rand::gen_range(-s, s);
         let vy = rand::gen_range(-s, s);
-        sim.add_ship(x, y, vx, vy);
+        sim.add_ship(x, y, vx, vy, h);
     }
 
     for _ in 0..1000 {
@@ -32,8 +33,8 @@ fn test_world_edge() {
 fn test_head_on_collision() {
     let mut sim = simulation::Simulation::new();
 
-    sim.add_ship(-100.0, 0.0, 100.0, 0.0);
-    sim.add_ship(100.0, 0.0, -100.0, 0.0);
+    sim.add_ship(-100.0, 0.0, 100.0, 0.0, 0.0);
+    sim.add_ship(100.0, 0.0, -100.0, 0.0, 0.0);
 
     assert!(sim.ships[0].velocity(&sim).x > 0.0);
     assert!(sim.ships[1].velocity(&sim).x < 0.0);

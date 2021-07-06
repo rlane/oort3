@@ -1,7 +1,6 @@
 use macroquad::input::KeyCode;
 use macroquad::math::vec2;
-use macroquad::{audio, camera, color, input, rand, text, window};
-use oort::simulation::WORLD_SIZE;
+use macroquad::{audio, camera, color, input, text, window};
 use oort::{frame_timer, renderer, simulation};
 
 #[macroquad::main("Oort")]
@@ -12,15 +11,8 @@ async fn main() {
     let mut camera_target = vec2(0.0, 0.0);
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
 
-    for _ in 0..100 {
-        let s = 500.0;
-        let r = rand::gen_range(10.0, 20.0);
-        let x = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
-        let y = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
-        let vx = rand::gen_range(-s, s);
-        let vy = rand::gen_range(-s, s);
-        sim.add_ship(x, y, vx, vy);
-    }
+    sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
+    sim.add_ship(100.0, 0.0, 0.0, 0.0, std::f32::consts::PI);
 
     loop {
         frame_timer.start("frame");

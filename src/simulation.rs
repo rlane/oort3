@@ -55,10 +55,11 @@ impl Simulation {
         sim
     }
 
-    pub fn add_ship(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32) {
+    pub fn add_ship(self: &mut Simulation, x: f32, y: f32, vx: f32, vy: f32, h: f32) {
         let rigid_body = RigidBodyBuilder::new_dynamic()
             .translation(vector![x.into(), y.into()])
             .linvel(vector![vx.into(), vy.into()])
+            .rotation(h as f64)
             .build();
         let handle = self.bodies.insert(rigid_body);
         let vertices = crate::model::ship()
