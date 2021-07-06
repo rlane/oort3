@@ -21,7 +21,7 @@ fn test_world_edge() {
         sim.step();
     }
 
-    for ship in &sim.ships {
+    for (_, ship) in &sim.ships {
         assert!(ship.position(&sim).x >= -WORLD_SIZE / 2.0);
         assert!(ship.position(&sim).x <= WORLD_SIZE / 2.0);
         assert!(ship.position(&sim).y >= -WORLD_SIZE / 2.0);
@@ -33,16 +33,16 @@ fn test_world_edge() {
 fn test_head_on_collision() {
     let mut sim = simulation::Simulation::new();
 
-    sim.add_ship(-100.0, 0.0, 100.0, 0.0, 0.0);
-    sim.add_ship(100.0, 0.0, -100.0, 0.0, 0.0);
+    let ship0 = sim.add_ship(-100.0, 0.0, 100.0, 0.0, 0.0);
+    let ship1 = sim.add_ship(100.0, 0.0, -100.0, 0.0, 0.0);
 
-    assert!(sim.ships[0].velocity(&sim).x > 0.0);
-    assert!(sim.ships[1].velocity(&sim).x < 0.0);
+    assert!(sim.ships[&ship0].velocity(&sim).x > 0.0);
+    assert!(sim.ships[&ship1].velocity(&sim).x < 0.0);
 
     for _ in 0..1000 {
         sim.step();
     }
 
-    assert!(sim.ships[0].velocity(&sim).x < 0.0);
-    assert!(sim.ships[1].velocity(&sim).x > 0.0);
+    assert!(sim.ships[&ship0].velocity(&sim).x < 0.0);
+    assert!(sim.ships[&ship1].velocity(&sim).x > 0.0);
 }

@@ -1,9 +1,10 @@
 use rapier2d_f64::prelude::*;
+use std::collections::HashMap;
 
 pub const WORLD_SIZE: f64 = 1000.0;
 
 pub struct Simulation {
-    pub ships: Vec<Ship>,
+    pub ships: HashMap<RigidBodyHandle, Ship>,
     pub bullets: Vec<Bullet>,
     pub bodies: RigidBodySet,
     pub colliders: ColliderSet,
@@ -20,7 +21,7 @@ pub struct Simulation {
 impl Simulation {
     pub fn new() -> Simulation {
         let mut sim = Simulation {
-            ships: vec![],
+            ships: HashMap::new(),
             bullets: vec![],
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
@@ -56,7 +57,14 @@ impl Simulation {
         sim
     }
 
-    pub fn add_ship(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, h: f64) {
+    pub fn add_ship(
+        self: &mut Simulation,
+        x: f64,
+        y: f64,
+        vx: f64,
+        vy: f64,
+        h: f64,
+    ) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::new_dynamic()
             .translation(vector![x, y])
             .linvel(vector![vx, vy])
@@ -75,7 +83,8 @@ impl Simulation {
             .build();
         self.colliders
             .insert_with_parent(collider, handle, &mut self.bodies);
-        self.ships.push(Ship { body: handle });
+        self.ships.insert(handle, Ship { body: handle });
+        handle
     }
 
     pub fn fire_weapon(self: &mut Simulation, body_handle: RigidBodyHandle) {

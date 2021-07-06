@@ -53,7 +53,7 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
         shapes::draw_line(x, y, x - vx * dt, y - vy * dt, 1.0, color::ORANGE);
     }
 
-    for ship in &sim.ships {
+    for ship in sim.ships.values() {
         let body = sim.bodies.get(ship.body).unwrap();
         let x = body.position().translation.x as f32;
         let y = body.position().translation.y as f32;

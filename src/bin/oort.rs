@@ -11,7 +11,7 @@ async fn main() {
     let mut camera_target = vec2(0.0, 0.0);
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
 
-    sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
+    let ship0 = sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
     sim.add_ship(100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
 
     loop {
@@ -46,7 +46,7 @@ async fn main() {
             }
         }
 
-        let ship_handle = sim.ships[0].body;
+        let ship_handle = sim.ships[&ship0].body;
         let force = 1e4;
         if input::is_key_down(KeyCode::Up) {
             sim.thrust_main(ship_handle, force);
@@ -69,7 +69,7 @@ async fn main() {
             }
         }
         if input::is_key_pressed(KeyCode::F) {
-            sim.fire_weapon(sim.ships[0].body);
+            sim.fire_weapon(ship_handle);
         }
 
         frame_timer.start("simulate");
