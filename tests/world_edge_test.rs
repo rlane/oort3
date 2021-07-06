@@ -21,5 +21,8 @@ fn test_world_edge() {
 
     for ship in &sim.ships {
         assert!(ship.position(&sim).x >= -WORLD_SIZE / 2.0);
+        assert!(ship.position(&sim).x <= WORLD_SIZE / 2.0);
+        assert!(ship.position(&sim).y >= -WORLD_SIZE / 2.0);
+        assert!(ship.position(&sim).y <= WORLD_SIZE / 2.0);
     }
 }
