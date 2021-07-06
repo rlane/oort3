@@ -95,6 +95,12 @@ impl Simulation {
     }
 }
 
+impl Default for Simulation {
+    fn default() -> Self {
+        Simulation::new()
+    }
+}
+
 pub struct CollisionEventHandler {
     pub collision: crossbeam::atomic::AtomicCell<bool>,
 }
@@ -115,6 +121,12 @@ impl EventHandler for CollisionEventHandler {
             self.collision.store(true);
             //println!("Collision: {:?}", event);
         }
+    }
+}
+
+impl Default for CollisionEventHandler {
+    fn default() -> Self {
+        CollisionEventHandler::new()
     }
 }
 
