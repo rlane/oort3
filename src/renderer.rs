@@ -43,6 +43,16 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
         shapes::draw_line(v, -v, v, v, 1.0, color::RED);
     }
 
+    for bullet in &sim.bullets {
+        let body = sim.bodies.get(bullet.body).unwrap();
+        let x = body.position().translation.x as f32;
+        let y = body.position().translation.y as f32;
+        let vx = body.linvel().x as f32;
+        let vy = body.linvel().y as f32;
+        let dt = 2.0 / 60.0;
+        shapes::draw_line(x, y, x - vx * dt, y - vy * dt, 1.0, color::ORANGE);
+    }
+
     for ship in &sim.ships {
         let body = sim.bodies.get(ship.body).unwrap();
         let x = body.position().translation.x as f32;
@@ -56,12 +66,5 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
             .map(|&v| translation + matrix.mul_vec2(v))
             .collect::<Vec<_>>();
         shapes::draw_triangle(vertices[0], vertices[1], vertices[2], color::YELLOW);
-    }
-
-    for bullet in &sim.bullets {
-        let body = sim.bodies.get(bullet.body).unwrap();
-        let x = body.position().translation.x as f32;
-        let y = body.position().translation.y as f32;
-        shapes::draw_circle(x, y, 1.0, color::ORANGE);
     }
 }
