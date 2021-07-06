@@ -140,4 +140,10 @@ impl Ship {
         let translation = body.position().translation;
         vec2(translation.x as f32, translation.y as f32)
     }
+
+    pub fn velocity(self: &Ship, sim: &Simulation) -> Vec2 {
+        let body = sim.bodies.get(self.body).unwrap();
+        let v = body.linvel();
+        vec2(v.x as f32, v.y as f32)
+    }
 }

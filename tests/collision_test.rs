@@ -1,4 +1,5 @@
 use macroquad::rand;
+use oort::simulation;
 use oort::simulation::WORLD_SIZE;
 
 #[test]
@@ -25,4 +26,22 @@ fn test_world_edge() {
         assert!(ship.position(&sim).y >= -WORLD_SIZE / 2.0);
         assert!(ship.position(&sim).y <= WORLD_SIZE / 2.0);
     }
+}
+
+#[test]
+fn test_head_on_collision() {
+    let mut sim = simulation::Simulation::new();
+
+    sim.add_ship(-100.0, 0.0, 100.0, 0.0);
+    sim.add_ship(100.0, 0.0, -100.0, 0.0);
+
+    assert!(sim.ships[0].velocity(&sim).x > 0.0);
+    assert!(sim.ships[1].velocity(&sim).x < 0.0);
+
+    for _ in 0..1000 {
+        sim.step();
+    }
+
+    assert!(sim.ships[0].velocity(&sim).x < 0.0);
+    assert!(sim.ships[1].velocity(&sim).x > 0.0);
 }
