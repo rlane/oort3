@@ -3,6 +3,10 @@ use rapier2d_f64::prelude::*;
 
 pub const WORLD_SIZE: f64 = 1000.0;
 
+const WALL_COLLISION_GROUP: u32 = 0;
+const SHIP_COLLISION_GROUP: u32 = 1;
+const BULLET_COLLISION_GROUP: u32 = 2;
+
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
     pub bullets: IndexSet<BulletHandle>,
@@ -45,6 +49,10 @@ impl Simulation {
             let body_handle = sim.bodies.insert(rigid_body);
             let collider = ColliderBuilder::cuboid(edge_length / 2.0, edge_width / 2.0)
                 .restitution(1.0)
+                .collision_groups(InteractionGroups::new(
+                    1 << WALL_COLLISION_GROUP,
+                    1 << SHIP_COLLISION_GROUP | 1 << BULLET_COLLISION_GROUP,
+                ))
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
@@ -73,6 +81,10 @@ impl Simulation {
             .unwrap()
             .restitution(1.0)
             .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+            .collision_groups(InteractionGroups::new(
+                1 << SHIP_COLLISION_GROUP,
+                1 << WALL_COLLISION_GROUP | 1 << SHIP_COLLISION_GROUP | 1 << BULLET_COLLISION_GROUP,
+            ))
             .build();
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies);
@@ -108,6 +120,10 @@ impl Simulation {
         let collider = ColliderBuilder::ball(1.0)
             .restitution(1.0)
             .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+            .collision_groups(InteractionGroups::new(
+                1 << BULLET_COLLISION_GROUP,
+                1 << WALL_COLLISION_GROUP | 1 << SHIP_COLLISION_GROUP,
+            ))
             .build();
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies);
