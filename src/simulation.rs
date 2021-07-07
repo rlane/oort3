@@ -1,6 +1,6 @@
 use crate::bullet::{BulletAccessor, BulletHandle};
 use crate::index_set::{HasIndex, IndexSet};
-use crate::ship::{ShipAccessor, ShipHandle};
+use crate::ship::{ShipAccessor, ShipAccessorMut, ShipHandle};
 use rapier2d_f64::prelude::*;
 
 pub const WORLD_SIZE: f64 = 1000.0;
@@ -102,6 +102,13 @@ impl Simulation {
         }
     }
 
+    pub fn ship_mut(self: &mut Simulation, handle: ShipHandle) -> ShipAccessorMut {
+        ShipAccessorMut {
+            simulation: self,
+            handle,
+        }
+    }
+
     pub fn fire_weapon(self: &mut Simulation, handle: ShipHandle) {
         let body = self.bodies.get(RigidBodyHandle(handle.index())).unwrap();
         let x = body.position().translation.x;
@@ -137,32 +144,6 @@ impl Simulation {
             simulation: self,
             handle,
         }
-    }
-
-    pub fn thrust_main(self: &mut Simulation, handle: ShipHandle, force: f64) {
-        let body = self
-            .bodies
-            .get_mut(RigidBodyHandle(handle.index()))
-            .unwrap();
-        let rotation_matrix = body.position().rotation.to_rotation_matrix();
-        body.apply_force(rotation_matrix * vector![force, 0.0], true);
-    }
-
-    pub fn thrust_lateral(self: &mut Simulation, handle: ShipHandle, force: f64) {
-        let body = self
-            .bodies
-            .get_mut(RigidBodyHandle(handle.index()))
-            .unwrap();
-        let rotation_matrix = body.position().rotation.to_rotation_matrix();
-        body.apply_force(rotation_matrix * vector![0.0, force], true);
-    }
-
-    pub fn thrust_angular(self: &mut Simulation, handle: ShipHandle, torque: f64) {
-        let body = self
-            .bodies
-            .get_mut(RigidBodyHandle(handle.index()))
-            .unwrap();
-        body.apply_torque(torque, true);
     }
 
     pub fn step(self: &mut Simulation) {

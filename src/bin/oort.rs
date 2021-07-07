@@ -65,23 +65,23 @@ async fn main() {
             let ship_handle = ship0;
             let force = 1e4;
             if input::is_key_down(KeyCode::Up) {
-                sim.thrust_main(ship_handle, force);
+                sim.ship_mut(ship_handle).thrust_main(force);
             }
             if input::is_key_down(KeyCode::Down) {
-                sim.thrust_main(ship_handle, -force);
+                sim.ship_mut(ship_handle).thrust_main(-force);
             }
             if input::is_key_down(KeyCode::Left) {
                 if input::is_key_down(KeyCode::LeftShift) {
-                    sim.thrust_lateral(ship_handle, force);
+                    sim.ship_mut(ship_handle).thrust_lateral(force);
                 } else {
-                    sim.thrust_angular(ship_handle, force);
+                    sim.ship_mut(ship_handle).thrust_angular(force);
                 }
             }
             if input::is_key_down(KeyCode::Right) {
                 if input::is_key_down(KeyCode::LeftShift) {
-                    sim.thrust_lateral(ship_handle, -force);
+                    sim.ship_mut(ship_handle).thrust_lateral(-force);
                 } else {
-                    sim.thrust_angular(ship_handle, -force);
+                    sim.ship_mut(ship_handle).thrust_angular(-force);
                 }
             }
             if input::is_key_pressed(KeyCode::F) {
