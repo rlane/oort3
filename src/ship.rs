@@ -104,6 +104,6 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let speed = 1000.0;
         let v2 = body.position().rotation.into_inner() * speed;
         let v = body.linvel() + vector![v2.re, v2.im];
-        self.simulation.add_bullet(x, y, v.x, v.y);
+        crate::bullet::create(&mut self.simulation, x, y, v.x, v.y);
     }
 }
