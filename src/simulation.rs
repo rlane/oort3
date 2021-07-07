@@ -1,4 +1,5 @@
-use crate::index_set::{HasIndex, Index, IndexSet};
+use crate::bullet::{BulletAccessor, BulletHandle};
+use crate::index_set::{HasIndex, IndexSet};
 use crate::ship::{ShipAccessor, ShipHandle};
 use rapier2d_f64::prelude::*;
 
@@ -187,29 +188,6 @@ impl Simulation {
 impl Default for Simulation {
     fn default() -> Self {
         Simulation::new()
-    }
-}
-
-#[derive(Hash, PartialEq, Eq, Copy, Clone)]
-pub struct BulletHandle(pub Index);
-
-impl HasIndex for BulletHandle {
-    fn index(self) -> Index {
-        self.0
-    }
-}
-
-pub struct BulletAccessor<'a> {
-    simulation: &'a Simulation,
-    handle: BulletHandle,
-}
-
-impl<'a> BulletAccessor<'a> {
-    pub fn body(&self) -> &'a RigidBody {
-        self.simulation
-            .bodies
-            .get(RigidBodyHandle(self.handle.index()))
-            .unwrap()
     }
 }
 
