@@ -46,6 +46,11 @@ async fn main() {
                 let (a, b, c) = frame_timer.get(name);
                 println!("{}: {:.1}/{:.1}/{:.1} ms", name, a * 1e3, b * 1e3, c * 1e3);
             }
+            println!(
+                "Number of: ships={} bullets={}",
+                sim.ships.iter().count(),
+                sim.bullets.iter().count()
+            );
         }
         if input::is_key_pressed(KeyCode::Space) {
             paused = !paused;
@@ -80,6 +85,9 @@ async fn main() {
                 }
             }
             if input::is_key_pressed(KeyCode::F) {
+                sim.fire_weapon(ship_handle);
+            }
+            if input::is_key_down(KeyCode::LeftShift) && input::is_key_down(KeyCode::F) {
                 sim.fire_weapon(ship_handle);
             }
         }
