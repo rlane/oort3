@@ -5,15 +5,15 @@ use rapier2d_f64::prelude::*;
 
 pub const WORLD_SIZE: f64 = 1000.0;
 
-const WALL_COLLISION_GROUP: u32 = 0;
-const SHIP_COLLISION_GROUP: u32 = 1;
-const BULLET_COLLISION_GROUP: u32 = 2;
+pub(crate) const WALL_COLLISION_GROUP: u32 = 0;
+pub(crate) const SHIP_COLLISION_GROUP: u32 = 1;
+pub(crate) const BULLET_COLLISION_GROUP: u32 = 2;
 
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
     pub bullets: IndexSet<BulletHandle>,
     pub(crate) bodies: RigidBodySet,
-    colliders: ColliderSet,
+    pub(crate) colliders: ColliderSet,
     joints: JointSet,
     pub collision_event_handler: CollisionEventHandler,
     integration_parameters: IntegrationParameters,
@@ -65,34 +65,6 @@ impl Simulation {
         make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
 
         sim
-    }
-
-    pub fn add_ship(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, h: f64) -> ShipHandle {
-        let rigid_body = RigidBodyBuilder::new_dynamic()
-            .translation(vector![x, y])
-            .linvel(vector![vx, vy])
-            .rotation(h)
-            .ccd_enabled(true)
-            .build();
-        let body_handle = self.bodies.insert(rigid_body);
-        let vertices = crate::model::ship()
-            .iter()
-            .map(|&v| point![v.x as f64, v.y as f64])
-            .collect::<Vec<_>>();
-        let collider = ColliderBuilder::convex_hull(&vertices)
-            .unwrap()
-            .restitution(1.0)
-            .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-            .collision_groups(InteractionGroups::new(
-                1 << SHIP_COLLISION_GROUP,
-                1 << WALL_COLLISION_GROUP | 1 << SHIP_COLLISION_GROUP | 1 << BULLET_COLLISION_GROUP,
-            ))
-            .build();
-        self.colliders
-            .insert_with_parent(collider, body_handle, &mut self.bodies);
-        let handle = ShipHandle(body_handle.0);
-        self.ships.insert(handle);
-        handle
     }
 
     pub fn ship(self: &Simulation, handle: ShipHandle) -> ShipAccessor {

@@ -4,8 +4,8 @@ use oort::simulation;
 fn test_hit() {
     let mut sim = simulation::Simulation::new();
 
-    let ship0 = sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
-    let ship1 = sim.add_ship(100.0, 0.0, 0.0, 0.0, 0.1);
+    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0);
+    let ship1 = oort::ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1);
 
     assert_eq!(sim.ship(ship0).velocity().magnitude(), 0.0);
     assert_eq!(sim.ship(ship1).velocity().magnitude(), 0.0);

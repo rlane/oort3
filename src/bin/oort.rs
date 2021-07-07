@@ -13,8 +13,8 @@ async fn main() {
     let mut paused = false;
     let mut single_steps = 0;
 
-    let ship0 = sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
-    sim.add_ship(100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
+    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0);
+    oort::ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
 
     loop {
         frame_timer.start("frame");
