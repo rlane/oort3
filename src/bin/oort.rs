@@ -10,6 +10,8 @@ async fn main() {
     let mut zoom = 0.001;
     let mut camera_target = vec2(0.0, 0.0);
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
+    let mut paused = false;
+    let mut single_steps = 0;
 
     let ship0 = sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
     sim.add_ship(100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
@@ -45,36 +47,51 @@ async fn main() {
                 println!("{}: {:.1}/{:.1}/{:.1} ms", name, a * 1e3, b * 1e3, c * 1e3);
             }
         }
-
-        let ship_handle = ship0;
-        let force = 1e4;
-        if input::is_key_down(KeyCode::Up) {
-            sim.thrust_main(ship_handle, force);
+        if input::is_key_pressed(KeyCode::Space) {
+            paused = !paused;
+            single_steps = 0;
         }
-        if input::is_key_down(KeyCode::Down) {
-            sim.thrust_main(ship_handle, -force);
-        }
-        if input::is_key_down(KeyCode::Left) {
-            if input::is_key_down(KeyCode::LeftShift) {
-                sim.thrust_lateral(ship_handle, force);
-            } else {
-                sim.thrust_angular(ship_handle, force);
-            }
-        }
-        if input::is_key_down(KeyCode::Right) {
-            if input::is_key_down(KeyCode::LeftShift) {
-                sim.thrust_lateral(ship_handle, -force);
-            } else {
-                sim.thrust_angular(ship_handle, -force);
-            }
-        }
-        if input::is_key_pressed(KeyCode::F) {
-            sim.fire_weapon(ship_handle);
+        if input::is_key_pressed(KeyCode::N) {
+            paused = true;
+            single_steps += 1;
         }
 
-        frame_timer.start("simulate");
-        sim.step();
-        frame_timer.end("simulate");
+        if !paused {
+            let ship_handle = ship0;
+            let force = 1e4;
+            if input::is_key_down(KeyCode::Up) {
+                sim.thrust_main(ship_handle, force);
+            }
+            if input::is_key_down(KeyCode::Down) {
+                sim.thrust_main(ship_handle, -force);
+            }
+            if input::is_key_down(KeyCode::Left) {
+                if input::is_key_down(KeyCode::LeftShift) {
+                    sim.thrust_lateral(ship_handle, force);
+                } else {
+                    sim.thrust_angular(ship_handle, force);
+                }
+            }
+            if input::is_key_down(KeyCode::Right) {
+                if input::is_key_down(KeyCode::LeftShift) {
+                    sim.thrust_lateral(ship_handle, -force);
+                } else {
+                    sim.thrust_angular(ship_handle, -force);
+                }
+            }
+            if input::is_key_pressed(KeyCode::F) {
+                sim.fire_weapon(ship_handle);
+            }
+        }
+
+        if !paused || single_steps > 0 {
+            frame_timer.start("simulate");
+            sim.step();
+            frame_timer.end("simulate");
+            if single_steps > 0 {
+                single_steps -= 1;
+            }
+        }
 
         frame_timer.start("render");
         renderer::render(camera_target, zoom, &sim);
@@ -100,6 +117,16 @@ async fn main() {
                 .as_str(),
                 window::screen_width() - 400.0,
                 20.0,
+                32.0,
+                color::WHITE,
+            );
+        }
+
+        if paused {
+            text::draw_text(
+                "PAUSED",
+                window::screen_width() / 2.0 - 96.0,
+                window::screen_height() - 30.0,
                 32.0,
                 color::WHITE,
             );
