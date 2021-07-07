@@ -1,4 +1,5 @@
 use crate::index_set::{HasIndex, Index, IndexSet};
+use crate::ship::{ShipAccessor, ShipHandle};
 use rapier2d_f64::prelude::*;
 
 pub const WORLD_SIZE: f64 = 1000.0;
@@ -10,7 +11,7 @@ const BULLET_COLLISION_GROUP: u32 = 2;
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
     pub bullets: IndexSet<BulletHandle>,
-    bodies: RigidBodySet,
+    pub(crate) bodies: RigidBodySet,
     colliders: ColliderSet,
     joints: JointSet,
     pub collision_event_handler: CollisionEventHandler,
@@ -186,41 +187,6 @@ impl Simulation {
 impl Default for Simulation {
     fn default() -> Self {
         Simulation::new()
-    }
-}
-
-#[derive(Hash, PartialEq, Eq, Copy, Clone)]
-pub struct ShipHandle(pub Index);
-
-impl HasIndex for ShipHandle {
-    fn index(self) -> Index {
-        self.0
-    }
-}
-
-pub struct ShipAccessor<'a> {
-    simulation: &'a Simulation,
-    handle: ShipHandle,
-}
-
-impl<'a> ShipAccessor<'a> {
-    pub fn body(&self) -> &'a RigidBody {
-        self.simulation
-            .bodies
-            .get(RigidBodyHandle(self.handle.index()))
-            .unwrap()
-    }
-
-    pub fn position(&self) -> Translation<Real> {
-        self.body().position().translation
-    }
-
-    pub fn velocity(&self) -> Vector<Real> {
-        *self.body().linvel()
-    }
-
-    pub fn heading(&self) -> Real {
-        self.body().rotation().angle()
     }
 }
 
