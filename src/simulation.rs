@@ -1,11 +1,11 @@
-use crate::index_set::{Index, IndexSet};
+use crate::index_set::{HasIndex, Index, IndexSet};
 use rapier2d_f64::prelude::*;
 
 pub const WORLD_SIZE: f64 = 1000.0;
 
 pub struct Simulation {
-    pub ships: IndexSet,
-    pub bullets: IndexSet,
+    pub ships: IndexSet<ShipHandle>,
+    pub bullets: IndexSet<BulletHandle>,
     bodies: RigidBodySet,
     colliders: ColliderSet,
     joints: JointSet,
@@ -57,7 +57,7 @@ impl Simulation {
         sim
     }
 
-    pub fn add_ship(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, h: f64) -> Index {
+    pub fn add_ship(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, h: f64) -> ShipHandle {
         let rigid_body = RigidBodyBuilder::new_dynamic()
             .translation(vector![x, y])
             .linvel(vector![vx, vy])
@@ -76,19 +76,20 @@ impl Simulation {
             .build();
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies);
-        self.ships.insert(body_handle.0);
-        body_handle.0
+        let handle = ShipHandle(body_handle.0);
+        self.ships.insert(handle);
+        handle
     }
 
-    pub fn ship(self: &Simulation, index: Index) -> ShipAccessor {
+    pub fn ship(self: &Simulation, handle: ShipHandle) -> ShipAccessor {
         ShipAccessor {
             simulation: self,
-            index,
+            handle,
         }
     }
 
-    pub fn fire_weapon(self: &mut Simulation, index: Index) {
-        let body = self.bodies.get(RigidBodyHandle(index)).unwrap();
+    pub fn fire_weapon(self: &mut Simulation, handle: ShipHandle) {
+        let body = self.bodies.get(RigidBodyHandle(handle.index())).unwrap();
         let x = body.position().translation.x;
         let y = body.position().translation.y;
         let v2 = body.position().rotation.into_inner() * 1000.0;
@@ -110,30 +111,39 @@ impl Simulation {
             .build();
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies);
-        self.bullets.insert(body_handle.0);
+        self.bullets.insert(BulletHandle(body_handle.0));
     }
 
-    pub fn bullet(self: &Simulation, index: Index) -> BulletAccessor {
+    pub fn bullet(self: &Simulation, handle: BulletHandle) -> BulletAccessor {
         BulletAccessor {
             simulation: self,
-            index,
+            handle,
         }
     }
 
-    pub fn thrust_main(self: &mut Simulation, index: Index, force: f64) {
-        let body = self.bodies.get_mut(RigidBodyHandle(index)).unwrap();
+    pub fn thrust_main(self: &mut Simulation, handle: ShipHandle, force: f64) {
+        let body = self
+            .bodies
+            .get_mut(RigidBodyHandle(handle.index()))
+            .unwrap();
         let rotation_matrix = body.position().rotation.to_rotation_matrix();
         body.apply_force(rotation_matrix * vector![force, 0.0], true);
     }
 
-    pub fn thrust_lateral(self: &mut Simulation, index: Index, force: f64) {
-        let body = self.bodies.get_mut(RigidBodyHandle(index)).unwrap();
+    pub fn thrust_lateral(self: &mut Simulation, handle: ShipHandle, force: f64) {
+        let body = self
+            .bodies
+            .get_mut(RigidBodyHandle(handle.index()))
+            .unwrap();
         let rotation_matrix = body.position().rotation.to_rotation_matrix();
         body.apply_force(rotation_matrix * vector![0.0, force], true);
     }
 
-    pub fn thrust_angular(self: &mut Simulation, index: Index, torque: f64) {
-        let body = self.bodies.get_mut(RigidBodyHandle(index)).unwrap();
+    pub fn thrust_angular(self: &mut Simulation, handle: ShipHandle, torque: f64) {
+        let body = self
+            .bodies
+            .get_mut(RigidBodyHandle(handle.index()))
+            .unwrap();
         body.apply_torque(torque, true);
     }
 
@@ -163,16 +173,25 @@ impl Default for Simulation {
     }
 }
 
+#[derive(Hash, PartialEq, Eq, Copy, Clone)]
+pub struct ShipHandle(pub Index);
+
+impl HasIndex for ShipHandle {
+    fn index(self) -> Index {
+        self.0
+    }
+}
+
 pub struct ShipAccessor<'a> {
     simulation: &'a Simulation,
-    index: Index,
+    handle: ShipHandle,
 }
 
 impl<'a> ShipAccessor<'a> {
     pub fn body(&self) -> &'a RigidBody {
         self.simulation
             .bodies
-            .get(RigidBodyHandle(self.index))
+            .get(RigidBodyHandle(self.handle.index()))
             .unwrap()
     }
 
@@ -189,16 +208,25 @@ impl<'a> ShipAccessor<'a> {
     }
 }
 
+#[derive(Hash, PartialEq, Eq, Copy, Clone)]
+pub struct BulletHandle(pub Index);
+
+impl HasIndex for BulletHandle {
+    fn index(self) -> Index {
+        self.0
+    }
+}
+
 pub struct BulletAccessor<'a> {
     simulation: &'a Simulation,
-    index: Index,
+    handle: BulletHandle,
 }
 
 impl<'a> BulletAccessor<'a> {
     pub fn body(&self) -> &'a RigidBody {
         self.simulation
             .bodies
-            .get(RigidBodyHandle(self.index))
+            .get(RigidBodyHandle(self.handle.index()))
             .unwrap()
     }
 }

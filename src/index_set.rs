@@ -1,65 +1,80 @@
 pub use rapier2d_f64::data::arena::Index;
 use std::collections::HashMap;
 
-pub struct IndexSet {
-    indices: Vec<Index>,
-    positions: HashMap<Index, usize>,
+pub trait HasIndex {
+    fn index(self) -> Index;
 }
 
-impl IndexSet {
-    pub fn new() -> IndexSet {
-        IndexSet {
+pub struct IndexSet<T: HasIndex> {
+    indices: Vec<T>,
+    positions: HashMap<T, usize>,
+}
+
+impl<T: HasIndex + Eq + std::hash::Hash + Copy> IndexSet<T> {
+    pub fn new() -> Self {
+        IndexSet::<T> {
             indices: Vec::new(),
             positions: HashMap::new(),
         }
     }
 
-    pub fn insert(self: &mut IndexSet, index: Index) {
-        self.indices.push(index);
-        self.positions.insert(index, self.indices.len() - 1);
+    pub fn insert(self: &mut IndexSet<T>, handle: T) {
+        self.indices.push(handle);
+        self.positions.insert(handle, self.indices.len() - 1);
     }
 
-    pub fn remove(self: &mut IndexSet, index: Index) {
-        let pos = self.positions[&index];
+    pub fn remove(self: &mut IndexSet<T>, handle: T) {
+        let pos = self.positions[&handle];
         self.indices[pos] = self.indices[self.indices.len() - 1];
         self.positions.insert(self.indices[pos], pos);
-        self.positions.remove(&index);
+        self.positions.remove(&handle);
         self.indices.pop();
     }
 
-    pub fn iter(self: &IndexSet) -> std::slice::Iter<Index> {
+    pub fn iter(self: &IndexSet<T>) -> std::slice::Iter<T> {
         self.indices.iter()
     }
 }
 
-impl Default for IndexSet {
-    fn default() -> IndexSet {
+impl<T: HasIndex + Eq + std::hash::Hash + Copy> Default for IndexSet<T> {
+    fn default() -> IndexSet<T> {
         IndexSet::new()
     }
 }
 
 #[cfg(test)]
-fn list(index_set: &IndexSet) -> Vec<Index> {
-    index_set.iter().copied().collect::<Vec<Index>>()
+fn list<T: HasIndex + Eq + std::hash::Hash + Copy>(index_set: &IndexSet<T>) -> Vec<T> {
+    index_set.iter().copied().collect::<Vec<T>>()
+}
+
+#[cfg(test)]
+#[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
+pub struct TestHandle(pub Index);
+
+#[cfg(test)]
+impl HasIndex for TestHandle {
+    fn index(self) -> Index {
+        self.0
+    }
 }
 
 #[test]
 fn test_index_set() {
-    let mut index_set = IndexSet::new();
-    let idx0 = Index::from_raw_parts(2, 1);
-    let idx1 = Index::from_raw_parts(1, 20);
+    let mut index_set: IndexSet<TestHandle> = IndexSet::new();
+    let handle0 = TestHandle(Index::from_raw_parts(2, 1));
+    let handle1 = TestHandle(Index::from_raw_parts(1, 20));
 
     assert_eq!(list(&index_set), vec![]);
 
-    index_set.insert(idx0);
-    assert_eq!(list(&index_set), vec![idx0]);
+    index_set.insert(handle0);
+    assert_eq!(list(&index_set), vec![handle0]);
 
-    index_set.insert(idx1);
-    assert_eq!(list(&index_set), vec![idx0, idx1]);
+    index_set.insert(handle1);
+    assert_eq!(list(&index_set), vec![handle0, handle1]);
 
-    index_set.remove(idx0);
-    assert_eq!(list(&index_set), vec![idx1]);
+    index_set.remove(handle0);
+    assert_eq!(list(&index_set), vec![handle1]);
 
-    index_set.remove(idx1);
+    index_set.remove(handle1);
     assert_eq!(list(&index_set), vec![]);
 }
