@@ -85,10 +85,10 @@ async fn main() {
                 }
             }
             if input::is_key_pressed(KeyCode::F) {
-                sim.fire_weapon(ship_handle);
+                sim.ship_mut(ship_handle).fire_weapon();
             }
             if input::is_key_down(KeyCode::LeftShift) && input::is_key_down(KeyCode::F) {
-                sim.fire_weapon(ship_handle);
+                sim.ship_mut(ship_handle).fire_weapon();
             }
         }
 

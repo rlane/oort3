@@ -1,5 +1,5 @@
 use crate::bullet::{BulletAccessor, BulletHandle};
-use crate::index_set::{HasIndex, IndexSet};
+use crate::index_set::IndexSet;
 use crate::ship::{ShipAccessor, ShipAccessorMut, ShipHandle};
 use rapier2d_f64::prelude::*;
 
@@ -107,16 +107,6 @@ impl Simulation {
             simulation: self,
             handle,
         }
-    }
-
-    pub fn fire_weapon(self: &mut Simulation, handle: ShipHandle) {
-        let body = self.bodies.get(RigidBodyHandle(handle.index())).unwrap();
-        let x = body.position().translation.x;
-        let y = body.position().translation.y;
-        let v2 = body.position().rotation.into_inner() * 1000.0;
-        let vx = body.linvel().x + v2.re;
-        let vy = body.linvel().y + v2.im;
-        self.add_bullet(x as f64, y as f64, vx as f64, vy as f64);
     }
 
     pub fn add_bullet(self: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64) {

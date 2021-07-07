@@ -10,7 +10,7 @@ fn test_hit() {
     assert_eq!(sim.ship(ship0).velocity().magnitude(), 0.0);
     assert_eq!(sim.ship(ship1).velocity().magnitude(), 0.0);
 
-    sim.fire_weapon(ship0);
+    sim.ship_mut(ship0).fire_weapon();
     for _ in 0..1000 {
         sim.step();
     }

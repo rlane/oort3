@@ -42,27 +42,37 @@ pub struct ShipAccessorMut<'a> {
     pub(crate) handle: ShipHandle,
 }
 
-impl<'a> ShipAccessorMut<'a> {
-    pub fn body(&'a mut self) -> &'a mut RigidBody {
+impl<'a: 'b, 'b> ShipAccessorMut<'a> {
+    pub fn body(&'b mut self) -> &'b mut RigidBody {
         self.simulation
             .bodies
             .get_mut(RigidBodyHandle(self.handle.index()))
             .unwrap()
     }
 
-    pub fn thrust_main(&'a mut self, force: f64) {
+    pub fn thrust_main(&mut self, force: f64) {
         let body = self.body();
         let rotation_matrix = body.position().rotation.to_rotation_matrix();
         body.apply_force(rotation_matrix * vector![force, 0.0], true);
     }
 
-    pub fn thrust_lateral(&'a mut self, force: f64) {
+    pub fn thrust_lateral(&mut self, force: f64) {
         let body = self.body();
         let rotation_matrix = body.position().rotation.to_rotation_matrix();
         body.apply_force(rotation_matrix * vector![0.0, force], true);
     }
 
-    pub fn thrust_angular(&'a mut self, torque: f64) {
+    pub fn thrust_angular(&mut self, torque: f64) {
         self.body().apply_torque(torque, true);
+    }
+
+    pub fn fire_weapon(&mut self) {
+        let body = self.body();
+        let x = body.position().translation.x;
+        let y = body.position().translation.y;
+        let speed = 1000.0;
+        let v2 = body.position().rotation.into_inner() * speed;
+        let v = body.linvel() + vector![v2.re, v2.im];
+        self.simulation.add_bullet(x, y, v.x, v.y);
     }
 }
