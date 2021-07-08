@@ -15,30 +15,38 @@ pub struct Simulation {
     pub(crate) bodies: RigidBodySet,
     pub(crate) colliders: ColliderSet,
     pub(crate) joints: JointSet,
-    pub collision_event_handler: CollisionEventHandler,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
     pub(crate) island_manager: IslandManager,
     broad_phase: BroadPhase,
     narrow_phase: NarrowPhase,
     ccd_solver: CCDSolver,
+    event_collector: rapier2d_f64::pipeline::ChannelEventCollector,
+    contact_recv: crossbeam::channel::Receiver<ContactEvent>,
+    intersection_recv: crossbeam::channel::Receiver<IntersectionEvent>,
+    pub collided: bool,
 }
 
 impl Simulation {
     pub fn new() -> Simulation {
+        let (contact_send, contact_recv) = crossbeam::channel::unbounded();
+        let (intersection_send, intersection_recv) = crossbeam::channel::unbounded();
         Simulation {
             ships: IndexSet::new(),
             bullets: IndexSet::new(),
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
             joints: JointSet::new(),
-            collision_event_handler: CollisionEventHandler::new(),
             integration_parameters: IntegrationParameters::default(),
             physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),
             narrow_phase: NarrowPhase::new(),
             ccd_solver: CCDSolver::new(),
+            event_collector: ChannelEventCollector::new(intersection_send, contact_send),
+            contact_recv,
+            intersection_recv,
+            collided: false,
         }
     }
 
@@ -78,8 +86,14 @@ impl Simulation {
             &mut self.joints,
             &mut self.ccd_solver,
             &physics_hooks,
-            &self.collision_event_handler,
+            &self.event_collector,
         );
+
+        while self.contact_recv.try_recv().is_ok() {
+            self.collided = true;
+        }
+
+        while self.intersection_recv.try_recv().is_ok() {}
     }
 }
 

@@ -114,9 +114,10 @@ async fn main() {
         renderer::render(camera_target, zoom, &sim);
         frame_timer.end("render");
 
-        if sim.collision_event_handler.collision.load() {
-            sim.collision_event_handler.collision.store(false);
+        if sim.collided {
+            sim.collided = false;
             audio::play_sound_once(collision_sound);
+            println!("collided");
         }
 
         frame_timer.end("frame");
