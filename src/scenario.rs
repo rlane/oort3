@@ -1,7 +1,9 @@
 use crate::scenario::Status::Running;
+use crate::ship::ShipClass::*;
 use crate::simulation::{
     Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP, WORLD_SIZE,
 };
+use macroquad::rand::gen_range;
 use rapier2d_f64::prelude::*;
 
 #[derive(PartialEq)]
@@ -43,6 +45,7 @@ pub fn add_walls(sim: &mut Simulation) {
 pub fn load(name: &str) -> Box<dyn Scenario> {
     match name {
         "basic" => Box::new(BasicScenario {}),
+        "asteroid" => Box::new(AsteroidScenario {}),
         _ => panic!("Unknown scenario"),
     }
 }
@@ -52,8 +55,37 @@ struct BasicScenario {}
 impl Scenario for BasicScenario {
     fn init(&self, sim: &mut Simulation) {
         add_walls(sim);
-        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0);
-        crate::ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
+        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, Fighter);
+        crate::ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, Fighter);
+    }
+
+    fn tick(&self, sim: &mut Simulation) -> Status {
+        if sim.ships.iter().len() > 1 {
+            Running
+        } else {
+            Status::Finished
+        }
+    }
+}
+
+struct AsteroidScenario {}
+
+impl Scenario for AsteroidScenario {
+    fn init(&self, sim: &mut Simulation) {
+        add_walls(sim);
+        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, Fighter);
+
+        for _ in 1..10 {
+            crate::ship::create(
+                sim,
+                gen_range(-WORLD_SIZE / 2.0, WORLD_SIZE / 2.0),
+                gen_range(-WORLD_SIZE / 2.0, WORLD_SIZE / 2.0),
+                gen_range(-30.0, 30.0),
+                gen_range(-30.0, 30.0),
+                0.0,
+                Asteroid,
+            );
+        }
     }
 
     fn tick(&self, sim: &mut Simulation) -> Status {

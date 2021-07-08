@@ -1,11 +1,12 @@
+use oort::ship::ShipClass;
 use oort::simulation;
 
 #[test]
 fn test_hit() {
     let mut sim = simulation::Simulation::new();
 
-    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0);
-    let ship1 = oort::ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1);
+    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, ShipClass::Fighter);
+    let ship1 = oort::ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipClass::Fighter);
 
     assert!(sim.ships.contains(ship0));
     assert!(sim.ships.contains(ship1));

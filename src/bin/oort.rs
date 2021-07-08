@@ -14,7 +14,7 @@ async fn main() {
     let mut finished = false;
     let mut single_steps = 0;
 
-    let scenario = oort::scenario::load("basic");
+    let scenario = oort::scenario::load("asteroid");
     scenario.init(&mut sim);
 
     loop {

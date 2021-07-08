@@ -1,7 +1,8 @@
 use crate::bullet::{BulletAccessor, BulletAccessorMut, BulletHandle};
 use crate::index_set::IndexSet;
-use crate::ship::{ShipAccessor, ShipAccessorMut, ShipHandle};
+use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use rapier2d_f64::prelude::*;
+use std::collections::HashMap;
 
 pub const WORLD_SIZE: f64 = 1000.0;
 
@@ -11,6 +12,7 @@ pub(crate) const BULLET_COLLISION_GROUP: u32 = 2;
 
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
+    pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
     pub bullets: IndexSet<BulletHandle>,
     pub(crate) bodies: RigidBodySet,
     pub(crate) colliders: ColliderSet,
@@ -33,6 +35,7 @@ impl Simulation {
         let (intersection_send, intersection_recv) = crossbeam::channel::unbounded();
         Simulation {
             ships: IndexSet::new(),
+            ship_data: HashMap::new(),
             bullets: IndexSet::new(),
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),

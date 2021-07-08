@@ -1,3 +1,4 @@
+use crate::ship::ShipClass;
 use crate::simulation::{Simulation, WORLD_SIZE};
 use macroquad::math::{vec2, Vec2};
 use macroquad::{camera, color, math, shapes, window};
@@ -62,10 +63,17 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
         let matrix = math::Mat2::from_angle(h);
         let translation = vec2(x, y);
 
-        let vertices = crate::model::ship()
-            .iter()
-            .map(|&v| translation + matrix.mul_vec2(v))
-            .collect::<Vec<_>>();
-        shapes::draw_triangle(vertices[0], vertices[1], vertices[2], color::YELLOW);
+        match ship.data().class {
+            ShipClass::Fighter => {
+                let vertices = crate::model::ship()
+                    .iter()
+                    .map(|&v| translation + matrix.mul_vec2(v))
+                    .collect::<Vec<_>>();
+                shapes::draw_triangle(vertices[0], vertices[1], vertices[2], color::YELLOW);
+            }
+            ShipClass::Asteroid => {
+                shapes::draw_circle(x, y, 20.0, color::YELLOW);
+            }
+        }
     }
 }
