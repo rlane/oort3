@@ -11,6 +11,7 @@ async fn main() {
     let mut camera_target = vec2(0.0, 0.0);
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
     let mut paused = false;
+    let mut finished = false;
     let mut single_steps = 0;
 
     let scenario = oort::scenario::load("basic");
@@ -96,7 +97,11 @@ async fn main() {
             }
         }
 
-        if !paused || single_steps > 0 {
+        if !finished && scenario.tick(&mut sim) == oort::scenario::Status::Finished {
+            finished = true;
+        }
+
+        if !finished && (!paused || single_steps > 0) {
             frame_timer.start("simulate");
             sim.step();
             frame_timer.end("simulate");
@@ -137,6 +142,14 @@ async fn main() {
         if paused {
             text::draw_text(
                 "PAUSED",
+                window::screen_width() / 2.0 - 96.0,
+                window::screen_height() - 30.0,
+                32.0,
+                color::WHITE,
+            );
+        } else if finished {
+            text::draw_text(
+                "FINISHED",
                 window::screen_width() / 2.0 - 96.0,
                 window::screen_height() - 30.0,
                 32.0,

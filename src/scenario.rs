@@ -1,11 +1,18 @@
+use crate::scenario::Status::Running;
 use crate::simulation::{
     Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP, WORLD_SIZE,
 };
 use rapier2d_f64::prelude::*;
 
+#[derive(PartialEq)]
+pub enum Status {
+    Running,
+    Finished,
+}
+
 pub trait Scenario {
     fn init(&self, sim: &mut Simulation);
-    fn tick(&self, sim: &mut Simulation);
+    fn tick(&self, sim: &mut Simulation) -> Status;
 }
 
 pub fn add_walls(sim: &mut Simulation) {
@@ -49,5 +56,11 @@ impl Scenario for BasicScenario {
         crate::ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
     }
 
-    fn tick(&self, _: &mut Simulation) {}
+    fn tick(&self, sim: &mut Simulation) -> Status {
+        if sim.ships.iter().len() > 1 {
+            Running
+        } else {
+            Status::Finished
+        }
+    }
 }
