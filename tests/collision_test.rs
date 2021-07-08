@@ -5,6 +5,7 @@ use oort::simulation::WORLD_SIZE;
 #[test]
 fn test_world_edge() {
     let mut sim = oort::simulation::Simulation::new();
+    oort::scenario::add_walls(&mut sim);
 
     for _ in 0..100 {
         let s = 500.0;

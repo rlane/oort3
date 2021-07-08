@@ -26,7 +26,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new() -> Simulation {
-        let mut sim = Simulation {
+        Simulation {
             ships: IndexSet::new(),
             bullets: IndexSet::new(),
             bodies: RigidBodySet::new(),
@@ -39,32 +39,7 @@ impl Simulation {
             broad_phase: BroadPhase::new(),
             narrow_phase: NarrowPhase::new(),
             ccd_solver: CCDSolver::new(),
-        };
-
-        let mut make_edge = |x: f64, y: f64, a: f64| {
-            let edge_length = WORLD_SIZE as f64;
-            let edge_width = 10.0;
-            let rigid_body = RigidBodyBuilder::new_static()
-                .translation(vector![x, y])
-                .rotation(a)
-                .build();
-            let body_handle = sim.bodies.insert(rigid_body);
-            let collider = ColliderBuilder::cuboid(edge_length / 2.0, edge_width / 2.0)
-                .restitution(1.0)
-                .collision_groups(InteractionGroups::new(
-                    1 << WALL_COLLISION_GROUP,
-                    1 << SHIP_COLLISION_GROUP | 1 << BULLET_COLLISION_GROUP,
-                ))
-                .build();
-            sim.colliders
-                .insert_with_parent(collider, body_handle, &mut sim.bodies);
-        };
-        make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
-        make_edge(0.0, -WORLD_SIZE / 2.0, std::f64::consts::PI);
-        make_edge(WORLD_SIZE / 2.0, 0.0, std::f64::consts::PI / 2.0);
-        make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
-
-        sim
+        }
     }
 
     pub fn ship(self: &Simulation, handle: ShipHandle) -> ShipAccessor {

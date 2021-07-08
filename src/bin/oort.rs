@@ -13,8 +13,7 @@ async fn main() {
     let mut paused = false;
     let mut single_steps = 0;
 
-    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0);
-    oort::ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
+    oort::scenario::basic(&mut sim);
 
     loop {
         frame_timer.start("frame");
@@ -62,33 +61,34 @@ async fn main() {
         }
 
         if !paused {
-            let ship_handle = ship0;
-            let force = 1e4;
-            if input::is_key_down(KeyCode::Up) {
-                sim.ship_mut(ship_handle).thrust_main(force);
-            }
-            if input::is_key_down(KeyCode::Down) {
-                sim.ship_mut(ship_handle).thrust_main(-force);
-            }
-            if input::is_key_down(KeyCode::Left) {
-                if input::is_key_down(KeyCode::LeftShift) {
-                    sim.ship_mut(ship_handle).thrust_lateral(force);
-                } else {
-                    sim.ship_mut(ship_handle).thrust_angular(force);
+            if let Some(&ship_handle) = sim.ships.iter().next() {
+                let force = 1e4;
+                if input::is_key_down(KeyCode::Up) {
+                    sim.ship_mut(ship_handle).thrust_main(force);
                 }
-            }
-            if input::is_key_down(KeyCode::Right) {
-                if input::is_key_down(KeyCode::LeftShift) {
-                    sim.ship_mut(ship_handle).thrust_lateral(-force);
-                } else {
-                    sim.ship_mut(ship_handle).thrust_angular(-force);
+                if input::is_key_down(KeyCode::Down) {
+                    sim.ship_mut(ship_handle).thrust_main(-force);
                 }
-            }
-            if input::is_key_pressed(KeyCode::F) {
-                sim.ship_mut(ship_handle).fire_weapon();
-            }
-            if input::is_key_down(KeyCode::LeftShift) && input::is_key_down(KeyCode::F) {
-                sim.ship_mut(ship_handle).fire_weapon();
+                if input::is_key_down(KeyCode::Left) {
+                    if input::is_key_down(KeyCode::LeftShift) {
+                        sim.ship_mut(ship_handle).thrust_lateral(force);
+                    } else {
+                        sim.ship_mut(ship_handle).thrust_angular(force);
+                    }
+                }
+                if input::is_key_down(KeyCode::Right) {
+                    if input::is_key_down(KeyCode::LeftShift) {
+                        sim.ship_mut(ship_handle).thrust_lateral(-force);
+                    } else {
+                        sim.ship_mut(ship_handle).thrust_angular(-force);
+                    }
+                }
+                if input::is_key_pressed(KeyCode::F) {
+                    sim.ship_mut(ship_handle).fire_weapon();
+                }
+                if input::is_key_down(KeyCode::LeftShift) && input::is_key_down(KeyCode::F) {
+                    sim.ship_mut(ship_handle).fire_weapon();
+                }
             }
         }
 
