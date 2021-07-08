@@ -98,13 +98,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn fire_weapon(&mut self) {
-        let body = self.body();
-        let x = body.position().translation.x;
-        let y = body.position().translation.y;
         let speed = 1000.0;
-        let v2 = body.position().rotation.into_inner() * speed;
-        let v = body.linvel() + vector![v2.re, v2.im];
-        crate::bullet::create(&mut self.simulation, x, y, v.x, v.y);
+        let offset = vector![20.0, 0.0];
+        let body = self.body();
+        let rot = body.position().rotation;
+        let p = body.position().translation.vector + rot.transform_vector(&offset);
+        let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
+        crate::bullet::create(&mut self.simulation, p.x, p.y, v.x, v.y);
     }
 
     pub fn explode(&mut self) {

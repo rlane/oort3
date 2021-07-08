@@ -31,6 +31,10 @@ impl<T: HasIndex + Eq + std::hash::Hash + Copy> IndexSet<T> {
         self.indices.pop();
     }
 
+    pub fn contains(self: &IndexSet<T>, handle: T) -> bool {
+        self.positions.contains_key(&handle)
+    }
+
     pub fn iter(self: &IndexSet<T>) -> std::slice::Iter<T> {
         self.indices.iter()
     }

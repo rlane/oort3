@@ -89,8 +89,23 @@ impl Simulation {
             &self.event_collector,
         );
 
-        while self.contact_recv.try_recv().is_ok() {
-            self.collided = true;
+        while let Ok(event) = self.contact_recv.try_recv() {
+            if let ContactEvent::Started(h1, h2) = event {
+                let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
+                if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
+                    if self.bullets.contains(BulletHandle(idx1))
+                        && self.ships.contains(ShipHandle(idx2))
+                    {
+                        self.ship_mut(ShipHandle(idx2)).explode();
+                    } else if self.bullets.contains(BulletHandle(idx2))
+                        && self.ships.contains(ShipHandle(idx1))
+                    {
+                        self.ship_mut(ShipHandle(idx1)).explode();
+                    }
+                }
+
+                self.collided = true;
+            }
         }
 
         while self.intersection_recv.try_recv().is_ok() {}
