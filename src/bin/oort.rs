@@ -13,7 +13,8 @@ async fn main() {
     let mut paused = false;
     let mut single_steps = 0;
 
-    oort::scenario::basic(&mut sim);
+    let scenario = oort::scenario::load("basic");
+    scenario.init(&mut sim);
 
     loop {
         frame_timer.start("frame");

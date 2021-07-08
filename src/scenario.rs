@@ -3,6 +3,11 @@ use crate::simulation::{
 };
 use rapier2d_f64::prelude::*;
 
+pub trait Scenario {
+    fn init(&self, sim: &mut Simulation);
+    fn tick(&self, sim: &mut Simulation);
+}
+
 pub fn add_walls(sim: &mut Simulation) {
     let mut make_edge = |x: f64, y: f64, a: f64| {
         let edge_length = WORLD_SIZE as f64;
@@ -28,8 +33,21 @@ pub fn add_walls(sim: &mut Simulation) {
     make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
 }
 
-pub fn basic(sim: &mut Simulation) {
-    add_walls(sim);
-    crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0);
-    crate::ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
+pub fn load(name: &str) -> Box<dyn Scenario> {
+    match name {
+        "basic" => Box::new(BasicScenario {}),
+        _ => panic!("Unknown scenario"),
+    }
+}
+
+struct BasicScenario {}
+
+impl Scenario for BasicScenario {
+    fn init(&self, sim: &mut Simulation) {
+        add_walls(sim);
+        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0);
+        crate::ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI);
+    }
+
+    fn tick(&self, _: &mut Simulation) {}
 }
