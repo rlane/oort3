@@ -106,4 +106,14 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let v = body.linvel() + vector![v2.re, v2.im];
         crate::bullet::create(&mut self.simulation, x, y, v.x, v.y);
     }
+
+    pub fn explode(&mut self) {
+        self.simulation.ships.remove(self.handle);
+        self.simulation.bodies.remove(
+            RigidBodyHandle(self.handle.index()),
+            &mut self.simulation.island_manager,
+            &mut self.simulation.colliders,
+            &mut self.simulation.joints,
+        );
+    }
 }
