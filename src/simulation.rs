@@ -1,4 +1,4 @@
-use crate::bullet::{BulletAccessor, BulletHandle};
+use crate::bullet::{BulletAccessor, BulletAccessorMut, BulletHandle};
 use crate::index_set::IndexSet;
 use crate::ship::{ShipAccessor, ShipAccessorMut, ShipHandle};
 use rapier2d_f64::prelude::*;
@@ -71,6 +71,13 @@ impl Simulation {
         }
     }
 
+    pub fn bullet_mut(self: &mut Simulation, handle: BulletHandle) -> BulletAccessorMut {
+        BulletAccessorMut {
+            simulation: self,
+            handle,
+        }
+    }
+
     pub fn step(self: &mut Simulation) {
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
@@ -92,15 +99,19 @@ impl Simulation {
         while let Ok(event) = self.contact_recv.try_recv() {
             if let ContactEvent::Started(h1, h2) = event {
                 let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
+                let handle_hit = |sim: &mut Simulation, ship, bullet| {
+                    sim.ship_mut(ship).explode();
+                    sim.bullet_mut(bullet).destroy();
+                };
                 if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
                     if self.bullets.contains(BulletHandle(idx1))
                         && self.ships.contains(ShipHandle(idx2))
                     {
-                        self.ship_mut(ShipHandle(idx2)).explode();
+                        handle_hit(self, ShipHandle(idx2), BulletHandle(idx1));
                     } else if self.bullets.contains(BulletHandle(idx2))
                         && self.ships.contains(ShipHandle(idx1))
                     {
-                        self.ship_mut(ShipHandle(idx1)).explode();
+                        handle_hit(self, ShipHandle(idx1), BulletHandle(idx2));
                     }
                 }
 

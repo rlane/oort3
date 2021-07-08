@@ -45,3 +45,20 @@ impl<'a> BulletAccessor<'a> {
             .unwrap()
     }
 }
+
+pub struct BulletAccessorMut<'a> {
+    pub(crate) simulation: &'a mut Simulation,
+    pub(crate) handle: BulletHandle,
+}
+
+impl<'a: 'b, 'b> BulletAccessorMut<'a> {
+    pub fn destroy(&mut self) {
+        self.simulation.bullets.remove(self.handle);
+        self.simulation.bodies.remove(
+            RigidBodyHandle(self.handle.index()),
+            &mut self.simulation.island_manager,
+            &mut self.simulation.colliders,
+            &mut self.simulation.joints,
+        );
+    }
+}
