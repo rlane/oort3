@@ -19,6 +19,14 @@ pub enum ShipClass {
 
 pub struct ShipData {
     pub class: ShipClass,
+    pub model_variant: u64,
+}
+
+pub fn fighter() -> ShipData {
+    ShipData {
+        class: ShipClass::Fighter,
+        model_variant: 0,
+    }
 }
 
 pub fn create(
@@ -28,7 +36,7 @@ pub fn create(
     vx: f64,
     vy: f64,
     h: f64,
-    class: ShipClass,
+    data: ShipData,
 ) -> ShipHandle {
     let rigid_body = RigidBodyBuilder::new_dynamic()
         .translation(vector![x, y])
@@ -37,7 +45,7 @@ pub fn create(
         .ccd_enabled(true)
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
-    match class {
+    match data.class {
         ShipClass::Fighter => {
             let vertices = crate::model::ship()
                 .iter()
@@ -58,7 +66,7 @@ pub fn create(
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
         }
         ShipClass::Asteroid => {
-            let vertices = crate::model::asteroid()
+            let vertices = crate::model::asteroid(data.model_variant)
                 .iter()
                 .map(|&v| point![v.x as f64, v.y as f64])
                 .collect::<Vec<_>>();
@@ -79,7 +87,7 @@ pub fn create(
     }
     let handle = ShipHandle(body_handle.0);
     sim.ships.insert(handle);
-    sim.ship_data.insert(handle, ShipData { class });
+    sim.ship_data.insert(handle, data);
     handle
 }
 

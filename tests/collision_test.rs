@@ -1,5 +1,5 @@
 use macroquad::rand;
-use oort::ship::ShipClass;
+use oort::ship::fighter;
 use oort::simulation;
 use oort::simulation::WORLD_SIZE;
 
@@ -23,7 +23,7 @@ fn test_world_edge() {
             vx as f64,
             vy as f64,
             h as f64,
-            ShipClass::Fighter,
+            fighter(),
         );
     }
 
@@ -44,8 +44,8 @@ fn test_world_edge() {
 fn test_head_on_collision() {
     let mut sim = simulation::Simulation::new();
 
-    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, ShipClass::Fighter);
-    let ship1 = oort::ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, ShipClass::Fighter);
+    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, fighter());
+    let ship1 = oort::ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, fighter());
 
     assert!(sim.ship(ship0).velocity().x > 0.0);
     assert!(sim.ship(ship1).velocity().x < 0.0);

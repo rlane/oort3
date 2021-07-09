@@ -12,9 +12,9 @@ pub fn ship() -> Vec<Vec2> {
     scale(10.0, &[vec2(-0.7, -0.71), vec2(1.0, 0.0), vec2(-0.7, 0.71)])
 }
 
-pub fn asteroid() -> Vec<Vec2> {
+pub fn asteroid(seed: u64) -> Vec<Vec2> {
     let n = 7;
-    let mut rng = Rand32::new(1);
+    let mut rng = Rand32::new(seed);
     let mut vertices = vec![];
     for i in 0..n {
         let r = rng.rand_float();

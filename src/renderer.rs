@@ -64,7 +64,12 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
 
         match ship.data().class {
             ShipClass::Fighter => draw_model(&crate::model::ship(), translation, h, zoom),
-            ShipClass::Asteroid => draw_model(&crate::model::asteroid(), translation, h, zoom),
+            ShipClass::Asteroid => draw_model(
+                &crate::model::asteroid(ship.data().model_variant),
+                translation,
+                h,
+                zoom,
+            ),
         }
     }
 }

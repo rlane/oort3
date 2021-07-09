@@ -1,5 +1,6 @@
 use crate::scenario::Status::Running;
 use crate::ship::ShipClass::*;
+use crate::ship::{fighter, ShipData};
 use crate::simulation::{
     Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP, WORLD_SIZE,
 };
@@ -55,8 +56,8 @@ struct BasicScenario {}
 impl Scenario for BasicScenario {
     fn init(&self, sim: &mut Simulation) {
         add_walls(sim);
-        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, Fighter);
-        crate::ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, Fighter);
+        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        crate::ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter());
     }
 
     fn tick(&self, sim: &mut Simulation) -> Status {
@@ -73,7 +74,7 @@ struct AsteroidScenario {}
 impl Scenario for AsteroidScenario {
     fn init(&self, sim: &mut Simulation) {
         add_walls(sim);
-        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, Fighter);
+        crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
         for _ in 1..10 {
@@ -84,7 +85,10 @@ impl Scenario for AsteroidScenario {
                 gen_range(-30.0, 30.0),
                 gen_range(-30.0, 30.0),
                 gen_range(0.0, 2.0 * std::f64::consts::PI),
-                Asteroid,
+                ShipData {
+                    class: Asteroid,
+                    model_variant: gen_range(0, 10),
+                },
             );
         }
     }
