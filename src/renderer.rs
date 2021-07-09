@@ -63,19 +63,19 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
         let translation = vec2(x, y);
 
         match ship.data().class {
-            ShipClass::Fighter => draw_model(&crate::model::ship(), translation, h),
-            ShipClass::Asteroid => draw_model(&crate::model::asteroid(), translation, h),
+            ShipClass::Fighter => draw_model(&crate::model::ship(), translation, h, zoom),
+            ShipClass::Asteroid => draw_model(&crate::model::asteroid(), translation, h, zoom),
         }
     }
 }
 
-fn draw_model(vertices: &[Vec2], translation: Vec2, heading: f32) {
+fn draw_model(vertices: &[Vec2], translation: Vec2, heading: f32, zoom: f32) {
     let matrix = math::Mat2::from_angle(heading);
     let new_vertices = vertices
         .iter()
         .map(|&v| translation + matrix.mul_vec2(v))
         .collect::<Vec<_>>();
-    let thickness = 3.0;
+    let thickness = 3.0 / (zoom * 1000.0);
     let color = color::YELLOW;
     for i in 1..vertices.len() {
         shapes::draw_line(
