@@ -75,11 +75,12 @@ impl Scenario for AsteroidScenario {
         add_walls(sim);
         crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, Fighter);
 
+        let bound = (WORLD_SIZE / 2.0) * 0.9;
         for _ in 1..10 {
             crate::ship::create(
                 sim,
-                gen_range(-WORLD_SIZE / 2.0, WORLD_SIZE / 2.0),
-                gen_range(-WORLD_SIZE / 2.0, WORLD_SIZE / 2.0),
+                gen_range(-bound, bound),
+                gen_range(-bound, bound),
                 gen_range(-30.0, 30.0),
                 gen_range(-30.0, 30.0),
                 gen_range(0.0, 2.0 * std::f64::consts::PI),
