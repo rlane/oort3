@@ -60,20 +60,40 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
         let x = ship.position().x as f32;
         let y = ship.position().y as f32;
         let h = ship.heading() as f32;
-        let matrix = math::Mat2::from_angle(h);
         let translation = vec2(x, y);
 
         match ship.data().class {
-            ShipClass::Fighter => {
-                let vertices = crate::model::ship()
-                    .iter()
-                    .map(|&v| translation + matrix.mul_vec2(v))
-                    .collect::<Vec<_>>();
-                shapes::draw_triangle(vertices[0], vertices[1], vertices[2], color::YELLOW);
-            }
-            ShipClass::Asteroid => {
-                shapes::draw_circle(x, y, 20.0, color::YELLOW);
-            }
+            ShipClass::Fighter => draw_model(&crate::model::ship(), translation, h),
+            ShipClass::Asteroid => draw_model(&crate::model::asteroid(), translation, h),
         }
     }
+}
+
+fn draw_model(vertices: &[Vec2], translation: Vec2, heading: f32) {
+    let matrix = math::Mat2::from_angle(heading);
+    let new_vertices = vertices
+        .iter()
+        .map(|&v| translation + matrix.mul_vec2(v))
+        .collect::<Vec<_>>();
+    let thickness = 3.0;
+    let color = color::YELLOW;
+    for i in 1..vertices.len() {
+        shapes::draw_line(
+            new_vertices[i - 1].x,
+            new_vertices[i - 1].y,
+            new_vertices[i].x,
+            new_vertices[i].y,
+            thickness,
+            color,
+        );
+    }
+    let i = vertices.len() - 1;
+    shapes::draw_line(
+        new_vertices[i].x,
+        new_vertices[i].y,
+        new_vertices[0].x,
+        new_vertices[0].y,
+        thickness,
+        color,
+    );
 }

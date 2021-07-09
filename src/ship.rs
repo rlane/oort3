@@ -58,7 +58,12 @@ pub fn create(
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
         }
         ShipClass::Asteroid => {
-            let collider = ColliderBuilder::ball(20.0)
+            let vertices = crate::model::asteroid()
+                .iter()
+                .map(|&v| point![v.x as f64, v.y as f64])
+                .collect::<Vec<_>>();
+            let collider = ColliderBuilder::convex_hull(&vertices)
+                .unwrap()
                 .restitution(1.0)
                 .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
                 .collision_groups(InteractionGroups::new(
