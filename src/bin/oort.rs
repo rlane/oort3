@@ -1,6 +1,6 @@
 use macroquad::input::KeyCode;
-use macroquad::math::vec2;
 use macroquad::{audio, camera, input, shapes, window};
+use nalgebra::point;
 use oort::{frame_timer, renderer, simulation};
 
 #[macroquad::main("Oort")]
@@ -18,7 +18,7 @@ async fn main() {
     let mut renderer = renderer::Renderer::new();
     let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
     let mut zoom = 0.001;
-    let mut camera_target = vec2(0.0, 0.0);
+    let mut camera_target = point![0.0, 0.0];
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
     let mut paused = false;
     let mut finished = false;

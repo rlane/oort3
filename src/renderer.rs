@@ -1,9 +1,8 @@
 use crate::ship::ShipClass;
 use crate::simulation::{Simulation, WORLD_SIZE};
 use crate::webgl::WebGlRenderer;
-use macroquad::math::{vec2, Vec2};
-use macroquad::{color, math};
-use nalgebra::point;
+use macroquad::color;
+use nalgebra::{point, Point2, Rotation2, Translation2, Vector2};
 
 pub struct Renderer {
     webgl: WebGlRenderer,
@@ -16,7 +15,7 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, camera_target: Vec2, zoom: f32, sim: &Simulation) {
+    pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, sim: &Simulation) {
         self.webgl.clear();
 
         self.webgl
@@ -68,24 +67,29 @@ impl Renderer {
             let x = ship.position().x as f32;
             let y = ship.position().y as f32;
             let h = ship.heading() as f32;
-            let translation = vec2(x, y);
+            let translation = Translation2::new(x, y);
+            let rotation = Rotation2::new(h);
 
             match ship.data().class {
-                ShipClass::Fighter => self.draw_model(&crate::model::ship(), translation, h),
+                ShipClass::Fighter => self.draw_model(&crate::model::ship(), translation, rotation),
                 ShipClass::Asteroid => self.draw_model(
                     &crate::model::asteroid(ship.data().model_variant),
                     translation,
-                    h,
+                    rotation,
                 ),
             }
         }
     }
 
-    fn draw_model(&mut self, vertices: &[Vec2], translation: Vec2, heading: f32) {
-        let matrix = math::Mat2::from_angle(heading);
+    fn draw_model(
+        &mut self,
+        vertices: &[Vector2<f32>],
+        translation: Translation2<f32>,
+        rotation: Rotation2<f32>,
+    ) {
         let new_vertices = vertices
             .iter()
-            .map(|&v| translation + matrix.mul_vec2(v))
+            .map(|&v| translation.transform_point(&Point2::from(rotation.transform_vector(&v))))
             .collect::<Vec<_>>();
         let thickness = 2.0;
         let color = color::YELLOW;
