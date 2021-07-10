@@ -1,4 +1,4 @@
-use nalgebra::{point, vector, Matrix3, Point2};
+use nalgebra::{point, vector, Matrix3, Point2, Vector4};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, WebGlProgram, WebGlRenderingContext, WebGlShader};
@@ -74,12 +74,11 @@ impl WebGlRenderer {
         x2: f32,
         y2: f32,
         thickness: f32,
-        color: macroquad::color::Color,
+        color: Vector4<f32>,
     ) {
         self.context.use_program(Some(&self.program));
         let p1 = self.perspective_matrix.transform_point(&point![x1, y1]);
         let p2 = self.perspective_matrix.transform_point(&point![x2, y2]);
-        let colorvec = color.to_vec();
         let vertices: [f32; 6] = [p1.x, p1.y, 0.0, p2.x, p2.y, 0.0];
 
         let maybe_buffer = self.context.create_buffer();
@@ -123,13 +122,8 @@ impl WebGlRenderer {
             .context
             .get_uniform_location(&self.program, "color")
             .expect("missing color uniform");
-        self.context.uniform4f(
-            Some(&color_loc),
-            colorvec[0],
-            colorvec[1],
-            colorvec[2],
-            colorvec[3],
-        );
+        self.context
+            .uniform4f(Some(&color_loc), color[0], color[1], color[2], color[3]);
 
         self.context.line_width(thickness);
 

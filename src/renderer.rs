@@ -1,8 +1,7 @@
 use crate::ship::ShipClass;
 use crate::simulation::{Simulation, WORLD_SIZE};
 use crate::webgl::WebGlRenderer;
-use macroquad::color;
-use nalgebra::{point, Point2, Rotation2, Translation2, Vector2};
+use nalgebra::{point, vector, Point2, Rotation2, Translation2, Vector2};
 
 pub struct Renderer {
     webgl: WebGlRenderer,
@@ -30,7 +29,7 @@ impl Renderer {
                 (i as f32) * grid_size,
                 (WORLD_SIZE as f32) / 2.0,
                 1.0,
-                color::GREEN,
+                vector![0.0, 1.0, 0.0, 1.0],
             );
             self.webgl.draw_line(
                 (-WORLD_SIZE as f32) / 2.0,
@@ -38,16 +37,17 @@ impl Renderer {
                 (WORLD_SIZE as f32) / 2.0,
                 (i as f32) * grid_size,
                 1.0,
-                color::GREEN,
+                vector![0.0, 1.0, 0.0, 1.0],
             );
         }
 
         {
             let v = -WORLD_SIZE as f32 / 2.0;
-            self.webgl.draw_line(-v, -v, v, -v, 1.0, color::RED);
-            self.webgl.draw_line(-v, v, v, v, 1.0, color::RED);
-            self.webgl.draw_line(-v, -v, -v, v, 1.0, color::RED);
-            self.webgl.draw_line(v, -v, v, v, 1.0, color::RED);
+            let red = vector![1.0, 0.0, 0.0, 1.0];
+            self.webgl.draw_line(-v, -v, v, -v, 1.0, red);
+            self.webgl.draw_line(-v, v, v, v, 1.0, red);
+            self.webgl.draw_line(-v, -v, -v, v, 1.0, red);
+            self.webgl.draw_line(v, -v, v, v, 1.0, red);
         }
 
         for &index in sim.bullets.iter() {
@@ -58,8 +58,9 @@ impl Renderer {
             let vx = body.linvel().x as f32;
             let vy = body.linvel().y as f32;
             let dt = 2.0 / 60.0;
+            let orange = vector![1.00, 0.63, 0.00, 1.00];
             self.webgl
-                .draw_line(x, y, x - vx * dt, y - vy * dt, 1.0, color::ORANGE);
+                .draw_line(x, y, x - vx * dt, y - vy * dt, 1.0, orange);
         }
 
         for &index in sim.ships.iter() {
@@ -92,7 +93,7 @@ impl Renderer {
             .map(|&v| translation.transform_point(&Point2::from(rotation.transform_vector(&v))))
             .collect::<Vec<_>>();
         let thickness = 2.0;
-        let color = color::YELLOW;
+        let color = vector![0.99, 0.98, 0.00, 1.00];
         for i in 1..vertices.len() {
             self.webgl.draw_line(
                 new_vertices[i - 1].x,
