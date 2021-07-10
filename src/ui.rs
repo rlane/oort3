@@ -19,6 +19,7 @@ pub struct UI {
     keys_ignored: std::collections::HashSet<String>,
     status_div: web_sys::Element,
     key_rx: mpsc::Receiver<KeyboardEvent>,
+    tick: u64,
 }
 
 unsafe impl Send for UI {}
@@ -82,6 +83,7 @@ impl UI {
             keys_ignored,
             status_div,
             key_rx,
+            tick: 0,
         }
     }
 
@@ -212,7 +214,12 @@ impl UI {
             status_msgs.push("FINISHED".to_string());
         }
 
-        self.status_div.set_inner_html(&status_msgs.join("; "));
+        if self.tick % 10 == 0 {
+            let status_msg = status_msgs.join("; ");
+            self.status_div.set_inner_html(&status_msg);
+        }
+
+        self.tick += 1;
     }
 }
 
