@@ -20,26 +20,7 @@ impl Renderer {
         self.webgl
             .set_perspective(zoom, point![camera_target.x, camera_target.y]);
 
-        let grid_size = 100.0;
-        let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;
-        for i in -(n / 2)..(n / 2 + 1) {
-            self.webgl.draw_line(
-                (i as f32) * grid_size,
-                (-WORLD_SIZE as f32) / 2.0,
-                (i as f32) * grid_size,
-                (WORLD_SIZE as f32) / 2.0,
-                1.0,
-                vector![0.0, 1.0, 0.0, 1.0],
-            );
-            self.webgl.draw_line(
-                (-WORLD_SIZE as f32) / 2.0,
-                (i as f32) * grid_size,
-                (WORLD_SIZE as f32) / 2.0,
-                (i as f32) * grid_size,
-                1.0,
-                vector![0.0, 1.0, 0.0, 1.0],
-            );
-        }
+        self.webgl.draw_grid(100.0, vector![0.0, 1.0, 0.0, 1.0]);
 
         {
             let v = -WORLD_SIZE as f32 / 2.0;

@@ -237,6 +237,80 @@ impl WebGlRenderer {
         self.context
             .draw_arrays(gl::LINE_LOOP, 0, (new_vertices.len() / 3) as i32);
     }
+
+    pub fn draw_grid(&mut self, grid_size: f32, color: Vector4<f32>) {
+        use crate::simulation::WORLD_SIZE;
+
+        let mut vertices = vec![];
+        let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;
+        for i in -(n / 2)..(n / 2 + 1) {
+            // Vertical
+            vertices.push((i as f32) * grid_size);
+            vertices.push((-WORLD_SIZE as f32) / 2.0);
+            vertices.push(0.0);
+            vertices.push((i as f32) * grid_size);
+            vertices.push((WORLD_SIZE as f32) / 2.0);
+            vertices.push(0.0);
+
+            // Horizontal
+            vertices.push((-WORLD_SIZE as f32) / 2.0);
+            vertices.push((i as f32) * grid_size);
+            vertices.push(0.0);
+            vertices.push((WORLD_SIZE as f32) / 2.0);
+            vertices.push((i as f32) * grid_size);
+            vertices.push(0.0);
+        }
+
+        self.context.use_program(Some(&self.program));
+        let maybe_buffer = self.context.create_buffer();
+        if maybe_buffer == None {
+            // Lost GL context.
+            return;
+        }
+        let buffer = maybe_buffer.unwrap();
+        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
+
+        // Note that `Float32Array::view` is somewhat dangerous (hence the
+        // `unsafe`!). This is creating a raw view into our module's
+        // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
+        // (aka do a memory allocation in Rust) it'll cause the buffer to change,
+        // causing the `Float32Array` to be invalid.
+        //
+        // As a result, after `Float32Array::view` we have to be very careful not to
+        // do any memory allocations before it's dropped.
+        unsafe {
+            let vert_array = js_sys::Float32Array::view(&vertices);
+
+            self.context.buffer_data_with_array_buffer_view(
+                gl::ARRAY_BUFFER,
+                &vert_array,
+                gl::STATIC_DRAW,
+            );
+        }
+
+        self.context
+            .vertex_attrib_pointer_with_i32(0, 3, gl::FLOAT, false, 0, 0);
+        self.context.enable_vertex_attrib_array(0);
+
+        self.context.uniform4f(
+            Some(&self.color_loc),
+            color[0],
+            color[1],
+            color[2],
+            color[3],
+        );
+
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.transform_loc),
+            false,
+            self.perspective_matrix.data.as_slice(),
+        );
+
+        self.context.line_width(1.0);
+
+        self.context
+            .draw_arrays(gl::LINES, 0, (vertices.len() / 3) as i32);
+    }
 }
 
 pub fn compile_shader(
