@@ -1,5 +1,3 @@
-use macroquad::time;
-
 const SHORT_HISTORY_LENGTH: usize = 60;
 const LONG_HISTORY_LENGTH: usize = 300;
 
@@ -12,7 +10,7 @@ pub struct FrameTimer {
 
 impl FrameTimer {
     pub fn start(self: &mut FrameTimer, name: &str) {
-        self.start_times.insert(name.to_string(), time::get_time());
+        self.start_times.insert(name.to_string(), instant::now());
         if !self.elapsed_times.contains_key(name) {
             self.elapsed_times.insert(name.to_string(), Vec::new());
             self.names.push(name.to_string());
@@ -20,7 +18,7 @@ impl FrameTimer {
     }
 
     pub fn end(self: &mut FrameTimer, name: &str) {
-        let now = time::get_time();
+        let now = instant::now();
         let start_time = *self.start_times.get(name).unwrap_or(&now);
         let elapsed = now - start_time;
         let v = self.elapsed_times.get_mut(name).unwrap();

@@ -1152,6 +1152,7 @@ dependencies = [
  "criterion",
  "crossbeam",
  "getrandom",
+ "instant",
  "js-sys",
  "macroquad",
  "nalgebra",
