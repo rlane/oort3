@@ -4,7 +4,7 @@ use crate::ship::{fighter, ShipData};
 use crate::simulation::{
     Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP, WORLD_SIZE,
 };
-use macroquad::rand::gen_range;
+use rand::Rng;
 use rapier2d_f64::prelude::*;
 
 #[derive(PartialEq)]
@@ -73,6 +73,7 @@ struct AsteroidScenario {}
 
 impl Scenario for AsteroidScenario {
     fn init(&self, sim: &mut Simulation) {
+        let mut rng = rand::thread_rng();
         add_walls(sim);
         crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
 
@@ -80,14 +81,14 @@ impl Scenario for AsteroidScenario {
         for _ in 1..10 {
             crate::ship::create(
                 sim,
-                gen_range(-bound, bound),
-                gen_range(-bound, bound),
-                gen_range(-30.0, 30.0),
-                gen_range(-30.0, 30.0),
-                gen_range(0.0, 2.0 * std::f64::consts::PI),
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-30.0..30.0),
+                rng.gen_range(-30.0..30.0),
+                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
                 ShipData {
                     class: Asteroid,
-                    model_variant: gen_range(0, 10),
+                    model_variant: rng.gen_range(0..10),
                 },
             );
         }
