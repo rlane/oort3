@@ -1,5 +1,5 @@
 use macroquad::input::KeyCode;
-use macroquad::{audio, input, shapes, window};
+use macroquad::{input, shapes, window};
 use nalgebra::point;
 use oort::{frame_timer, renderer, simulation};
 
@@ -16,7 +16,6 @@ async fn main() {
 
     let mut sim = simulation::Simulation::new();
     let mut renderer = renderer::Renderer::new();
-    let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
     let mut zoom = 0.001;
     let mut camera_target = point![0.0, 0.0];
     let mut frame_timer: frame_timer::FrameTimer = Default::default();
@@ -128,7 +127,6 @@ async fn main() {
 
         if sim.collided {
             sim.collided = false;
-            audio::play_sound_once(collision_sound);
             println!("collided");
         }
 
