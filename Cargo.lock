@@ -1121,6 +1121,7 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "crossbeam",
+ "js-sys",
  "macroquad",
  "oorandom",
  "rapier2d-f64",

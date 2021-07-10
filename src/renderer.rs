@@ -72,6 +72,8 @@ pub fn render(camera_target: Vec2, zoom: f32, sim: &Simulation) {
             ),
         }
     }
+
+    crate::gl::render().expect("gl::render failed");
 }
 
 fn draw_model(vertices: &[Vec2], translation: Vec2, heading: f32, zoom: f32) {
