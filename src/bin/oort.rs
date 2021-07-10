@@ -1,5 +1,5 @@
 use macroquad::input::KeyCode;
-use macroquad::{audio, camera, input, shapes, window};
+use macroquad::{audio, input, shapes, window};
 use nalgebra::point;
 use oort::{frame_timer, renderer, simulation};
 
@@ -134,7 +134,6 @@ async fn main() {
 
         frame_timer.end("frame");
 
-        camera::set_default_camera();
         {
             let (a, b, c) = frame_timer.get("frame");
             status_msgs.push(format!(
