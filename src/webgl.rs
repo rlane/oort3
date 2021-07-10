@@ -311,6 +311,10 @@ impl WebGlRenderer {
         self.context
             .draw_arrays(gl::LINES, 0, (vertices.len() / 3) as i32);
     }
+
+    pub fn flush(&mut self) {
+        self.context.flush();
+    }
 }
 
 pub fn compile_shader(

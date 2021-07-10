@@ -61,6 +61,8 @@ impl Renderer {
                 ),
             }
         }
+
+        self.webgl.flush();
     }
 
     fn draw_model(
