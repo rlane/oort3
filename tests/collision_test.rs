@@ -1,21 +1,22 @@
-use macroquad::rand;
 use oort::ship::fighter;
 use oort::simulation;
 use oort::simulation::WORLD_SIZE;
+use rand::Rng;
 
 #[test]
 fn test_world_edge() {
+    let mut rng = rand::thread_rng();
     let mut sim = oort::simulation::Simulation::new();
     oort::scenario::add_walls(&mut sim);
 
     for _ in 0..100 {
         let s = 500.0;
-        let r = rand::gen_range(10.0, 20.0);
-        let x = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
-        let y = rand::gen_range(r - WORLD_SIZE / 2.0, WORLD_SIZE / 2.0 - r);
-        let h = rand::gen_range(0.0, 2.0 * std::f32::consts::PI);
-        let vx = rand::gen_range(-s, s);
-        let vy = rand::gen_range(-s, s);
+        let r = rng.gen_range(10.0..20.0);
+        let x = rng.gen_range((r - WORLD_SIZE / 2.0)..(WORLD_SIZE / 2.0 - r));
+        let y = rng.gen_range((r - WORLD_SIZE / 2.0)..(WORLD_SIZE / 2.0 - r));
+        let h = rng.gen_range(0.0..(2.0 * std::f32::consts::PI));
+        let vx = rng.gen_range(-s..s);
+        let vy = rng.gen_range(-s..s);
         oort::ship::create(
             &mut sim,
             x as f64,
