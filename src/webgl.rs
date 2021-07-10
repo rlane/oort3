@@ -1,7 +1,7 @@
-use nalgebra::{point, vector, Matrix3, Point2, Vector2};
+use nalgebra::{point, vector, Matrix3, Point2};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlShader};
+use web_sys::{HtmlCanvasElement, WebGlProgram, WebGlRenderingContext, WebGlShader};
 
 pub struct WebGlRenderer {
     context: WebGlRenderingContext,
@@ -13,7 +13,7 @@ impl WebGlRenderer {
     pub fn new() -> Result<Self, JsValue> {
         let document = web_sys::window().unwrap().document().unwrap();
         let canvas = document.get_element_by_id("glcanvas").unwrap();
-        let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+        let canvas = canvas.dyn_into::<HtmlCanvasElement>()?;
 
         let context = canvas
             .get_context("webgl")?
@@ -55,7 +55,10 @@ impl WebGlRenderer {
         })
     }
 
-    pub fn set_perspective(&mut self, scale: Vector2<f32>, center: Point2<f32>) {
+    pub fn set_perspective(&mut self, zoom: f32, center: Point2<f32>) {
+        let screen_width = self.context.drawing_buffer_width() as f32;
+        let screen_height = self.context.drawing_buffer_height() as f32;
+        let scale = vector![zoom, zoom * screen_width / screen_height];
         self.perspective_matrix = Matrix3::new_nonuniform_scaling_wrt_point(&scale, &center);
     }
 

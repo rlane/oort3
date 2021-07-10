@@ -2,8 +2,8 @@ use crate::ship::ShipClass;
 use crate::simulation::{Simulation, WORLD_SIZE};
 use crate::webgl::WebGlRenderer;
 use macroquad::math::{vec2, Vec2};
-use macroquad::{color, math, window};
-use nalgebra::{point, vector};
+use macroquad::{color, math};
+use nalgebra::point;
 
 pub struct Renderer {
     webgl: WebGlRenderer,
@@ -19,13 +19,8 @@ impl Renderer {
     pub fn render(&mut self, camera_target: Vec2, zoom: f32, sim: &Simulation) {
         self.webgl.clear();
 
-        self.webgl.set_perspective(
-            vector![
-                zoom,
-                zoom * window::screen_width() / window::screen_height()
-            ],
-            point![camera_target.x, camera_target.y],
-        );
+        self.webgl
+            .set_perspective(zoom, point![camera_target.x, camera_target.y]);
 
         let grid_size = 100.0;
         let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;
