@@ -32,6 +32,8 @@ features = [
   'WebGlRenderingContext',
   'WebGlShader',
   'WebGlUniformLocation',
+  'KeyboardEvent',
+  'console',
 ]
 
 [dev-dependencies]
