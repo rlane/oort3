@@ -1,4 +1,5 @@
 use crate::{frame_timer, renderer, scenario, simulation};
+use log::info;
 use nalgebra::{point, Point2};
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
@@ -27,6 +28,8 @@ unsafe impl Send for UI {}
 impl UI {
     pub fn new() -> Self {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        console_log::init_with_level(log::Level::Debug).expect("initializing logging");
+        info!("Initializing UI");
 
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
