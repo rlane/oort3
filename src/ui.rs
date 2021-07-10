@@ -122,7 +122,7 @@ impl UI {
             self.keys_ignored.insert("u".to_string());
             for name in self.frame_timer.get_names() {
                 let (a, b, c) = self.frame_timer.get(name);
-                println!("{}: {:.1}/{:.1}/{:.1} ms", name, a * 1e3, b * 1e3, c * 1e3);
+                println!("{}: {:.1}/{:.1}/{:.1} ms", name, a, b, c);
             }
             println!(
                 "Number of: ships={} bullets={}",
@@ -203,12 +203,7 @@ impl UI {
 
         {
             let (a, b, c) = self.frame_timer.get("frame");
-            status_msgs.push(format!(
-                "Frame time: {:.1}/{:.1}/{:.1} ms",
-                a * 1e3,
-                b * 1e3,
-                c * 1e3
-            ));
+            status_msgs.push(format!("Frame time: {:.1}/{:.1}/{:.1} ms", a, b, c,));
         }
 
         if self.paused {
