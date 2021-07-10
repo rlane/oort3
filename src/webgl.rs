@@ -62,6 +62,12 @@ impl WebGlRenderer {
         self.perspective_matrix = Matrix3::new_nonuniform_scaling_wrt_point(&scale, &center);
     }
 
+    pub fn update_viewport(&mut self) {
+        let screen_width = self.context.drawing_buffer_width();
+        let screen_height = self.context.drawing_buffer_height();
+        self.context.viewport(0, 0, screen_width, screen_height);
+    }
+
     pub fn clear(&mut self) {
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);

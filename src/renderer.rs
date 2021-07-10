@@ -16,7 +16,7 @@ impl Renderer {
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, sim: &Simulation) {
         self.webgl.clear();
-
+        self.webgl.update_viewport();
         self.webgl
             .set_perspective(zoom, point![camera_target.x, camera_target.y]);
 
