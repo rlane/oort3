@@ -3,11 +3,11 @@ name = "oort"
 version = "0.1.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-macroquad = "0.3.6"
-rapier2d-f64 = "0.9"
+rapier2d-f64 = { version = "0.9", features = ["wasm-bindgen"] }
 crossbeam = "0.8"
 oorandom = "11.1.3"
 wasm-bindgen = "0.2.74"
@@ -17,6 +17,7 @@ console_error_panic_hook = "0.1.6"
 rand = "*"
 getrandom = { version = "0.2", features = ["js"] }
 instant = "0.1"
+lazy_static = "*"
 
 [dependencies.web-sys]
 version = "0.3.4"

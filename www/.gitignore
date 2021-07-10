@@ -1,1 +1,3 @@
 *.wasm
+/node_modules
+/pkg

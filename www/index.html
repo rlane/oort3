@@ -20,10 +20,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/editor/editor.main.nls.min.js" integrity="sha512-/Lpr8XyEnghf+eu5/ytlh92qc6gEWUodmPjmxRFKqBG1ZzS0Qif87TFRnRy7BMf6epqv2NdE13JYvnvrSPVAvQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/editor/editor.main.js" integrity="sha512-cc8MosBh6Iu+AcufFZYRhPVXE88eysd9SiNFB8YJm40+KaoRZMP64nRXiBf5P/uLzwwTCLYo/PYAh4vBRI8wUg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
-    require.config({paths: {'vs':'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/'}})
-    require(['vs/editor/editor.main'], function () {
-      var editor = monaco.editor.create(document.getElementById('editor'), {
-        value: `-- defines a factorial function
+require.config({paths: {'vs':'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/'}})
+require(['vs/editor/editor.main'], function () {
+  var editor = monaco.editor.create(document.getElementById('editor'), {
+    value: `-- defines a factorial function
 function fact (n)
   if n == 0 then
     return 1
@@ -31,28 +31,11 @@ function fact (n)
     return n * fact(n-1)
   end
 end`,
-        language: 'lua',
-        theme: 'vs-dark'
-      });
-    });
+    language: 'lua',
+    theme: 'vs-dark'
+  });
+});
   </script>
-  <script src="mq_js_bundle.js"></script>
-  <script type="module">
-    import init, { set_wasm } from "./wbindgen/oort.js";
 
-    async function run() {
-      let wbg = await init();
-
-      miniquad_add_plugin({
-        register_plugin: (a) => (a.wbg = wbg),
-        on_init: () => set_wasm(wasm_exports),
-        version: "0.0.1",
-        name: "wbg",
-      });
-
-      load("./wbindgen/oort_bg.wasm");
-    }
-    run();
-  </script>
 </body>
 </html>
