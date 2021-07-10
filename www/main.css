@@ -4,11 +4,13 @@ html, body {
 }
 
 #editor {
+  top: 0;
+  left: 0;
   width: 30%;
+  height: 100%;
 
   margin: 0px;
   padding: 0px;
-  height: 100%;
   overflow: hidden;
   position: absolute;
   background: black;
@@ -16,14 +18,26 @@ html, body {
 }
 
 #glcanvas {
+  top: 0;
   left: 30%;
   width: 70%;
+  height: 100%;
 
   margin: 0px;
   padding: 0px;
-  height: 100%;
   overflow: hidden;
   position: absolute;
   background: black;
   z-index: 0;
+}
+
+#status {
+  bottom: 20px;
+  right: 20px;
+  height: 24px;
+
+  position: absolute;
+  color: #dddddd;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 24px;
 }

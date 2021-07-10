@@ -5,11 +5,14 @@
   <title>Oort</title>
   <link rel="stylesheet" href="main.css" />
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/editor/editor.main.min.css" integrity="sha512-Aplc5M1v/ytxu11jVmWdmKQLn3SLeNHcv8ii1tWmMl61RFoGC5AXM1qSVDIpQorqQmY9FmO1U2Mw1PopeSCGrA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
-  <pre id="textbox" width=400 height=100>empty textbox</pre>
   <canvas id="glcanvas" tabindex="1"></canvas>
   <div id="editor"></div>
+  <div id="status"></div>
   <script>
       var require = {paths: {'vs':'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/'}}
   </script>

@@ -1,6 +1,6 @@
 use macroquad::input::KeyCode;
 use macroquad::math::vec2;
-use macroquad::{audio, camera, color, input, text, window};
+use macroquad::{audio, camera, input, shapes, window};
 use oort::{frame_timer, renderer, simulation};
 
 #[macroquad::main("Oort")]
@@ -9,10 +9,10 @@ async fn main() {
 
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
-    let textbox = document
-        .get_element_by_id("textbox")
-        .expect("should have a textbox");
-    textbox.set_inner_html("Hello from Rust");
+    let status_div = document
+        .get_element_by_id("status")
+        .expect("should have a status div");
+    status_div.set_inner_html("Hello from Rust");
 
     let mut sim = simulation::Simulation::new();
     let mut renderer = renderer::Renderer::new();
@@ -28,6 +28,8 @@ async fn main() {
     scenario.init(&mut sim);
 
     loop {
+        let mut status_msgs: Vec<String> = Vec::new();
+
         frame_timer.start("frame");
 
         let camera_step = 0.01 / zoom;
@@ -135,48 +137,25 @@ async fn main() {
         camera::set_default_camera();
         {
             let (a, b, c) = frame_timer.get("frame");
-            text::draw_text(
-                format!(
-                    "Frame time: {:.1}/{:.1}/{:.1} ms",
-                    a * 1e3,
-                    b * 1e3,
-                    c * 1e3
-                )
-                .as_str(),
-                window::screen_width() - 400.0,
-                20.0,
-                32.0,
-                color::WHITE,
-            );
+            status_msgs.push(format!(
+                "Frame time: {:.1}/{:.1}/{:.1} ms",
+                a * 1e3,
+                b * 1e3,
+                c * 1e3
+            ));
         }
 
         if paused {
-            text::draw_text(
-                "PAUSED",
-                window::screen_width() / 2.0 - 96.0,
-                window::screen_height() - 30.0,
-                32.0,
-                color::WHITE,
-            );
+            status_msgs.push("PAUSED".to_string());
         } else if finished {
-            text::draw_text(
-                "FINISHED",
-                window::screen_width() / 2.0 - 96.0,
-                window::screen_height() - 30.0,
-                32.0,
-                color::WHITE,
-            );
+            status_msgs.push("FINISHED".to_string());
         }
+
+        status_div.set_inner_html(&status_msgs.join("; "));
+
+        // HACK required by macroquad.
+        shapes::draw_circle(0.0, 0.0, 1.0, macroquad::color::WHITE);
 
         window::next_frame().await
     }
-
-    camera::set_default_camera();
-    text::draw_text(
-        "Game over",
-        window::screen_width() / 2.0,
-        window::screen_height() / 2.0,
-        100.0,
-        color::RED,
-    );
 }
