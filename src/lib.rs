@@ -6,4 +6,5 @@ pub mod renderer;
 pub mod scenario;
 pub mod ship;
 pub mod simulation;
+pub mod ui;
 pub mod webgl;
