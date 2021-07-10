@@ -21,6 +21,7 @@ pub struct UI {
     status_div: web_sys::Element,
     key_rx: mpsc::Receiver<KeyboardEvent>,
     tick: u64,
+    last_render_time: f64,
 }
 
 unsafe impl Send for UI {}
@@ -87,10 +88,17 @@ impl UI {
             status_div,
             key_rx,
             tick: 0,
+            last_render_time: instant::now(),
         }
     }
 
     pub fn render(&mut self) {
+        let now = instant::now();
+        if now - self.last_render_time > 20.0 {
+            info!("Late render: {} ms", now - self.last_render_time);
+        }
+        self.last_render_time = now;
+
         let mut status_msgs: Vec<String> = Vec::new();
 
         self.frame_timer.start("frame");
