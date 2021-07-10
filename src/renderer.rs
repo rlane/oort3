@@ -88,31 +88,10 @@ impl Renderer {
         translation: Translation2<f32>,
         rotation: Rotation2<f32>,
     ) {
-        let new_vertices = vertices
-            .iter()
-            .map(|&v| translation.transform_point(&Point2::from(rotation.transform_vector(&v))))
-            .collect::<Vec<_>>();
         let thickness = 2.0;
         let color = vector![0.99, 0.98, 0.00, 1.00];
-        for i in 1..vertices.len() {
-            self.webgl.draw_line(
-                new_vertices[i - 1].x,
-                new_vertices[i - 1].y,
-                new_vertices[i].x,
-                new_vertices[i].y,
-                thickness,
-                color,
-            );
-        }
-        let i = vertices.len() - 1;
-        self.webgl.draw_line(
-            new_vertices[i].x,
-            new_vertices[i].y,
-            new_vertices[0].x,
-            new_vertices[0].y,
-            thickness,
-            color,
-        );
+        self.webgl
+            .draw_line_loop(vertices, translation, rotation, thickness, color);
     }
 }
 

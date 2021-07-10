@@ -1,4 +1,7 @@
-use nalgebra::{point, vector, Matrix3, Point2, Vector4};
+use nalgebra::{
+    point, storage::Storage, vector, Matrix4, Point2, Rotation2, Rotation3, Translation2,
+    Translation3, Vector2, Vector3, Vector4,
+};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{
@@ -10,7 +13,7 @@ pub struct WebGlRenderer {
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
-    perspective_matrix: Matrix3<f32>,
+    perspective_matrix: Matrix4<f32>,
 }
 
 impl WebGlRenderer {
@@ -63,9 +66,9 @@ impl WebGlRenderer {
             program,
             transform_loc,
             color_loc,
-            perspective_matrix: Matrix3::new_nonuniform_scaling_wrt_point(
-                &vector![scale, scale],
-                &center,
+            perspective_matrix: Matrix4::new_nonuniform_scaling_wrt_point(
+                &vector![scale, scale, 1.0],
+                &point![center.x, center.y, 0.0],
             ),
         })
     }
@@ -73,8 +76,9 @@ impl WebGlRenderer {
     pub fn set_perspective(&mut self, zoom: f32, center: Point2<f32>) {
         let screen_width = self.context.drawing_buffer_width() as f32;
         let screen_height = self.context.drawing_buffer_height() as f32;
-        let scale = vector![zoom, zoom * screen_width / screen_height];
-        self.perspective_matrix = Matrix3::new_nonuniform_scaling_wrt_point(&scale, &center);
+        let scale = vector![zoom, zoom * screen_width / screen_height, 1.0];
+        self.perspective_matrix =
+            Matrix4::new_nonuniform_scaling_wrt_point(&scale, &point![center.x, center.y, 0.0]);
     }
 
     pub fn update_viewport(&mut self) {
@@ -98,8 +102,12 @@ impl WebGlRenderer {
         color: Vector4<f32>,
     ) {
         self.context.use_program(Some(&self.program));
-        let p1 = self.perspective_matrix.transform_point(&point![x1, y1]);
-        let p2 = self.perspective_matrix.transform_point(&point![x2, y2]);
+        let p1 = self
+            .perspective_matrix
+            .transform_point(&point![x1, y1, 0.0]);
+        let p2 = self
+            .perspective_matrix
+            .transform_point(&point![x2, y2, 0.0]);
         let vertices: [f32; 6] = [p1.x, p1.y, 0.0, p2.x, p2.y, 0.0];
 
         let maybe_buffer = self.context.create_buffer();
@@ -162,6 +170,88 @@ impl WebGlRenderer {
 
         self.context
             .draw_arrays(WebGlRenderingContext::LINES, 0, (vertices.len() / 3) as i32);
+    }
+
+    pub fn draw_line_loop(
+        &mut self,
+        vertices: &[Vector2<f32>],
+        translation: Translation2<f32>,
+        rotation: Rotation2<f32>,
+        thickness: f32,
+        color: Vector4<f32>,
+    ) {
+        self.context.use_program(Some(&self.program));
+        let translation = Translation3::new(translation.x, translation.y, 0.0);
+        let rotation = Rotation3::from_axis_angle(&Vector3::z_axis(), rotation.angle());
+
+        let mvp_matrix =
+            self.perspective_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
+
+        let maybe_buffer = self.context.create_buffer();
+        if maybe_buffer == None {
+            // Lost GL context.
+            return;
+        }
+        let buffer = maybe_buffer.unwrap();
+        self.context
+            .bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
+
+        let mut new_vertices = vec![];
+        for v in vertices {
+            new_vertices.push(v[0]);
+            new_vertices.push(v[1]);
+            new_vertices.push(0.0);
+        }
+
+        // Note that `Float32Array::view` is somewhat dangerous (hence the
+        // `unsafe`!). This is creating a raw view into our module's
+        // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
+        // (aka do a memory allocation in Rust) it'll cause the buffer to change,
+        // causing the `Float32Array` to be invalid.
+        //
+        // As a result, after `Float32Array::view` we have to be very careful not to
+        // do any memory allocations before it's dropped.
+        unsafe {
+            let vert_array = js_sys::Float32Array::view(&new_vertices);
+
+            self.context.buffer_data_with_array_buffer_view(
+                WebGlRenderingContext::ARRAY_BUFFER,
+                &vert_array,
+                WebGlRenderingContext::STATIC_DRAW,
+            );
+        }
+
+        self.context.vertex_attrib_pointer_with_i32(
+            0,
+            3,
+            WebGlRenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+        self.context.enable_vertex_attrib_array(0);
+
+        self.context.uniform4f(
+            Some(&self.color_loc),
+            color[0],
+            color[1],
+            color[2],
+            color[3],
+        );
+
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.transform_loc),
+            false,
+            mvp_matrix.data.as_slice(),
+        );
+
+        self.context.line_width(thickness);
+
+        self.context.draw_arrays(
+            WebGlRenderingContext::LINE_LOOP,
+            0,
+            (new_vertices.len() / 3) as i32,
+        );
     }
 }
 
