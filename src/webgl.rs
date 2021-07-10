@@ -5,11 +5,12 @@ use nalgebra::{
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{
-    HtmlCanvasElement, WebGlProgram, WebGlRenderingContext, WebGlShader, WebGlUniformLocation,
+    HtmlCanvasElement, WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation,
 };
+use WebGl2RenderingContext as gl;
 
 pub struct WebGlRenderer {
-    context: WebGlRenderingContext,
+    context: WebGl2RenderingContext,
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
@@ -23,13 +24,13 @@ impl WebGlRenderer {
         let canvas = canvas.dyn_into::<HtmlCanvasElement>()?;
 
         let context = canvas
-            .get_context("webgl")?
+            .get_context("webgl2")?
             .unwrap()
-            .dyn_into::<WebGlRenderingContext>()?;
+            .dyn_into::<WebGl2RenderingContext>()?;
 
         let vert_shader = compile_shader(
             &context,
-            WebGlRenderingContext::VERTEX_SHADER,
+            gl::VERTEX_SHADER,
             r#"
         uniform mat4 transform;
         attribute vec4 position;
@@ -40,7 +41,7 @@ impl WebGlRenderer {
         )?;
         let frag_shader = compile_shader(
             &context,
-            WebGlRenderingContext::FRAGMENT_SHADER,
+            gl::FRAGMENT_SHADER,
             r#"
         precision mediump float;
         uniform vec4 color;
@@ -89,7 +90,7 @@ impl WebGlRenderer {
 
     pub fn clear(&mut self) {
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-        self.context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+        self.context.clear(gl::COLOR_BUFFER_BIT);
     }
 
     pub fn draw_line(
@@ -116,8 +117,7 @@ impl WebGlRenderer {
             return;
         }
         let buffer = maybe_buffer.unwrap();
-        self.context
-            .bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
+        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
         // Note that `Float32Array::view` is somewhat dangerous (hence the
         // `unsafe`!). This is creating a raw view into our module's
@@ -131,20 +131,14 @@ impl WebGlRenderer {
             let vert_array = js_sys::Float32Array::view(&vertices);
 
             self.context.buffer_data_with_array_buffer_view(
-                WebGlRenderingContext::ARRAY_BUFFER,
+                gl::ARRAY_BUFFER,
                 &vert_array,
-                WebGlRenderingContext::STATIC_DRAW,
+                gl::STATIC_DRAW,
             );
         }
 
-        self.context.vertex_attrib_pointer_with_i32(
-            0,
-            3,
-            WebGlRenderingContext::FLOAT,
-            false,
-            0,
-            0,
-        );
+        self.context
+            .vertex_attrib_pointer_with_i32(0, 3, gl::FLOAT, false, 0, 0);
         self.context.enable_vertex_attrib_array(0);
 
         self.context.uniform4f(
@@ -169,7 +163,7 @@ impl WebGlRenderer {
         self.context.line_width(thickness);
 
         self.context
-            .draw_arrays(WebGlRenderingContext::LINES, 0, (vertices.len() / 3) as i32);
+            .draw_arrays(gl::LINES, 0, (vertices.len() / 3) as i32);
     }
 
     pub fn draw_line_loop(
@@ -193,8 +187,7 @@ impl WebGlRenderer {
             return;
         }
         let buffer = maybe_buffer.unwrap();
-        self.context
-            .bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
+        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
         let mut new_vertices = vec![];
         for v in vertices {
@@ -215,20 +208,14 @@ impl WebGlRenderer {
             let vert_array = js_sys::Float32Array::view(&new_vertices);
 
             self.context.buffer_data_with_array_buffer_view(
-                WebGlRenderingContext::ARRAY_BUFFER,
+                gl::ARRAY_BUFFER,
                 &vert_array,
-                WebGlRenderingContext::STATIC_DRAW,
+                gl::STATIC_DRAW,
             );
         }
 
-        self.context.vertex_attrib_pointer_with_i32(
-            0,
-            3,
-            WebGlRenderingContext::FLOAT,
-            false,
-            0,
-            0,
-        );
+        self.context
+            .vertex_attrib_pointer_with_i32(0, 3, gl::FLOAT, false, 0, 0);
         self.context.enable_vertex_attrib_array(0);
 
         self.context.uniform4f(
@@ -247,16 +234,13 @@ impl WebGlRenderer {
 
         self.context.line_width(thickness);
 
-        self.context.draw_arrays(
-            WebGlRenderingContext::LINE_LOOP,
-            0,
-            (new_vertices.len() / 3) as i32,
-        );
+        self.context
+            .draw_arrays(gl::LINE_LOOP, 0, (new_vertices.len() / 3) as i32);
     }
 }
 
 pub fn compile_shader(
-    context: &WebGlRenderingContext,
+    context: &WebGl2RenderingContext,
     shader_type: u32,
     source: &str,
 ) -> Result<WebGlShader, String> {
@@ -267,7 +251,7 @@ pub fn compile_shader(
     context.compile_shader(&shader);
 
     if context
-        .get_shader_parameter(&shader, WebGlRenderingContext::COMPILE_STATUS)
+        .get_shader_parameter(&shader, gl::COMPILE_STATUS)
         .as_bool()
         .unwrap_or(false)
     {
@@ -280,7 +264,7 @@ pub fn compile_shader(
 }
 
 pub fn link_program(
-    context: &WebGlRenderingContext,
+    context: &WebGl2RenderingContext,
     vert_shader: &WebGlShader,
     frag_shader: &WebGlShader,
 ) -> Result<WebGlProgram, String> {
@@ -293,7 +277,7 @@ pub fn link_program(
     context.link_program(&program);
 
     if context
-        .get_program_parameter(&program, WebGlRenderingContext::LINK_STATUS)
+        .get_program_parameter(&program, gl::LINK_STATUS)
         .as_bool()
         .unwrap_or(false)
     {

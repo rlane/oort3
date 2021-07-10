@@ -30,7 +30,7 @@ features = [
   'Window',
   'WebGlBuffer',
   'WebGlProgram',
-  'WebGlRenderingContext',
+  'WebGl2RenderingContext',
   'WebGlShader',
   'WebGlUniformLocation',
   'KeyboardEvent',
