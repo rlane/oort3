@@ -7,6 +7,7 @@
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/editor/editor.main.min.css" integrity="sha512-Aplc5M1v/ytxu11jVmWdmKQLn3SLeNHcv8ii1tWmMl61RFoGC5AXM1qSVDIpQorqQmY9FmO1U2Mw1PopeSCGrA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
+  <pre id="textbox" width=400 height=100>empty textbox</pre>
   <canvas id="glcanvas" tabindex="1"></canvas>
   <div id="editor"></div>
   <script>
@@ -33,6 +34,22 @@ end`,
     });
   </script>
   <script src="mq_js_bundle.js"></script>
-  <script>load("oort.wasm");</script>
+  <script type="module">
+    import init, { set_wasm } from "./wbindgen/oort.js";
+
+    async function run() {
+      let wbg = await init();
+
+      miniquad_add_plugin({
+        register_plugin: (a) => (a.wbg = wbg),
+        on_init: () => set_wasm(wasm_exports),
+        version: "0.0.1",
+        name: "wbg",
+      });
+
+      load("./wbindgen/oort_bg.wasm");
+    }
+    run();
+  </script>
 </body>
 </html>

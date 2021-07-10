@@ -5,6 +5,13 @@ use oort::{frame_timer, renderer, simulation};
 
 #[macroquad::main("Oort")]
 async fn main() {
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
+    let textbox = document
+        .get_element_by_id("textbox")
+        .expect("should have a textbox");
+    textbox.set_inner_html("Hello from Rust");
+
     let mut sim = simulation::Simulation::new();
     let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
     let mut zoom = 0.001;

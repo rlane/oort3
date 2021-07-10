@@ -1124,6 +1124,8 @@ dependencies = [
  "macroquad",
  "oorandom",
  "rapier2d-f64",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
