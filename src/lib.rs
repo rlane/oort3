@@ -1,9 +1,9 @@
 pub mod bullet;
 pub mod frame_timer;
-pub mod gl;
 pub mod index_set;
 pub mod model;
 pub mod renderer;
 pub mod scenario;
 pub mod ship;
 pub mod simulation;
+pub mod webgl;

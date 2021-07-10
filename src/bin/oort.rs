@@ -5,6 +5,8 @@ use oort::{frame_timer, renderer, simulation};
 
 #[macroquad::main("Oort")]
 async fn main() {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
     let textbox = document
@@ -13,6 +15,7 @@ async fn main() {
     textbox.set_inner_html("Hello from Rust");
 
     let mut sim = simulation::Simulation::new();
+    let mut renderer = renderer::Renderer::new();
     let collision_sound = audio::load_sound("assets/collision.wav").await.unwrap();
     let mut zoom = 0.001;
     let mut camera_target = vec2(0.0, 0.0);
@@ -118,7 +121,7 @@ async fn main() {
         }
 
         frame_timer.start("render");
-        renderer::render(camera_target, zoom, &sim);
+        renderer.render(camera_target, zoom, &sim);
         frame_timer.end("render");
 
         if sim.collided {
