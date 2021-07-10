@@ -8,6 +8,7 @@ use web_sys::{
 pub struct WebGlRenderer {
     context: WebGlRenderingContext,
     program: WebGlProgram,
+    transform_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
     perspective_matrix: Matrix3<f32>,
 }
@@ -27,9 +28,10 @@ impl WebGlRenderer {
             &context,
             WebGlRenderingContext::VERTEX_SHADER,
             r#"
+        uniform mat4 transform;
         attribute vec4 position;
         void main() {
-            gl_Position = position;
+            gl_Position = transform * position;
         }
     "#,
         )?;
@@ -46,6 +48,10 @@ impl WebGlRenderer {
         )?;
         let program = link_program(&context, &vert_shader, &frag_shader)?;
 
+        let transform_loc = context
+            .get_uniform_location(&program, "transform")
+            .ok_or("did not find uniform")?;
+
         let color_loc = context
             .get_uniform_location(&program, "color")
             .ok_or("did not find uniform")?;
@@ -55,6 +61,7 @@ impl WebGlRenderer {
         Ok(WebGlRenderer {
             context,
             program,
+            transform_loc,
             color_loc,
             perspective_matrix: Matrix3::new_nonuniform_scaling_wrt_point(
                 &vector![scale, scale],
@@ -138,6 +145,17 @@ impl WebGlRenderer {
             color[1],
             color[2],
             color[3],
+        );
+
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.transform_loc),
+            false,
+            &[
+                1.0, 0.0, 0.0, 0.0, //
+                0.0, 1.0, 0.0, 0.0, //
+                0.0, 0.0, 1.0, 0.0, //
+                0.0, 0.0, 0.0, 1.0,
+            ],
         );
 
         self.context.line_width(thickness);
