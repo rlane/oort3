@@ -1,11 +1,14 @@
 use nalgebra::{point, vector, Matrix3, Point2, Vector4};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlCanvasElement, WebGlProgram, WebGlRenderingContext, WebGlShader};
+use web_sys::{
+    HtmlCanvasElement, WebGlProgram, WebGlRenderingContext, WebGlShader, WebGlUniformLocation,
+};
 
 pub struct WebGlRenderer {
     context: WebGlRenderingContext,
     program: WebGlProgram,
+    color_loc: WebGlUniformLocation,
     perspective_matrix: Matrix3<f32>,
 }
 
@@ -43,11 +46,16 @@ impl WebGlRenderer {
         )?;
         let program = link_program(&context, &vert_shader, &frag_shader)?;
 
+        let color_loc = context
+            .get_uniform_location(&program, "color")
+            .ok_or("did not find uniform")?;
+
         let scale = 1.0 / 1000.0;
         let center = point![0.0, 0.0];
         Ok(WebGlRenderer {
             context,
             program,
+            color_loc,
             perspective_matrix: Matrix3::new_nonuniform_scaling_wrt_point(
                 &vector![scale, scale],
                 &center,
@@ -124,12 +132,13 @@ impl WebGlRenderer {
         );
         self.context.enable_vertex_attrib_array(0);
 
-        let color_loc = self
-            .context
-            .get_uniform_location(&self.program, "color")
-            .expect("missing color uniform");
-        self.context
-            .uniform4f(Some(&color_loc), color[0], color[1], color[2], color[3]);
+        self.context.uniform4f(
+            Some(&self.color_loc),
+            color[0],
+            color[1],
+            color[2],
+            color[3],
+        );
 
         self.context.line_width(thickness);
 
