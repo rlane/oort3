@@ -1,4 +1,5 @@
 pub mod api;
+pub mod buffer_arena;
 pub mod bullet;
 pub mod fps;
 pub mod frame_timer;

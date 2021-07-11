@@ -1,3 +1,4 @@
+use crate::buffer_arena;
 use nalgebra::{
     point, storage::Storage, Matrix4, Point2, Rotation2, Rotation3, Translation2, Translation3,
     Vector2, Vector3, Vector4,
@@ -15,6 +16,7 @@ pub struct WebGlRenderer {
     transform_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
+    buffer_arena: buffer_arena::BufferArena,
 }
 
 impl WebGlRenderer {
@@ -61,11 +63,12 @@ impl WebGlRenderer {
             .ok_or("did not find uniform")?;
 
         Ok(WebGlRenderer {
-            context,
+            context: context.clone(),
             program,
             transform_loc,
             color_loc,
             projection_matrix: Matrix4::identity(),
+            buffer_arena: buffer_arena::BufferArena::new(context, 1024 * 1024)?,
         })
     }
 
@@ -108,34 +111,18 @@ impl WebGlRenderer {
         let p2 = self.projection_matrix.transform_point(&point![x2, y2, 0.0]);
         let vertices: [f32; 6] = [p1.x, p1.y, 0.0, p2.x, p2.y, 0.0];
 
-        let maybe_buffer = self.context.create_buffer();
-        if maybe_buffer == None {
-            // Lost GL context.
-            return;
-        }
-        let buffer = maybe_buffer.unwrap();
+        let (buffer, offset) = self.buffer_arena.write(&vertices);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
-        // Note that `Float32Array::view` is somewhat dangerous (hence the
-        // `unsafe`!). This is creating a raw view into our module's
-        // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
-        // (aka do a memory allocation in Rust) it'll cause the buffer to change,
-        // causing the `Float32Array` to be invalid.
-        //
-        // As a result, after `Float32Array::view` we have to be very careful not to
-        // do any memory allocations before it's dropped.
-        unsafe {
-            let vert_array = js_sys::Float32Array::view(&vertices);
+        self.context.vertex_attrib_pointer_with_i32(
+            /*indx=*/ 0,
+            /*size=*/ 3,
+            /*type_=*/ gl::FLOAT,
+            /*normalized=*/ false,
+            /*stride=*/ 0,
+            offset as i32,
+        );
 
-            self.context.buffer_data_with_array_buffer_view(
-                gl::ARRAY_BUFFER,
-                &vert_array,
-                gl::STATIC_DRAW,
-            );
-        }
-
-        self.context
-            .vertex_attrib_pointer_with_i32(0, 3, gl::FLOAT, false, 0, 0);
         self.context.enable_vertex_attrib_array(0);
 
         self.context.uniform4f(
@@ -178,14 +165,6 @@ impl WebGlRenderer {
         let mvp_matrix =
             self.projection_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
 
-        let maybe_buffer = self.context.create_buffer();
-        if maybe_buffer == None {
-            // Lost GL context.
-            return;
-        }
-        let buffer = maybe_buffer.unwrap();
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
         let mut new_vertices = vec![];
         for v in vertices {
             new_vertices.push(v[0]);
@@ -193,26 +172,17 @@ impl WebGlRenderer {
             new_vertices.push(0.0);
         }
 
-        // Note that `Float32Array::view` is somewhat dangerous (hence the
-        // `unsafe`!). This is creating a raw view into our module's
-        // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
-        // (aka do a memory allocation in Rust) it'll cause the buffer to change,
-        // causing the `Float32Array` to be invalid.
-        //
-        // As a result, after `Float32Array::view` we have to be very careful not to
-        // do any memory allocations before it's dropped.
-        unsafe {
-            let vert_array = js_sys::Float32Array::view(&new_vertices);
+        let (buffer, offset) = self.buffer_arena.write(&new_vertices);
+        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
-            self.context.buffer_data_with_array_buffer_view(
-                gl::ARRAY_BUFFER,
-                &vert_array,
-                gl::STATIC_DRAW,
-            );
-        }
-
-        self.context
-            .vertex_attrib_pointer_with_i32(0, 3, gl::FLOAT, false, 0, 0);
+        self.context.vertex_attrib_pointer_with_i32(
+            /*indx=*/ 0,
+            /*size=*/ 3,
+            /*type_=*/ gl::FLOAT,
+            /*normalized=*/ false,
+            /*stride=*/ 0,
+            offset as i32,
+        );
         self.context.enable_vertex_attrib_array(0);
 
         self.context.uniform4f(
@@ -259,34 +229,18 @@ impl WebGlRenderer {
         }
 
         self.context.use_program(Some(&self.program));
-        let maybe_buffer = self.context.create_buffer();
-        if maybe_buffer == None {
-            // Lost GL context.
-            return;
-        }
-        let buffer = maybe_buffer.unwrap();
+
+        let (buffer, offset) = self.buffer_arena.write(&vertices);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
-        // Note that `Float32Array::view` is somewhat dangerous (hence the
-        // `unsafe`!). This is creating a raw view into our module's
-        // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
-        // (aka do a memory allocation in Rust) it'll cause the buffer to change,
-        // causing the `Float32Array` to be invalid.
-        //
-        // As a result, after `Float32Array::view` we have to be very careful not to
-        // do any memory allocations before it's dropped.
-        unsafe {
-            let vert_array = js_sys::Float32Array::view(&vertices);
-
-            self.context.buffer_data_with_array_buffer_view(
-                gl::ARRAY_BUFFER,
-                &vert_array,
-                gl::STATIC_DRAW,
-            );
-        }
-
-        self.context
-            .vertex_attrib_pointer_with_i32(0, 3, gl::FLOAT, false, 0, 0);
+        self.context.vertex_attrib_pointer_with_i32(
+            /*indx=*/ 0,
+            /*size=*/ 3,
+            /*type_=*/ gl::FLOAT,
+            /*normalized=*/ false,
+            /*stride=*/ 0,
+            offset as i32,
+        );
         self.context.enable_vertex_attrib_array(0);
 
         self.context.uniform4f(
