@@ -1,4 +1,7 @@
-use crate::{fps, frame_timer, renderer, simulation};
+pub mod fps;
+pub mod frame_timer;
+
+use crate::{renderer, simulation};
 use log::{debug, info};
 use nalgebra::{point, Point2};
 use simulation::scenario;
