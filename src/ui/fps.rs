@@ -14,12 +14,18 @@ impl FPS {
     pub fn start_frame(&mut self, now: f64) {
         if self.last_frame_start_time == 0.0 {
             // no-op
-        } else if self.frame_time_moving_average == 0.0 {
-            self.frame_time_moving_average = now - self.last_frame_start_time;
         } else {
-            let weight = 0.01;
-            self.frame_time_moving_average = weight * (now - self.last_frame_start_time)
-                + (1.0 - weight) * self.frame_time_moving_average;
+            let elapsed = now - self.last_frame_start_time;
+            if elapsed > 1000.0 {
+                // Likely paused by browser.
+                self.frame_time_moving_average = 0.0;
+            } else if self.frame_time_moving_average == 0.0 {
+                self.frame_time_moving_average = elapsed;
+            } else {
+                let weight = 0.05;
+                self.frame_time_moving_average =
+                    weight * elapsed + (1.0 - weight) * self.frame_time_moving_average;
+            }
         }
         self.last_frame_start_time = now;
     }
