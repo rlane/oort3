@@ -262,7 +262,7 @@ impl UI {
                 status_msgs.push(format!("{:.1}/{:.1}/{:.1} ms", a, b, c,));
             }
             let status_msg = status_msgs.join("; ");
-            self.status_div.set_inner_html(&status_msg);
+            self.status_div.set_text_content(Some(&status_msg));
         }
 
         self.tick += 1;
