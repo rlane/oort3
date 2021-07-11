@@ -1,13 +1,7 @@
 use super::buffer_arena;
-use nalgebra::{
-    point, storage::Storage, Matrix4, Point2, Rotation2, Rotation3, Translation2, Translation3,
-    Vector2, Vector3, Vector4,
-};
+use nalgebra::{point, storage::Storage, Matrix4, Vector4};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{
-    HtmlCanvasElement, WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation,
-};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
 
 pub struct WebGlRenderer {
@@ -20,16 +14,7 @@ pub struct WebGlRenderer {
 }
 
 impl WebGlRenderer {
-    pub fn new() -> Result<Self, JsValue> {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document.get_element_by_id("glcanvas").unwrap();
-        let canvas = canvas.dyn_into::<HtmlCanvasElement>()?;
-
-        let context = canvas
-            .get_context("webgl2")?
-            .unwrap()
-            .dyn_into::<WebGl2RenderingContext>()?;
-
+    pub fn new(context: WebGl2RenderingContext) -> Result<Self, JsValue> {
         let vert_shader = compile_shader(
             &context,
             gl::VERTEX_SHADER,
@@ -72,24 +57,14 @@ impl WebGlRenderer {
         })
     }
 
-    pub fn set_view(&mut self, zoom: f32, center: Point2<f32>) {
-        let screen_width = self.context.drawing_buffer_width() as f32;
-        let screen_height = self.context.drawing_buffer_height() as f32;
-        let view_width = 1.0 / zoom;
-        let view_height = view_width * (screen_height / screen_width);
-        let left = center.x - view_width / 2.0;
-        let right = center.x + view_width / 2.0;
-        let bottom = center.y - view_height / 2.0;
-        let top = center.y + view_height / 2.0;
-        let znear = -1.0;
-        let zfar = 1.0;
-        self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
-    }
-
     pub fn update_viewport(&mut self) {
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
         self.context.viewport(0, 0, screen_width, screen_height);
+    }
+
+    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
+        self.projection_matrix = *m;
     }
 
     pub fn clear(&mut self) {
@@ -148,62 +123,6 @@ impl WebGlRenderer {
 
         self.context
             .draw_arrays(gl::LINES, 0, (vertices.len() / 3) as i32);
-    }
-
-    pub fn draw_line_loop(
-        &mut self,
-        vertices: &[Vector2<f32>],
-        translation: Translation2<f32>,
-        rotation: Rotation2<f32>,
-        thickness: f32,
-        color: Vector4<f32>,
-    ) {
-        self.context.use_program(Some(&self.program));
-        let translation = Translation3::new(translation.x, translation.y, 0.0);
-        let rotation = Rotation3::from_axis_angle(&Vector3::z_axis(), rotation.angle());
-
-        let mvp_matrix =
-            self.projection_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
-
-        let mut new_vertices = vec![];
-        new_vertices.reserve(vertices.len() * 3);
-        for v in vertices {
-            new_vertices.push(v[0]);
-            new_vertices.push(v[1]);
-            new_vertices.push(0.0);
-        }
-
-        let (buffer, offset) = self.buffer_arena.write(&new_vertices);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 3,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(0);
-
-        self.context.uniform4f(
-            Some(&self.color_loc),
-            color[0],
-            color[1],
-            color[2],
-            color[3],
-        );
-
-        self.context.uniform_matrix4fv_with_f32_array(
-            Some(&self.transform_loc),
-            false,
-            mvp_matrix.data.as_slice(),
-        );
-
-        self.context.line_width(thickness);
-
-        self.context
-            .draw_arrays(gl::LINE_LOOP, 0, (new_vertices.len() / 3) as i32);
     }
 
     pub fn draw_grid(&mut self, grid_size: f32, color: Vector4<f32>) {

@@ -1,28 +1,63 @@
 pub mod buffer_arena;
 pub mod model;
+pub mod ship_renderer;
 pub mod webgl;
 
 use self::webgl::WebGlRenderer;
-use crate::simulation::ship::ShipClass;
 use crate::simulation::{Simulation, WORLD_SIZE};
-use nalgebra::{point, vector, Point2, Rotation2, Translation2, Vector2};
+use nalgebra::{point, vector, Matrix4, Point2};
+use ship_renderer::ShipRenderer;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 
 pub struct Renderer {
+    context: WebGl2RenderingContext,
     webgl: WebGlRenderer,
+    ship_renderer: ShipRenderer,
+    projection_matrix: Matrix4<f32>,
 }
 
 impl Renderer {
-    pub fn new() -> Self {
-        Renderer {
-            webgl: WebGlRenderer::new().expect("Failed to create WebGlRenderer"),
-        }
+    pub fn new() -> Result<Self, JsValue> {
+        let document = web_sys::window().unwrap().document().unwrap();
+        let canvas = document.get_element_by_id("glcanvas").unwrap();
+        let canvas = canvas.dyn_into::<HtmlCanvasElement>()?;
+
+        let context = canvas
+            .get_context("webgl2")?
+            .unwrap()
+            .dyn_into::<WebGl2RenderingContext>()?;
+
+        Ok(Renderer {
+            context: context.clone(),
+            webgl: WebGlRenderer::new(context.clone())?,
+            ship_renderer: ShipRenderer::new(context)?,
+            projection_matrix: Matrix4::identity(),
+        })
+    }
+
+    pub fn set_view(&mut self, zoom: f32, center: Point2<f32>) {
+        let screen_width = self.context.drawing_buffer_width() as f32;
+        let screen_height = self.context.drawing_buffer_height() as f32;
+        let view_width = 1.0 / zoom;
+        let view_height = view_width * (screen_height / screen_width);
+        let left = center.x - view_width / 2.0;
+        let right = center.x + view_width / 2.0;
+        let bottom = center.y - view_height / 2.0;
+        let top = center.y + view_height / 2.0;
+        let znear = -1.0;
+        let zfar = 1.0;
+        self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
     }
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, sim: &Simulation) {
         self.webgl.clear();
         self.webgl.update_viewport();
-        self.webgl
-            .set_view(zoom, point![camera_target.x, camera_target.y]);
+        self.set_view(zoom, point![camera_target.x, camera_target.y]);
+        self.webgl.update_projection_matrix(&self.projection_matrix);
+        self.ship_renderer
+            .update_projection_matrix(&self.projection_matrix);
 
         self.webgl.draw_grid(100.0, vector![0.0, 1.0, 0.0, 1.0]);
 
@@ -48,42 +83,8 @@ impl Renderer {
                 .draw_line(x, y, x - vx * dt, y - vy * dt, 1.0, orange);
         }
 
-        for &index in sim.ships.iter() {
-            let ship = sim.ship(index);
-            let x = ship.position().x as f32;
-            let y = ship.position().y as f32;
-            let h = ship.heading() as f32;
-            let translation = Translation2::new(x, y);
-            let rotation = Rotation2::new(h);
-
-            match ship.data().class {
-                ShipClass::Fighter => self.draw_model(&model::ship(), translation, rotation),
-                ShipClass::Asteroid => self.draw_model(
-                    &model::asteroid(ship.data().model_variant),
-                    translation,
-                    rotation,
-                ),
-            }
-        }
+        self.ship_renderer.draw(&sim);
 
         self.webgl.flush();
-    }
-
-    fn draw_model(
-        &mut self,
-        vertices: &[Vector2<f32>],
-        translation: Translation2<f32>,
-        rotation: Rotation2<f32>,
-    ) {
-        let thickness = 2.0;
-        let color = vector![0.99, 0.98, 0.00, 1.00];
-        self.webgl
-            .draw_line_loop(vertices, translation, rotation, thickness, color);
-    }
-}
-
-impl Default for Renderer {
-    fn default() -> Self {
-        Self::new()
     }
 }

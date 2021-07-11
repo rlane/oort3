@@ -69,7 +69,7 @@ impl UI {
         key_callback.forget();
 
         let mut sim = simulation::Simulation::new();
-        let renderer = renderer::Renderer::new();
+        let renderer = renderer::Renderer::new().expect("Failed to create renderer");
         let zoom = 0.001;
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
