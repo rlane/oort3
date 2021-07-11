@@ -1,6 +1,6 @@
 use nalgebra::{
-    point, storage::Storage, vector, Matrix4, Point2, Rotation2, Rotation3, Translation2,
-    Translation3, Vector2, Vector3, Vector4,
+    point, storage::Storage, Matrix4, Point2, Rotation2, Rotation3, Translation2, Translation3,
+    Vector2, Vector3, Vector4,
 };
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -14,7 +14,7 @@ pub struct WebGlRenderer {
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
-    perspective_matrix: Matrix4<f32>,
+    projection_matrix: Matrix4<f32>,
 }
 
 impl WebGlRenderer {
@@ -60,26 +60,27 @@ impl WebGlRenderer {
             .get_uniform_location(&program, "color")
             .ok_or("did not find uniform")?;
 
-        let scale = 1.0 / 1000.0;
-        let center = point![0.0, 0.0];
         Ok(WebGlRenderer {
             context,
             program,
             transform_loc,
             color_loc,
-            perspective_matrix: Matrix4::new_nonuniform_scaling_wrt_point(
-                &vector![scale, scale, 1.0],
-                &point![center.x, center.y, 0.0],
-            ),
+            projection_matrix: Matrix4::identity(),
         })
     }
 
-    pub fn set_perspective(&mut self, zoom: f32, center: Point2<f32>) {
+    pub fn set_view(&mut self, zoom: f32, center: Point2<f32>) {
         let screen_width = self.context.drawing_buffer_width() as f32;
         let screen_height = self.context.drawing_buffer_height() as f32;
-        let scale = vector![zoom, zoom * screen_width / screen_height, 1.0];
-        self.perspective_matrix =
-            Matrix4::new_nonuniform_scaling_wrt_point(&scale, &point![center.x, center.y, 0.0]);
+        let view_width = 1.0 / zoom;
+        let view_height = view_width * (screen_height / screen_width);
+        let left = center.x - view_width / 2.0;
+        let right = center.x + view_width / 2.0;
+        let bottom = center.y - view_height / 2.0;
+        let top = center.y + view_height / 2.0;
+        let znear = -1.0;
+        let zfar = 1.0;
+        self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
     }
 
     pub fn update_viewport(&mut self) {
@@ -103,12 +104,8 @@ impl WebGlRenderer {
         color: Vector4<f32>,
     ) {
         self.context.use_program(Some(&self.program));
-        let p1 = self
-            .perspective_matrix
-            .transform_point(&point![x1, y1, 0.0]);
-        let p2 = self
-            .perspective_matrix
-            .transform_point(&point![x2, y2, 0.0]);
+        let p1 = self.projection_matrix.transform_point(&point![x1, y1, 0.0]);
+        let p2 = self.projection_matrix.transform_point(&point![x2, y2, 0.0]);
         let vertices: [f32; 6] = [p1.x, p1.y, 0.0, p2.x, p2.y, 0.0];
 
         let maybe_buffer = self.context.create_buffer();
@@ -179,7 +176,7 @@ impl WebGlRenderer {
         let rotation = Rotation3::from_axis_angle(&Vector3::z_axis(), rotation.angle());
 
         let mvp_matrix =
-            self.perspective_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
+            self.projection_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
 
         let maybe_buffer = self.context.create_buffer();
         if maybe_buffer == None {
@@ -303,7 +300,7 @@ impl WebGlRenderer {
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
-            self.perspective_matrix.data.as_slice(),
+            self.projection_matrix.data.as_slice(),
         );
 
         self.context.line_width(1.0);

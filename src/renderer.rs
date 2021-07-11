@@ -18,7 +18,7 @@ impl Renderer {
         self.webgl.clear();
         self.webgl.update_viewport();
         self.webgl
-            .set_perspective(zoom, point![camera_target.x, camera_target.y]);
+            .set_view(zoom, point![camera_target.x, camera_target.y]);
 
         self.webgl.draw_grid(100.0, vector![0.0, 1.0, 0.0, 1.0]);
 
