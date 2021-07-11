@@ -93,11 +93,7 @@ impl ShipRenderer {
 
             match ship.data().class {
                 ShipClass::Fighter => self.draw_model(&model::ship(), translation, rotation),
-                ShipClass::Asteroid => self.draw_model(
-                    &model::asteroid(ship.data().model_variant),
-                    translation,
-                    rotation,
-                ),
+                ShipClass::Asteroid => self.draw_model(&model::asteroid(), translation, rotation),
             }
         }
     }

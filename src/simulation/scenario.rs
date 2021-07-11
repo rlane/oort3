@@ -87,10 +87,7 @@ impl Scenario for AsteroidScenario {
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                ShipData {
-                    class: Asteroid,
-                    model_variant: rng.gen_range(0..10),
-                },
+                ShipData { class: Asteroid },
             );
         }
     }

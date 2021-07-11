@@ -19,13 +19,11 @@ pub enum ShipClass {
 
 pub struct ShipData {
     pub class: ShipClass,
-    pub model_variant: u64,
 }
 
 pub fn fighter() -> ShipData {
     ShipData {
         class: ShipClass::Fighter,
-        model_variant: 0,
     }
 }
 
@@ -66,7 +64,7 @@ pub fn create(
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
         }
         ShipClass::Asteroid => {
-            let vertices = crate::renderer::model::asteroid(data.model_variant)
+            let vertices = crate::renderer::model::asteroid()
                 .iter()
                 .map(|&v| point![v.x as f64, v.y as f64])
                 .collect::<Vec<_>>();
