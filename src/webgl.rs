@@ -166,6 +166,7 @@ impl WebGlRenderer {
             self.projection_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
 
         let mut new_vertices = vec![];
+        new_vertices.reserve(vertices.len() * 3);
         for v in vertices {
             new_vertices.push(v[0]);
             new_vertices.push(v[1]);
@@ -210,6 +211,7 @@ impl WebGlRenderer {
 
         let mut vertices = vec![];
         let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;
+        vertices.reserve((2 * (n + 1) * 3) as usize);
         for i in -(n / 2)..(n / 2 + 1) {
             // Vertical
             vertices.push((i as f32) * grid_size);
