@@ -1,9 +1,9 @@
 pub mod buffer_arena;
 pub mod bullet_renderer;
+pub mod glutil;
 pub mod grid_renderer;
 pub mod model;
 pub mod ship_renderer;
-pub mod webgl;
 
 use crate::simulation::Simulation;
 use bullet_renderer::BulletRenderer;

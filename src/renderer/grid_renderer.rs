@@ -1,4 +1,4 @@
-use super::{buffer_arena, webgl};
+use super::{buffer_arena, glutil};
 use nalgebra::{storage::Storage, vector, Matrix4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
@@ -15,7 +15,7 @@ pub struct GridRenderer {
 
 impl GridRenderer {
     pub fn new(context: WebGl2RenderingContext) -> Result<Self, JsValue> {
-        let vert_shader = webgl::compile_shader(
+        let vert_shader = glutil::compile_shader(
             &context,
             gl::VERTEX_SHADER,
             r#"#version 300 es
@@ -27,7 +27,7 @@ void main() {
 }
     "#,
         )?;
-        let frag_shader = webgl::compile_shader(
+        let frag_shader = glutil::compile_shader(
             &context,
             gl::FRAGMENT_SHADER,
             r#"#version 300 es
@@ -39,7 +39,7 @@ void main() {
 }
     "#,
         )?;
-        let program = webgl::link_program(&context, &vert_shader, &frag_shader)?;
+        let program = glutil::link_program(&context, &vert_shader, &frag_shader)?;
 
         let transform_loc = context
             .get_uniform_location(&program, "transform")
