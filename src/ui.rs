@@ -15,6 +15,7 @@ pub struct UI {
     camera_target: Point2<f32>,
     frame_timer: frame_timer::FrameTimer,
     finished: bool,
+    quit: bool,
     single_steps: i32,
     paused: bool,
     scenario: Box<dyn scenario::Scenario>,
@@ -85,6 +86,7 @@ impl UI {
             camera_target,
             frame_timer,
             finished,
+            quit: false,
             single_steps,
             paused,
             scenario,
@@ -101,6 +103,10 @@ impl UI {
     }
 
     pub fn render(&mut self) {
+        if self.quit {
+            return;
+        }
+
         let now = instant::now();
         if now - self.last_render_time > 20.0 {
             info!("Late render: {:.1} ms", now - self.last_render_time);
@@ -161,6 +167,10 @@ impl UI {
             self.keys_ignored.insert("n".to_string());
             self.paused = true;
             self.single_steps += 1;
+        }
+        if self.keys_down.contains("q") {
+            self.status_div.set_text_content(Some("Exited"));
+            self.quit = true;
         }
 
         if !self.paused {
