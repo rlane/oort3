@@ -113,10 +113,9 @@ impl UI {
         }
         self.last_render_time = now;
         self.fps.start_frame(now);
+        self.frame_timer.start(now);
 
         let mut status_msgs: Vec<String> = Vec::new();
-
-        self.frame_timer.start("frame");
 
         while let Ok(e) = self.key_rx.try_recv() {
             if e.type_() == "keydown" {
@@ -148,10 +147,6 @@ impl UI {
         }
         if self.keys_down.contains("u") && !self.keys_ignored.contains("u") {
             self.keys_ignored.insert("u".to_string());
-            for name in self.frame_timer.get_names() {
-                let (a, b, c) = self.frame_timer.get(name);
-                println!("{}: {:.1}/{:.1}/{:.1} ms", name, a, b, c);
-            }
             println!(
                 "Number of: ships={} bullets={}",
                 self.sim.ships.iter().count(),
@@ -220,7 +215,6 @@ impl UI {
             self.physics_time = self.physics_time.max(now - 100.0);
             let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
             let mut c = 0;
-            self.frame_timer.start("simulate");
             while self.physics_time + dt < now {
                 if c > 0 {
                     if self.single_steps > 0 {
@@ -236,7 +230,6 @@ impl UI {
                 self.physics_time += dt;
                 c += 1;
             }
-            self.frame_timer.end("simulate");
             if c > 1 {
                 info!("Ran {} catchup physics steps", c - 1);
             } else if self.catchup_tokens < MAX_CATCHUP_TOKENS {
@@ -247,17 +240,13 @@ impl UI {
             }
         }
 
-        self.frame_timer.start("render");
         self.renderer
             .render(self.camera_target, self.zoom, &self.sim);
-        self.frame_timer.end("render");
 
         if self.sim.collided {
             self.sim.collided = false;
             println!("collided");
         }
-
-        self.frame_timer.end("frame");
 
         if self.paused {
             status_msgs.push("PAUSED".to_string());
@@ -268,7 +257,7 @@ impl UI {
         if self.tick % 10 == 0 {
             status_msgs.push(format!("{:.0} fps", self.fps.fps()));
             {
-                let (a, b, c) = self.frame_timer.get("frame");
+                let (a, b, c) = self.frame_timer.get();
                 status_msgs.push(format!("{:.1}/{:.1}/{:.1} ms", a, b, c,));
             }
             let status_msg = status_msgs.join("; ");
@@ -276,6 +265,8 @@ impl UI {
         }
 
         self.tick += 1;
+
+        self.frame_timer.end(instant::now());
     }
 }
 

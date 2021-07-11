@@ -3,34 +3,26 @@ const LONG_HISTORY_LENGTH: usize = 300;
 
 #[derive(Default)]
 pub struct FrameTimer {
-    start_times: std::collections::HashMap<String, f64>,
-    elapsed_times: std::collections::HashMap<String, Vec<f64>>,
-    names: Vec<String>,
+    start_time: f64,
+    elapsed_times: Vec<f64>,
 }
 
 impl FrameTimer {
-    pub fn start(self: &mut FrameTimer, name: &str) {
-        self.start_times.insert(name.to_string(), instant::now());
-        if !self.elapsed_times.contains_key(name) {
-            self.elapsed_times.insert(name.to_string(), Vec::new());
-            self.names.push(name.to_string());
-        }
+    pub fn start(self: &mut FrameTimer, now: f64) {
+        self.start_time = now;
     }
 
-    pub fn end(self: &mut FrameTimer, name: &str) {
-        let now = instant::now();
-        let start_time = *self.start_times.get(name).unwrap_or(&now);
-        let elapsed = now - start_time;
-        let v = self.elapsed_times.get_mut(name).unwrap();
-        v.push(elapsed);
-        if v.len() > LONG_HISTORY_LENGTH {
-            v.remove(0);
+    pub fn end(self: &mut FrameTimer, now: f64) {
+        let elapsed = now - self.start_time;
+        self.elapsed_times.push(elapsed);
+        if self.elapsed_times.len() > LONG_HISTORY_LENGTH {
+            self.elapsed_times.remove(0);
         }
     }
 
     // Returns worst latency in (last frame, short history, long history).
-    pub fn get(self: &FrameTimer, name: &str) -> (f64, f64, f64) {
-        let v = self.elapsed_times.get(name).unwrap();
+    pub fn get(self: &FrameTimer) -> (f64, f64, f64) {
+        let v = &self.elapsed_times;
         if v.is_empty() {
             return (0.0, 0.0, 0.0);
         }
@@ -41,9 +33,5 @@ impl FrameTimer {
                 .fold(f64::NEG_INFINITY, |a, &b| f64::max(a, b)),
             v.iter().fold(f64::NEG_INFINITY, |a, &b| f64::max(a, b)),
         );
-    }
-
-    pub fn get_names(self: &FrameTimer) -> &[String] {
-        &self.names[..]
     }
 }
