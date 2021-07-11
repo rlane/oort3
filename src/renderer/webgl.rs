@@ -54,7 +54,7 @@ void main() {
             transform_loc,
             color_loc,
             projection_matrix: Matrix4::identity(),
-            buffer_arena: buffer_arena::BufferArena::new(context, 1024 * 1024)?,
+            buffer_arena: buffer_arena::BufferArena::new(context, gl::ARRAY_BUFFER, 1024 * 1024)?,
         })
     }
 
