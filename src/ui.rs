@@ -257,11 +257,19 @@ impl UI {
         if self.tick % 10 == 0 {
             status_msgs.push(format!("{:.0} fps", self.fps.fps()));
             {
-                let (a, b, c) = self.frame_timer.get();
+                let (a, b, c) = self.frame_timer.get_latency();
                 status_msgs.push(format!("{:.1}/{:.1}/{:.1} ms", a, b, c,));
             }
             let status_msg = status_msgs.join("; ");
             self.status_div.set_text_content(Some(&status_msg));
+        }
+
+        if self.tick == 600 {
+            info!(
+                "Average frame time after {} ticks: {:.1} ms",
+                self.tick,
+                self.frame_timer.get_average()
+            );
         }
 
         self.tick += 1;
