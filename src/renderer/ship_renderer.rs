@@ -20,23 +20,24 @@ impl ShipRenderer {
         let vert_shader = webgl::compile_shader(
             &context,
             gl::VERTEX_SHADER,
-            r#"
-        uniform mat4 transform;
-        attribute vec4 position;
-        void main() {
-            gl_Position = transform * position;
-        }
+            r#"#version 300 es
+uniform mat4 transform;
+in vec4 position;
+void main() {
+    gl_Position = transform * position;
+}
     "#,
         )?;
         let frag_shader = webgl::compile_shader(
             &context,
             gl::FRAGMENT_SHADER,
-            r#"
-        precision mediump float;
-        uniform vec4 color;
-        void main() {
-            gl_FragColor = color;
-        }
+            r#"#version 300 es
+precision mediump float;
+uniform vec4 color;
+out vec4 fragmentColor;
+void main() {
+    fragmentColor = color;
+}
     "#,
         )?;
         let program = webgl::link_program(&context, &vert_shader, &frag_shader)?;
