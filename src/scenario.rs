@@ -78,7 +78,7 @@ impl Scenario for AsteroidScenario {
         crate::ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
-        for _ in 1..10 {
+        for _ in 1..1000 {
             crate::ship::create(
                 sim,
                 rng.gen_range(-bound..bound),

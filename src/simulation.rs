@@ -4,7 +4,7 @@ use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 
-pub const WORLD_SIZE: f64 = 1000.0;
+pub const WORLD_SIZE: f64 = 10000.0;
 pub(crate) const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
 pub(crate) const WALL_COLLISION_GROUP: u32 = 0;
