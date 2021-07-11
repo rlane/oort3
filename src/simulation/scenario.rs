@@ -1,7 +1,7 @@
 use super::ship::ShipClass::*;
 use super::ship::{fighter, ShipData};
 use super::{
-    ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
+    bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
 };
 use rand::Rng;
@@ -48,6 +48,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
     match name {
         "basic" => Box::new(BasicScenario {}),
         "asteroid" => Box::new(AsteroidScenario {}),
+        "bullet-stress" => Box::new(BulletStressScenario {}),
         _ => panic!("Unknown scenario"),
     }
 }
@@ -98,5 +99,31 @@ impl Scenario for AsteroidScenario {
         } else {
             Status::Finished
         }
+    }
+}
+
+struct BulletStressScenario {}
+
+impl Scenario for BulletStressScenario {
+    fn init(&self, sim: &mut Simulation) {
+        let mut rng = rand::thread_rng();
+        add_walls(sim);
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+
+        let bound = (WORLD_SIZE / 2.0) * 0.9;
+        for _ in 0..1000 {
+            let s = 1000.0;
+            bullet::create(
+                sim,
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-s..s),
+                rng.gen_range(-s..s),
+            );
+        }
+    }
+
+    fn tick(&self, _: &mut Simulation) -> Status {
+        Running
     }
 }
