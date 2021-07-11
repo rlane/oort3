@@ -5,6 +5,7 @@ use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 
 pub const WORLD_SIZE: f64 = 1000.0;
+pub(crate) const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
 pub(crate) const WALL_COLLISION_GROUP: u32 = 0;
 pub(crate) const SHIP_COLLISION_GROUP: u32 = 1;
@@ -40,7 +41,10 @@ impl Simulation {
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
             joints: JointSet::new(),
-            integration_parameters: IntegrationParameters::default(),
+            integration_parameters: IntegrationParameters {
+                dt: PHYSICS_TICK_LENGTH,
+                ..Default::default()
+            },
             physics_pipeline: PhysicsPipeline::new(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),

@@ -1,10 +1,12 @@
 use crate::{frame_timer, renderer, scenario, simulation};
-use log::info;
+use log::{debug, info};
 use nalgebra::{point, Point2};
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{console, KeyboardEvent};
+
+const MAX_CATCHUP_TOKENS: i32 = 5;
 
 pub struct UI {
     sim: simulation::Simulation,
@@ -22,6 +24,8 @@ pub struct UI {
     key_rx: mpsc::Receiver<KeyboardEvent>,
     tick: u64,
     last_render_time: f64,
+    physics_time: f64,
+    catchup_tokens: i32,
 }
 
 unsafe impl Send for UI {}
@@ -89,13 +93,15 @@ impl UI {
             key_rx,
             tick: 0,
             last_render_time: instant::now(),
+            physics_time: instant::now(),
+            catchup_tokens: 0,
         }
     }
 
     pub fn render(&mut self) {
         let now = instant::now();
         if now - self.last_render_time > 20.0 {
-            info!("Late render: {} ms", now - self.last_render_time);
+            info!("Late render: {:.1} ms", now - self.last_render_time);
         }
         self.last_render_time = now;
 
@@ -189,14 +195,40 @@ impl UI {
             }
         }
 
+        if self.paused {
+            self.physics_time = now;
+        }
+
         if !self.finished && self.scenario.tick(&mut self.sim) == scenario::Status::Finished {
             self.finished = true;
         }
 
         if !self.finished && (!self.paused || self.single_steps > 0) {
+            self.physics_time = self.physics_time.max(now - 100.0);
+            let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
+            let mut c = 0;
             self.frame_timer.start("simulate");
-            self.sim.step();
+            while self.physics_time + dt < now {
+                if c > 0 {
+                    if self.single_steps > 0 {
+                        break;
+                    } else if self.catchup_tokens == 0 {
+                        debug!("Ratelimited physics catchup");
+                        break;
+                    } else {
+                        self.catchup_tokens -= 1;
+                    }
+                }
+                self.sim.step();
+                self.physics_time += dt;
+                c += 1;
+            }
             self.frame_timer.end("simulate");
+            if c > 1 {
+                info!("Ran {} catchup physics steps", c - 1);
+            } else if self.catchup_tokens < MAX_CATCHUP_TOKENS {
+                self.catchup_tokens += 1
+            }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
             }
