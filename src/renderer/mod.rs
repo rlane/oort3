@@ -1,21 +1,23 @@
 pub mod buffer_arena;
 pub mod bullet_renderer;
+pub mod grid_renderer;
 pub mod model;
 pub mod ship_renderer;
 pub mod webgl;
 
-use self::webgl::WebGlRenderer;
-use crate::simulation::{Simulation, WORLD_SIZE};
+use crate::simulation::Simulation;
 use bullet_renderer::BulletRenderer;
-use nalgebra::{point, vector, Matrix4, Point2};
+use grid_renderer::GridRenderer;
+use nalgebra::{point, Matrix4, Point2};
 use ship_renderer::ShipRenderer;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
+use WebGl2RenderingContext as gl;
 
 pub struct Renderer {
     context: WebGl2RenderingContext,
-    webgl: WebGlRenderer,
+    grid_renderer: GridRenderer,
     ship_renderer: ShipRenderer,
     bullet_renderer: BulletRenderer,
     projection_matrix: Matrix4<f32>,
@@ -34,7 +36,7 @@ impl Renderer {
 
         Ok(Renderer {
             context: context.clone(),
-            webgl: WebGlRenderer::new(context.clone())?,
+            grid_renderer: GridRenderer::new(context.clone())?,
             ship_renderer: ShipRenderer::new(context.clone())?,
             bullet_renderer: BulletRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
@@ -56,32 +58,23 @@ impl Renderer {
     }
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, sim: &Simulation) {
-        self.webgl.clear();
-        self.webgl.update_viewport();
+        self.context.clear_color(0.0, 0.0, 0.0, 1.0);
+        self.context.clear(gl::COLOR_BUFFER_BIT);
+
+        let screen_width = self.context.drawing_buffer_width();
+        let screen_height = self.context.drawing_buffer_height();
+        self.context.viewport(0, 0, screen_width, screen_height);
         self.set_view(zoom, point![camera_target.x, camera_target.y]);
-        self.webgl.update_projection_matrix(&self.projection_matrix);
+
+        self.grid_renderer
+            .update_projection_matrix(&self.projection_matrix);
         self.ship_renderer
             .update_projection_matrix(&self.projection_matrix);
         self.bullet_renderer
             .update_projection_matrix(&self.projection_matrix);
 
-        self.webgl.draw_grid(100.0, vector![0.0, 1.0, 0.0, 1.0]);
-
-        {
-            let v = -WORLD_SIZE as f32 / 2.0;
-            let red = vector![1.0, 0.0, 0.0, 1.0];
-            self.webgl.draw_line(-v, -v, v, -v, 1.0, red);
-            self.webgl.draw_line(-v, v, v, v, 1.0, red);
-            self.webgl.draw_line(-v, -v, -v, v, 1.0, red);
-            self.webgl.draw_line(v, -v, v, v, 1.0, red);
-
-            self.webgl.draw_line(0.0, -v, 0.0, v, 1.0, red);
-            self.webgl.draw_line(-v, 0.0, v, 0.0, 1.0, red);
-        }
-
+        self.grid_renderer.draw();
         self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
-
-        self.webgl.flush();
     }
 }
