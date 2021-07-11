@@ -1,10 +1,12 @@
 pub mod buffer_arena;
+pub mod bullet_renderer;
 pub mod model;
 pub mod ship_renderer;
 pub mod webgl;
 
 use self::webgl::WebGlRenderer;
 use crate::simulation::{Simulation, WORLD_SIZE};
+use bullet_renderer::BulletRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
 use ship_renderer::ShipRenderer;
 use wasm_bindgen::prelude::*;
@@ -15,6 +17,7 @@ pub struct Renderer {
     context: WebGl2RenderingContext,
     webgl: WebGlRenderer,
     ship_renderer: ShipRenderer,
+    bullet_renderer: BulletRenderer,
     projection_matrix: Matrix4<f32>,
 }
 
@@ -32,7 +35,8 @@ impl Renderer {
         Ok(Renderer {
             context: context.clone(),
             webgl: WebGlRenderer::new(context.clone())?,
-            ship_renderer: ShipRenderer::new(context)?,
+            ship_renderer: ShipRenderer::new(context.clone())?,
+            bullet_renderer: BulletRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
         })
     }
@@ -58,6 +62,8 @@ impl Renderer {
         self.webgl.update_projection_matrix(&self.projection_matrix);
         self.ship_renderer
             .update_projection_matrix(&self.projection_matrix);
+        self.bullet_renderer
+            .update_projection_matrix(&self.projection_matrix);
 
         self.webgl.draw_grid(100.0, vector![0.0, 1.0, 0.0, 1.0]);
 
@@ -73,19 +79,7 @@ impl Renderer {
             self.webgl.draw_line(-v, 0.0, v, 0.0, 1.0, red);
         }
 
-        for &index in sim.bullets.iter() {
-            let bullet = sim.bullet(index);
-            let body = bullet.body();
-            let x = body.position().translation.x as f32;
-            let y = body.position().translation.y as f32;
-            let vx = body.linvel().x as f32;
-            let vy = body.linvel().y as f32;
-            let dt = 2.0 / 60.0;
-            let orange = vector![1.00, 0.63, 0.00, 1.00];
-            self.webgl
-                .draw_line(x, y, x - vx * dt, y - vy * dt, 1.0, orange);
-        }
-
+        self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
 
         self.webgl.flush();

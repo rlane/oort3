@@ -38,6 +38,14 @@ impl<T: HasIndex + Eq + std::hash::Hash + Copy> IndexSet<T> {
     pub fn iter(self: &IndexSet<T>) -> std::slice::Iter<T> {
         self.indices.iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.indices.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.indices.is_empty()
+    }
 }
 
 impl<T: HasIndex + Eq + std::hash::Hash + Copy> Default for IndexSet<T> {
