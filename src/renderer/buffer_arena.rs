@@ -5,7 +5,8 @@ use WebGl2RenderingContext as gl;
 pub struct BufferArena {
     context: WebGl2RenderingContext,
     buffer_size: u32,
-    buffer: WebGlBuffer,
+    active_buffer: WebGlBuffer,
+    standby_buffer: WebGlBuffer,
     offset: u32,
     target: u32,
 }
@@ -16,11 +17,13 @@ impl BufferArena {
         target: u32,
         buffer_size: u32,
     ) -> Result<Self, String> {
-        let buffer = context.create_buffer().ok_or("failed to create buffer")?;
+        let active_buffer = context.create_buffer().ok_or("failed to create buffer")?;
+        let standby_buffer = context.create_buffer().ok_or("failed to create buffer")?;
         Ok(BufferArena {
             context,
             buffer_size,
-            buffer,
+            active_buffer,
+            standby_buffer,
             offset: buffer_size,
             target,
         })
@@ -29,7 +32,9 @@ impl BufferArena {
     pub fn write(&mut self, data: &[f32]) -> (WebGlBuffer, u32) {
         let data_length = (data.len() * 4) as u32;
         if (self.buffer_size - self.offset) < data_length {
-            self.context.bind_buffer(self.target, Some(&self.buffer));
+            std::mem::swap(&mut self.active_buffer, &mut self.standby_buffer);
+            self.context
+                .bind_buffer(self.target, Some(&self.active_buffer));
             self.context.buffer_data_with_i32(
                 self.target,
                 self.buffer_size as i32,
@@ -39,7 +44,8 @@ impl BufferArena {
             info!("Allocated new buffer len={}", self.buffer_size);
         }
         let offset = self.offset;
-        self.context.bind_buffer(self.target, Some(&self.buffer));
+        self.context
+            .bind_buffer(self.target, Some(&self.active_buffer));
         unsafe {
             // Note that `Float32Array::view` is somewhat dangerous (hence the
             // `unsafe`!). This is creating a raw view into our module's
@@ -57,6 +63,6 @@ impl BufferArena {
             );
         }
         self.offset += data_length;
-        (self.buffer.clone(), offset)
+        (self.active_buffer.clone(), offset)
     }
 }
