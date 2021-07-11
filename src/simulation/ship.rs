@@ -12,6 +12,7 @@ impl HasIndex for ShipHandle {
     }
 }
 
+#[derive(Hash, Eq, PartialEq)]
 pub enum ShipClass {
     Fighter,
     Asteroid,

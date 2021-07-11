@@ -1,10 +1,7 @@
 use super::{buffer_arena, model, webgl};
-use crate::simulation::ship::ShipClass;
+use crate::simulation::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
-use nalgebra::{
-    storage::Storage, vector, Matrix4, Rotation2, Rotation3, Translation2, Translation3, Vector2,
-    Vector3,
-};
+use nalgebra::{storage::Storage, vector, Matrix4, Rotation3, Translation3, Vector3};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -83,60 +80,65 @@ impl ShipRenderer {
             color[3],
         );
 
-        for &index in sim.ships.iter() {
-            let ship = sim.ship(index);
-            let x = ship.position().x as f32;
-            let y = ship.position().y as f32;
-            let h = ship.heading() as f32;
-            let translation = Translation2::new(x, y);
-            let rotation = Rotation2::new(h);
+        let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipHandle>>::new();
+        ships_by_class.insert(ShipClass::Fighter, vec![]);
+        ships_by_class.insert(ShipClass::Asteroid, vec![]);
 
-            match ship.data().class {
-                ShipClass::Fighter => self.draw_model(&model::ship(), translation, rotation),
-                ShipClass::Asteroid => self.draw_model(&model::asteroid(), translation, rotation),
+        for &handle in sim.ships.iter() {
+            let ship = sim.ship(handle);
+            ships_by_class
+                .get_mut(&ship.data().class)
+                .unwrap()
+                .push(handle);
+        }
+
+        for (class, handles) in ships_by_class.iter() {
+            let model_vertices = match class {
+                ShipClass::Fighter => model::ship(),
+                ShipClass::Asteroid => model::asteroid(),
+            };
+
+            let mut new_vertices = vec![];
+            new_vertices.reserve(model_vertices.len() * 3);
+            for v in model_vertices {
+                new_vertices.push(v[0]);
+                new_vertices.push(v[1]);
+                new_vertices.push(0.0);
+            }
+
+            let (buffer, offset) = self.buffer_arena.write(&new_vertices);
+            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
+
+            self.context.vertex_attrib_pointer_with_i32(
+                /*indx=*/ 0,
+                /*size=*/ 3,
+                /*type_=*/ gl::FLOAT,
+                /*normalized=*/ false,
+                /*stride=*/ 0,
+                offset as i32,
+            );
+            self.context.enable_vertex_attrib_array(0);
+
+            for &handle in handles {
+                let ship = sim.ship(handle);
+
+                let translation =
+                    Translation3::new(ship.position().x as f32, ship.position().y as f32, 0.0);
+                let rotation =
+                    Rotation3::from_axis_angle(&Vector3::z_axis(), ship.heading() as f32);
+                let mvp_matrix = self.projection_matrix
+                    * translation.to_homogeneous()
+                    * rotation.to_homogeneous();
+
+                self.context.uniform_matrix4fv_with_f32_array(
+                    Some(&self.transform_loc),
+                    false,
+                    mvp_matrix.data.as_slice(),
+                );
+
+                self.context
+                    .draw_arrays(gl::LINE_LOOP, 0, (new_vertices.len() / 3) as i32);
             }
         }
-    }
-
-    fn draw_model(
-        &mut self,
-        vertices: &[Vector2<f32>],
-        translation: Translation2<f32>,
-        rotation: Rotation2<f32>,
-    ) {
-        let translation = Translation3::new(translation.x, translation.y, 0.0);
-        let rotation = Rotation3::from_axis_angle(&Vector3::z_axis(), rotation.angle());
-        let mvp_matrix =
-            self.projection_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
-
-        let mut new_vertices = vec![];
-        new_vertices.reserve(vertices.len() * 3);
-        for v in vertices {
-            new_vertices.push(v[0]);
-            new_vertices.push(v[1]);
-            new_vertices.push(0.0);
-        }
-
-        let (buffer, offset) = self.buffer_arena.write(&new_vertices);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 3,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(0);
-
-        self.context.uniform_matrix4fv_with_f32_array(
-            Some(&self.transform_loc),
-            false,
-            mvp_matrix.data.as_slice(),
-        );
-
-        self.context
-            .draw_arrays(gl::LINE_LOOP, 0, (new_vertices.len() / 3) as i32);
     }
 }
