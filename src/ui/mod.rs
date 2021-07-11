@@ -2,15 +2,13 @@ pub mod fps;
 pub mod frame_timer;
 
 use crate::{renderer, simulation};
-use log::{debug, info};
+use log::info;
 use nalgebra::{point, Point2};
 use simulation::scenario;
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{console, KeyboardEvent};
-
-const MAX_CATCHUP_TOKENS: i32 = 5;
 
 pub struct UI {
     sim: simulation::Simulation,
@@ -30,7 +28,6 @@ pub struct UI {
     tick: u64,
     last_render_time: f64,
     physics_time: f64,
-    catchup_tokens: i32,
     fps: fps::FPS,
 }
 
@@ -101,7 +98,6 @@ impl UI {
             tick: 0,
             last_render_time: instant::now(),
             physics_time: instant::now(),
-            catchup_tokens: 0,
             fps: fps::FPS::new(),
         }
     }
@@ -216,28 +212,11 @@ impl UI {
         }
 
         if !self.finished && (!self.paused || self.single_steps > 0) {
-            self.physics_time = self.physics_time.max(now - 100.0);
             let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
-            let mut c = 0;
-            while self.physics_time + dt < now {
-                if c > 0 {
-                    if self.single_steps > 0 {
-                        break;
-                    } else if self.catchup_tokens == 0 {
-                        debug!("Ratelimited physics catchup");
-                        break;
-                    } else {
-                        self.catchup_tokens -= 1;
-                    }
-                }
+            self.physics_time = self.physics_time.max(now - dt * 2.0);
+            if self.physics_time + dt < now {
                 self.sim.step();
                 self.physics_time += dt;
-                c += 1;
-            }
-            if c > 1 {
-                info!("Ran {} catchup physics steps", c - 1);
-            } else if self.catchup_tokens < MAX_CATCHUP_TOKENS {
-                self.catchup_tokens += 1
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
