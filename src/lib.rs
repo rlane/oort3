@@ -1,13 +1,10 @@
 pub mod api;
-pub mod buffer_arena;
 pub mod bullet;
 pub mod fps;
 pub mod frame_timer;
 pub mod index_set;
-pub mod model;
 pub mod renderer;
 pub mod scenario;
 pub mod ship;
 pub mod simulation;
 pub mod ui;
-pub mod webgl;

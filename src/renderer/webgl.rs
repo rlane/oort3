@@ -1,4 +1,4 @@
-use crate::buffer_arena;
+use super::buffer_arena;
 use nalgebra::{
     point, storage::Storage, Matrix4, Point2, Rotation2, Rotation3, Translation2, Translation3,
     Vector2, Vector3, Vector4,

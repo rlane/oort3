@@ -47,7 +47,7 @@ pub fn create(
     let body_handle = sim.bodies.insert(rigid_body);
     match data.class {
         ShipClass::Fighter => {
-            let vertices = crate::model::ship()
+            let vertices = crate::renderer::model::ship()
                 .iter()
                 .map(|&v| point![v.x as f64, v.y as f64])
                 .collect::<Vec<_>>();
@@ -66,7 +66,7 @@ pub fn create(
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
         }
         ShipClass::Asteroid => {
-            let vertices = crate::model::asteroid(data.model_variant)
+            let vertices = crate::renderer::model::asteroid(data.model_variant)
                 .iter()
                 .map(|&v| point![v.x as f64, v.y as f64])
                 .collect::<Vec<_>>();

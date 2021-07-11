@@ -1,6 +1,10 @@
+pub mod buffer_arena;
+pub mod model;
+pub mod webgl;
+
+use self::webgl::WebGlRenderer;
 use crate::ship::ShipClass;
 use crate::simulation::{Simulation, WORLD_SIZE};
-use crate::webgl::WebGlRenderer;
 use nalgebra::{point, vector, Point2, Rotation2, Translation2, Vector2};
 
 pub struct Renderer {
@@ -53,9 +57,9 @@ impl Renderer {
             let rotation = Rotation2::new(h);
 
             match ship.data().class {
-                ShipClass::Fighter => self.draw_model(&crate::model::ship(), translation, rotation),
+                ShipClass::Fighter => self.draw_model(&model::ship(), translation, rotation),
                 ShipClass::Asteroid => self.draw_model(
-                    &crate::model::asteroid(ship.data().model_variant),
+                    &model::asteroid(ship.data().model_variant),
                     translation,
                     rotation,
                 ),
