@@ -69,6 +69,20 @@ impl ShipRenderer {
     }
 
     pub fn draw(&mut self, sim: &Simulation) {
+        let thickness = 2.0;
+        let color = vector![0.99, 0.98, 0.00, 1.00];
+
+        self.context.use_program(Some(&self.program));
+        self.context.line_width(thickness);
+
+        self.context.uniform4f(
+            Some(&self.color_loc),
+            color[0],
+            color[1],
+            color[2],
+            color[3],
+        );
+
         for &index in sim.ships.iter() {
             let ship = sim.ship(index);
             let x = ship.position().x as f32;
@@ -94,13 +108,8 @@ impl ShipRenderer {
         translation: Translation2<f32>,
         rotation: Rotation2<f32>,
     ) {
-        let thickness = 2.0;
-        let color = vector![0.99, 0.98, 0.00, 1.00];
-
-        self.context.use_program(Some(&self.program));
         let translation = Translation3::new(translation.x, translation.y, 0.0);
         let rotation = Rotation3::from_axis_angle(&Vector3::z_axis(), rotation.angle());
-
         let mvp_matrix =
             self.projection_matrix * translation.to_homogeneous() * rotation.to_homogeneous();
 
@@ -125,21 +134,11 @@ impl ShipRenderer {
         );
         self.context.enable_vertex_attrib_array(0);
 
-        self.context.uniform4f(
-            Some(&self.color_loc),
-            color[0],
-            color[1],
-            color[2],
-            color[3],
-        );
-
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
             mvp_matrix.data.as_slice(),
         );
-
-        self.context.line_width(thickness);
 
         self.context
             .draw_arrays(gl::LINE_LOOP, 0, (new_vertices.len() / 3) as i32);
