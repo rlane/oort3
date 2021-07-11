@@ -1,5 +1,6 @@
 pub mod api;
 pub mod bullet;
+pub mod fps;
 pub mod frame_timer;
 pub mod index_set;
 pub mod model;

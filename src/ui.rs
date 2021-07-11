@@ -1,4 +1,4 @@
-use crate::{frame_timer, renderer, scenario, simulation};
+use crate::{fps, frame_timer, renderer, scenario, simulation};
 use log::{debug, info};
 use nalgebra::{point, Point2};
 use std::sync::mpsc;
@@ -26,6 +26,7 @@ pub struct UI {
     last_render_time: f64,
     physics_time: f64,
     catchup_tokens: i32,
+    fps: fps::FPS,
 }
 
 unsafe impl Send for UI {}
@@ -95,6 +96,7 @@ impl UI {
             last_render_time: instant::now(),
             physics_time: instant::now(),
             catchup_tokens: 0,
+            fps: fps::FPS::new(),
         }
     }
 
@@ -104,6 +106,7 @@ impl UI {
             info!("Late render: {:.1} ms", now - self.last_render_time);
         }
         self.last_render_time = now;
+        self.fps.start_frame(now);
 
         let mut status_msgs: Vec<String> = Vec::new();
 
@@ -246,11 +249,6 @@ impl UI {
 
         self.frame_timer.end("frame");
 
-        {
-            let (a, b, c) = self.frame_timer.get("frame");
-            status_msgs.push(format!("Frame time: {:.1}/{:.1}/{:.1} ms", a, b, c,));
-        }
-
         if self.paused {
             status_msgs.push("PAUSED".to_string());
         } else if self.finished {
@@ -258,6 +256,11 @@ impl UI {
         }
 
         if self.tick % 10 == 0 {
+            status_msgs.push(format!("{:.0} fps", self.fps.fps()));
+            {
+                let (a, b, c) = self.frame_timer.get("frame");
+                status_msgs.push(format!("{:.1}/{:.1}/{:.1} ms", a, b, c,));
+            }
             let status_msg = status_msgs.join("; ");
             self.status_div.set_inner_html(&status_msg);
         }
