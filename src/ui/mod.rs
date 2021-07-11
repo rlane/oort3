@@ -39,7 +39,7 @@ unsafe impl Send for UI {}
 impl UI {
     pub fn new() -> Self {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        console_log::init_with_level(log::Level::Debug).expect("initializing logging");
+        console_log::init_with_level(log::Level::Warn).expect("initializing logging");
         info!("Initializing UI");
 
         let window = web_sys::window().expect("no global `window` exists");
