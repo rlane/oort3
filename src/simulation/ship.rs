@@ -1,6 +1,6 @@
-use crate::index_set::{HasIndex, Index};
+use super::index_set::{HasIndex, Index};
 use crate::simulation;
-use crate::simulation::Simulation;
+use crate::simulation::{bullet, Simulation};
 use rapier2d_f64::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone)]
@@ -157,7 +157,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let rot = body.position().rotation;
         let p = body.position().translation.vector + rot.transform_vector(&offset);
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
-        crate::bullet::create(&mut self.simulation, p.x, p.y, v.x, v.y);
+        bullet::create(&mut self.simulation, p.x, p.y, v.x, v.y);
     }
 
     pub fn explode(&mut self) {

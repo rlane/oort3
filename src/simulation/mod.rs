@@ -1,6 +1,11 @@
-use crate::bullet::{BulletAccessor, BulletAccessorMut, BulletHandle};
-use crate::index_set::IndexSet;
-use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
+pub mod bullet;
+pub mod index_set;
+pub mod scenario;
+pub mod ship;
+
+use self::bullet::{BulletAccessor, BulletAccessorMut, BulletHandle};
+use self::index_set::IndexSet;
+use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 

@@ -1,6 +1,6 @@
-use crate::index_set::{HasIndex, Index};
+use super::index_set::{HasIndex, Index};
+use super::Simulation;
 use crate::simulation;
-use crate::simulation::Simulation;
 use rapier2d_f64::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone)]

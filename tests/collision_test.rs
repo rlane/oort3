@@ -1,13 +1,13 @@
-use oort::ship::fighter;
 use oort::simulation;
-use oort::simulation::WORLD_SIZE;
+use oort::simulation::ship::fighter;
+use oort::simulation::{scenario, ship, WORLD_SIZE};
 use rand::Rng;
 
 #[test]
 fn test_world_edge() {
     let mut rng = rand::thread_rng();
-    let mut sim = oort::simulation::Simulation::new();
-    oort::scenario::add_walls(&mut sim);
+    let mut sim = simulation::Simulation::new();
+    scenario::add_walls(&mut sim);
 
     for _ in 0..100 {
         let s = 500.0;
@@ -17,7 +17,7 @@ fn test_world_edge() {
         let h = rng.gen_range(0.0..(2.0 * std::f32::consts::PI));
         let vx = rng.gen_range(-s..s);
         let vy = rng.gen_range(-s..s);
-        oort::ship::create(
+        ship::create(
             &mut sim,
             x as f64,
             y as f64,
@@ -45,8 +45,8 @@ fn test_world_edge() {
 fn test_head_on_collision() {
     let mut sim = simulation::Simulation::new();
 
-    let ship0 = oort::ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, fighter());
-    let ship1 = oort::ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, fighter());
+    let ship0 = ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, fighter());
+    let ship1 = ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, fighter());
 
     assert!(sim.ship(ship0).velocity().x > 0.0);
     assert!(sim.ship(ship1).velocity().x < 0.0);

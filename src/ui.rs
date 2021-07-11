@@ -1,6 +1,7 @@
-use crate::{fps, frame_timer, renderer, scenario, simulation};
+use crate::{fps, frame_timer, renderer, simulation};
 use log::{debug, info};
 use nalgebra::{point, Point2};
+use simulation::scenario;
 use std::sync::mpsc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;

@@ -3,7 +3,7 @@ pub mod model;
 pub mod webgl;
 
 use self::webgl::WebGlRenderer;
-use crate::ship::ShipClass;
+use crate::simulation::ship::ShipClass;
 use crate::simulation::{Simulation, WORLD_SIZE};
 use nalgebra::{point, vector, Point2, Rotation2, Translation2, Vector2};
 
