@@ -76,10 +76,10 @@ impl Scenario for AsteroidScenario {
     fn init(&self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
-        ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
-        for _ in 1..1000 {
+        for _ in 0..1000 {
             ship::create(
                 sim,
                 rng.gen_range(-bound..bound),

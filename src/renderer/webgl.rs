@@ -1,5 +1,5 @@
 use super::buffer_arena;
-use nalgebra::{point, storage::Storage, Matrix4, Vector4};
+use nalgebra::{storage::Storage, Matrix4, Vector4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -83,9 +83,7 @@ void main() {
         color: Vector4<f32>,
     ) {
         self.context.use_program(Some(&self.program));
-        let p1 = self.projection_matrix.transform_point(&point![x1, y1, 0.0]);
-        let p2 = self.projection_matrix.transform_point(&point![x2, y2, 0.0]);
-        let vertices: [f32; 6] = [p1.x, p1.y, 0.0, p2.x, p2.y, 0.0];
+        let vertices: [f32; 6] = [x1, y1, 0.0, x2, y2, 0.0];
 
         let (buffer, offset) = self.buffer_arena.write(&vertices);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
@@ -112,12 +110,7 @@ void main() {
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
-            &[
-                1.0, 0.0, 0.0, 0.0, //
-                0.0, 1.0, 0.0, 0.0, //
-                0.0, 0.0, 1.0, 0.0, //
-                0.0, 0.0, 0.0, 1.0,
-            ],
+            self.projection_matrix.data.as_slice(),
         );
 
         self.context.line_width(thickness);

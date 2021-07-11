@@ -68,6 +68,9 @@ impl Renderer {
             self.webgl.draw_line(-v, v, v, v, 1.0, red);
             self.webgl.draw_line(-v, -v, -v, v, 1.0, red);
             self.webgl.draw_line(v, -v, v, v, 1.0, red);
+
+            self.webgl.draw_line(0.0, -v, 0.0, v, 1.0, red);
+            self.webgl.draw_line(-v, 0.0, v, 0.0, 1.0, red);
         }
 
         for &index in sim.bullets.iter() {
