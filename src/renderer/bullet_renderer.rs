@@ -72,6 +72,10 @@ void main() {
         let num_instances = sim.bullets.len();
         let num_vertices = 2;
 
+        if num_instances == 0 {
+            return;
+        }
+
         self.context.use_program(Some(&self.program));
         self.context.line_width(thickness);
 

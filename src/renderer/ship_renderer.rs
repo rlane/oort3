@@ -105,6 +105,10 @@ void main() {
         }
 
         for (class, handles) in ships_by_class.iter() {
+            if handles.is_empty() {
+                continue;
+            }
+
             // vertex
 
             let model_vertices = match class {
