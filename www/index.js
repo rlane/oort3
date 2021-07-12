@@ -1,8 +1,13 @@
 const rust = import("../pkg");
 import * as monaco from 'monaco-editor'
 
+window.dbg = {};
+
+var rust_module = null
 function initialize(m) {
   var canvas = document.getElementById("glcanvas");
+  rust_module = m;
+  window.dbg.rust = m;
 
   function render() {
     canvas.width = canvas.clientWidth
@@ -16,8 +21,25 @@ function initialize(m) {
 rust.then((m) => initialize(m)).catch(console.error);
 
 var editor = monaco.editor.create(document.getElementById('editor'), {
-  value: `log(42)`,
+  value: `api.thrust_main(1e5);`,
   language: 'lua',
   theme: 'vs-dark',
   automaticLayout: true
+});
+window.dbg.editor = editor;
+
+editor.addAction({
+  id: 'oort-execute',
+  label: 'Execute',
+  keybindings: [
+    monaco.KeyMod.CtrlCmd | monaco.KeyCode.F5,
+  ],
+  precondition: null,
+  keybindingContext: null,
+  contextMenuGroupId: 'navigation',
+  contextMenuOrder: 1.5,
+  run: function(ed) {
+    rust_module.exec_script(ed.getValue());
+    return null;
+  }
 });

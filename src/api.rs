@@ -1,4 +1,3 @@
-use crate::script;
 use crate::ui::UI;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -16,5 +15,6 @@ pub fn render() {
 
 #[wasm_bindgen]
 pub fn exec_script(code: &str) {
-    script::rhai::eval(code);
+    let mut ui = OORT_UI.lock().unwrap();
+    ui.exec_script(code);
 }

@@ -259,6 +259,14 @@ impl UI {
 
         self.frame_timer.end(instant::now());
     }
+
+    pub fn exec_script(&mut self, code: &str) {
+        if let Some(&ship_handle) = self.sim.ships.iter().next() {
+            crate::script::rhai::exec_script(code, ship_handle, &mut self.sim);
+        } else {
+            info!("No ship found");
+        }
+    }
 }
 
 impl Default for UI {
