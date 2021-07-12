@@ -18,5 +18,6 @@ rust.then((m) => initialize(m)).catch(console.error);
 var editor = monaco.editor.create(document.getElementById('editor'), {
   value: `log(42)`,
   language: 'lua',
-  theme: 'vs-dark'
+  theme: 'vs-dark',
+  automaticLayout: true
 });
