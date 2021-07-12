@@ -1,4 +1,5 @@
 const rust = import("../pkg");
+import * as monaco from 'monaco-editor'
 
 function initialize(m) {
   var canvas = document.getElementById("glcanvas");
@@ -13,3 +14,9 @@ function initialize(m) {
 }
 
 rust.then((m) => initialize(m)).catch(console.error);
+
+var editor = monaco.editor.create(document.getElementById('editor'), {
+  value: `log(42)`,
+  language: 'lua',
+  theme: 'vs-dark'
+});

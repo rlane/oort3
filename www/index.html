@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>Oort</title>
   <link rel="stylesheet" href="main.css" />
-  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/editor/editor.main.min.css" integrity="sha512-Aplc5M1v/ytxu11jVmWdmKQLn3SLeNHcv8ii1tWmMl61RFoGC5AXM1qSVDIpQorqQmY9FmO1U2Mw1PopeSCGrA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -13,29 +12,5 @@
   <canvas id="glcanvas" tabindex="1"></canvas>
   <div id="editor"></div>
   <div id="status"></div>
-  <script>
-      var require = {paths: {'vs':'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/'}}
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/loader.min.js" integrity="sha512-SExj71Cw3B9C9EE8BC/ad3AKia5zQXDj/2SM4THgkeKh5GIFZhKM/R3uclUG8YZwJrjcVhydAlIHmfNvsBCKZA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/editor/editor.main.nls.min.js" integrity="sha512-/Lpr8XyEnghf+eu5/ytlh92qc6gEWUodmPjmxRFKqBG1ZzS0Qif87TFRnRy7BMf6epqv2NdE13JYvnvrSPVAvQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/editor/editor.main.js" integrity="sha512-cc8MosBh6Iu+AcufFZYRhPVXE88eysd9SiNFB8YJm40+KaoRZMP64nRXiBf5P/uLzwwTCLYo/PYAh4vBRI8wUg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script>
-require.config({paths: {'vs':'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.25.2/min/vs/'}})
-require(['vs/editor/editor.main'], function () {
-  var editor = monaco.editor.create(document.getElementById('editor'), {
-    value: `-- defines a factorial function
-function fact (n)
-  if n == 0 then
-    return 1
-  else
-    return n * fact(n-1)
-  end
-end`,
-    language: 'lua',
-    theme: 'vs-dark'
-  });
-});
-  </script>
-
 </body>
 </html>
