@@ -158,7 +158,7 @@ void main() {
                 /*stride=*/ 0,
                 offset as i32,
             );
-            self.context.vertex_attrib_divisor(1, num_vertices as u32);
+            self.context.vertex_attrib_divisor(1, 1);
             self.context.enable_vertex_attrib_array(1);
 
             // heading
@@ -181,7 +181,7 @@ void main() {
                 /*stride=*/ 0,
                 offset as i32,
             );
-            self.context.vertex_attrib_divisor(2, num_vertices as u32);
+            self.context.vertex_attrib_divisor(2, 1);
             self.context.enable_vertex_attrib_array(2);
 
             // projection
@@ -197,7 +197,7 @@ void main() {
                 gl::LINE_LOOP,
                 0,
                 num_vertices as i32,
-                (num_vertices * num_instances) as i32,
+                num_instances as i32,
             );
 
             self.context.disable_vertex_attrib_array(0);
