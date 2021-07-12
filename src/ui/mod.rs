@@ -2,7 +2,7 @@ pub mod fps;
 pub mod frame_timer;
 
 use crate::{renderer, simulation};
-use log::info;
+use log::{debug, info};
 use nalgebra::{point, Point2};
 use simulation::scenario;
 use std::sync::mpsc;
@@ -36,8 +36,8 @@ unsafe impl Send for UI {}
 impl UI {
     pub fn new() -> Self {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        console_log::init_with_level(log::Level::Warn).expect("initializing logging");
-        info!("Initializing UI");
+        console_log::init_with_level(log::Level::Info).expect("initializing logging");
+        debug!("Initializing UI");
 
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -109,7 +109,7 @@ impl UI {
 
         let now = instant::now();
         if now - self.last_render_time > 20.0 {
-            info!("Late render: {:.1} ms", now - self.last_render_time);
+            debug!("Late render: {:.1} ms", now - self.last_render_time);
         }
         self.last_render_time = now;
         self.fps.start_frame(now);

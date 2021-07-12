@@ -1,4 +1,4 @@
-use log::info;
+use log::debug;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer};
 use WebGl2RenderingContext as gl;
 
@@ -41,7 +41,7 @@ impl BufferArena {
                 gl::DYNAMIC_DRAW,
             );
             self.offset = 0;
-            info!("Allocated new buffer len={}", self.buffer_size);
+            debug!("Allocated new buffer len={}", self.buffer_size);
         }
         let offset = self.offset;
         self.context
