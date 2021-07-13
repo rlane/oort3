@@ -44,7 +44,7 @@ editor.addAction({
   id: 'oort-execute',
   label: 'Execute',
   keybindings: [
-    monaco.KeyMod.CtrlCmd | monaco.KeyCode.F5,
+    monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
   ],
   precondition: null,
   keybindingContext: null,
