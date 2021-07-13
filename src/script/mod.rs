@@ -6,6 +6,7 @@ use crate::simulation::Simulation;
 
 pub trait ShipController {
     fn upload_code(&mut self, code: &str);
+    fn start(&mut self);
     fn tick(&mut self);
 }
 

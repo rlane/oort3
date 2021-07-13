@@ -48,7 +48,8 @@ impl Api {
 pub struct RhaiShipController {
     engine: Engine,
     scope: Scope<'static>,
-    ast: rhai::AST,
+    // TODO share AST across ships
+    ast: Option<rhai::AST>,
 }
 
 impl RhaiShipController {
@@ -73,7 +74,7 @@ impl RhaiShipController {
         Self {
             engine,
             scope,
-            ast: rhai::AST::default(),
+            ast: None,
         }
     }
 }
@@ -82,7 +83,7 @@ impl ShipController for RhaiShipController {
     fn upload_code(&mut self, code: &str) {
         match self.engine.compile(code) {
             Ok(ast) => {
-                self.ast = ast;
+                self.ast = Some(ast);
             }
             Err(msg) => {
                 error!("Compilation failed: {}", msg);
@@ -90,13 +91,25 @@ impl ShipController for RhaiShipController {
         }
     }
 
+    fn start(&mut self) {
+        if let Some(ast) = &self.ast {
+            if let Err(msg) = self.engine.consume_ast_with_scope(&mut self.scope, &ast) {
+                error!("Script error: {}", msg);
+                self.ast = None;
+            }
+        }
+        if self.ast.is_some() {
+            self.ast.as_mut().unwrap().clear_statements();
+        }
+    }
+
     fn tick(&mut self) {
-        if let Err(msg) = self
-            .engine
-            .consume_ast_with_scope(&mut self.scope, &self.ast)
-        {
-            error!("Script error: {}", msg);
-            self.ast = rhai::AST::default();
+        if let Some(ast) = &self.ast {
+            let result: Result<(), _> = self.engine.call_fn(&mut self.scope, &ast, "tick", ());
+            if let Err(msg) = result {
+                error!("Script error: {}", msg);
+                self.ast = None;
+            }
         }
     }
 }
