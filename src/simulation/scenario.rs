@@ -49,6 +49,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "basic" => Box::new(BasicScenario {}),
         "asteroid" => Box::new(AsteroidScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
+        "tutorial01" => Box::new(Tutorial01 {}),
         _ => panic!("Unknown scenario"),
     }
 }
@@ -125,5 +126,22 @@ impl Scenario for BulletStressScenario {
 
     fn tick(&self, _: &mut Simulation) -> Status {
         Running
+    }
+}
+
+struct Tutorial01 {}
+
+impl Scenario for Tutorial01 {
+    fn init(&self, sim: &mut Simulation) {
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
+    }
+
+    fn tick(&self, sim: &mut Simulation) -> Status {
+        if sim.ships.iter().len() > 1 {
+            Running
+        } else {
+            Status::Finished
+        }
     }
 }
