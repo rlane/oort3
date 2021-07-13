@@ -22,6 +22,8 @@ rust.then((m) => initialize(m)).catch(console.error);
 
 var editor = monaco.editor.create(document.getElementById('editor'), {
   value: `\
+print("Script started");
+debug("Debug log");
 fn tick() {
   api.thrust_main(1e5);
   api.thrust_lateral(1e5);

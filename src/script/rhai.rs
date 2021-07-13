@@ -4,10 +4,6 @@ use crate::simulation::Simulation;
 use log::{error, info};
 use rhai::{Engine, Scope, FLOAT, INT};
 
-fn log(x: INT) {
-    info!("Script logged: {}", x);
-}
-
 #[derive(Clone)]
 struct Api {
     handle: ShipHandle,
@@ -56,7 +52,10 @@ impl RhaiShipController {
     pub fn new(handle: ShipHandle, sim: *mut Simulation) -> Self {
         let api = Api::new(handle, sim);
 
-        let mut engine = Engine::new_raw();
+        let mut engine = Engine::new();
+
+        engine.on_print(|x| info!("Script: {}", x));
+        engine.on_debug(|x, src, pos| info!("Script ({}:{:?}): {}", src.unwrap_or(""), pos, x));
 
         engine
             .register_type::<Api>()
@@ -65,8 +64,6 @@ impl RhaiShipController {
             .register_fn("thrust_angular", Api::thrust_angular)
             .register_fn("fire_weapon", Api::fire_weapon)
             .register_fn("explode", Api::explode);
-
-        engine.register_fn("log", log);
 
         let mut scope = Scope::new();
         scope.push("api", api);
