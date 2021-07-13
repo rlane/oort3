@@ -1,9 +1,10 @@
 use super::index_set::{HasIndex, Index};
+use crate::script;
 use crate::simulation;
 use crate::simulation::{bullet, Simulation};
 use rapier2d_f64::prelude::*;
 
-#[derive(Hash, PartialEq, Eq, Copy, Clone)]
+#[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ShipHandle(pub Index);
 
 impl HasIndex for ShipHandle {
@@ -44,6 +45,7 @@ pub fn create(
         .ccd_enabled(true)
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
+    let handle = ShipHandle(body_handle.0);
     match data.class {
         ShipClass::Fighter => {
             let vertices = crate::renderer::model::ship()
@@ -63,6 +65,9 @@ pub fn create(
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
+            let sim_ptr = sim as *mut Simulation;
+            sim.ship_controllers
+                .insert(handle, script::new_ship_controller(handle, sim_ptr));
         }
         ShipClass::Asteroid => {
             let vertices = crate::renderer::model::asteroid()
@@ -84,7 +89,6 @@ pub fn create(
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
         }
     }
-    let handle = ShipHandle(body_handle.0);
     sim.ships.insert(handle);
     sim.ship_data.insert(handle, data);
     handle

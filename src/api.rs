@@ -14,7 +14,7 @@ pub fn render() {
 }
 
 #[wasm_bindgen]
-pub fn exec_script(code: &str) {
+pub fn upload_code(code: &str) {
     let mut ui = OORT_UI.lock().unwrap();
-    ui.exec_script(code);
+    ui.upload_code(code);
 }

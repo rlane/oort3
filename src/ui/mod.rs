@@ -11,7 +11,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{console, KeyboardEvent};
 
 pub struct UI {
-    sim: simulation::Simulation,
+    sim: Box<simulation::Simulation>,
     renderer: renderer::Renderer,
     zoom: f32,
     camera_target: Point2<f32>,
@@ -65,7 +65,7 @@ impl UI {
             .expect("adding event listener failed");
         key_callback.forget();
 
-        let mut sim = simulation::Simulation::new();
+        let mut sim = Box::new(simulation::Simulation::new());
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
         let zoom = 0.001;
         let camera_target = point![0.0, 0.0];
@@ -260,12 +260,8 @@ impl UI {
         self.frame_timer.end(instant::now());
     }
 
-    pub fn exec_script(&mut self, code: &str) {
-        if let Some(&ship_handle) = self.sim.ships.iter().next() {
-            crate::script::rhai::exec_script(code, ship_handle, &mut self.sim);
-        } else {
-            info!("No ship found");
-        }
+    pub fn upload_code(&mut self, code: &str) {
+        self.sim.upload_code(code);
     }
 }
 

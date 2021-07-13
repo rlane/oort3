@@ -6,6 +6,7 @@ pub mod ship;
 use self::bullet::{BulletAccessor, BulletAccessorMut, BulletHandle};
 use self::index_set::IndexSet;
 use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
+use crate::script::ShipController;
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 
@@ -19,6 +20,7 @@ pub(crate) const BULLET_COLLISION_GROUP: u32 = 2;
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
     pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
+    pub(crate) ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
     pub bullets: IndexSet<BulletHandle>,
     pub(crate) bodies: RigidBodySet,
     pub(crate) colliders: ColliderSet,
@@ -42,6 +44,7 @@ impl Simulation {
         Simulation {
             ships: IndexSet::new(),
             ship_data: HashMap::new(),
+            ship_controllers: HashMap::new(),
             bullets: IndexSet::new(),
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
@@ -132,6 +135,20 @@ impl Simulation {
         }
 
         while self.intersection_recv.try_recv().is_ok() {}
+
+        for &handle in self.ships.iter() {
+            if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
+                ship_controller.tick();
+            }
+        }
+    }
+
+    pub fn upload_code(&mut self, code: &str) {
+        for &handle in self.ships.iter() {
+            if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
+                ship_controller.upload_code(code);
+            }
+        }
     }
 }
 

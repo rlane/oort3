@@ -43,7 +43,7 @@ editor.addAction({
   contextMenuGroupId: 'navigation',
   contextMenuOrder: 1.5,
   run: function(ed) {
-    rust_module.exec_script(ed.getValue());
+    rust_module.upload_code(ed.getValue());
     return null;
   }
 });
