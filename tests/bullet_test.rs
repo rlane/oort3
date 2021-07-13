@@ -12,7 +12,7 @@ fn test_hit() {
     assert!(sim.ships.contains(ship0));
     assert!(sim.ships.contains(ship1));
 
-    sim.ship_mut(ship0).fire_weapon();
+    sim.ship_mut(ship0).fire_weapon(0);
     assert!(!sim.bullets.iter().len() > 0);
 
     for _ in 0..100 {

@@ -149,7 +149,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         self.body().apply_torque(torque, true);
     }
 
-    pub fn fire_weapon(&mut self) {
+    pub fn fire_weapon(&mut self, _index: i64) {
         let speed = 1000.0;
         let offset = vector![20.0, 0.0];
         let body = self.body();

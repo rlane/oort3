@@ -18,11 +18,29 @@ impl Api {
         Self { handle, sim }
     }
 
+    #[allow(clippy::mut_from_ref)]
+    fn sim(&self) -> &mut Simulation {
+        unsafe { &mut *self.sim }
+    }
+
     fn thrust_main(&mut self, force: FLOAT) {
-        info!("thrust_main");
-        unsafe {
-            (*self.sim).ship_mut(self.handle).thrust_main(force);
-        }
+        self.sim().ship_mut(self.handle).thrust_main(force);
+    }
+
+    fn thrust_lateral(&mut self, force: FLOAT) {
+        self.sim().ship_mut(self.handle).thrust_lateral(force);
+    }
+
+    fn thrust_angular(&mut self, force: FLOAT) {
+        self.sim().ship_mut(self.handle).thrust_angular(force);
+    }
+
+    fn fire_weapon(&mut self, index: INT) {
+        self.sim().ship_mut(self.handle).fire_weapon(index);
+    }
+
+    fn explode(&mut self) {
+        self.sim().ship_mut(self.handle).explode();
     }
 }
 
@@ -33,12 +51,15 @@ pub fn exec_script(code: &str, handle: ShipHandle, sim: &mut Simulation) {
 
     engine
         .register_type::<Api>()
-        .register_fn("thrust_main", Api::thrust_main);
+        .register_fn("thrust_main", Api::thrust_main)
+        .register_fn("thrust_lateral", Api::thrust_lateral)
+        .register_fn("thrust_angular", Api::thrust_angular)
+        .register_fn("fire_weapon", Api::fire_weapon)
+        .register_fn("explode", Api::explode);
 
     engine.register_fn("log", log);
 
     let mut scope = Scope::new();
-    scope.push("z", 40_i64);
     scope.push("api", api);
 
     if let Err(msg) = engine.consume_with_scope(&mut scope, code) {

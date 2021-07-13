@@ -21,7 +21,11 @@ function initialize(m) {
 rust.then((m) => initialize(m)).catch(console.error);
 
 var editor = monaco.editor.create(document.getElementById('editor'), {
-  value: `api.thrust_main(1e5);`,
+  value: `api.thrust_main(1e5);
+api.thrust_lateral(1e5);
+api.thrust_angular(1e5);
+api.fire_weapon(0);
+//api.explode();`,
   language: 'lua',
   theme: 'vs-dark',
   automaticLayout: true

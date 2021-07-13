@@ -192,10 +192,10 @@ impl UI {
                     }
                 }
                 if self.keys_down.contains("f") {
-                    self.sim.ship_mut(ship_handle).fire_weapon();
+                    self.sim.ship_mut(ship_handle).fire_weapon(0);
                 }
                 if self.keys_down.contains("Shift") && self.keys_down.contains("f") {
-                    self.sim.ship_mut(ship_handle).fire_weapon();
+                    self.sim.ship_mut(ship_handle).fire_weapon(0);
                 }
                 if self.keys_down.contains("Shift") && self.keys_down.contains("k") {
                     self.sim.ship_mut(ship_handle).explode();
