@@ -214,7 +214,7 @@ impl UI {
         if !self.finished && (!self.paused || self.single_steps > 0) {
             let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
             self.physics_time = self.physics_time.max(now - dt * 2.0);
-            if self.physics_time + dt < now {
+            if self.single_steps > 0 || self.physics_time + dt < now {
                 self.sim.step();
                 self.physics_time += dt;
             }
