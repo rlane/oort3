@@ -9,6 +9,9 @@ function initialize(m) {
   rust_module = m;
   window.dbg.rust = m;
 
+  m.initialize();
+  m.start("asteroid");
+
   function render() {
     canvas.width = canvas.clientWidth
     canvas.height = canvas.clientHeight

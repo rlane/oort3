@@ -34,11 +34,8 @@ pub struct UI {
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new() -> Self {
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        console_log::init_with_level(log::Level::Info).expect("initializing logging");
-        debug!("Initializing UI");
-
+    pub fn new(scenario_name: &str) -> Self {
+        info!("Loading scenario {}", scenario_name);
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let status_div = document
@@ -74,7 +71,7 @@ impl UI {
         let finished = false;
         let single_steps = 0;
 
-        let scenario = scenario::load("asteroid");
+        let scenario = scenario::load(scenario_name);
         scenario.init(&mut sim);
 
         let keys_down = std::collections::HashSet::<String>::new();
@@ -267,6 +264,6 @@ impl UI {
 
 impl Default for UI {
     fn default() -> Self {
-        Self::new()
+        Self::new("asteroid")
     }
 }
