@@ -55,3 +55,15 @@ editor.addAction({
     return null;
   }
 });
+
+var scenarios = ['asteroid', 'tutorial01'];
+scenarios.forEach((scenario) =>
+  editor.addAction({
+    id: `oort-${scenario}`,
+    label: `Oort: Load scenario ${scenario}`,
+    run: function(ed) {
+      rust_module.start(scenario);
+      return null;
+    }
+  })
+);
