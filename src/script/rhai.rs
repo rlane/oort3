@@ -48,7 +48,7 @@ impl Api {
 pub struct RhaiShipController {
     engine: Engine,
     scope: Scope<'static>,
-    code: String,
+    ast: rhai::AST,
 }
 
 impl RhaiShipController {
@@ -73,20 +73,30 @@ impl RhaiShipController {
         Self {
             engine,
             scope,
-            code: String::new(),
+            ast: rhai::AST::default(),
         }
     }
 }
 
 impl ShipController for RhaiShipController {
     fn upload_code(&mut self, code: &str) {
-        self.code = code.to_string();
+        match self.engine.compile(code) {
+            Ok(ast) => {
+                self.ast = ast;
+            }
+            Err(msg) => {
+                error!("Compilation failed: {}", msg);
+            }
+        }
     }
 
     fn tick(&mut self) {
-        if let Err(msg) = self.engine.consume_with_scope(&mut self.scope, &self.code) {
+        if let Err(msg) = self
+            .engine
+            .consume_ast_with_scope(&mut self.scope, &self.ast)
+        {
             error!("Script error: {}", msg);
-            self.code = String::new();
+            self.ast = rhai::AST::default();
         }
     }
 }
