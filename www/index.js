@@ -36,7 +36,9 @@ fn tick() {
 }`,
   language: 'lua',
   theme: 'vs-dark',
-  automaticLayout: true
+  automaticLayout: true,
+  largeFileOptimizations: false,
+  minimap: { enabled: false },
 });
 window.dbg.editor = editor;
 
