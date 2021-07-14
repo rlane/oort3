@@ -7,7 +7,7 @@ html, body {
   top: 40px;
   left: 0;
   bottom: 0px;
-  width: 30%;
+  width: 80ch;
 
   margin: 0px;
   padding: 0px;
@@ -19,8 +19,8 @@ html, body {
 
 #glcanvas {
   top: 40px;
-  left: 30%;
-  width: 70%;
+  left: 80ch;
+  width: calc(100% - 80ch);
   height: calc(100% - 40px);
 
   margin: 0px;
