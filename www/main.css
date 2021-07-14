@@ -52,7 +52,7 @@ html, body {
   overflow: hidden;
 
   font-size: 18px;
-  font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
+  font-family: 'Share Tech Mono', monospace;
   font-feature-settings: "liga" 0, "calt" 0;
 
   background-color: #1e1e1e;
@@ -65,7 +65,6 @@ html, body {
 }
 
 .title {
-  font-weight: bold;
   font-size: 24px;
   float: left;
 }
