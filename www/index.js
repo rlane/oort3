@@ -56,14 +56,12 @@ editor.addAction({
   }
 });
 
+var scenario_select = document.getElementById('scenario');
 var scenarios = ['asteroid', 'tutorial01'];
-scenarios.forEach((scenario) =>
-  editor.addAction({
-    id: `oort-${scenario}`,
-    label: `Oort: Load scenario ${scenario}`,
-    run: function(ed) {
-      rust_module.start(scenario);
-      return null;
-    }
-  })
-);
+scenarios.forEach((scenario) => {
+  var option = document.createElement('option');
+  option.value = scenario;
+  option.innerHTML = scenario;
+  scenario_select.appendChild(option);
+});
+scenario_select.onchange = (e) => rust_module.start(e.target.value);

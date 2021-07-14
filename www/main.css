@@ -41,3 +41,10 @@ html, body {
   font-family: 'Share Tech Mono', monospace;
   font-size: 24px;
 }
+
+#scenario {
+  bottom: 20px;
+  left: 20px;
+
+  position: absolute;
+}
