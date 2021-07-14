@@ -34,7 +34,7 @@ fn tick() {
   api.fire_weapon(0);
   //api.explode();
 }`,
-  language: 'lua',
+  language: 'rust',
   theme: 'vs-dark',
   automaticLayout: true,
   largeFileOptimizations: false,
