@@ -50,6 +50,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "basic" => Box::new(BasicScenario {}),
         "asteroid" => Box::new(AsteroidScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
+        "welcome" => Box::new(WelcomeScenario {}),
         "tutorial01" => Box::new(Tutorial01 {}),
         _ => panic!("Unknown scenario"),
     }
@@ -100,11 +101,7 @@ impl Scenario for AsteroidScenario {
     }
 
     fn initial_code(&self) -> String {
-        "\
-// Welcome to Oort.
-// Select a scenario from the list in the top-right of the page.
-// If you're new, start with \"tutorial01\"."
-            .to_string()
+        "".to_string()
     }
 
     fn tick(&self, sim: &mut Simulation) -> Status {
@@ -139,6 +136,41 @@ impl Scenario for BulletStressScenario {
 
     fn initial_code(&self) -> String {
         "".to_string()
+    }
+
+    fn tick(&self, _: &mut Simulation) -> Status {
+        Running
+    }
+}
+
+struct WelcomeScenario {}
+
+impl Scenario for WelcomeScenario {
+    fn init(&self, sim: &mut Simulation) {
+        let mut rng = rand::thread_rng();
+        add_walls(sim);
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+
+        let bound = (1000.0 / 2.0) * 0.9;
+        for _ in 0..100 {
+            ship::create(
+                sim,
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-30.0..30.0),
+                rng.gen_range(-30.0..30.0),
+                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                ShipData { class: Asteroid },
+            );
+        }
+    }
+
+    fn initial_code(&self) -> String {
+        "\
+// Welcome to Oort.
+// Select a scenario from the list in the top-right of the page.
+// If you're new, start with \"tutorial01\"."
+            .to_string()
     }
 
     fn tick(&self, _: &mut Simulation) -> Status {

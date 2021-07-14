@@ -10,7 +10,7 @@ function initialize(m) {
   window.dbg.rust = m;
 
   m.initialize();
-  m.start("asteroid");
+  m.start("welcome");
 
   function render() {
     canvas.width = canvas.clientWidth
@@ -64,7 +64,7 @@ window.set_editor_code = function(code) {
 };
 
 var scenario_select = document.getElementById('scenario');
-var scenarios = ['asteroid', 'tutorial01'];
+var scenarios = ['welcome', 'tutorial01', 'asteroid'];
 scenarios.forEach((scenario) => {
   var option = document.createElement('option');
   option.value = scenario;
