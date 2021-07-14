@@ -68,7 +68,7 @@ void main() {
     pub fn draw(&mut self) {
         use crate::simulation::WORLD_SIZE;
         let grid_size = 100.0;
-        let color = vector![0.0, 1.0, 0.0, 1.0];
+        let color = vector![0.0, 0.1, 0.0, 1.0];
 
         let mut vertices = vec![];
         let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;
