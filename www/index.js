@@ -58,6 +58,11 @@ editor.addAction({
   }
 });
 
+window.set_editor_code = function(code) {
+  console.log("set_editor_code");
+  editor.setValue(code);
+};
+
 var scenario_select = document.getElementById('scenario');
 var scenarios = ['asteroid', 'tutorial01'];
 scenarios.forEach((scenario) => {

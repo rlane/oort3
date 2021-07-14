@@ -34,3 +34,7 @@ pub fn upload_code(code: &str) {
         ui.as_mut().unwrap().upload_code(code);
     }
 }
+#[wasm_bindgen]
+extern "C" {
+    pub fn set_editor_code(code: &str);
+}

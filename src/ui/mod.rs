@@ -1,7 +1,7 @@
 pub mod fps;
 pub mod frame_timer;
 
-use crate::{renderer, simulation};
+use crate::{api, renderer, simulation};
 use log::{debug, info};
 use nalgebra::{point, Point2};
 use simulation::scenario;
@@ -73,6 +73,8 @@ impl UI {
 
         let scenario = scenario::load(scenario_name);
         scenario.init(&mut sim);
+        let initial_code = scenario.initial_code();
+        api::set_editor_code(&initial_code);
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();

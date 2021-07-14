@@ -16,6 +16,7 @@ pub enum Status {
 
 pub trait Scenario {
     fn init(&self, sim: &mut Simulation);
+    fn initial_code(&self) -> String;
     fn tick(&self, sim: &mut Simulation) -> Status;
 }
 
@@ -63,6 +64,10 @@ impl Scenario for BasicScenario {
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter());
     }
 
+    fn initial_code(&self) -> String {
+        "".to_string()
+    }
+
     fn tick(&self, sim: &mut Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
@@ -92,6 +97,14 @@ impl Scenario for AsteroidScenario {
                 ShipData { class: Asteroid },
             );
         }
+    }
+
+    fn initial_code(&self) -> String {
+        "\
+// Welcome to Oort.
+// Select a scenario from the list in the top-right of the page.
+// If you're new, start with \"tutorial01\"."
+            .to_string()
     }
 
     fn tick(&self, sim: &mut Simulation) -> Status {
@@ -124,6 +137,10 @@ impl Scenario for BulletStressScenario {
         }
     }
 
+    fn initial_code(&self) -> String {
+        "".to_string()
+    }
+
     fn tick(&self, _: &mut Simulation) -> Status {
         Running
     }
@@ -135,6 +152,18 @@ impl Scenario for Tutorial01 {
     fn init(&self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
+    }
+
+    fn initial_code(&self) -> String {
+        "\
+// Tutorial 01
+// Destroy the asteroid.
+
+fn tick() {
+    // Uncomment me, then press ctrl-Enter to upload the code.
+    // api.fire_weapon(0);
+}"
+        .to_string()
     }
 
     fn tick(&self, sim: &mut Simulation) -> Status {
