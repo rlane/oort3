@@ -26,15 +26,9 @@ rust.then((m) => initialize(m)).catch(console.error);
 
 var editor = monaco.editor.create(document.getElementById('editor'), {
   value: `\
-print("Script started");
-debug("Debug log");
-fn tick() {
-  api.thrust_main(1e5);
-  api.thrust_lateral(1e5);
-  api.thrust_angular(1e5);
-  api.fire_weapon(0);
-  //api.explode();
-}`,
+// Welcome to Oort.
+// Select a scenario from the list in the top-right of the page.
+// If you're new, start with "tutorial01".`,
   language: 'rust',
   theme: 'vs-dark',
   automaticLayout: true,
@@ -54,15 +48,11 @@ editor.addAction({
   contextMenuGroupId: 'navigation',
   contextMenuOrder: 1.5,
   run: function(ed) {
+    rust_module.start(document.getElementById('scenario').value);
     rust_module.upload_code(ed.getValue());
     return null;
   }
 });
-
-window.set_editor_code = function(code) {
-  console.log("set_editor_code");
-  editor.setValue(code);
-};
 
 var scenario_select = document.getElementById('scenario');
 var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'asteroid'];
@@ -72,4 +62,7 @@ scenarios.forEach((scenario) => {
   option.innerHTML = scenario;
   scenario_select.appendChild(option);
 });
-scenario_select.onchange = (e) => rust_module.start(e.target.value);
+scenario_select.onchange = function(e) {
+  rust_module.start(e.target.value);
+  editor.setValue(rust_module.get_initial_code());
+}

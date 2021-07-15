@@ -34,7 +34,13 @@ pub fn upload_code(code: &str) {
         ui.as_mut().unwrap().upload_code(code);
     }
 }
+
 #[wasm_bindgen]
-extern "C" {
-    pub fn set_editor_code(code: &str);
+pub fn get_initial_code() -> String {
+    let mut ui = OORT_UI.lock().unwrap();
+    if ui.is_some() {
+        ui.as_mut().unwrap().get_initial_code()
+    } else {
+        "".to_string()
+    }
 }
