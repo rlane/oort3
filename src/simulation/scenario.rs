@@ -4,7 +4,7 @@ use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
 };
-use nalgebra::{Point2, Vector4};
+use nalgebra::{Point2, Translation2, Vector4};
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use Status::Running;
@@ -246,7 +246,7 @@ impl Scenario for Tutorial02 {
     fn initial_code(&self) -> String {
         "\
 // Tutorial 01
-// Fly to the target circle.
+// Fly to the target circle and stop.
 
 fn tick() {
     api.thrust_main(1e3);
@@ -254,15 +254,25 @@ fn tick() {
         .to_string()
     }
 
-    fn tick(&self, _sim: &mut Simulation) -> Status {
-        Running
+    fn tick(&self, sim: &mut Simulation) -> Status {
+        if let Some(&handle) = sim.ships.iter().next() {
+            let ship = sim.ship(handle);
+            if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0
+                && ship.velocity().magnitude() < 1.0
+            {
+                return Status::Finished;
+            } else {
+                return Status::Running;
+            }
+        }
+        Status::Finished
     }
 
     fn lines(&self) -> Vec<Line> {
         let mut lines = vec![];
-        let center: Point2<f32> = point![100.0, 0.0];
+        let center: Point2<f32> = point![200.0, 0.0];
         let n = 20;
-        let r = 10.0;
+        let r = 50.0;
         for i in 0..n {
             let angle_a = std::f32::consts::TAU * (i as f32) / (n as f32);
             let angle_b = std::f32::consts::TAU * ((i + 1) as f32) / (n as f32);
