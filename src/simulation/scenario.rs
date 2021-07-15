@@ -320,13 +320,12 @@ fn tick() {
 // Fly to the target circle and stop.
 
 let i = 0;
-let n = 100;
-let k = 100;
+let n = 190;
 
 fn tick() {
-    if i >= 0 && i < k {
+    if i < n / 2 {
       api.thrust_main(1e4);
-    } else if i >= n && i < n + k {
+    } else if i < n {
       api.thrust_main(-1e4);
     }
     i += 1;
