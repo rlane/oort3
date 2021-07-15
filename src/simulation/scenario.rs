@@ -9,7 +9,7 @@ use rand::Rng;
 use rapier2d_f64::prelude::*;
 use Status::Running;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum Status {
     Running,
     Finished,
@@ -23,9 +23,10 @@ pub struct Line {
 
 pub trait Scenario {
     fn init(&self, sim: &mut Simulation);
-    fn initial_code(&self) -> String;
     fn tick(&self, sim: &mut Simulation) -> Status;
     fn lines(&self) -> Vec<Line>;
+    fn initial_code(&self) -> String;
+    fn solution(&self) -> String;
 }
 
 pub fn add_walls(sim: &mut Simulation) {
@@ -74,10 +75,6 @@ impl Scenario for BasicScenario {
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter());
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
-    }
-
     fn tick(&self, sim: &mut Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
@@ -88,6 +85,14 @@ impl Scenario for BasicScenario {
 
     fn lines(&self) -> Vec<Line> {
         Vec::new()
+    }
+
+    fn initial_code(&self) -> String {
+        "".to_string()
+    }
+
+    fn solution(&self) -> String {
+        "".to_string()
     }
 }
 
@@ -113,10 +118,6 @@ impl Scenario for AsteroidScenario {
         }
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
-    }
-
     fn tick(&self, sim: &mut Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
@@ -127,6 +128,14 @@ impl Scenario for AsteroidScenario {
 
     fn lines(&self) -> Vec<Line> {
         Vec::new()
+    }
+
+    fn initial_code(&self) -> String {
+        "".to_string()
+    }
+
+    fn solution(&self) -> String {
+        "".to_string()
     }
 }
 
@@ -151,16 +160,20 @@ impl Scenario for BulletStressScenario {
         }
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
-    }
-
     fn tick(&self, _: &mut Simulation) -> Status {
         Running
     }
 
     fn lines(&self) -> Vec<Line> {
         Vec::new()
+    }
+
+    fn initial_code(&self) -> String {
+        "".to_string()
+    }
+
+    fn solution(&self) -> String {
+        "".to_string()
     }
 }
 
@@ -186,6 +199,14 @@ impl Scenario for WelcomeScenario {
         }
     }
 
+    fn tick(&self, _: &mut Simulation) -> Status {
+        Running
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
+    }
+
     fn initial_code(&self) -> String {
         "\
 // Welcome to Oort.
@@ -194,12 +215,8 @@ impl Scenario for WelcomeScenario {
             .to_string()
     }
 
-    fn tick(&self, _: &mut Simulation) -> Status {
-        Running
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
+    fn solution(&self) -> String {
+        "".to_string()
     }
 }
 
@@ -209,6 +226,18 @@ impl Scenario for Tutorial01 {
     fn init(&self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
+    }
+
+    fn tick(&self, sim: &mut Simulation) -> Status {
+        if sim.ships.iter().len() > 1 {
+            Running
+        } else {
+            Status::Finished
+        }
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
     }
 
     fn initial_code(&self) -> String {
@@ -223,16 +252,16 @@ fn tick() {
         .to_string()
     }
 
-    fn tick(&self, sim: &mut Simulation) -> Status {
-        if sim.ships.iter().len() > 1 {
-            Running
-        } else {
-            Status::Finished
-        }
-    }
+    fn solution(&self) -> String {
+        "\
+// Tutorial 01
+// Destroy the asteroid.
 
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
+fn tick() {
+    // Uncomment me, then press ctrl-Enter to upload the code.
+    api.fire_weapon(0);
+}"
+        .to_string()
     }
 }
 
@@ -241,17 +270,6 @@ struct Tutorial02 {}
 impl Scenario for Tutorial02 {
     fn init(&self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
-    }
-
-    fn initial_code(&self) -> String {
-        "\
-// Tutorial 01
-// Fly to the target circle and stop.
-
-fn tick() {
-    api.thrust_main(1e3);
-}"
-        .to_string()
     }
 
     fn tick(&self, sim: &mut Simulation) -> Status {
@@ -283,5 +301,36 @@ fn tick() {
             });
         }
         lines
+    }
+
+    fn initial_code(&self) -> String {
+        "\
+// Tutorial 02
+// Fly to the target circle and stop.
+
+fn tick() {
+  api.thrust_main(1e4);
+}"
+        .to_string()
+    }
+
+    fn solution(&self) -> String {
+        "\
+// Tutorial 02
+// Fly to the target circle and stop.
+
+let i = 0;
+let n = 100;
+let k = 100;
+
+fn tick() {
+    if i >= 0 && i < k {
+      api.thrust_main(1e4);
+    } else if i >= n && i < n + k {
+      api.thrust_main(-1e4);
+    }
+    i += 1;
+}"
+        .to_string()
     }
 }
