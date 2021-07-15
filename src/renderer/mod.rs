@@ -2,12 +2,15 @@ pub mod buffer_arena;
 pub mod bullet_renderer;
 pub mod glutil;
 pub mod grid_renderer;
+pub mod line_renderer;
 pub mod model;
 pub mod ship_renderer;
 
+use crate::simulation::scenario::Line;
 use crate::simulation::Simulation;
 use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
+use line_renderer::LineRenderer;
 use nalgebra::{point, Matrix4, Point2};
 use ship_renderer::ShipRenderer;
 use wasm_bindgen::prelude::*;
@@ -18,6 +21,7 @@ use WebGl2RenderingContext as gl;
 pub struct Renderer {
     context: WebGl2RenderingContext,
     grid_renderer: GridRenderer,
+    line_renderer: LineRenderer,
     ship_renderer: ShipRenderer,
     bullet_renderer: BulletRenderer,
     projection_matrix: Matrix4<f32>,
@@ -37,6 +41,7 @@ impl Renderer {
         Ok(Renderer {
             context: context.clone(),
             grid_renderer: GridRenderer::new(context.clone())?,
+            line_renderer: LineRenderer::new(context.clone())?,
             ship_renderer: ShipRenderer::new(context.clone())?,
             bullet_renderer: BulletRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
@@ -57,7 +62,13 @@ impl Renderer {
         self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
     }
 
-    pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, sim: &Simulation) {
+    pub fn render(
+        &mut self,
+        camera_target: Point2<f32>,
+        zoom: f32,
+        sim: &Simulation,
+        lines: &[Line],
+    ) {
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(gl::COLOR_BUFFER_BIT);
 
@@ -68,12 +79,15 @@ impl Renderer {
 
         self.grid_renderer
             .update_projection_matrix(&self.projection_matrix);
+        self.line_renderer
+            .update_projection_matrix(&self.projection_matrix);
         self.ship_renderer
             .update_projection_matrix(&self.projection_matrix);
         self.bullet_renderer
             .update_projection_matrix(&self.projection_matrix);
 
         self.grid_renderer.draw();
+        self.line_renderer.draw(lines);
         self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
     }

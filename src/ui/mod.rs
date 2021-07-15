@@ -222,8 +222,12 @@ impl UI {
             }
         }
 
-        self.renderer
-            .render(self.camera_target, self.zoom, &self.sim);
+        self.renderer.render(
+            self.camera_target,
+            self.zoom,
+            &self.sim,
+            &self.scenario.lines(),
+        );
 
         if self.sim.collided {
             self.sim.collided = false;

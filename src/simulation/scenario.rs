@@ -4,6 +4,7 @@ use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
 };
+use nalgebra::{Point2, Vector4};
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use Status::Running;
@@ -14,10 +15,17 @@ pub enum Status {
     Finished,
 }
 
+pub struct Line {
+    pub a: Point2<f32>,
+    pub b: Point2<f32>,
+    pub color: Vector4<f32>,
+}
+
 pub trait Scenario {
     fn init(&self, sim: &mut Simulation);
     fn initial_code(&self) -> String;
     fn tick(&self, sim: &mut Simulation) -> Status;
+    fn lines(&self) -> Vec<Line>;
 }
 
 pub fn add_walls(sim: &mut Simulation) {
@@ -52,6 +60,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario {}),
         "tutorial01" => Box::new(Tutorial01 {}),
+        "tutorial02" => Box::new(Tutorial02 {}),
         _ => panic!("Unknown scenario"),
     }
 }
@@ -75,6 +84,10 @@ impl Scenario for BasicScenario {
         } else {
             Status::Finished
         }
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
     }
 }
 
@@ -111,6 +124,10 @@ impl Scenario for AsteroidScenario {
             Status::Finished
         }
     }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
+    }
 }
 
 struct BulletStressScenario {}
@@ -140,6 +157,10 @@ impl Scenario for BulletStressScenario {
 
     fn tick(&self, _: &mut Simulation) -> Status {
         Running
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
     }
 }
 
@@ -176,6 +197,10 @@ impl Scenario for WelcomeScenario {
     fn tick(&self, _: &mut Simulation) -> Status {
         Running
     }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
+    }
 }
 
 struct Tutorial01 {}
@@ -204,5 +229,49 @@ fn tick() {
         } else {
             Status::Finished
         }
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
+    }
+}
+
+struct Tutorial02 {}
+
+impl Scenario for Tutorial02 {
+    fn init(&self, sim: &mut Simulation) {
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+    }
+
+    fn initial_code(&self) -> String {
+        "\
+// Tutorial 01
+// Fly to the target circle.
+
+fn tick() {
+    api.thrust_main(1e3);
+}"
+        .to_string()
+    }
+
+    fn tick(&self, _sim: &mut Simulation) -> Status {
+        Running
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        let mut lines = vec![];
+        let center: Point2<f32> = point![100.0, 0.0];
+        let n = 20;
+        let r = 10.0;
+        for i in 0..n {
+            let angle_a = std::f32::consts::TAU * (i as f32) / (n as f32);
+            let angle_b = std::f32::consts::TAU * ((i + 1) as f32) / (n as f32);
+            lines.push(Line {
+                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
+                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+                color: vector![0.87, 0.78, 0.7, 1.0],
+            });
+        }
+        lines
     }
 }

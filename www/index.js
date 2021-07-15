@@ -65,7 +65,7 @@ window.set_editor_code = function(code) {
 };
 
 var scenario_select = document.getElementById('scenario');
-var scenarios = ['welcome', 'tutorial01', 'asteroid'];
+var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'asteroid'];
 scenarios.forEach((scenario) => {
   var option = document.createElement('option');
   option.value = scenario;
