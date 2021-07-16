@@ -151,6 +151,7 @@ impl RhaiShipController {
         let api = Api::new(handle, sim);
 
         let mut engine = Engine::new();
+        engine.set_max_expr_depths(64, 32);
 
         engine.on_print(|x| info!("Script: {}", x));
         engine.on_debug(|x, src, pos| info!("Script ({}:{:?}): {}", src.unwrap_or(""), pos, x));
