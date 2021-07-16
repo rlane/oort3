@@ -6,8 +6,6 @@ use log::{debug, info};
 use nalgebra::{point, Point2};
 use simulation::scenario;
 use std::sync::mpsc;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 use web_sys::{console, KeyboardEvent};
 
 pub struct UI {
@@ -24,6 +22,7 @@ pub struct UI {
     keys_down: std::collections::HashSet<String>,
     keys_ignored: std::collections::HashSet<String>,
     status_div: web_sys::Element,
+    key_tx: mpsc::Sender<KeyboardEvent>,
     key_rx: mpsc::Receiver<KeyboardEvent>,
     tick: u64,
     last_render_time: f64,
@@ -43,24 +42,7 @@ impl UI {
             .expect("should have a status div");
         status_div.set_inner_html("Hello from Rust");
 
-        let canvas = document
-            .get_element_by_id("glcanvas")
-            .expect("expecting a canvas");
-
         let (key_tx, key_rx) = mpsc::channel::<KeyboardEvent>();
-        let key_callback = Closure::wrap(Box::new(move |e: web_sys::KeyboardEvent| {
-            if key_tx.send(e).is_err() {
-                console::log_1(&"Failed to enqueue key".into());
-            }
-        }) as Box<dyn FnMut(_)>);
-
-        canvas
-            .add_event_listener_with_callback("keydown", key_callback.as_ref().unchecked_ref())
-            .expect("adding event listener failed");
-        canvas
-            .add_event_listener_with_callback("keyup", key_callback.as_ref().unchecked_ref())
-            .expect("adding event listener failed");
-        key_callback.forget();
 
         let mut sim = Box::new(simulation::Simulation::new());
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
@@ -91,6 +73,7 @@ impl UI {
             keys_down,
             keys_ignored,
             status_div,
+            key_tx,
             key_rx,
             tick: 0,
             last_render_time: instant::now(),
@@ -260,6 +243,12 @@ impl UI {
         self.tick += 1;
 
         self.frame_timer.end(instant::now());
+    }
+
+    pub fn on_key_event(&mut self, e: web_sys::KeyboardEvent) {
+        if self.key_tx.send(e).is_err() {
+            console::log_1(&"Failed to enqueue key".into());
+        }
     }
 
     pub fn upload_code(&mut self, code: &str) {

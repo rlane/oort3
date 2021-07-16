@@ -13,6 +13,9 @@ function initialize(m) {
   m.initialize();
   m.start("welcome");
 
+  canvas.addEventListener('keydown', m.on_key_event);
+  canvas.addEventListener('keyup', m.on_key_event);
+
   function render() {
     canvas.width = canvas.clientWidth
     canvas.height = canvas.clientHeight
