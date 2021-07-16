@@ -1,5 +1,5 @@
 use super::{buffer_arena, glutil};
-use nalgebra::{storage::Storage, vector, Matrix4};
+use nalgebra::{storage::Storage, vector, Matrix4, Vector4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -65,10 +65,14 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, zoom: f32) {
+        let f = |z: f32| 0.2 * (zoom * z * 10.0).log(10.0).clamp(0.0, 1.0);
+        self.draw_subgrid(1e2, vector![0.0, f(1e3), 0.0, 1.0]);
+        self.draw_subgrid(1e3, vector![0.0, f(1e4), 0.0, 1.0]);
+    }
+
+    pub fn draw_subgrid(&mut self, grid_size: f32, color: Vector4<f32>) {
         use crate::simulation::WORLD_SIZE;
-        let grid_size = 100.0;
-        let color = vector![0.0, 0.1, 0.0, 1.0];
 
         let mut vertices = vec![];
         let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;

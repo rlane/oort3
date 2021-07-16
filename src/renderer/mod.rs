@@ -86,7 +86,7 @@ impl Renderer {
         self.bullet_renderer
             .update_projection_matrix(&self.projection_matrix);
 
-        self.grid_renderer.draw();
+        self.grid_renderer.draw(zoom);
         self.line_renderer.draw(lines);
         self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
