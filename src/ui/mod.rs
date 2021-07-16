@@ -5,8 +5,6 @@ use crate::{renderer, simulation};
 use log::{debug, info};
 use nalgebra::{point, Point2};
 use simulation::scenario;
-use std::sync::mpsc;
-use web_sys::{console, KeyboardEvent};
 
 pub struct UI {
     sim: Box<simulation::Simulation>,
@@ -22,8 +20,6 @@ pub struct UI {
     keys_down: std::collections::HashSet<String>,
     keys_ignored: std::collections::HashSet<String>,
     status_div: web_sys::Element,
-    key_tx: mpsc::Sender<KeyboardEvent>,
-    key_rx: mpsc::Receiver<KeyboardEvent>,
     tick: u64,
     last_render_time: f64,
     physics_time: f64,
@@ -41,8 +37,6 @@ impl UI {
             .get_element_by_id("status")
             .expect("should have a status div");
         status_div.set_inner_html("Hello from Rust");
-
-        let (key_tx, key_rx) = mpsc::channel::<KeyboardEvent>();
 
         let mut sim = Box::new(simulation::Simulation::new());
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
@@ -73,8 +67,6 @@ impl UI {
             keys_down,
             keys_ignored,
             status_div,
-            key_tx,
-            key_rx,
             tick: 0,
             last_render_time: instant::now(),
             physics_time: instant::now(),
@@ -96,15 +88,6 @@ impl UI {
         self.frame_timer.start(now);
 
         let mut status_msgs: Vec<String> = Vec::new();
-
-        while let Ok(e) = self.key_rx.try_recv() {
-            if e.type_() == "keydown" {
-                self.keys_down.insert(e.key());
-            } else if e.type_() == "keyup" {
-                self.keys_down.remove(&e.key());
-                self.keys_ignored.remove(&e.key());
-            }
-        }
 
         let camera_step = 0.01 / self.zoom;
         if self.keys_down.contains("w") {
@@ -246,8 +229,11 @@ impl UI {
     }
 
     pub fn on_key_event(&mut self, e: web_sys::KeyboardEvent) {
-        if self.key_tx.send(e).is_err() {
-            console::log_1(&"Failed to enqueue key".into());
+        if e.type_() == "keydown" {
+            self.keys_down.insert(e.key());
+        } else if e.type_() == "keyup" {
+            self.keys_down.remove(&e.key());
+            self.keys_ignored.remove(&e.key());
         }
     }
 
