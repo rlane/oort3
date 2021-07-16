@@ -6,6 +6,9 @@ use log::{debug, info};
 use nalgebra::{point, Point2};
 use simulation::scenario;
 
+const MIN_ZOOM: f32 = 5e-5;
+const MAX_ZOOM: f32 = 1e-2;
+
 pub struct UI {
     sim: Box<simulation::Simulation>,
     renderer: renderer::Renderer,
@@ -40,7 +43,7 @@ impl UI {
 
         let mut sim = Box::new(simulation::Simulation::new());
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
-        let zoom = 0.001;
+        let zoom = MAX_ZOOM / 10.0;
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
         let paused = false;
@@ -102,10 +105,10 @@ impl UI {
         if self.keys_down.contains("d") {
             self.camera_target.x += camera_step;
         }
-        if self.keys_down.contains("z") {
+        if self.keys_down.contains("z") && self.zoom > MIN_ZOOM {
             self.zoom *= 0.99;
         }
-        if self.keys_down.contains("x") {
+        if self.keys_down.contains("x") && self.zoom < MAX_ZOOM {
             self.zoom *= 1.01;
         }
         if self.keys_down.contains("u") && !self.keys_ignored.contains("u") {
