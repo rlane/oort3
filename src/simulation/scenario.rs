@@ -22,8 +22,8 @@ pub struct Line {
 }
 
 pub trait Scenario {
-    fn init(&self, sim: &mut Simulation);
-    fn tick(&self, sim: &mut Simulation) -> Status;
+    fn init(&mut self, sim: &mut Simulation);
+    fn tick(&mut self, sim: &mut Simulation) -> Status;
     fn lines(&self) -> Vec<Line>;
     fn initial_code(&self) -> String;
     fn solution(&self) -> String;
@@ -69,13 +69,13 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
 struct BasicScenario {}
 
 impl Scenario for BasicScenario {
-    fn init(&self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation) {
         add_walls(sim);
         ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter());
     }
 
-    fn tick(&self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, sim: &mut Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
@@ -99,7 +99,7 @@ impl Scenario for BasicScenario {
 struct AsteroidScenario {}
 
 impl Scenario for AsteroidScenario {
-    fn init(&self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
@@ -118,7 +118,7 @@ impl Scenario for AsteroidScenario {
         }
     }
 
-    fn tick(&self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, sim: &mut Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
@@ -142,7 +142,7 @@ impl Scenario for AsteroidScenario {
 struct BulletStressScenario {}
 
 impl Scenario for BulletStressScenario {
-    fn init(&self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
@@ -160,7 +160,7 @@ impl Scenario for BulletStressScenario {
         }
     }
 
-    fn tick(&self, _: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) -> Status {
         Running
     }
 
@@ -180,7 +180,7 @@ impl Scenario for BulletStressScenario {
 struct WelcomeScenario {}
 
 impl Scenario for WelcomeScenario {
-    fn init(&self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
@@ -199,7 +199,7 @@ impl Scenario for WelcomeScenario {
         }
     }
 
-    fn tick(&self, _: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) -> Status {
         Running
     }
 
@@ -223,12 +223,12 @@ impl Scenario for WelcomeScenario {
 struct Tutorial01 {}
 
 impl Scenario for Tutorial01 {
-    fn init(&self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
     }
 
-    fn tick(&self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, sim: &mut Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
@@ -268,11 +268,11 @@ fn tick() {
 struct Tutorial02 {}
 
 impl Scenario for Tutorial02 {
-    fn init(&self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
     }
 
-    fn tick(&self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, sim: &mut Simulation) -> Status {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
             if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0

@@ -3,7 +3,7 @@ use oort::simulation::scenario;
 
 fn check_solution(scenario_name: &str) {
     let mut sim = simulation::Simulation::new();
-    let scenario = scenario::load(scenario_name);
+    let mut scenario = scenario::load(scenario_name);
     scenario.init(&mut sim);
     sim.upload_code(&scenario.solution());
 

@@ -71,7 +71,7 @@ impl UI {
         let finished = false;
         let single_steps = 0;
 
-        let scenario = scenario::load(scenario_name);
+        let mut scenario = scenario::load(scenario_name);
         scenario.init(&mut sim);
 
         let keys_down = std::collections::HashSet::<String>::new();
