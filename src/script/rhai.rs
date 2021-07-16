@@ -106,6 +106,18 @@ impl Api {
         unsafe { &mut *self.sim }
     }
 
+    fn position(&mut self) -> Vec2 {
+        self.sim().ship(self.handle).position().vector
+    }
+
+    fn velocity(&mut self) -> Vec2 {
+        self.sim().ship(self.handle).velocity()
+    }
+
+    fn heading(&mut self) -> f64 {
+        self.sim().ship(self.handle).heading()
+    }
+
     fn thrust_main(&mut self, force: FLOAT) {
         self.sim().ship_mut(self.handle).thrust_main(force);
     }
@@ -145,6 +157,9 @@ impl RhaiShipController {
 
         engine
             .register_type::<Api>()
+            .register_fn("position", Api::position)
+            .register_fn("velocity", Api::velocity)
+            .register_fn("heading", Api::heading)
             .register_fn("thrust_main", Api::thrust_main)
             .register_fn("thrust_lateral", Api::thrust_lateral)
             .register_fn("thrust_angular", Api::thrust_angular)
@@ -164,11 +179,10 @@ impl RhaiShipController {
     }
 
     pub fn test(&mut self, code: &str) {
-        let mut scope = Scope::new();
         self.upload_code(code);
         if let Some(v) = self
             .engine
-            .consume_ast_with_scope(&mut scope, self.ast.as_ref().unwrap())
+            .consume_ast_with_scope(&mut self.scope, self.ast.as_ref().unwrap())
             .err()
         {
             panic!("Test failed: {:?}", v);
@@ -230,6 +244,28 @@ mod test {
         assert_eq(v2.magnitude(), 5.0);
         assert_eq(v1.distance(v2), 2.8284271247461903);
         assert_eq(v1.dot(v2), 11.0);
+        ",
+        );
+    }
+
+    #[test]
+    fn test_pos_vel_hd() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(
+            &mut sim,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            std::f64::consts::PI,
+            ship::fighter(),
+        );
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            "
+        assert_eq(api.position(), vec2(1.0, 2.0));
+        assert_eq(api.velocity(), vec2(3.0, 4.0));
+        assert_eq(api.heading(), PI());
         ",
         );
     }
