@@ -3,7 +3,7 @@ pub mod frame_timer;
 
 use crate::{renderer, simulation};
 use log::{debug, info};
-use nalgebra::{point, Point2};
+use nalgebra::{point, vector, Point2};
 use simulation::scenario;
 
 const MIN_ZOOM: f32 = 5e-5;
@@ -136,25 +136,32 @@ impl UI {
 
         if !self.paused {
             if let Some(&ship_handle) = self.sim.ships.iter().next() {
-                let force = 1e4;
+                let acc = 100.0;
+                let angular_force = 1e4;
                 if self.keys_down.contains("ArrowUp") {
-                    self.sim.ship_mut(ship_handle).thrust_main(force);
+                    self.sim.ship_mut(ship_handle).accelerate(vector![acc, 0.0]);
                 }
                 if self.keys_down.contains("ArrowDown") {
-                    self.sim.ship_mut(ship_handle).thrust_main(-force);
+                    self.sim
+                        .ship_mut(ship_handle)
+                        .accelerate(vector![-acc, 0.0]);
                 }
                 if self.keys_down.contains("ArrowLeft") {
                     if self.keys_down.contains("Shift") {
-                        self.sim.ship_mut(ship_handle).thrust_lateral(force);
+                        self.sim.ship_mut(ship_handle).accelerate(vector![0.0, acc]);
                     } else {
-                        self.sim.ship_mut(ship_handle).thrust_angular(force);
+                        self.sim.ship_mut(ship_handle).thrust_angular(angular_force);
                     }
                 }
                 if self.keys_down.contains("ArrowRight") {
                     if self.keys_down.contains("Shift") {
-                        self.sim.ship_mut(ship_handle).thrust_lateral(-force);
+                        self.sim
+                            .ship_mut(ship_handle)
+                            .accelerate(vector![0.0, -acc]);
                     } else {
-                        self.sim.ship_mut(ship_handle).thrust_angular(-force);
+                        self.sim
+                            .ship_mut(ship_handle)
+                            .thrust_angular(-angular_force);
                     }
                 }
                 if self.keys_down.contains("f") {

@@ -2,6 +2,7 @@ use super::index_set::{HasIndex, Index};
 use crate::script;
 use crate::simulation;
 use crate::simulation::{bullet, Simulation};
+use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
@@ -137,16 +138,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             .unwrap()
     }
 
-    pub fn thrust_main(&mut self, force: f64) {
+    pub fn accelerate(&mut self, acceleration: Vector2<f64>) {
         let body = self.body();
         let rotation_matrix = body.position().rotation.to_rotation_matrix();
-        body.apply_force(rotation_matrix * vector![force, 0.0], true);
-    }
-
-    pub fn thrust_lateral(&mut self, force: f64) {
-        let body = self.body();
-        let rotation_matrix = body.position().rotation.to_rotation_matrix();
-        body.apply_force(rotation_matrix * vector![0.0, force], true);
+        body.apply_force(rotation_matrix * acceleration * body.mass(), true);
     }
 
     pub fn thrust_angular(&mut self, torque: f64) {

@@ -303,17 +303,23 @@ fn tick() {
 // Tutorial 02
 // Fly to the target circle and stop.
 
-let i = 0;
-let n = 190;
-
 fn tick() {
-    if i < n / 2 {
-      api.thrust_main(1e4);
-    } else if i < n {
-      api.thrust_main(-1e4);
+    let acc = 100.0;
+    let x = api.position().x;
+    let dx = target.x - x;
+    let vx = api.velocity().x;
+    let margin = 10.0;
+    let t = abs(vx / acc);
+    let pdx = (x + vx * t + 0.5 * -acc * t*t) - target.x;
+    if pdx > -margin && pdx < margin {
+        api.accelerate(vec2(-vx * 10, 0.0));
+    } else if pdx < -margin {
+        api.accelerate(vec2(acc, 0.0));
+    } else if pdx > margin {
+        api.accelerate(vec2(-acc, 0.0));
     }
-    i += 1;
-}"
+}
+"
         .to_string()
     }
 }

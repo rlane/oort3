@@ -118,12 +118,8 @@ impl Api {
         self.sim().ship(self.handle).heading()
     }
 
-    fn thrust_main(&mut self, force: FLOAT) {
-        self.sim().ship_mut(self.handle).thrust_main(force);
-    }
-
-    fn thrust_lateral(&mut self, force: FLOAT) {
-        self.sim().ship_mut(self.handle).thrust_lateral(force);
+    fn accelerate(&mut self, acceleration: Vec2) {
+        self.sim().ship_mut(self.handle).accelerate(acceleration);
     }
 
     fn thrust_angular(&mut self, force: FLOAT) {
@@ -161,8 +157,7 @@ impl RhaiShipController {
             .register_fn("position", Api::position)
             .register_fn("velocity", Api::velocity)
             .register_fn("heading", Api::heading)
-            .register_fn("thrust_main", Api::thrust_main)
-            .register_fn("thrust_lateral", Api::thrust_lateral)
+            .register_fn("accelerate", Api::accelerate)
             .register_fn("thrust_angular", Api::thrust_angular)
             .register_fn("fire_weapon", Api::fire_weapon)
             .register_fn("explode", Api::explode);
