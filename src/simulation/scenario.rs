@@ -23,11 +23,24 @@ pub struct Line {
 
 pub trait Scenario {
     fn init(&mut self, sim: &mut Simulation);
-    fn tick(&mut self, sim: &mut Simulation);
-    fn status(&self, sim: &Simulation) -> Status;
-    fn lines(&self) -> Vec<Line>;
-    fn initial_code(&self) -> String;
-    fn solution(&self) -> String;
+
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, _: &Simulation) -> Status {
+        Running
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        Vec::new()
+    }
+
+    fn initial_code(&self) -> String {
+        "".to_string()
+    }
+
+    fn solution(&self) -> String {
+        "".to_string()
+    }
 }
 
 pub fn add_walls(sim: &mut Simulation) {
@@ -76,26 +89,12 @@ impl Scenario for BasicScenario {
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter());
     }
 
-    fn tick(&mut self, _: &mut Simulation) {}
-
     fn status(&self, sim: &Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
             Status::Finished
         }
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
-    }
-
-    fn initial_code(&self) -> String {
-        "".to_string()
-    }
-
-    fn solution(&self) -> String {
-        "".to_string()
     }
 }
 
@@ -121,26 +120,12 @@ impl Scenario for AsteroidScenario {
         }
     }
 
-    fn tick(&mut self, _: &mut Simulation) {}
-
     fn status(&self, sim: &Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
             Status::Finished
         }
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
-    }
-
-    fn initial_code(&self) -> String {
-        "".to_string()
-    }
-
-    fn solution(&self) -> String {
-        "".to_string()
     }
 }
 
@@ -163,24 +148,6 @@ impl Scenario for BulletStressScenario {
                 rng.gen_range(-s..s),
             );
         }
-    }
-
-    fn tick(&mut self, _: &mut Simulation) {}
-
-    fn status(&self, _: &Simulation) -> Status {
-        Running
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
-    }
-
-    fn initial_code(&self) -> String {
-        "".to_string()
-    }
-
-    fn solution(&self) -> String {
-        "".to_string()
     }
 }
 
@@ -206,26 +173,12 @@ impl Scenario for WelcomeScenario {
         }
     }
 
-    fn tick(&mut self, _: &mut Simulation) {}
-
-    fn status(&self, _: &Simulation) -> Status {
-        Running
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
-    }
-
     fn initial_code(&self) -> String {
         "\
 // Welcome to Oort.
 // Select a scenario from the list in the top-right of the page.
 // If you're new, start with \"tutorial01\"."
             .to_string()
-    }
-
-    fn solution(&self) -> String {
-        "".to_string()
     }
 }
 
@@ -237,18 +190,12 @@ impl Scenario for Tutorial01 {
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
     }
 
-    fn tick(&mut self, _: &mut Simulation) {}
-
     fn status(&self, sim: &Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
             Status::Finished
         }
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
     }
 
     fn initial_code(&self) -> String {
