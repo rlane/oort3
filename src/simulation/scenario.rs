@@ -236,6 +236,10 @@ impl Tutorial02 {
 impl Scenario for Tutorial02 {
     fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        if let Some(&handle) = sim.ships.iter().next() {
+            let c = sim.ship_controllers.get_mut(&handle);
+            c.unwrap().write_target(vector![200.0, 0.0]);
+        }
     }
 
     fn tick(&mut self, sim: &mut Simulation) {

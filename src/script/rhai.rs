@@ -223,6 +223,10 @@ impl ShipController for RhaiShipController {
             }
         }
     }
+
+    fn write_target(&mut self, target: Vec2) {
+        self.scope.push("target", target);
+    }
 }
 
 #[cfg(test)]
