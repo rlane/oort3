@@ -23,7 +23,8 @@ pub struct Line {
 
 pub trait Scenario {
     fn init(&mut self, sim: &mut Simulation);
-    fn tick(&mut self, sim: &mut Simulation) -> Status;
+    fn tick(&mut self, sim: &mut Simulation);
+    fn status(&self, sim: &Simulation) -> Status;
     fn lines(&self) -> Vec<Line>;
     fn initial_code(&self) -> String;
     fn solution(&self) -> String;
@@ -75,7 +76,9 @@ impl Scenario for BasicScenario {
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter());
     }
 
-    fn tick(&mut self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, sim: &Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
@@ -118,7 +121,9 @@ impl Scenario for AsteroidScenario {
         }
     }
 
-    fn tick(&mut self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, sim: &Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
@@ -160,7 +165,9 @@ impl Scenario for BulletStressScenario {
         }
     }
 
-    fn tick(&mut self, _: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, _: &Simulation) -> Status {
         Running
     }
 
@@ -199,7 +206,9 @@ impl Scenario for WelcomeScenario {
         }
     }
 
-    fn tick(&mut self, _: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, _: &Simulation) -> Status {
         Running
     }
 
@@ -228,7 +237,9 @@ impl Scenario for Tutorial01 {
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
     }
 
-    fn tick(&mut self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, sim: &Simulation) -> Status {
         if sim.ships.iter().len() > 1 {
             Running
         } else {
@@ -272,7 +283,9 @@ impl Scenario for Tutorial02 {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
     }
 
-    fn tick(&mut self, sim: &mut Simulation) -> Status {
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, sim: &Simulation) -> Status {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
             if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0

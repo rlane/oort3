@@ -7,14 +7,14 @@ fn check_solution(scenario_name: &str) {
     scenario.init(&mut sim);
     sim.upload_code(&scenario.solution());
 
-    for _ in 0..10000 {
+    let mut i = 0;
+    while scenario.status(&sim) == scenario::Status::Running && i < 10000 {
         sim.step();
-        if scenario.tick(&mut sim) == scenario::Status::Finished {
-            break;
-        }
+        scenario.tick(&mut sim);
+        i += 1;
     }
 
-    assert_eq!(scenario.tick(&mut sim), scenario::Status::Finished);
+    assert_eq!(scenario.status(&sim), scenario::Status::Finished);
 }
 
 #[test]
