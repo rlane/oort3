@@ -75,7 +75,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario {}),
         "tutorial01" => Box::new(Tutorial01 {}),
-        "tutorial02" => Box::new(Tutorial02 {}),
+        "tutorial02" => Box::new(Tutorial02::new()),
         _ => panic!("Unknown scenario"),
     }
 }
@@ -223,27 +223,40 @@ fn tick() {
     }
 }
 
-struct Tutorial02 {}
+struct Tutorial02 {
+    on_target_ticks: i32,
+}
+
+impl Tutorial02 {
+    fn new() -> Self {
+        Self { on_target_ticks: 0 }
+    }
+}
 
 impl Scenario for Tutorial02 {
     fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
     }
 
-    fn tick(&mut self, _: &mut Simulation) {}
-
-    fn status(&self, sim: &Simulation) -> Status {
+    fn tick(&mut self, sim: &mut Simulation) {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
             if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0
                 && ship.velocity().magnitude() < 1.0
             {
-                return Status::Finished;
+                self.on_target_ticks += 1;
             } else {
-                return Status::Running;
+                self.on_target_ticks = 0;
             }
         }
-        Status::Finished
+    }
+
+    fn status(&self, _: &Simulation) -> Status {
+        if self.on_target_ticks > 120 {
+            Status::Finished
+        } else {
+            Status::Running
+        }
     }
 
     fn lines(&self) -> Vec<Line> {
@@ -251,13 +264,20 @@ impl Scenario for Tutorial02 {
         let center: Point2<f32> = point![200.0, 0.0];
         let n = 20;
         let r = 50.0;
+        let on_target_frac = self.on_target_ticks as f32 / 120.0;
         for i in 0..n {
-            let angle_a = std::f32::consts::TAU * (i as f32) / (n as f32);
-            let angle_b = std::f32::consts::TAU * ((i + 1) as f32) / (n as f32);
+            let frac = (i as f32) / (n as f32);
+            let angle_a = std::f32::consts::TAU * frac;
+            let angle_b = std::f32::consts::TAU * (frac + 1.0 / n as f32);
+            let color = if on_target_frac > frac {
+                vector![0.0, 1.0, 0.0, 1.0]
+            } else {
+                vector![1.0, 0.0, 0.0, 1.0]
+            };
             lines.push(Line {
                 a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
                 b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-                color: vector![0.87, 0.78, 0.7, 1.0],
+                color,
             });
         }
         lines
