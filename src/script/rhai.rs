@@ -3,7 +3,7 @@ use crate::simulation::ship::ShipHandle;
 use crate::simulation::Simulation;
 use log::{error, info};
 use rhai::plugin::*;
-use rhai::{Dynamic, Engine, Scope, Stmt, AST, FLOAT, INT};
+use rhai::{Dynamic, Engine, Scope, AST, FLOAT, INT};
 use smartstring::alias::CompactString;
 
 type Vec2 = nalgebra::Vector2<f64>;
@@ -261,7 +261,7 @@ impl ShipController for RhaiShipController {
     fn upload_code(&mut self, code: &str) {
         match self.engine.compile(code) {
             Ok(ast) => {
-                self.ast = Some(ast);
+                self.ast = Some(ast_rewrite::rewrite_ast(ast));
             }
             Err(msg) => {
                 error!("Compilation failed: {}", msg);
@@ -296,6 +296,57 @@ impl ShipController for RhaiShipController {
     }
 }
 
+#[allow(deprecated)]
+mod ast_rewrite {
+    use log::debug;
+    use rhai::{Engine, Expr, Identifier, Stmt, AST};
+
+    pub fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
+        let mut globals = std::collections::HashSet::new();
+        for stmt in ast.statements() {
+            if let Stmt::Let(_, ident, _, _) = stmt {
+                globals.insert(ident.name.clone());
+            }
+        }
+        globals
+    }
+
+    pub fn parse_expr(code: &str) -> Expr {
+        let ast = Engine::new_raw().compile(code).unwrap();
+        if let Stmt::Expr(expr) = &ast.statements()[0] {
+            expr.clone()
+        } else {
+            panic!("Failed to parse expression")
+        }
+    }
+
+    pub fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) -> Stmt {
+        debug!("stmt={:?}", stmt);
+        if let Stmt::Let(expr, ident, _, pos) = stmt {
+            if globals.contains(&ident.name) {
+                let dot_expr = parse_expr(&format!("globals.{}", ident.name));
+                Stmt::Assignment(Box::new((dot_expr, None, expr.clone())), *pos)
+            } else {
+                stmt.clone()
+            }
+        } else {
+            stmt.clone()
+        }
+    }
+
+    pub fn rewrite_ast(ast: AST) -> AST {
+        let globals = find_globals(&ast);
+        debug!("globals={:?}", globals);
+        let stmts: Vec<Stmt> = ast
+            .statements()
+            .iter()
+            .map(|stmt| rewrite_stmt(stmt, &globals))
+            .collect();
+        let module = ast.shared_lib();
+        AST::new(stmts, module)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::simulation::ship;
@@ -311,11 +362,11 @@ mod test {
             "
         let v1 = vec2(1.0, 2.0);
         let v2 = vec2(3.0, 4.0);
-        assert_eq((v1 + v2).x, 4.0);
-        assert_eq(v1 + v2, vec2(4.0, 6.0));
-        assert_eq(v2.magnitude(), 5.0);
-        assert_eq(v1.distance(v2), 2.8284271247461903);
-        assert_eq(v1.dot(v2), 11.0);
+        assert_eq((globals.v1 + globals.v2).x, 4.0);
+        assert_eq(globals.v1 + globals.v2, vec2(4.0, 6.0));
+        assert_eq(globals.v2.magnitude(), 5.0);
+        assert_eq(globals.v1.distance(globals.v2), 2.8284271247461903);
+        assert_eq(globals.v1.dot(globals.v2), 11.0);
         ",
         );
     }
@@ -381,8 +432,8 @@ mod test {
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             r#"
-           globals.x = 1;
-           globals.y = 2.0;
+           let x = 1;
+           let y = 2.0;
            fn foo() {
                assert_eq(globals.x, 1);
                assert_eq(globals.y, 2.0);
