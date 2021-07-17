@@ -265,6 +265,7 @@ impl ShipController for RhaiShipController {
 mod test {
     use crate::simulation::ship;
     use crate::simulation::Simulation;
+    use test_env_log::test;
 
     #[test]
     fn test_vec2() {

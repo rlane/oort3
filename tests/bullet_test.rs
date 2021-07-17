@@ -1,6 +1,7 @@
 use oort::simulation;
 use oort::simulation::ship;
 use oort::simulation::ship::fighter;
+use test_env_log::test;
 
 #[test]
 fn test_hit() {

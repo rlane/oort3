@@ -1,5 +1,6 @@
 use oort::simulation;
 use oort::simulation::scenario;
+use test_env_log::test;
 
 fn check_solution(scenario_name: &str) {
     let mut sim = simulation::Simulation::new();

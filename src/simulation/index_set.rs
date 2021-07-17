@@ -55,38 +55,41 @@ impl<T: HasIndex + Eq + std::hash::Hash + Copy> Default for IndexSet<T> {
 }
 
 #[cfg(test)]
-fn list<T: HasIndex + Eq + std::hash::Hash + Copy>(index_set: &IndexSet<T>) -> Vec<T> {
-    index_set.iter().copied().collect::<Vec<T>>()
-}
+mod test {
+    use super::{HasIndex, Index, IndexSet};
+    use test_env_log::test;
 
-#[cfg(test)]
-#[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
-pub struct TestHandle(pub Index);
-
-#[cfg(test)]
-impl HasIndex for TestHandle {
-    fn index(self) -> Index {
-        self.0
+    fn list<T: HasIndex + Eq + std::hash::Hash + Copy>(index_set: &IndexSet<T>) -> Vec<T> {
+        index_set.iter().copied().collect::<Vec<T>>()
     }
-}
 
-#[test]
-fn test_index_set() {
-    let mut index_set: IndexSet<TestHandle> = IndexSet::new();
-    let handle0 = TestHandle(Index::from_raw_parts(2, 1));
-    let handle1 = TestHandle(Index::from_raw_parts(1, 20));
+    #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
+    pub struct TestHandle(pub Index);
 
-    assert_eq!(list(&index_set), vec![]);
+    impl HasIndex for TestHandle {
+        fn index(self) -> Index {
+            self.0
+        }
+    }
 
-    index_set.insert(handle0);
-    assert_eq!(list(&index_set), vec![handle0]);
+    #[test]
+    fn test_index_set() {
+        let mut index_set: IndexSet<TestHandle> = IndexSet::new();
+        let handle0 = TestHandle(Index::from_raw_parts(2, 1));
+        let handle1 = TestHandle(Index::from_raw_parts(1, 20));
 
-    index_set.insert(handle1);
-    assert_eq!(list(&index_set), vec![handle0, handle1]);
+        assert_eq!(list(&index_set), vec![]);
 
-    index_set.remove(handle0);
-    assert_eq!(list(&index_set), vec![handle1]);
+        index_set.insert(handle0);
+        assert_eq!(list(&index_set), vec![handle0]);
 
-    index_set.remove(handle1);
-    assert_eq!(list(&index_set), vec![]);
+        index_set.insert(handle1);
+        assert_eq!(list(&index_set), vec![handle0, handle1]);
+
+        index_set.remove(handle0);
+        assert_eq!(list(&index_set), vec![handle1]);
+
+        index_set.remove(handle1);
+        assert_eq!(list(&index_set), vec![]);
+    }
 }
