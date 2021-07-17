@@ -28,6 +28,16 @@ mod vec2_module {
         *obj * other
     }
 
+    #[rhai_fn(name = "*")]
+    pub fn scale2(obj: &mut f64, other: Vec2) -> Vec2 {
+        *obj * other
+    }
+
+    #[rhai_fn(name = "/")]
+    pub fn div(obj: &mut Vec2, other: f64) -> Vec2 {
+        *obj / other
+    }
+
     #[rhai_fn(get = "x", pure)]
     pub fn get_x(obj: &mut Vec2) -> f64 {
         obj.x
@@ -63,6 +73,16 @@ mod vec2_module {
         obj.metric_distance(&other)
     }
 
+    #[rhai_fn(name = "angle")]
+    pub fn angle(obj: &mut Vec2) -> f64 {
+        obj.y.atan2(obj.x)
+    }
+
+    #[rhai_fn(name = "normalize")]
+    pub fn normalize(obj: &mut Vec2) -> Vec2 {
+        obj.normalize()
+    }
+
     fn assert_internal<T: PartialEq + std::fmt::Debug>(
         a: &mut T,
         b: T,
@@ -87,6 +107,16 @@ mod vec2_module {
     #[rhai_fn(name = "assert_eq", return_raw)]
     pub fn assert_eq_vec2(a: &mut Vec2, b: Vec2) -> Result<(), Box<EvalAltResult>> {
         assert_internal(a, b)
+    }
+
+    #[rhai_fn(name = "to_string")]
+    pub fn to_string(obj: &mut Vec2) -> String {
+        format!("({}, {})", obj.x, obj.y)
+    }
+
+    #[rhai_fn(name = "to_debug")]
+    pub fn to_debug(obj: &mut Vec2) -> String {
+        to_string(obj)
     }
 }
 
@@ -266,6 +296,21 @@ mod test {
         assert_eq(api.position(), vec2(1.0, 2.0));
         assert_eq(api.velocity(), vec2(3.0, 4.0));
         assert_eq(api.heading(), PI());
+        ",
+        );
+    }
+
+    #[test]
+    fn test_angle() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            "
+        assert_eq(vec2(1.0, 0.0).angle(), 0.0);
+        assert_eq(vec2(0.0, 1.0).angle(), PI() / 2.0);
+        assert_eq(vec2(-1.0, 0.0).angle(), PI());
+        assert_eq(vec2(0.0, -1.0).angle(), -PI() / 2.0);
         ",
         );
     }
