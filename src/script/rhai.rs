@@ -3,9 +3,35 @@ use crate::simulation::ship::ShipHandle;
 use crate::simulation::Simulation;
 use log::{error, info};
 use rhai::plugin::*;
-use rhai::{Engine, Scope, FLOAT, INT};
+use rhai::{Dynamic, Engine, Scope, Stmt, AST, FLOAT, INT};
+use smartstring::alias::CompactString;
 
 type Vec2 = nalgebra::Vector2<f64>;
+
+#[export_module]
+mod globals_module {
+    #[derive(Copy, Clone)]
+    pub struct Globals {
+        pub map: *mut std::collections::HashMap<CompactString, Dynamic>,
+    }
+
+    #[rhai_fn(name = "get", return_raw)]
+    pub fn get(obj: Globals, key: &str) -> Result<Dynamic, Box<EvalAltResult>> {
+        unsafe {
+            match (*obj.map).get(key).cloned() {
+                Some(value) => Ok(value),
+                None => Err(format!("unknown global variable {:?}", key).into()),
+            }
+        }
+    }
+
+    #[rhai_fn(name = "set")]
+    pub fn set(obj: Globals, key: &str, value: i64) {
+        unsafe {
+            (*obj.map).insert(key.into(), Dynamic::from(value));
+        }
+    }
+}
 
 #[export_module]
 mod vec2_module {
@@ -172,8 +198,10 @@ impl Api {
 pub struct RhaiShipController {
     engine: Engine,
     scope: Scope<'static>,
+    #[allow(unused)]
+    globals_map: Box<std::collections::HashMap<CompactString, Dynamic>>,
     // TODO share AST across ships
-    ast: Option<rhai::AST>,
+    ast: Option<AST>,
 }
 
 impl RhaiShipController {
@@ -196,10 +224,16 @@ impl RhaiShipController {
             .register_fn("explode", Api::explode);
 
         engine.register_global_module(exported_module!(vec2_module).into());
+        engine.register_global_module(exported_module!(globals_module).into());
 
         let api = Api::new(handle, sim);
+        let mut globals_map = Box::new(std::collections::HashMap::new());
+        let globals = globals_module::Globals {
+            map: &mut *globals_map,
+        };
         engine.on_var(move |name, _index, _context| match name {
             "api" => Ok(Some(Dynamic::from(api))),
+            "globals" => Ok(Some(Dynamic::from(globals))),
             _ => Ok(None),
         });
 
@@ -207,6 +241,7 @@ impl RhaiShipController {
             engine,
             scope: Scope::new(),
             ast: None,
+            globals_map,
         }
     }
 
@@ -336,6 +371,24 @@ mod test {
             assert_eq(api.velocity(), vec2(0.0, 0.0));
             foo();
         ",
+        );
+    }
+
+    #[test]
+    fn test_globals() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            r#"
+           globals.set("x", 1);
+           fn foo() {
+               assert_eq(globals.get("x"), 1);
+               globals.set("x", globals.get("x") + 1);
+           }
+           foo();
+           assert_eq(globals.get("x"), 2);
+       "#,
         );
     }
 }

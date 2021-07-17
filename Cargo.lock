@@ -548,6 +548,7 @@ dependencies = [
  "rand",
  "rapier2d-f64",
  "rhai",
+ "smartstring",
  "test-env-log",
  "wasm-bindgen",
  "web-sys",
