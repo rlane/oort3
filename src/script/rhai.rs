@@ -148,6 +148,10 @@ impl Api {
         self.sim().ship(self.handle).heading()
     }
 
+    fn angular_velocity(&mut self) -> f64 {
+        self.sim().ship(self.handle).angular_velocity()
+    }
+
     fn accelerate(&mut self, acceleration: Vec2) {
         self.sim().ship_mut(self.handle).accelerate(acceleration);
     }
@@ -187,6 +191,7 @@ impl RhaiShipController {
             .register_fn("position", Api::position)
             .register_fn("velocity", Api::velocity)
             .register_fn("heading", Api::heading)
+            .register_fn("angular_velocity", Api::angular_velocity)
             .register_fn("accelerate", Api::accelerate)
             .register_fn("thrust_angular", Api::thrust_angular)
             .register_fn("fire_weapon", Api::fire_weapon)

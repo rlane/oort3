@@ -120,6 +120,10 @@ impl<'a> ShipAccessor<'a> {
         self.body().rotation().angle()
     }
 
+    pub fn angular_velocity(&self) -> Real {
+        self.body().angvel()
+    }
+
     pub fn data(&self) -> &ShipData {
         self.simulation.ship_data.get(&self.handle).unwrap()
     }
