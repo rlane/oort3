@@ -72,10 +72,10 @@ void main() {
         let mut colors: Vec<f32> = vec![];
         colors.reserve(8 * lines.len());
         for line in lines {
-            vertices.push(line.a.x);
-            vertices.push(line.a.y);
-            vertices.push(line.b.x);
-            vertices.push(line.b.y);
+            vertices.push(line.a.x as f32);
+            vertices.push(line.a.y as f32);
+            vertices.push(line.b.x as f32);
+            vertices.push(line.b.y as f32);
 
             colors.push(line.color[0]);
             colors.push(line.color[1]);

@@ -16,8 +16,8 @@ pub enum Status {
 }
 
 pub struct Line {
-    pub a: Point2<f32>,
-    pub b: Point2<f32>,
+    pub a: Point2<f64>,
+    pub b: Point2<f64>,
     pub color: Vector4<f32>,
 }
 
@@ -265,14 +265,14 @@ impl Scenario for Tutorial02 {
 
     fn lines(&self) -> Vec<Line> {
         let mut lines = vec![];
-        let center: Point2<f32> = point![200.0, 0.0];
+        let center: Point2<f64> = point![200.0, 0.0];
         let n = 20;
         let r = 50.0;
-        let on_target_frac = self.on_target_ticks as f32 / 120.0;
+        let on_target_frac = self.on_target_ticks as f64 / 120.0;
         for i in 0..n {
-            let frac = (i as f32) / (n as f32);
-            let angle_a = std::f32::consts::TAU * frac;
-            let angle_b = std::f32::consts::TAU * (frac + 1.0 / n as f32);
+            let frac = (i as f64) / (n as f64);
+            let angle_a = std::f64::consts::TAU * frac;
+            let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
             let color = if on_target_frac > frac {
                 vector![0.0, 1.0, 0.0, 1.0]
             } else {
