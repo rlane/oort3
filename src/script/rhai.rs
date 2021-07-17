@@ -26,9 +26,9 @@ mod globals_module {
     }
 
     #[rhai_fn(index_set)]
-    pub fn set(obj: Globals, key: &str, value: i64) {
+    pub fn set(obj: Globals, key: &str, value: Dynamic) {
         unsafe {
-            (*obj.map).insert(key.into(), Dynamic::from(value));
+            (*obj.map).insert(key.into(), value);
         }
     }
 }
@@ -382,12 +382,16 @@ mod test {
         ctrl.test(
             r#"
            globals.x = 1;
+           globals.y = 2.0;
            fn foo() {
                assert_eq(globals.x, 1);
+               assert_eq(globals.y, 2.0);
                globals.x += 1;
+               globals.y += 1.0;
            }
            foo();
            assert_eq(globals.x, 2);
+           assert_eq(globals.y, 3.0);
        "#,
         );
     }
