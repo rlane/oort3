@@ -15,7 +15,7 @@ mod globals_module {
         pub map: *mut std::collections::HashMap<CompactString, Dynamic>,
     }
 
-    #[rhai_fn(name = "get", return_raw)]
+    #[rhai_fn(index_get, return_raw)]
     pub fn get(obj: Globals, key: &str) -> Result<Dynamic, Box<EvalAltResult>> {
         unsafe {
             match (*obj.map).get(key).cloned() {
@@ -25,7 +25,7 @@ mod globals_module {
         }
     }
 
-    #[rhai_fn(name = "set")]
+    #[rhai_fn(index_set)]
     pub fn set(obj: Globals, key: &str, value: i64) {
         unsafe {
             (*obj.map).insert(key.into(), Dynamic::from(value));
@@ -381,13 +381,13 @@ mod test {
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             r#"
-           globals.set("x", 1);
+           globals.x = 1;
            fn foo() {
-               assert_eq(globals.get("x"), 1);
-               globals.set("x", globals.get("x") + 1);
+               assert_eq(globals.x, 1);
+               globals.x += 1;
            }
            foo();
-           assert_eq(globals.get("x"), 2);
+           assert_eq(globals.x, 2);
        "#,
         );
     }
