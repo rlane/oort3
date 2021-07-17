@@ -293,7 +293,7 @@ impl Scenario for Tutorial02 {
 // Fly to the target circle and stop.
 
 fn tick() {
-  api.thrust_main(1e4);
+    api.accelerate(vec2(100.0, 0.0));
 }"
         .to_string()
     }
