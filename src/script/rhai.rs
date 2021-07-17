@@ -120,7 +120,7 @@ mod vec2_module {
     }
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 struct Api {
     handle: ShipHandle,
     sim: *mut Simulation,
@@ -178,8 +178,6 @@ pub struct RhaiShipController {
 
 impl RhaiShipController {
     pub fn new(handle: ShipHandle, sim: *mut Simulation) -> Self {
-        let api = Api::new(handle, sim);
-
         let mut engine = Engine::new();
         engine.set_max_expr_depths(64, 32);
 
@@ -199,12 +197,15 @@ impl RhaiShipController {
 
         engine.register_global_module(exported_module!(vec2_module).into());
 
-        let mut scope = Scope::new();
-        scope.push("api", api);
+        let api = Api::new(handle, sim);
+        engine.on_var(move |name, _index, _context| match name {
+            "api" => Ok(Some(Dynamic::from(api))),
+            _ => Ok(None),
+        });
 
         Self {
             engine,
-            scope,
+            scope: Scope::new(),
             ast: None,
         }
     }
@@ -316,6 +317,23 @@ mod test {
         assert_eq(vec2(0.0, 1.0).angle(), PI() / 2.0);
         assert_eq(vec2(-1.0, 0.0).angle(), PI());
         assert_eq(vec2(0.0, -1.0).angle(), -PI() / 2.0);
+        ",
+        );
+    }
+
+    #[test]
+    fn test_function() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            "
+            fn foo() {
+                assert_eq(api.position(), vec2(0.0, 0.0));
+            }
+
+            assert_eq(api.velocity(), vec2(0.0, 0.0));
+            foo();
         ",
         );
     }
