@@ -299,7 +299,7 @@ impl ShipController for RhaiShipController {
 #[allow(deprecated)]
 mod ast_rewrite {
     use log::debug;
-    use rhai::{Engine, Expr, Identifier, Stmt, AST};
+    use rhai::{BinaryExpr, Engine, Expr, FnCallExpr, Identifier, StaticVec, Stmt, StmtBlock, AST};
 
     pub fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
         let mut globals = std::collections::HashSet::new();
@@ -320,17 +320,177 @@ mod ast_rewrite {
         }
     }
 
+    fn rewrite_expr_vec(
+        exprs: &StaticVec<Expr>,
+        globals: &std::collections::HashSet<Identifier>,
+    ) -> StaticVec<Expr> {
+        exprs
+            .iter()
+            .map(|expr| rewrite_expr(expr, globals))
+            .collect()
+    }
+
+    fn rewrite_binary_expr(
+        binary_expr: &BinaryExpr,
+        globals: &std::collections::HashSet<Identifier>,
+    ) -> BinaryExpr {
+        BinaryExpr {
+            lhs: rewrite_expr(&binary_expr.lhs, globals),
+            rhs: rewrite_expr(&binary_expr.rhs, globals),
+        }
+    }
+
+    fn rewrite_fn_call_expr(
+        fn_call_expr: &FnCallExpr,
+        globals: &std::collections::HashSet<Identifier>,
+    ) -> FnCallExpr {
+        FnCallExpr {
+            namespace: fn_call_expr.namespace.clone(),
+            hashes: fn_call_expr.hashes,
+            args: rewrite_expr_vec(&fn_call_expr.args, globals),
+            constants: fn_call_expr.constants.clone(),
+            name: fn_call_expr.name.clone(),
+            capture: fn_call_expr.capture,
+        }
+    }
+
+    pub fn rewrite_expr(expr: &Expr, globals: &std::collections::HashSet<Identifier>) -> Expr {
+        match expr {
+            Expr::Variable(_, _, bx) => {
+                let name = &bx.2;
+                if globals.contains(name) {
+                    parse_expr(&format!("globals.{}", name))
+                } else {
+                    expr.clone()
+                }
+            }
+            Expr::InterpolatedString(bx, pos) => {
+                Expr::InterpolatedString(Box::new(rewrite_expr_vec(&*bx, globals)), *pos)
+            }
+            Expr::Array(bx, pos) => Expr::Array(Box::new(rewrite_expr_vec(&*bx, globals)), *pos),
+            Expr::Map(bx, pos) => Expr::Map(
+                Box::new((
+                    bx.0.iter()
+                        .map(|(ident, expr)| (ident.clone(), rewrite_expr(expr, globals)))
+                        .collect(),
+                    bx.1.clone(),
+                )),
+                *pos,
+            ),
+            Expr::FnCall(bx, pos) => {
+                Expr::FnCall(Box::new(rewrite_fn_call_expr(&*bx, globals)), *pos)
+            }
+            Expr::Dot(bx, pos) => Expr::Dot(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
+            Expr::Index(bx, pos) => Expr::Index(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
+            Expr::And(bx, pos) => Expr::And(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
+            Expr::Or(bx, pos) => Expr::Or(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
+            _ => expr.clone(),
+        }
+    }
+
+    pub fn rewrite_stmt_block(
+        block: &StmtBlock,
+        globals: &std::collections::HashSet<Identifier>,
+    ) -> StmtBlock {
+        StmtBlock::new(
+            block
+                .iter()
+                .map(|stmt| rewrite_stmt(&stmt, globals))
+                .collect(),
+            block.position(),
+        )
+    }
+
     pub fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) -> Stmt {
         debug!("stmt={:?}", stmt);
-        if let Stmt::Let(expr, ident, _, pos) = stmt {
-            if globals.contains(&ident.name) {
-                let dot_expr = parse_expr(&format!("globals.{}", ident.name));
-                Stmt::Assignment(Box::new((dot_expr, None, expr.clone())), *pos)
-            } else {
-                stmt.clone()
+        match stmt {
+            Stmt::Let(expr, ident, _, pos) => {
+                if globals.contains(&ident.name) {
+                    let dot_expr = parse_expr(&format!("globals.{}", ident.name));
+                    Stmt::Assignment(
+                        Box::new((dot_expr, None, rewrite_expr(expr, globals))),
+                        *pos,
+                    )
+                } else {
+                    stmt.clone()
+                }
             }
-        } else {
-            stmt.clone()
+            Stmt::If(expr, bx, pos) => Stmt::If(
+                rewrite_expr(&expr, globals),
+                Box::new((
+                    rewrite_stmt_block(&bx.0, globals),
+                    rewrite_stmt_block(&bx.1, globals),
+                )),
+                *pos,
+            ),
+            Stmt::Switch(expr, bx, pos) => Stmt::Switch(
+                rewrite_expr(&expr, globals),
+                Box::new((
+                    bx.0.iter()
+                        .map(|(k, v)| {
+                            (
+                                *k,
+                                Box::new((
+                                    v.0.as_ref().map(|expr| rewrite_expr(expr, globals)),
+                                    rewrite_stmt_block(&v.1, globals),
+                                )),
+                            )
+                        })
+                        .collect(),
+                    rewrite_stmt_block(&bx.1, globals),
+                )),
+                *pos,
+            ),
+            Stmt::While(expr, bx, pos) => Stmt::While(
+                rewrite_expr(&expr, globals),
+                Box::new(rewrite_stmt_block(&*bx, globals)),
+                *pos,
+            ),
+            Stmt::Do(bx, expr, b, pos) => Stmt::Do(
+                Box::new(rewrite_stmt_block(&*bx, globals)),
+                rewrite_expr(&expr, globals),
+                *b,
+                *pos,
+            ),
+            Stmt::For(expr, bx, pos) => Stmt::For(
+                rewrite_expr(&expr, globals),
+                Box::new((
+                    bx.0.clone(),
+                    bx.1.clone(),
+                    rewrite_stmt_block(&bx.2, globals),
+                )),
+                *pos,
+            ),
+            Stmt::Assignment(bx, pos) => Stmt::Assignment(
+                Box::new((
+                    rewrite_expr(&bx.0, globals),
+                    bx.1,
+                    rewrite_expr(&bx.2, globals),
+                )),
+                *pos,
+            ),
+            Stmt::FnCall(bx, pos) => {
+                Stmt::FnCall(Box::new(rewrite_fn_call_expr(&*bx, globals)), *pos)
+            }
+            Stmt::Expr(expr) => Stmt::Expr(rewrite_expr(expr, globals)),
+            Stmt::Block(bx, pos) => Stmt::Block(
+                bx.iter().map(|stmt| rewrite_stmt(stmt, globals)).collect(),
+                *pos,
+            ),
+            Stmt::TryCatch(bx, pos) => Stmt::TryCatch(
+                Box::new((
+                    rewrite_stmt_block(&bx.0, globals),
+                    bx.1.clone(),
+                    rewrite_stmt_block(&bx.2, globals),
+                )),
+                *pos,
+            ),
+            Stmt::Return(t, expr_opt, pos) => Stmt::Return(
+                *t,
+                expr_opt.as_ref().map(|expr| rewrite_expr(&expr, globals)),
+                *pos,
+            ),
+            _ => stmt.clone(),
         }
     }
 
@@ -432,17 +592,26 @@ mod test {
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             r#"
-           let x = 1;
-           let y = 2.0;
+           let a = 1;
+           let b = 2.0;
+           let c = b;
            fn foo() {
-               assert_eq(globals.x, 1);
-               assert_eq(globals.y, 2.0);
-               globals.x += 1;
-               globals.y += 1.0;
+               assert_eq(globals.a, 1);
+               assert_eq(globals.b, 2.0);
+               globals.a += 1;
+               globals.b += 1.0;
            }
            foo();
-           assert_eq(globals.x, 2);
-           assert_eq(globals.y, 3.0);
+           assert_eq(a, 2);
+           assert_eq(b, 3.0);
+           assert_eq(c, 2.0);
+           if 1 == 1 {
+               assert_eq(a, 2);
+           }
+           while a < 3 {
+               a += 1;
+           }
+           assert_eq(a, 3);
        "#,
         );
     }
