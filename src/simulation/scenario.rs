@@ -22,6 +22,8 @@ pub struct Line {
 }
 
 pub trait Scenario {
+    fn name(&self) -> String;
+
     fn init(&mut self, sim: &mut Simulation);
 
     fn tick(&mut self, _: &mut Simulation) {}
@@ -69,7 +71,7 @@ pub fn add_walls(sim: &mut Simulation) {
 }
 
 pub fn load(name: &str) -> Box<dyn Scenario> {
-    match name {
+    let scenario: Box<dyn Scenario> = match name {
         "basic" => Box::new(BasicScenario {}),
         "asteroid" => Box::new(AsteroidScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
@@ -77,12 +79,18 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial01" => Box::new(Tutorial01 {}),
         "tutorial02" => Box::new(Tutorial02::new()),
         _ => panic!("Unknown scenario"),
-    }
+    };
+    assert_eq!(scenario.name(), name);
+    scenario
 }
 
 struct BasicScenario {}
 
 impl Scenario for BasicScenario {
+    fn name(&self) -> String {
+        "basic".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation) {
         add_walls(sim);
         ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
@@ -101,6 +109,10 @@ impl Scenario for BasicScenario {
 struct AsteroidScenario {}
 
 impl Scenario for AsteroidScenario {
+    fn name(&self) -> String {
+        "asteroid".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
@@ -132,6 +144,10 @@ impl Scenario for AsteroidScenario {
 struct BulletStressScenario {}
 
 impl Scenario for BulletStressScenario {
+    fn name(&self) -> String {
+        "bullet-stress".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
@@ -154,6 +170,10 @@ impl Scenario for BulletStressScenario {
 struct WelcomeScenario {}
 
 impl Scenario for WelcomeScenario {
+    fn name(&self) -> String {
+        "welcome".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
@@ -185,6 +205,10 @@ impl Scenario for WelcomeScenario {
 struct Tutorial01 {}
 
 impl Scenario for Tutorial01 {
+    fn name(&self) -> String {
+        "tutorial01".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
@@ -234,6 +258,10 @@ impl Tutorial02 {
 }
 
 impl Scenario for Tutorial02 {
+    fn name(&self) -> String {
+        "tutorial02".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
         if let Some(&handle) = sim.ships.iter().next() {

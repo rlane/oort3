@@ -2,7 +2,7 @@ pub mod fps;
 pub mod frame_timer;
 
 use crate::{renderer, simulation};
-use log::{debug, info};
+use log::{debug, error, info};
 use nalgebra::{point, vector, Point2};
 use simulation::scenario;
 
@@ -248,11 +248,34 @@ impl UI {
     }
 
     pub fn upload_code(&mut self, code: &str) {
+        let window = web_sys::window().expect("no global `window` exists");
+        let storage = window
+            .local_storage()
+            .expect("failed to get local storage")
+            .unwrap();
+        if let Err(msg) = storage.set_item(&format!("/code/{}", self.scenario.name()), code) {
+            error!("Failed to save code: {:?}", msg);
+        }
         self.sim.upload_code(code);
     }
 
     pub fn get_initial_code(&self) -> String {
-        self.scenario.initial_code()
+        let window = web_sys::window().expect("no global `window` exists");
+        let storage = window
+            .local_storage()
+            .expect("failed to get local storage")
+            .unwrap();
+        match storage.get_item(&format!("/code/{}", self.scenario.name())) {
+            Ok(Some(code)) => code,
+            Ok(None) => {
+                info!("No saved code, using starter code");
+                self.scenario.initial_code()
+            }
+            Err(msg) => {
+                error!("Failed to load code: {:?}", msg);
+                self.scenario.initial_code()
+            }
+        }
     }
 }
 
