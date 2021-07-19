@@ -35,8 +35,24 @@ mod globals_module {
 
 #[export_module]
 mod vec2_module {
-    pub fn vec2(x: f64, y: f64) -> Vec2 {
+    #[rhai_fn(name = "vec2")]
+    pub fn vec2ff(x: f64, y: f64) -> Vec2 {
         Vec2::new(x, y)
+    }
+
+    #[rhai_fn(name = "vec2")]
+    pub fn vec2ii(x: i64, y: i64) -> Vec2 {
+        Vec2::new(x as f64, y as f64)
+    }
+
+    #[rhai_fn(name = "vec2")]
+    pub fn vec2if(x: i64, y: f64) -> Vec2 {
+        Vec2::new(x as f64, y)
+    }
+
+    #[rhai_fn(name = "vec2")]
+    pub fn vec2fi(x: f64, y: i64) -> Vec2 {
+        Vec2::new(x, y as f64)
     }
 
     #[rhai_fn(name = "+")]
@@ -50,18 +66,33 @@ mod vec2_module {
     }
 
     #[rhai_fn(name = "*")]
-    pub fn scale(obj: &mut Vec2, other: f64) -> Vec2 {
+    pub fn scalef(obj: &mut Vec2, other: f64) -> Vec2 {
         *obj * other
     }
 
     #[rhai_fn(name = "*")]
-    pub fn scale2(obj: &mut f64, other: Vec2) -> Vec2 {
+    pub fn scalei(obj: &mut Vec2, other: i64) -> Vec2 {
+        *obj * other as f64
+    }
+
+    #[rhai_fn(name = "*")]
+    pub fn scale2f(obj: &mut f64, other: Vec2) -> Vec2 {
         *obj * other
     }
 
+    #[rhai_fn(name = "*")]
+    pub fn scale2i(obj: &mut i64, other: Vec2) -> Vec2 {
+        *obj as f64 * other
+    }
+
     #[rhai_fn(name = "/")]
-    pub fn div(obj: &mut Vec2, other: f64) -> Vec2 {
+    pub fn divf(obj: &mut Vec2, other: f64) -> Vec2 {
         *obj / other
+    }
+
+    #[rhai_fn(name = "/")]
+    pub fn divi(obj: &mut Vec2, other: i64) -> Vec2 {
+        *obj / other as f64
     }
 
     #[rhai_fn(get = "x", pure)]
@@ -70,8 +101,13 @@ mod vec2_module {
     }
 
     #[rhai_fn(set = "x")]
-    pub fn set_x(obj: &mut Vec2, value: f64) {
+    pub fn set_xf(obj: &mut Vec2, value: f64) {
         obj.x = value;
+    }
+
+    #[rhai_fn(set = "x")]
+    pub fn set_xi(obj: &mut Vec2, value: i64) {
+        obj.x = value as f64;
     }
 
     #[rhai_fn(get = "y", pure)]
@@ -80,8 +116,13 @@ mod vec2_module {
     }
 
     #[rhai_fn(set = "y")]
-    pub fn set_y(obj: &mut Vec2, value: f64) {
+    pub fn set_yf(obj: &mut Vec2, value: f64) {
         obj.y = value;
+    }
+
+    #[rhai_fn(set = "y")]
+    pub fn set_yi(obj: &mut Vec2, value: i64) {
+        obj.y = value as f64;
     }
 
     #[rhai_fn(name = "magnitude")]
@@ -627,6 +668,22 @@ mod test {
                a += 1;
            }
            assert_eq(a, 4);
+       "#,
+        );
+    }
+
+    #[test]
+    fn test_mixed_integer_float() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            r#"
+assert_eq(vec2(1, 2), vec2(1.0, 2.0));
+assert_eq(vec2(1.0, 2), vec2(1, 2.0));
+assert_eq(vec2(1, 1) * 2.0, vec2(1, 1) * 2);
+assert_eq(2.0 * vec2(1, 1), 2 * vec2(1, 1));
+assert_eq(vec2(1, 1) / 2.0, vec2(1, 1) / 2);
        "#,
         );
     }
