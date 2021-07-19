@@ -20,13 +20,30 @@ pub enum ShipClass {
     Asteroid,
 }
 
+pub struct Weapon {
+    reload_time: f64,
+    reload_time_remaining: f64,
+}
+
 pub struct ShipData {
     pub class: ShipClass,
+    pub weapons: Vec<Weapon>,
 }
 
 pub fn fighter() -> ShipData {
     ShipData {
         class: ShipClass::Fighter,
+        weapons: vec![Weapon {
+            reload_time: 0.2,
+            reload_time_remaining: 0.0,
+        }],
+    }
+}
+
+pub fn asteroid() -> ShipData {
+    ShipData {
+        class: ShipClass::Asteroid,
+        weapons: vec![],
     }
 }
 
@@ -164,7 +181,16 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         self.body().apply_torque(torque, true);
     }
 
-    pub fn fire_weapon(&mut self, _index: i64) {
+    pub fn fire_weapon(&mut self, index: i64) {
+        let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+        {
+            let weapon = &mut ship_data.weapons[index as usize];
+            if weapon.reload_time_remaining > 0.0 {
+                return;
+            }
+            weapon.reload_time_remaining += weapon.reload_time;
+        }
+
         let speed = 1000.0;
         let offset = vector![20.0, 0.0];
         let body = self.body();
@@ -182,5 +208,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             &mut self.simulation.colliders,
             &mut self.simulation.joints,
         );
+    }
+
+    pub fn tick(&mut self) {
+        let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+        for weapon in ship_data.weapons.iter_mut() {
+            weapon.reload_time_remaining =
+                (weapon.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
+        }
     }
 }

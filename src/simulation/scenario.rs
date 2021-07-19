@@ -1,5 +1,4 @@
-use super::ship::ShipClass::*;
-use super::ship::{fighter, ShipData};
+use super::ship::{asteroid, fighter};
 use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
@@ -129,7 +128,7 @@ impl Scenario for AsteroidScenario {
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                ShipData { class: Asteroid },
+                asteroid(),
             );
         }
     }
@@ -190,7 +189,7 @@ impl Scenario for WelcomeScenario {
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                ShipData { class: Asteroid },
+                asteroid(),
             );
         }
     }
@@ -213,7 +212,7 @@ impl Scenario for Tutorial01 {
 
     fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
-        ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, ShipData { class: Asteroid });
+        ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid());
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -491,15 +490,7 @@ impl Scenario for Tutorial04 {
             let c = sim.ship_controllers.get_mut(&handle);
             c.unwrap().write_target(self.target.coords);
         }
-        ship::create(
-            sim,
-            self.target.x,
-            self.target.y,
-            0.0,
-            0.0,
-            0.0,
-            ShipData { class: Asteroid },
-        );
+        ship::create(sim, self.target.x, self.target.y, 0.0, 0.0, 0.0, asteroid());
     }
 
     fn status(&self, sim: &Simulation) -> Status {

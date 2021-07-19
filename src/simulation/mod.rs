@@ -136,7 +136,9 @@ impl Simulation {
 
         while self.intersection_recv.try_recv().is_ok() {}
 
-        for &handle in self.ships.iter() {
+        let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
+        for handle in handle_snapshot {
+            self.ship_mut(handle).tick();
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
                 ship_controller.tick();
             }
