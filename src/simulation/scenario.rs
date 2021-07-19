@@ -78,6 +78,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "welcome" => Box::new(WelcomeScenario {}),
         "tutorial01" => Box::new(Tutorial01 {}),
         "tutorial02" => Box::new(Tutorial02::new()),
+        "tutorial03" => Box::new(Tutorial03::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -348,6 +349,117 @@ fn tick() {
     }
 }
 "
+        .to_string()
+    }
+}
+
+struct Tutorial03 {
+    on_target_ticks: i32,
+    target: Point2<f64>,
+}
+
+impl Tutorial03 {
+    fn new() -> Self {
+        let mut rng = rand::thread_rng();
+        let size = 500.0;
+        let range = -size..size;
+        Self {
+            on_target_ticks: 0,
+            target: point![rng.gen_range(range.clone()), rng.gen_range(range)],
+        }
+    }
+}
+
+impl Scenario for Tutorial03 {
+    fn name(&self) -> String {
+        "tutorial03".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation) {
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        if let Some(&handle) = sim.ships.iter().next() {
+            let c = sim.ship_controllers.get_mut(&handle);
+            c.unwrap().write_target(self.target.coords);
+        }
+    }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        if let Some(&handle) = sim.ships.iter().next() {
+            let ship = sim.ship(handle);
+            if (ship.position().vector - self.target.coords).magnitude() < 50.0
+                && ship.velocity().magnitude() < 1.0
+            {
+                self.on_target_ticks += 1;
+            } else {
+                self.on_target_ticks = 0;
+            }
+        }
+    }
+
+    fn status(&self, _: &Simulation) -> Status {
+        if self.on_target_ticks > 120 {
+            Status::Finished
+        } else {
+            Status::Running
+        }
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        let mut lines = vec![];
+        let center: Point2<f64> = self.target;
+        let n = 20;
+        let r = 50.0;
+        let on_target_frac = self.on_target_ticks as f64 / 120.0;
+        for i in 0..n {
+            let frac = (i as f64) / (n as f64);
+            let angle_a = std::f64::consts::TAU * frac;
+            let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
+            let color = if on_target_frac > frac {
+                vector![0.0, 1.0, 0.0, 1.0]
+            } else {
+                vector![1.0, 0.0, 0.0, 1.0]
+            };
+            lines.push(Line {
+                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
+                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+                color,
+            });
+        }
+        lines
+    }
+
+    fn initial_code(&self) -> String {
+        r#"
+// Tutorial 03
+// Fly to the target circle and stop. The target is in a random
+// location given by the "target" variable.
+
+fn tick() {
+    api.accelerate(0.1 * (target - api.position()));
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn solution(&self) -> String {
+        r#"
+// Tutorial 03
+// Fly to the target circle and stop. The target is in a random
+// location given by the "target" variable.
+
+fn tick() {
+    let dp = target - api.position();
+    if dp.magnitude() < 50.0 {
+        api.accelerate(api.velocity() * -10.0);
+    } else {
+        if api.velocity().magnitude() < 100.0 {
+            api.accelerate(dp);
+        }
+    }
+}
+"#
+        .trim()
         .to_string()
     }
 }
