@@ -100,6 +100,16 @@ pub struct ShipAccessor<'a> {
     pub(crate) handle: ShipHandle,
 }
 
+fn normalize_heading(mut h: f64) -> f64 {
+    while h < 0.0 {
+        h += std::f64::consts::TAU;
+    }
+    while h > std::f64::consts::TAU {
+        h -= std::f64::consts::TAU;
+    }
+    h
+}
+
 impl<'a> ShipAccessor<'a> {
     pub fn body(&self) -> &'a RigidBody {
         self.simulation
@@ -117,7 +127,7 @@ impl<'a> ShipAccessor<'a> {
     }
 
     pub fn heading(&self) -> Real {
-        self.body().rotation().angle()
+        normalize_heading(self.body().rotation().angle())
     }
 
     pub fn angular_velocity(&self) -> Real {
