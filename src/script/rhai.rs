@@ -183,12 +183,12 @@ mod vec2_module {
 
     #[rhai_fn(name = "to_string")]
     pub fn to_string(obj: &mut Vec2) -> String {
-        format!("({}, {})", obj.x, obj.y)
+        format!("({:.2}, {:.2})", obj.x, obj.y)
     }
 
     #[rhai_fn(name = "to_debug")]
     pub fn to_debug(obj: &mut Vec2) -> String {
-        to_string(obj)
+        format!("({}, {})", obj.x, obj.y)
     }
 }
 
