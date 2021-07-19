@@ -578,11 +578,11 @@ mod test {
             "
         let v1 = vec2(1.0, 2.0);
         let v2 = vec2(3.0, 4.0);
-        assert_eq((globals.v1 + globals.v2).x, 4.0);
-        assert_eq(globals.v1 + globals.v2, vec2(4.0, 6.0));
-        assert_eq(globals.v2.magnitude(), 5.0);
-        assert_eq(globals.v1.distance(globals.v2), 2.8284271247461903);
-        assert_eq(globals.v1.dot(globals.v2), 11.0);
+        assert_eq((v1 + v2).x, 4.0);
+        assert_eq(v1 + v2, vec2(4.0, 6.0));
+        assert_eq(v2.magnitude(), 5.0);
+        assert_eq(v1.distance(v2), 2.8284271247461903);
+        assert_eq(v1.dot(v2), 11.0);
         assert_eq(-v1, vec2(-1, -2));
         ",
         );
