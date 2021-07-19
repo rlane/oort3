@@ -42,6 +42,7 @@ features = [
   'KeyboardEvent',
   'console',
   'Storage',
+  'WheelEvent',
 ]
 
 [dev-dependencies]

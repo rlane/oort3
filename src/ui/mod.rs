@@ -249,6 +249,11 @@ impl UI {
         }
     }
 
+    pub fn on_wheel_event(&mut self, e: web_sys::WheelEvent) {
+        let dy = e.delta_y();
+        self.zoom *= (1.0 - dy.signum() * 0.01).powf(dy.abs() / 30.0) as f32;
+    }
+
     pub fn upload_code(&mut self, code: &str) {
         let window = web_sys::window().expect("no global `window` exists");
         let storage = window

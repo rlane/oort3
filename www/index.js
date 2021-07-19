@@ -15,6 +15,7 @@ function initialize(m) {
 
   canvas.addEventListener('keydown', m.on_key_event);
   canvas.addEventListener('keyup', m.on_key_event);
+  canvas.addEventListener('wheel', m.on_wheel_event);
 
   function render() {
     canvas.width = canvas.clientWidth

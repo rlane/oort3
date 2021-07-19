@@ -36,6 +36,14 @@ pub fn on_key_event(e: web_sys::KeyboardEvent) {
 }
 
 #[wasm_bindgen]
+pub fn on_wheel_event(e: web_sys::WheelEvent) {
+    let mut ui = OORT_UI.lock().unwrap();
+    if ui.is_some() {
+        ui.as_mut().unwrap().on_wheel_event(e);
+    }
+}
+
+#[wasm_bindgen]
 pub fn upload_code(code: &str) {
     let mut ui = OORT_UI.lock().unwrap();
     if ui.is_some() {
