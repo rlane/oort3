@@ -12,7 +12,11 @@ impl HasIndex for BulletHandle {
     }
 }
 
-pub fn create(sim: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64) {
+pub struct BulletData {
+    pub damage: f64,
+}
+
+pub fn create(sim: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, data: BulletData) {
     let rigid_body = RigidBodyBuilder::new_dynamic()
         .translation(vector![x, y])
         .linvel(vector![vx, vy])
@@ -29,7 +33,9 @@ pub fn create(sim: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64) {
         .build();
     sim.colliders
         .insert_with_parent(collider, body_handle, &mut sim.bodies);
-    sim.bullets.insert(BulletHandle(body_handle.0));
+    let handle = BulletHandle(body_handle.0);
+    sim.bullet_data.insert(handle, data);
+    sim.bullets.insert(handle);
 }
 
 pub struct BulletAccessor<'a> {
@@ -43,6 +49,10 @@ impl<'a> BulletAccessor<'a> {
             .bodies
             .get(RigidBodyHandle(self.handle.index()))
             .unwrap()
+    }
+
+    pub fn data(&self) -> &BulletData {
+        self.simulation.bullet_data.get(&self.handle).unwrap()
     }
 }
 

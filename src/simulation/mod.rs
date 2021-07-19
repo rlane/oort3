@@ -3,7 +3,7 @@ pub mod index_set;
 pub mod scenario;
 pub mod ship;
 
-use self::bullet::{BulletAccessor, BulletAccessorMut, BulletHandle};
+use self::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
 use self::index_set::IndexSet;
 use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::script::ShipController;
@@ -22,6 +22,7 @@ pub struct Simulation {
     pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
     pub(crate) ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
     pub bullets: IndexSet<BulletHandle>,
+    pub(crate) bullet_data: HashMap<BulletHandle, BulletData>,
     pub(crate) bodies: RigidBodySet,
     pub(crate) colliders: ColliderSet,
     pub(crate) joints: JointSet,
@@ -46,6 +47,7 @@ impl Simulation {
             ship_data: HashMap::new(),
             ship_controllers: HashMap::new(),
             bullets: IndexSet::new(),
+            bullet_data: HashMap::new(),
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
             joints: JointSet::new(),
@@ -115,7 +117,15 @@ impl Simulation {
             if let ContactEvent::Started(h1, h2) = event {
                 let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
                 let handle_hit = |sim: &mut Simulation, ship, bullet| {
-                    sim.ship_mut(ship).explode();
+                    let damage = sim.bullet(bullet).data().damage;
+                    let ship_destroyed = {
+                        let ship_data = sim.ship_data.get_mut(&ship).unwrap();
+                        ship_data.health -= damage;
+                        ship_data.health <= 0.0
+                    };
+                    if ship_destroyed {
+                        sim.ship_mut(ship).explode();
+                    }
                     sim.bullet_mut(bullet).destroy();
                 };
                 if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {

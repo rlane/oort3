@@ -3,6 +3,7 @@ use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
 };
+use bullet::BulletData;
 use nalgebra::{Point2, Translation2, Vector4};
 use rand::seq::SliceRandom;
 use rand::Rng;
@@ -164,6 +165,7 @@ impl Scenario for BulletStressScenario {
                 rng.gen_range(-bound..bound),
                 rng.gen_range(-s..s),
                 rng.gen_range(-s..s),
+                BulletData { damage: 10.0 },
             );
         }
     }

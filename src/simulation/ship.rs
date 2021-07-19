@@ -2,6 +2,7 @@ use super::index_set::{HasIndex, Index};
 use crate::script;
 use crate::simulation;
 use crate::simulation::{bullet, Simulation};
+use bullet::BulletData;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 
@@ -21,13 +22,15 @@ pub enum ShipClass {
 }
 
 pub struct Weapon {
-    reload_time: f64,
-    reload_time_remaining: f64,
+    pub reload_time: f64,
+    pub reload_time_remaining: f64,
+    pub damage: f64,
 }
 
 pub struct ShipData {
     pub class: ShipClass,
     pub weapons: Vec<Weapon>,
+    pub health: f64,
 }
 
 pub fn fighter() -> ShipData {
@@ -36,7 +39,9 @@ pub fn fighter() -> ShipData {
         weapons: vec![Weapon {
             reload_time: 0.2,
             reload_time_remaining: 0.0,
+            damage: 20.0,
         }],
+        health: 100.0,
     }
 }
 
@@ -44,6 +49,7 @@ pub fn asteroid(variant: i32) -> ShipData {
     ShipData {
         class: ShipClass::Asteroid { variant },
         weapons: vec![],
+        health: 200.0,
     }
 }
 
@@ -183,8 +189,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
     pub fn fire_weapon(&mut self, index: i64) {
         let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+        let damage;
         {
             let weapon = &mut ship_data.weapons[index as usize];
+            damage = weapon.damage;
             if weapon.reload_time_remaining > 0.0 {
                 return;
             }
@@ -197,7 +205,14 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let rot = body.position().rotation;
         let p = body.position().translation.vector + rot.transform_vector(&offset);
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
-        bullet::create(&mut self.simulation, p.x, p.y, v.x, v.y);
+        bullet::create(
+            &mut self.simulation,
+            p.x,
+            p.y,
+            v.x,
+            v.y,
+            BulletData { damage },
+        );
     }
 
     pub fn explode(&mut self) {

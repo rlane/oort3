@@ -13,6 +13,8 @@ fn test_hit() {
     assert!(sim.ships.contains(ship0));
     assert!(sim.ships.contains(ship1));
 
+    let initial_health = sim.ship(ship1).data().health;
+
     sim.ship_mut(ship0).fire_weapon(0);
     assert!(!sim.bullets.iter().len() > 0);
 
@@ -21,6 +23,30 @@ fn test_hit() {
     }
 
     assert!(sim.bullets.iter().len() == 0);
+    assert!(sim.ships.contains(ship0));
+    assert!(sim.ships.contains(ship1));
+
+    assert_ne!(sim.ship(ship1).data().health, initial_health);
+}
+
+#[test]
+fn test_destroyed() {
+    let mut sim = simulation::Simulation::new();
+
+    let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
+    let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter());
+
+    assert!(sim.ships.contains(ship0));
+    assert!(sim.ships.contains(ship1));
+
+    for _ in 0..1000 {
+        sim.ship_mut(ship0).fire_weapon(0);
+        sim.step();
+        if !sim.ships.contains(ship1) {
+            break;
+        }
+    }
+
     assert!(sim.ships.contains(ship0));
     assert!(!sim.ships.contains(ship1));
 }
