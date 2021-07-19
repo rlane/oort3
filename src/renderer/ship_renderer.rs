@@ -93,27 +93,22 @@ void main() {
         );
 
         let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipHandle>>::new();
-        ships_by_class.insert(ShipClass::Fighter, vec![]);
-        ships_by_class.insert(ShipClass::Asteroid, vec![]);
 
         for &handle in sim.ships.iter() {
             let ship = sim.ship(handle);
-            ships_by_class
-                .get_mut(&ship.data().class)
-                .unwrap()
-                .push(handle);
+            let class = &ship.data().class;
+            if !ships_by_class.contains_key(class) {
+                ships_by_class.insert(*class, vec![]);
+            }
+            ships_by_class.get_mut(class).unwrap().push(handle);
         }
 
         for (class, handles) in ships_by_class.iter() {
-            if handles.is_empty() {
-                continue;
-            }
-
             // vertex
 
             let model_vertices = match class {
                 ShipClass::Fighter => model::ship(),
-                ShipClass::Asteroid => model::asteroid(),
+                ShipClass::Asteroid { variant } => model::asteroid(*variant),
             };
 
             let num_vertices = model_vertices.len();

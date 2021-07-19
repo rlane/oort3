@@ -14,10 +14,10 @@ impl HasIndex for ShipHandle {
     }
 }
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq)]
 pub enum ShipClass {
     Fighter,
-    Asteroid,
+    Asteroid { variant: i32 },
 }
 
 pub struct Weapon {
@@ -40,9 +40,9 @@ pub fn fighter() -> ShipData {
     }
 }
 
-pub fn asteroid() -> ShipData {
+pub fn asteroid(variant: i32) -> ShipData {
     ShipData {
-        class: ShipClass::Asteroid,
+        class: ShipClass::Asteroid { variant },
         weapons: vec![],
     }
 }
@@ -87,8 +87,8 @@ pub fn create(
             sim.ship_controllers
                 .insert(handle, script::new_ship_controller(handle, sim_ptr));
         }
-        ShipClass::Asteroid => {
-            let vertices = crate::renderer::model::asteroid()
+        ShipClass::Asteroid { variant } => {
+            let vertices = crate::renderer::model::asteroid(variant)
                 .iter()
                 .map(|&v| point![v.x as f64, v.y as f64])
                 .collect::<Vec<_>>();

@@ -4,6 +4,7 @@ use super::{
     WORLD_SIZE,
 };
 use nalgebra::{Point2, Translation2, Vector4};
+use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use Status::Running;
@@ -128,7 +129,7 @@ impl Scenario for AsteroidScenario {
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                asteroid(),
+                asteroid(rng.gen_range(0..30)),
             );
         }
     }
@@ -179,7 +180,7 @@ impl Scenario for WelcomeScenario {
         let mut rng = rand::thread_rng();
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
-
+        let asteroid_variants = [1, 6, 14];
         let bound = (1000.0 / 2.0) * 0.9;
         for _ in 0..100 {
             ship::create(
@@ -189,7 +190,7 @@ impl Scenario for WelcomeScenario {
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                asteroid(),
+                asteroid(*asteroid_variants.choose(&mut rng).unwrap()),
             );
         }
     }
@@ -212,7 +213,7 @@ impl Scenario for Tutorial01 {
 
     fn init(&mut self, sim: &mut Simulation) {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
-        ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid());
+        ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid(1));
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -490,7 +491,15 @@ impl Scenario for Tutorial04 {
             let c = sim.ship_controllers.get_mut(&handle);
             c.unwrap().write_target(self.target.coords);
         }
-        ship::create(sim, self.target.x, self.target.y, 0.0, 0.0, 0.0, asteroid());
+        ship::create(
+            sim,
+            self.target.x,
+            self.target.y,
+            0.0,
+            0.0,
+            0.0,
+            asteroid(1),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
