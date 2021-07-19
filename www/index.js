@@ -23,6 +23,7 @@ function initialize(m) {
     window.requestAnimationFrame(render);
   }
   render();
+  canvas.style.visibility = 'visible';
 }
 
 rust.then((m) => initialize(m)).catch(console.error);

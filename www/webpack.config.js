@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = {
     entry: './index.js',
@@ -13,7 +14,7 @@ module.exports = {
     module: {
         rules: [{
             test: /\.css$/,
-            use: ['style-loader', 'css-loader']
+            use: [MiniCssExtractPlugin.loader, 'css-loader']
         }, {
             test: /\.ttf$/,
             use: ['file-loader']
@@ -28,7 +29,8 @@ module.exports = {
             extraArgs: '--profiling',
             forceMode: "production",
         }),
-        new MonacoWebpackPlugin()
+        new MonacoWebpackPlugin(),
+        new MiniCssExtractPlugin()
     ],
     experiments: {
         syncWebAssembly: true,

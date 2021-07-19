@@ -1,6 +1,7 @@
 html, body {
   margin: 0px;
   padding: 0px;
+  background: black;
 }
 
 #editor {
@@ -29,6 +30,7 @@ html, body {
   position: absolute;
   background: black;
   z-index: 0;
+  visibility: hidden;
 }
 
 #status {
