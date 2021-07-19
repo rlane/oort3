@@ -349,11 +349,10 @@ impl ShipController for RhaiShipController {
 
 #[allow(deprecated)]
 mod ast_rewrite {
-    use log::debug;
     use rhai::plugin::Module;
     use rhai::{
-        BinaryExpr, Engine, Expr, FnCallExpr, Identifier, ScriptFnDef, StaticVec, Stmt, StmtBlock,
-        AST,
+        BinaryExpr, Engine, Expr, FnCallExpr, Identifier, Position, ScriptFnDef, StaticVec, Stmt,
+        StmtBlock, AST,
     };
 
     pub fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
@@ -372,6 +371,25 @@ mod ast_rewrite {
             expr.clone()
         } else {
             panic!("Failed to parse expression")
+        }
+    }
+
+    pub fn global_variable(name: &str, pos: Position) -> Expr {
+        if let Expr::Dot(bx, _) = parse_expr(&format!("globals.{}", name)) {
+            let BinaryExpr { lhs, rhs } = &*bx;
+            if let Expr::Variable(_, _, bx) = lhs {
+                Expr::Dot(
+                    Box::new(BinaryExpr {
+                        lhs: Expr::Variable(None, pos, Box::new((None, None, bx.2.clone()))),
+                        rhs: rhs.clone(),
+                    }),
+                    pos,
+                )
+            } else {
+                panic!("Unexpected Expr")
+            }
+        } else {
+            panic!("Unexpected Expr")
         }
     }
 
@@ -411,10 +429,10 @@ mod ast_rewrite {
 
     pub fn rewrite_expr(expr: &Expr, globals: &std::collections::HashSet<Identifier>) -> Expr {
         match expr {
-            Expr::Variable(_, _, bx) => {
+            Expr::Variable(_, pos, bx) => {
                 let name = &bx.2;
                 if globals.contains(name) {
-                    parse_expr(&format!("globals.{}", name))
+                    global_variable(name, *pos)
                 } else {
                     expr.clone()
                 }
@@ -439,6 +457,7 @@ mod ast_rewrite {
             Expr::Index(bx, pos) => Expr::Index(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
             Expr::And(bx, pos) => Expr::And(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
             Expr::Or(bx, pos) => Expr::Or(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
+            Expr::Stmt(bx) => Expr::Stmt(Box::new(rewrite_stmt_block(bx, globals))),
             _ => expr.clone(),
         }
     }
@@ -457,13 +476,15 @@ mod ast_rewrite {
     }
 
     pub fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) -> Stmt {
-        debug!("stmt={:?}", stmt);
         match stmt {
             Stmt::Let(expr, ident, _, pos) => {
                 if globals.contains(&ident.name) {
-                    let dot_expr = parse_expr(&format!("globals.{}", ident.name));
                     Stmt::Assignment(
-                        Box::new((dot_expr, None, rewrite_expr(expr, globals))),
+                        Box::new((
+                            global_variable(&ident.name, *pos),
+                            None,
+                            rewrite_expr(expr, globals),
+                        )),
                         *pos,
                     )
                 } else {
@@ -551,7 +572,6 @@ mod ast_rewrite {
 
     pub fn rewrite_ast(ast: AST) -> AST {
         let globals = find_globals(&ast);
-        debug!("globals={:?}", globals);
         let stmts: Vec<Stmt> = ast
             .statements()
             .iter()
@@ -679,6 +699,7 @@ mod test {
                a += 1;
            }
            assert_eq(a, 4);
+           print(`a=${a}`);
        "#,
         );
     }
