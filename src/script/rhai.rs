@@ -258,6 +258,7 @@ impl RhaiShipController {
     pub fn new(handle: ShipHandle, sim: *mut Simulation) -> Self {
         let mut engine = Engine::new();
         engine.set_max_expr_depths(64, 32);
+        engine.set_max_operations(1000);
 
         engine.on_print(|x| info!("Script: {}", x));
         engine.on_debug(|x, src, pos| info!("Script ({}:{:?}): {}", src.unwrap_or(""), pos, x));
@@ -716,6 +717,23 @@ assert_eq(vec2(1.0, 2), vec2(1, 2.0));
 assert_eq(vec2(1, 1) * 2.0, vec2(1, 1) * 2);
 assert_eq(2.0 * vec2(1, 1), 2 * vec2(1, 1));
 assert_eq(vec2(1, 1) / 2.0, vec2(1, 1) / 2);
+       "#,
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "ErrorTooManyOperations")]
+    fn test_infinite_loop() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            r#"
+let i = 0;
+while true {
+    print(`i=${i}`);
+    i += 1;
+}
        "#,
         );
     }
