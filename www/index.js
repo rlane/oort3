@@ -71,3 +71,15 @@ scenario_select.onchange = function(e) {
   rust_module.start(e.target.value);
   editor.setValue(rust_module.get_initial_code());
 }
+
+var doc_link = document.getElementById('doc_link');
+var doc_div = document.getElementById('doc');
+doc_link.onclick = (e) => {
+  doc_div.style.visibility = 'visible';
+  document.onkeydown = (e) => {
+    if (e.key == 'Escape') {
+      doc_div.style.visibility = 'hidden';
+      document.onkeydown = null;
+    }
+  }
+}

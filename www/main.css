@@ -2,6 +2,8 @@ html, body {
   margin: 0px;
   padding: 0px;
   background: black;
+  color: #d4d4d4;
+  font-family: 'Roboto', sans-serif;
 }
 
 #editor {
@@ -53,10 +55,6 @@ html, body {
   position: absolute;
   overflow: hidden;
 
-  font-size: 18px;
-  font-family: 'Share Tech Mono', monospace;
-  font-feature-settings: "liga" 0, "calt" 0;
-
   background-color: #1e1e1e;
   color: #d4d4d4;
   border-bottom: 1px solid rgba(191, 191, 191, .4);;
@@ -68,9 +66,45 @@ html, body {
 
 .title {
   font-size: 24px;
+  font-family: 'Share Tech Mono', monospace;
+  font-feature-settings: "liga" 0, "calt" 0;
   float: left;
 }
 
 .right {
   float: right;
+}
+
+#doc {
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
+  padding: 20px;
+
+  visibility: hidden;
+  overflow: auto;
+  backdrop-filter: blur(10px);
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(191, 191, 191, .4);;
+}
+
+code {
+  font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
+  color: #d4ffd4;
+}
+
+a:link {
+  color: #d4d4ff;
+}
+
+a:visited {
+  color: #d4d4ff;
+}
+
+a:hover {
+  color: #d4ffff;
+  text-decoration: underline;
+  cursor: pointer;
 }
