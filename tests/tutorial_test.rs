@@ -32,3 +32,8 @@ fn test_tutorial02() {
 fn test_tutorial03() {
     check_solution("tutorial03");
 }
+
+#[test]
+fn test_tutorial04() {
+    check_solution("tutorial04");
+}

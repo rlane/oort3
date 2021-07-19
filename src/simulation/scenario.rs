@@ -79,6 +79,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial01" => Box::new(Tutorial01 {}),
         "tutorial02" => Box::new(Tutorial02::new()),
         "tutorial03" => Box::new(Tutorial03::new()),
+        "tutorial04" => Box::new(Tutorial04::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -457,6 +458,116 @@ fn tick() {
             api.accelerate(dp);
         }
     }
+}
+"#
+        .trim()
+        .to_string()
+    }
+}
+
+struct Tutorial04 {
+    target: Point2<f64>,
+}
+
+impl Tutorial04 {
+    fn new() -> Self {
+        let mut rng = rand::thread_rng();
+        let size = 500.0;
+        let range = -size..size;
+        Self {
+            target: point![rng.gen_range(range.clone()), rng.gen_range(range)],
+        }
+    }
+}
+
+impl Scenario for Tutorial04 {
+    fn name(&self) -> String {
+        "tutorial04".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation) {
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        if let Some(&handle) = sim.ships.iter().next() {
+            let c = sim.ship_controllers.get_mut(&handle);
+            c.unwrap().write_target(self.target.coords);
+        }
+        ship::create(
+            sim,
+            self.target.x,
+            self.target.y,
+            0.0,
+            0.0,
+            0.0,
+            ShipData { class: Asteroid },
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        if sim.ships.iter().len() > 1 {
+            Running
+        } else {
+            Status::Finished
+        }
+    }
+
+    fn initial_code(&self) -> String {
+        r#"
+// Tutorial 04
+// Destroy the asteroid. The target is in a random
+// location given by the "target" variable.
+
+fn tick() {
+    api.accelerate(0.1 * (target - api.position()));
+    api.fire_weapon(0);
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn solution(&self) -> String {
+        r#"
+// Tutorial 04
+// Destroy the asteroid. The target is in a random
+// location given by the "target" variable.
+
+fn turn(speed) {
+    let acc = 10.0;
+    let margin = 0.01;
+    let av = api.angular_velocity();
+    if av < speed - margin {
+        api.torque(acc);
+    } else if av > speed + margin {
+        api.torque(-acc);
+    }
+}
+
+fn normalize_heading(h) {
+    while h < 0.0 {
+        h += 2 * PI();
+    }
+    while h > 2 * PI() {
+        h -= 2 * PI();
+    }
+    h
+}
+
+fn turn_to(target_heading) {
+    let speed = 1.0;
+    let margin = 0.1;
+    let dh = (api.heading() - target_heading) % (2 * PI());
+    if dh - margin > 0.0 {
+        turn(-speed);
+    } else if dh + margin < 0.0 {
+        turn(speed);
+    } else {
+         turn(-dh);
+    }
+}
+
+fn tick() {
+    turn_to((target - api.position()).angle());
+    api.fire_weapon(0);
 }
 "#
         .trim()
