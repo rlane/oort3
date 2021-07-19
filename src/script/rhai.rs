@@ -65,6 +65,11 @@ mod vec2_module {
         *obj - other
     }
 
+    #[rhai_fn(name = "-")]
+    pub fn negate(obj: &mut Vec2) -> Vec2 {
+        -*obj
+    }
+
     #[rhai_fn(name = "*")]
     pub fn scalef(obj: &mut Vec2, other: f64) -> Vec2 {
         *obj * other
@@ -578,6 +583,7 @@ mod test {
         assert_eq(globals.v2.magnitude(), 5.0);
         assert_eq(globals.v1.distance(globals.v2), 2.8284271247461903);
         assert_eq(globals.v1.dot(globals.v2), 11.0);
+        assert_eq(-v1, vec2(-1, -2));
         ",
         );
     }
