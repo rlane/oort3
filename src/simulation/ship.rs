@@ -148,7 +148,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         body.apply_force(rotation_matrix * acceleration * body.mass(), true);
     }
 
-    pub fn thrust_angular(&mut self, torque: f64) {
+    pub fn torque(&mut self, acceleration: f64) {
+        let inertia_sqrt = 1.0 / self.body().mass_properties().inv_principal_inertia_sqrt;
+        let torque = acceleration * inertia_sqrt * inertia_sqrt;
         self.body().apply_torque(torque, true);
     }
 

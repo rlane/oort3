@@ -136,32 +136,34 @@ impl UI {
 
         if !self.paused {
             if let Some(&ship_handle) = self.sim.ships.iter().next() {
-                let acc = 100.0;
-                let angular_force = 1e4;
+                let linear_acc = 100.0;
+                let angular_acc = 1.0;
                 if self.keys_down.contains("ArrowUp") {
-                    self.sim.ship_mut(ship_handle).accelerate(vector![acc, 0.0]);
+                    self.sim
+                        .ship_mut(ship_handle)
+                        .accelerate(vector![linear_acc, 0.0]);
                 }
                 if self.keys_down.contains("ArrowDown") {
                     self.sim
                         .ship_mut(ship_handle)
-                        .accelerate(vector![-acc, 0.0]);
+                        .accelerate(vector![-linear_acc, 0.0]);
                 }
                 if self.keys_down.contains("ArrowLeft") {
                     if self.keys_down.contains("Shift") {
-                        self.sim.ship_mut(ship_handle).accelerate(vector![0.0, acc]);
+                        self.sim
+                            .ship_mut(ship_handle)
+                            .accelerate(vector![0.0, linear_acc]);
                     } else {
-                        self.sim.ship_mut(ship_handle).thrust_angular(angular_force);
+                        self.sim.ship_mut(ship_handle).torque(angular_acc);
                     }
                 }
                 if self.keys_down.contains("ArrowRight") {
                     if self.keys_down.contains("Shift") {
                         self.sim
                             .ship_mut(ship_handle)
-                            .accelerate(vector![0.0, -acc]);
+                            .accelerate(vector![0.0, -linear_acc]);
                     } else {
-                        self.sim
-                            .ship_mut(ship_handle)
-                            .thrust_angular(-angular_force);
+                        self.sim.ship_mut(ship_handle).torque(-angular_acc);
                     }
                 }
                 if self.keys_down.contains("f") {
