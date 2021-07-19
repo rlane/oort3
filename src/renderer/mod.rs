@@ -11,7 +11,7 @@ use crate::simulation::Simulation;
 use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
-use nalgebra::{point, Matrix4, Point2};
+use nalgebra::{point, vector, Matrix4, Point2};
 use ship_renderer::ShipRenderer;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -60,6 +60,18 @@ impl Renderer {
         let znear = -1.0;
         let zfar = 1.0;
         self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
+    }
+
+    pub fn unproject(&self, x: i32, y: i32) -> Point2<f64> {
+        let inverse_matrix = self.projection_matrix.try_inverse().unwrap();
+        let device_coords = vector![
+            x as f32 / self.context.drawing_buffer_width() as f32,
+            -y as f32 / self.context.drawing_buffer_height() as f32,
+            0.0
+        ] * 2.0
+            - vector![1.0, -1.0, 0.0];
+        let coords = inverse_matrix.transform_vector(&device_coords);
+        point![coords.x as f64, coords.y as f64]
     }
 
     pub fn render(
