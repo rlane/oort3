@@ -299,7 +299,11 @@ impl ShipController for RhaiShipController {
 #[allow(deprecated)]
 mod ast_rewrite {
     use log::debug;
-    use rhai::{BinaryExpr, Engine, Expr, FnCallExpr, Identifier, StaticVec, Stmt, StmtBlock, AST};
+    use rhai::plugin::Module;
+    use rhai::{
+        BinaryExpr, Engine, Expr, FnCallExpr, Identifier, ScriptFnDef, StaticVec, Stmt, StmtBlock,
+        AST,
+    };
 
     pub fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
         let mut globals = std::collections::HashSet::new();
@@ -502,7 +506,13 @@ mod ast_rewrite {
             .iter()
             .map(|stmt| rewrite_stmt(stmt, &globals))
             .collect();
-        let module = ast.shared_lib();
+        let mut module = Module::new();
+        for (_, _, _, _, def) in ast.lib().iter_script_fn_info() {
+            module.set_script_fn(ScriptFnDef {
+                body: rewrite_stmt_block(&def.body, &globals),
+                ..(**def).clone()
+            });
+        }
         AST::new(stmts, module)
     }
 }
@@ -596,22 +606,27 @@ mod test {
            let b = 2.0;
            let c = b;
            fn foo() {
-               assert_eq(globals.a, 1);
-               assert_eq(globals.b, 2.0);
-               globals.a += 1;
-               globals.b += 1.0;
+               assert_eq(a, 1);
+               assert_eq(b, 2.0);
+               a += 1;
+               b += 1.0;
+               bar();
+           }
+           fn bar() {
+               assert_eq(a, 2);
+               a += 1;
            }
            foo();
-           assert_eq(a, 2);
+           assert_eq(a, 3);
            assert_eq(b, 3.0);
            assert_eq(c, 2.0);
            if 1 == 1 {
-               assert_eq(a, 2);
+               assert_eq(a, 3);
            }
-           while a < 3 {
+           while a < 4 {
                a += 1;
            }
-           assert_eq(a, 3);
+           assert_eq(a, 4);
        "#,
         );
     }
