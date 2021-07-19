@@ -231,7 +231,7 @@ impl Scenario for Tutorial01 {
 
 fn tick() {
     // Uncomment me, then press ctrl-Enter to upload the code.
-    // api.fire_weapon(0);
+    // api.fire_weapon();
 }"
         .to_string()
     }
@@ -243,7 +243,7 @@ fn tick() {
 
 fn tick() {
     // Uncomment me, then press ctrl-Enter to upload the code.
-    api.fire_weapon(0);
+    api.fire_weapon();
 }"
         .to_string()
     }
@@ -518,7 +518,7 @@ impl Scenario for Tutorial04 {
 
 fn tick() {
     api.accelerate(0.1 * (target - api.position()));
-    api.fire_weapon(0);
+    api.fire_weapon();
 }
 "#
         .trim()
@@ -567,7 +567,7 @@ fn turn_to(target_heading) {
 
 fn tick() {
     turn_to((target - api.position()).angle());
-    api.fire_weapon(0);
+    api.fire_weapon();
 }
 "#
         .trim()

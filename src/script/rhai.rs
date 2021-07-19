@@ -232,7 +232,11 @@ impl Api {
         self.sim().ship_mut(self.handle).torque(acceleration);
     }
 
-    fn fire_weapon(&mut self, index: INT) {
+    fn fire_weapon(&mut self) {
+        self.sim().ship_mut(self.handle).fire_weapon(0);
+    }
+
+    fn fire_weapon_with_index(&mut self, index: INT) {
         self.sim().ship_mut(self.handle).fire_weapon(index);
     }
 
@@ -267,6 +271,7 @@ impl RhaiShipController {
             .register_fn("accelerate", Api::accelerate)
             .register_fn("torque", Api::torque)
             .register_fn("fire_weapon", Api::fire_weapon)
+            .register_fn("fire_weapon", Api::fire_weapon_with_index)
             .register_fn("explode", Api::explode);
 
         engine.register_global_module(exported_module!(vec2_module).into());
