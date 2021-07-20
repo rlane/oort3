@@ -6,6 +6,7 @@ use crate::{renderer, simulation};
 use log::{debug, error, info};
 use nalgebra::{point, vector, Point2};
 use simulation::scenario;
+use telemetry::Telemetry;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
@@ -275,7 +276,10 @@ impl UI {
         if let Err(msg) = storage.set_item(&format!("/code/{}", self.scenario.name()), code) {
             error!("Failed to save code: {:?}", msg);
         }
-        telemetry::send_start_scenario(&self.scenario.name(), code);
+        telemetry::send(Telemetry::StartScenario {
+            scenario_name: self.scenario.name(),
+            code: code.to_string(),
+        });
         self.sim.upload_code(code);
     }
 
