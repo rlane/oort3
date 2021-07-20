@@ -60,7 +60,7 @@ editor.addAction({
 });
 
 var scenario_select = document.getElementById('scenario');
-var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'tutorial03', 'tutorial04', 'asteroid'];
+var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'tutorial03', 'tutorial04', 'tutorial05', 'asteroid'];
 scenarios.forEach((scenario) => {
   var option = document.createElement('option');
   option.value = scenario;

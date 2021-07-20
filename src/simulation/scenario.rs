@@ -1,4 +1,4 @@
-use super::ship::{asteroid, fighter};
+use super::ship::{asteroid, fighter, ShipHandle};
 use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
@@ -81,6 +81,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial02" => Box::new(Tutorial02::new()),
         "tutorial03" => Box::new(Tutorial03::new()),
         "tutorial04" => Box::new(Tutorial04::new()),
+        "tutorial05" => Box::new(Tutorial05::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -569,6 +570,177 @@ fn turn_to(target_heading) {
 
 fn tick() {
     turn_to((target - api.position()).angle());
+    api.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+}
+
+struct Tutorial05 {
+    ship_handle: Option<ShipHandle>,
+    target_handle: Option<ShipHandle>,
+}
+
+impl Tutorial05 {
+    fn new() -> Self {
+        Self {
+            ship_handle: None,
+            target_handle: None,
+        }
+    }
+}
+
+impl Scenario for Tutorial05 {
+    fn name(&self) -> String {
+        "tutorial05".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation) {
+        self.ship_handle = Some(ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0)));
+
+        let mut rng = rand::thread_rng();
+        let size = 500.0;
+        let range = -size..size;
+        let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
+        self.target_handle = Some(ship::create(
+            sim,
+            target.x,
+            target.y,
+            0.0,
+            0.0,
+            0.0,
+            fighter(1),
+        ));
+
+        sim.upload_code(
+            r#"
+fn turn(speed) {
+    let acc = 10.0;
+    let margin = 0.01;
+    let av = api.angular_velocity();
+    if av < speed - margin {
+        api.torque(acc);
+    } else if av > speed + margin {
+        api.torque(-acc);
+    }
+}
+
+fn normalize_heading(h) {
+    while h < 0.0 {
+        h += 2 * PI();
+    }
+    while h > 2 * PI() {
+        h -= 2 * PI();
+    }
+    h
+}
+
+fn turn_to(target_heading) {
+    let speed = 1.0;
+    let margin = 0.1;
+    let dh = (api.heading() - target_heading) % (2 * PI());
+    if dh - margin > 0.0 {
+        turn(-speed);
+    } else if dh + margin < 0.0 {
+        turn(speed);
+    } else {
+         turn(-dh);
+    }
+}
+
+fn tick() {
+    let target = vec2(0, 0);
+    turn_to((target - api.position()).angle());
+    api.accelerate(vec2(10, 0));
+}
+        "#,
+            1,
+        );
+    }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        if sim.ships.len() < 2 {
+            return;
+        }
+        {
+            let target_position = sim.ship(self.target_handle.unwrap()).position();
+            let c = sim.ship_controllers.get_mut(&self.ship_handle.unwrap());
+            c.unwrap().write_target(target_position.vector);
+        }
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        if sim.ships.iter().len() > 1 {
+            Running
+        } else {
+            Status::Finished
+        }
+    }
+
+    fn initial_code(&self) -> String {
+        r#"
+// Tutorial 05
+// Destroy the enemy ship. Its location is given by the
+// "target" variable.
+
+fn tick() {
+    api.accelerate(0.1 * (target - api.position()));
+    api.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn solution(&self) -> String {
+        r#"
+// Tutorial 05
+// Destroy the enemy ship. Its location is given by the
+// "target" variable.
+
+fn turn(speed) {
+    let acc = 10.0;
+    let margin = 0.01;
+    let av = api.angular_velocity();
+    if av < speed - margin {
+        api.torque(acc);
+    } else if av > speed + margin {
+        api.torque(-acc);
+    }
+}
+
+fn normalize_heading(h) {
+    while h < 0.0 {
+        h += 2 * PI();
+    }
+    while h > 2 * PI() {
+        h -= 2 * PI();
+    }
+    h
+}
+
+fn turn_to(target_heading) {
+    let speed = 1.0;
+    let margin = 0.1;
+    let dh = (api.heading() - target_heading) % (2 * PI());
+    if dh - margin > 0.0 {
+        turn(-speed);
+    } else if dh + margin < 0.0 {
+        turn(speed);
+    } else {
+         turn(-dh);
+    }
+}
+
+fn tick() {
+    turn_to((target - api.position()).angle());
+    if api.velocity().magnitude() > 100.0 {
+        api.accelerate(-api.velocity());
+    } else {
+        api.accelerate(target - api.position());
+    }
     api.fire_weapon();
 }
 "#
