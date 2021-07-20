@@ -1,3 +1,4 @@
+use crate::ui::telemetry;
 use crate::ui::UI;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -9,7 +10,12 @@ lazy_static! {
 
 #[wasm_bindgen]
 pub fn initialize() {
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    std::panic::set_hook(Box::new(|panic_info| {
+        console_error_panic_hook::hook(panic_info);
+        telemetry::send(telemetry::Telemetry::Crash {
+            msg: panic_info.to_string(),
+        });
+    }));
     console_log::init_with_level(log::Level::Info).expect("initializing logging");
 }
 

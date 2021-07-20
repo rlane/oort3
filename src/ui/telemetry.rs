@@ -14,6 +14,9 @@ pub enum Telemetry {
         code: String,
         ticks: u64,
     },
+    Crash {
+        msg: String,
+    },
 }
 
 pub fn send(msg: Telemetry) {
