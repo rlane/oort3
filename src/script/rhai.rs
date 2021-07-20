@@ -2,6 +2,7 @@ use super::ShipController;
 use crate::simulation::ship::ShipHandle;
 use crate::simulation::Simulation;
 use log::{error, info};
+use nalgebra::Rotation2;
 use rhai::plugin::*;
 use rhai::{Dynamic, Engine, Scope, AST, FLOAT, INT};
 use smartstring::alias::CompactString;
@@ -153,6 +154,11 @@ mod vec2_module {
     #[rhai_fn(name = "normalize")]
     pub fn normalize(obj: &mut Vec2) -> Vec2 {
         obj.normalize()
+    }
+
+    #[rhai_fn(name = "rotate")]
+    pub fn rotate(obj: &mut Vec2, angle: f64) -> Vec2 {
+        Rotation2::new(angle).transform_vector(obj)
     }
 
     fn assert_internal<T: PartialEq + std::fmt::Debug>(
@@ -610,6 +616,9 @@ mod test {
         assert_eq(v1.distance(v2), 2.8284271247461903);
         assert_eq(v1.dot(v2), 11.0);
         assert_eq(-v1, vec2(-1, -2));
+        assert_eq(vec2(1, 2).rotate(PI() / 2), vec2(-2, 1.0000000000000002));
+        assert_eq(vec2(1, 2).rotate(PI()), vec2(-1.0000000000000002, -1.9999999999999998));
+        assert_eq(vec2(1, 2).rotate(3 * PI() / 2), vec2(1.9999999999999998, -1.0000000000000004));
         ",
         );
     }
