@@ -70,6 +70,8 @@ scenarios.forEach((scenario) => {
 scenario_select.onchange = function(e) {
   rust_module.start(e.target.value);
   editor.setValue(rust_module.get_initial_code());
+  splash_div.style.visibility = 'hidden';
+  document.onkeydown = null;
 }
 
 var doc_link = document.getElementById('doc_link');
@@ -89,4 +91,16 @@ window.send_telemetry = function(data) {
   xhr.open("POST", "https://us-central1-oort-319301.cloudfunctions.net/upload");
   xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
   xhr.send(data);
+}
+
+var splash_div = document.getElementById('splash');
+window.display_splash = function(contents) {
+  splash_div.innerHTML = contents;
+  splash_div.style.visibility = 'visible';
+  document.onkeydown = (e) => {
+    if (e.key == 'Escape') {
+      splash_div.style.visibility = 'hidden';
+      document.onkeydown = null;
+    }
+  }
 }

@@ -108,3 +108,19 @@ a:hover {
   text-decoration: underline;
   cursor: pointer;
 }
+
+#splash {
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
+  padding: 20px;
+
+  visibility: hidden;
+  overflow: auto;
+  backdrop-filter: blur(10px);
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(191, 191, 191, .4);
+  text-align: center;
+}

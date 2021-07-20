@@ -2,7 +2,7 @@ pub mod fps;
 pub mod frame_timer;
 pub mod telemetry;
 
-use crate::{renderer, simulation};
+use crate::{api, renderer, simulation};
 use log::{debug, error, info};
 use nalgebra::{point, vector, Point2};
 use simulation::scenario;
@@ -193,6 +193,7 @@ impl UI {
                 code: self.latest_code.to_string(),
                 ticks: self.tick,
             });
+            self.display_finished_screen();
         }
 
         if !self.finished && (!self.paused || self.single_steps > 0) {
@@ -308,6 +309,15 @@ impl UI {
                 self.scenario.initial_code()
             }
         }
+    }
+
+    pub fn display_finished_screen(&self) {
+        api::display_splash(
+            r#"
+        <h1>Mission Complete</h1>
+        Use the scenario list in the top-right of the page to choose your next mission.
+        "#,
+        );
     }
 }
 

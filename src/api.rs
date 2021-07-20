@@ -70,4 +70,6 @@ pub fn get_initial_code() -> String {
 #[wasm_bindgen]
 extern "C" {
     pub fn send_telemetry(data: &str);
+
+    pub fn display_splash(contents: &str);
 }
