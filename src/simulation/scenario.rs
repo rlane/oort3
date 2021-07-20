@@ -608,9 +608,9 @@ impl Scenario for Tutorial05 {
             sim,
             target.x,
             target.y,
-            0.0,
-            0.0,
-            0.0,
+            rng.gen_range(0.0..std::f64::consts::TAU),
+            rng.gen_range(-400.0..400.0),
+            rng.gen_range(-400.0..400.0),
             fighter(1),
         ));
 
@@ -711,36 +711,20 @@ fn turn(speed) {
     }
 }
 
-fn normalize_heading(h) {
-    while h < 0.0 {
-        h += 2 * PI();
-    }
-    while h > 2 * PI() {
-        h -= 2 * PI();
-    }
-    h
-}
-
 fn turn_to(target_heading) {
     let speed = 1.0;
-    let margin = 0.1;
-    let dh = (api.heading() - target_heading) % (2 * PI());
-    if dh - margin > 0.0 {
+    let dh = (2 * PI() + api.heading() - target_heading) % (2 * PI());
+    if dh < PI() {
         turn(-speed);
-    } else if dh + margin < 0.0 {
+    } else if dh >= PI() {
         turn(speed);
-    } else {
-         turn(-dh);
     }
 }
 
 fn tick() {
     turn_to((target - api.position()).angle());
-    if api.velocity().magnitude() > 100.0 {
-        api.accelerate(-api.velocity());
-    } else {
-        api.accelerate(target - api.position());
-    }
+    api.accelerate((target - api.position() - api.velocity())
+        .normalize().rotate(-api.heading()) * 100.0);
     api.fire_weapon();
 }
 "#
