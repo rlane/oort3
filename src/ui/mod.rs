@@ -288,7 +288,7 @@ impl UI {
             scenario_name: self.scenario.name(),
             code: code.to_string(),
         });
-        self.sim.upload_code(code);
+        self.sim.upload_code(code, /*team=*/ 0);
         self.latest_code = code.to_string();
     }
 

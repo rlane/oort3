@@ -155,11 +155,13 @@ impl Simulation {
         }
     }
 
-    pub fn upload_code(&mut self, code: &str) {
+    pub fn upload_code(&mut self, code: &str, team: i32) {
         for &handle in self.ships.iter() {
-            if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
-                ship_controller.upload_code(code);
-                ship_controller.start();
+            if self.ship(handle).data().team == team {
+                if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
+                    ship_controller.upload_code(code);
+                    ship_controller.start();
+                }
             }
         }
     }
