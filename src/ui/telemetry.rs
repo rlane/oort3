@@ -5,7 +5,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Telemetry {
-    StartScenario { scenario_name: String, code: String },
+    StartScenario {
+        scenario_name: String,
+        code: String,
+    },
+    FinishScenario {
+        scenario_name: String,
+        code: String,
+        ticks: u64,
+    },
 }
 
 pub fn send(msg: Telemetry) {

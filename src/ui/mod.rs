@@ -29,6 +29,7 @@ pub struct UI {
     last_render_time: f64,
     physics_time: f64,
     fps: fps::FPS,
+    latest_code: String,
 }
 
 unsafe impl Send for UI {}
@@ -76,6 +77,7 @@ impl UI {
             last_render_time: instant::now(),
             physics_time: instant::now(),
             fps: fps::FPS::new(),
+            latest_code: "".to_string(),
         }
     }
 
@@ -186,6 +188,11 @@ impl UI {
 
         if !self.finished && self.scenario.status(&self.sim) == scenario::Status::Finished {
             self.finished = true;
+            telemetry::send(Telemetry::FinishScenario {
+                scenario_name: self.scenario.name(),
+                code: self.latest_code.to_string(),
+                ticks: self.tick,
+            });
         }
 
         if !self.finished && (!self.paused || self.single_steps > 0) {
@@ -281,6 +288,7 @@ impl UI {
             code: code.to_string(),
         });
         self.sim.upload_code(code);
+        self.latest_code = code.to_string();
     }
 
     pub fn get_initial_code(&self) -> String {
