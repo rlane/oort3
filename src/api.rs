@@ -60,3 +60,8 @@ pub fn get_initial_code() -> String {
         "".to_string()
     }
 }
+
+#[wasm_bindgen]
+extern "C" {
+    pub fn send_telemetry(data: &str);
+}

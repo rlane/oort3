@@ -1,5 +1,6 @@
 pub mod fps;
 pub mod frame_timer;
+pub mod telemetry;
 
 use crate::{renderer, simulation};
 use log::{debug, error, info};
@@ -274,6 +275,7 @@ impl UI {
         if let Err(msg) = storage.set_item(&format!("/code/{}", self.scenario.name()), code) {
             error!("Failed to save code: {:?}", msg);
         }
+        telemetry::send_start_scenario(&self.scenario.name(), code);
         self.sim.upload_code(code);
     }
 

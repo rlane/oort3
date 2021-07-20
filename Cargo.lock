@@ -548,6 +548,8 @@ dependencies = [
  "rand",
  "rapier2d-f64",
  "rhai",
+ "serde",
+ "serde_json",
  "smartstring",
  "test-env-log",
  "wasm-bindgen",
@@ -849,6 +851,9 @@ name = "serde"
 version = "1.0.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec7505abeacaec74ae4778d9d9328fe5a5d04253220a85c4ee022239fc996d03"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde_cbor"

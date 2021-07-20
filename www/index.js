@@ -83,3 +83,10 @@ doc_link.onclick = (e) => {
     }
   }
 }
+
+window.send_telemetry = function(data) {
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "https://us-central1-oort-319301.cloudfunctions.net/upload");
+  xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+  xhr.send(data);
+}
