@@ -598,7 +598,7 @@ mod test {
     #[test]
     fn test_vec2() {
         let mut sim = Simulation::new();
-        let ship0 = ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, ship::fighter());
+        let ship0 = ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, ship::fighter(0));
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             "
@@ -624,7 +624,7 @@ mod test {
             3.0,
             4.0,
             std::f64::consts::PI,
-            ship::fighter(),
+            ship::fighter(0),
         );
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
@@ -639,7 +639,7 @@ mod test {
     #[test]
     fn test_angle() {
         let mut sim = Simulation::new();
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             "
@@ -654,7 +654,7 @@ mod test {
     #[test]
     fn test_function() {
         let mut sim = Simulation::new();
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             "
@@ -671,7 +671,7 @@ mod test {
     #[test]
     fn test_globals() {
         let mut sim = Simulation::new();
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             r#"
@@ -708,7 +708,7 @@ mod test {
     #[test]
     fn test_mixed_integer_float() {
         let mut sim = Simulation::new();
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             r#"
@@ -725,7 +725,7 @@ assert_eq(vec2(1, 1) / 2.0, vec2(1, 1) / 2);
     #[should_panic(expected = "ErrorTooManyOperations")]
     fn test_infinite_loop() {
         let mut sim = Simulation::new();
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter());
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             r#"

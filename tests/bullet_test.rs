@@ -7,8 +7,8 @@ use test_env_log::test;
 fn test_hit() {
     let mut sim = simulation::Simulation::new();
 
-    let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
-    let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter());
+    let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter(1));
 
     assert!(sim.ships.contains(ship0));
     assert!(sim.ships.contains(ship1));
@@ -33,8 +33,8 @@ fn test_hit() {
 fn test_destroyed() {
     let mut sim = simulation::Simulation::new();
 
-    let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
-    let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter());
+    let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter(1));
 
     assert!(sim.ships.contains(ship0));
     assert!(sim.ships.contains(ship1));

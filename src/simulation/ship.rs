@@ -31,9 +31,10 @@ pub struct ShipData {
     pub class: ShipClass,
     pub weapons: Vec<Weapon>,
     pub health: f64,
+    pub team: i32,
 }
 
-pub fn fighter() -> ShipData {
+pub fn fighter(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Fighter,
         weapons: vec![Weapon {
@@ -42,6 +43,7 @@ pub fn fighter() -> ShipData {
             damage: 20.0,
         }],
         health: 100.0,
+        team,
     }
 }
 
@@ -50,6 +52,7 @@ pub fn asteroid(variant: i32) -> ShipData {
         class: ShipClass::Asteroid { variant },
         weapons: vec![],
         health: 200.0,
+        team: 1,
     }
 }
 

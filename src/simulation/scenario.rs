@@ -96,8 +96,8 @@ impl Scenario for BasicScenario {
 
     fn init(&mut self, sim: &mut Simulation) {
         add_walls(sim);
-        ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter());
-        ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter());
+        ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(0));
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -119,7 +119,7 @@ impl Scenario for AsteroidScenario {
     fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
         for _ in 0..1000 {
@@ -154,7 +154,7 @@ impl Scenario for BulletStressScenario {
     fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
         for _ in 0..1000 {
@@ -181,7 +181,7 @@ impl Scenario for WelcomeScenario {
     fn init(&mut self, sim: &mut Simulation) {
         let mut rng = rand::thread_rng();
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         let asteroid_variants = [1, 6, 14];
         let bound = (1000.0 / 2.0) * 0.9;
         for _ in 0..100 {
@@ -214,7 +214,7 @@ impl Scenario for Tutorial01 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid(1));
     }
 
@@ -267,7 +267,7 @@ impl Scenario for Tutorial02 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
             c.unwrap().write_target(vector![200.0, 0.0]);
@@ -379,7 +379,7 @@ impl Scenario for Tutorial03 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
             c.unwrap().write_target(self.target.coords);
@@ -488,7 +488,7 @@ impl Scenario for Tutorial04 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
             c.unwrap().write_target(self.target.coords);

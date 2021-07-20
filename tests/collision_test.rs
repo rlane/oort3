@@ -25,7 +25,7 @@ fn test_world_edge() {
             vx as f64,
             vy as f64,
             h as f64,
-            fighter(),
+            fighter(0),
         );
     }
 
@@ -46,8 +46,8 @@ fn test_world_edge() {
 fn test_head_on_collision() {
     let mut sim = simulation::Simulation::new();
 
-    let ship0 = ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, fighter());
-    let ship1 = ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, fighter());
+    let ship0 = ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, fighter(0));
+    let ship1 = ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, fighter(0));
 
     assert!(sim.ship(ship0).velocity().x > 0.0);
     assert!(sim.ship(ship1).velocity().x < 0.0);
