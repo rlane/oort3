@@ -1,3 +1,4 @@
+pub mod code_size;
 pub mod fps;
 pub mod frame_timer;
 pub mod telemetry;
@@ -313,21 +314,25 @@ impl UI {
     }
 
     pub fn display_finished_screen(&self) {
-        match self.scenario.next_scenario() {
-            Some(next_scenario) => api::display_splash(&format!(
-                r##"
-        <h1>Mission Complete</h1>
-        <a href="#" onclick='start_scenario({:?})'>Next mission</a>
-        "##,
+        let mut html = "<h1>Mission Complete</h1>".to_string();
+        html += &format!(
+            "Time: {:.2}s",
+            self.tick as f64 * simulation::PHYSICS_TICK_LENGTH
+        );
+        html += "<br/><br/>";
+        html += &format!("Code size: {}", code_size::calculate(&self.latest_code));
+        html += "<br/><br/>";
+        html += &match self.scenario.next_scenario() {
+            Some(next_scenario) => format!(
+                r##"<a href="#" onclick='start_scenario({:?})'>Next mission</a>"##,
                 &next_scenario
-            )),
-            None => api::display_splash(
-                r#"
-        <h1>Mission Complete</h1>
-        Use the scenario list in the top-right of the page to choose your next mission.
-        "#,
             ),
-        }
+            None => {
+                "Use the scenario list in the top-right of the page to choose your next mission."
+                    .to_string()
+            }
+        };
+        api::display_splash(&html);
     }
 }
 
