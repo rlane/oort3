@@ -75,21 +75,6 @@ html, body {
   float: right;
 }
 
-#doc {
-  position: absolute;
-  top: 10%;
-  left: 10%;
-  width: 80%;
-  height: 80%;
-  padding: 20px;
-
-  visibility: hidden;
-  overflow: auto;
-  backdrop-filter: blur(10px);
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(191, 191, 191, .4);;
-}
-
 code {
   font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
   color: #d4ffd4;
@@ -109,7 +94,19 @@ a:hover {
   cursor: pointer;
 }
 
-#splash {
+#overlay {
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  width: 100%;
+  height: 100%;
+
+  visibility: hidden;
+  backdrop-filter: blur(6px);
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.inner-overlay {
   position: absolute;
   top: 10%;
   left: 10%;
@@ -119,8 +116,10 @@ a:hover {
 
   visibility: hidden;
   overflow: auto;
-  backdrop-filter: blur(10px);
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: black;
   border: 1px solid rgba(191, 191, 191, .4);
+}
+
+#splash-overlay {
   text-align: center;
 }

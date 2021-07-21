@@ -70,20 +70,7 @@ scenarios.forEach((scenario) => {
 scenario_select.onchange = function(e) {
   rust_module.start(e.target.value);
   editor.setValue(rust_module.get_initial_code());
-  splash_div.style.visibility = 'hidden';
-  document.onkeydown = null;
-}
-
-var doc_link = document.getElementById('doc_link');
-var doc_div = document.getElementById('doc');
-doc_link.onclick = (e) => {
-  doc_div.style.visibility = 'visible';
-  document.onkeydown = (e) => {
-    if (e.key == 'Escape') {
-      doc_div.style.visibility = 'hidden';
-      document.onkeydown = null;
-    }
-  }
+  hide_overlay();
 }
 
 window.send_telemetry = function(data) {
@@ -93,14 +80,34 @@ window.send_telemetry = function(data) {
   xhr.send(data);
 }
 
-var splash_div = document.getElementById('splash');
-window.display_splash = function(contents) {
-  splash_div.innerHTML = contents;
-  splash_div.style.visibility = 'visible';
+var overlay = document.getElementById('overlay');
+var doc_overlay = document.getElementById('doc-overlay');
+var splash_overlay = document.getElementById('splash-overlay');
+
+function show_overlay(div) {
+  div.onclick = (e) => e.stopPropagation();
+  div.style.visibility = 'visible';
+  overlay.style.visibility = 'visible';
   document.onkeydown = (e) => {
     if (e.key == 'Escape') {
-      splash_div.style.visibility = 'hidden';
-      document.onkeydown = null;
+      hide_overlay();
     }
   }
+}
+
+function hide_overlay() {
+  overlay.style.visibility = 'hidden'
+  doc_overlay.style.visibility = 'hidden'
+  splash_overlay.style.visibility = 'hidden'
+  document.onkeydown = null;
+}
+
+overlay.onclick = hide_overlay;
+
+var doc_link = document.getElementById('doc_link');
+doc_link.onclick = (e) => show_overlay(doc_overlay);
+
+window.display_splash = function(contents) {
+  splash_overlay.innerHTML = contents;
+  show_overlay(splash_overlay);
 }
