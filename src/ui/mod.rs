@@ -287,10 +287,12 @@ impl UI {
         if let Err(msg) = storage.set_item(&format!("/code/{}", self.scenario.name()), code) {
             error!("Failed to save code: {:?}", msg);
         }
-        telemetry::send(Telemetry::StartScenario {
-            scenario_name: self.scenario.name(),
-            code: code.to_string(),
-        });
+        if false {
+            telemetry::send(Telemetry::StartScenario {
+                scenario_name: self.scenario.name(),
+                code: code.to_string(),
+            });
+        }
         self.sim.upload_code(code, /*team=*/ 0);
         self.latest_code = code.to_string();
     }
