@@ -36,7 +36,7 @@
 
     <h2>Ship Control</h2>
     <ul>
-      <li><code>api.position() &rarr; vec2</code>: Get the current position in m/s.</li>
+      <li><code>api.position() &rarr; vec2</code>: Get the current position in meters.</li>
       <li><code>api.velocity() &rarr; vec2</code>: Get the current velocity in m/s.</li>
       <li><code>api.heading() &rarr; float</code>: Get the current heading in radians.</li>
       <li><code>api.angular_velocity() &rarr; float</code>: Get the current angular velocity in radians/s.</li>
@@ -49,6 +49,7 @@
     <h2>Vector Math</h2>
     <ul>
       <li><code>vec2(x, y) &rarr; vec2</code>: Create a vector.</li>
+      <li><code>v.x, v.y &rarr; float</code>: Get a component of a vector.</li>
       <li><code>v1 +- v2 &rarr; vec2</code>: Basic arithmetic between vectors.</li>
       <li><code>v */ float &rarr; vec2</code>: Basic arithmetic between vectors and scalars.</li>
       <li><code>-v &rarr; vec2</code>: Negate a vector.</li>
