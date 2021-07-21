@@ -10,6 +10,7 @@ use telemetry::Telemetry;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
+const INITIAL_ZOOM: f32 = 8e-4;
 
 pub struct UI {
     sim: Box<simulation::Simulation>,
@@ -46,7 +47,7 @@ impl UI {
 
         let mut sim = Box::new(simulation::Simulation::new());
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
-        let zoom = MAX_ZOOM / 10.0;
+        let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
         let paused = false;
