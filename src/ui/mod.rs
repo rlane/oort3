@@ -194,6 +194,7 @@ impl UI {
                 scenario_name: self.scenario.name(),
                 code: self.latest_code.to_string(),
                 ticks: self.tick,
+                code_size: code_size::calculate(&self.latest_code),
             });
             self.display_finished_screen();
         }

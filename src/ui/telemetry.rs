@@ -13,6 +13,7 @@ pub enum Telemetry {
         scenario_name: String,
         code: String,
         ticks: u64,
+        code_size: usize,
     },
     Crash {
         msg: String,
