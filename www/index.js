@@ -59,6 +59,12 @@ editor.addAction({
   }
 });
 
+window.start_scenario = function(name) {
+  rust_module.start(name);
+  editor.setValue(rust_module.get_initial_code());
+  hide_overlay();
+}
+
 var scenario_select = document.getElementById('scenario');
 var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'tutorial03', 'tutorial04', 'tutorial05', 'asteroid'];
 scenarios.forEach((scenario) => {
@@ -68,9 +74,7 @@ scenarios.forEach((scenario) => {
   scenario_select.appendChild(option);
 });
 scenario_select.onchange = function(e) {
-  rust_module.start(e.target.value);
-  editor.setValue(rust_module.get_initial_code());
-  hide_overlay();
+  start_scenario(e.target.value);
 }
 
 window.send_telemetry = function(data) {

@@ -44,6 +44,10 @@ pub trait Scenario {
     fn solution(&self) -> String {
         "".to_string()
     }
+
+    fn next_scenario(&self) -> Option<String> {
+        None
+    }
 }
 
 pub fn add_walls(sim: &mut Simulation) {
@@ -250,6 +254,10 @@ fn tick() {
 }"
         .to_string()
     }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial02".to_string())
+    }
 }
 
 struct Tutorial02 {
@@ -354,6 +362,10 @@ fn tick() {
 }
 "
         .to_string()
+    }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial03".to_string())
     }
 }
 
@@ -466,6 +478,10 @@ fn tick() {
         .trim()
         .to_string()
     }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial04".to_string())
+    }
 }
 
 struct Tutorial04 {
@@ -575,6 +591,10 @@ fn tick() {
 "#
         .trim()
         .to_string()
+    }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial05".to_string())
     }
 }
 

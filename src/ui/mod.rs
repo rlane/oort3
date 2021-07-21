@@ -312,12 +312,21 @@ impl UI {
     }
 
     pub fn display_finished_screen(&self) {
-        api::display_splash(
-            r#"
+        match self.scenario.next_scenario() {
+            Some(next_scenario) => api::display_splash(&format!(
+                r##"
+        <h1>Mission Complete</h1>
+        <a href="#" onclick='start_scenario({:?})'>Next mission</a>
+        "##,
+                &next_scenario
+            )),
+            None => api::display_splash(
+                r#"
         <h1>Mission Complete</h1>
         Use the scenario list in the top-right of the page to choose your next mission.
         "#,
-        );
+            ),
+        }
     }
 }
 
