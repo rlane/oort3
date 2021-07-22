@@ -265,6 +265,7 @@ impl UI {
     pub fn on_wheel_event(&mut self, e: web_sys::WheelEvent) {
         let amount = e.delta_y();
         self.zoom *= (1.0 - amount.signum() * 0.01).powf(amount.abs() / 30.0) as f32;
+        self.zoom = self.zoom.clamp(MIN_ZOOM, MAX_ZOOM);
         if amount < 0.0 {
             let zoom_target = self
                 .renderer
