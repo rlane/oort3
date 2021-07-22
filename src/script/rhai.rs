@@ -161,8 +161,13 @@ mod vec2_module {
     }
 
     #[rhai_fn(name = "rotate")]
-    pub fn rotate(obj: &mut Vec2, angle: f64) -> Vec2 {
+    pub fn rotatef(obj: &mut Vec2, angle: f64) -> Vec2 {
         Rotation2::new(angle).transform_vector(obj)
+    }
+
+    #[rhai_fn(name = "rotate")]
+    pub fn rotatei(obj: &mut Vec2, angle: i64) -> Vec2 {
+        rotatef(obj, angle as f64)
     }
 
     fn assert_internal<T: PartialEq + std::fmt::Debug>(
