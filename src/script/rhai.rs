@@ -1,3 +1,4 @@
+use super::rhai_random::random_module;
 use super::ShipController;
 use crate::simulation::ship::ShipHandle;
 use crate::simulation::Simulation;
@@ -292,12 +293,18 @@ impl RhaiShipController {
 
         engine.register_global_module(exported_module!(vec2_module).into());
         engine.register_global_module(exported_module!(globals_module).into());
+        engine.register_global_module(exported_module!(random_module).into());
+
+        let (i, j) = handle.0.into_raw_parts();
+        let seed = ((i as i64) << 32) | j as i64;
+        let rng = random_module::new_rng(seed);
 
         let api = Api::new(handle, sim);
         let mut globals_map = Box::new(std::collections::HashMap::new());
         let globals = globals_module::Globals {
             map: &mut *globals_map,
         };
+        globals_map.insert("rng".into(), Dynamic::from(rng));
         engine.on_var(move |name, _index, _context| match name {
             "api" => Ok(Some(Dynamic::from(api))),
             "globals" => Ok(Some(Dynamic::from(globals))),
@@ -373,6 +380,7 @@ mod ast_rewrite {
 
     pub fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
         let mut globals = std::collections::HashSet::new();
+        globals.insert("rng".into());
         for stmt in ast.statements() {
             if let Stmt::Let(_, ident, _, _) = stmt {
                 globals.insert(ident.name.clone());
@@ -753,6 +761,22 @@ while true {
     print(`i=${i}`);
     i += 1;
 }
+       "#,
+        );
+    }
+
+    #[test]
+    fn test_random() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            r#"
+let rng = new_rng(1);
+assert_eq(rng.next(-10.0, 10.0), -5.130375501385842);
+assert_eq(rng.next(-10.0, 10.0), -3.0351627041509293);
+assert_eq(rng.next(-10.0, 10.0), -4.8407819174603075);
+assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
        "#,
         );
     }
