@@ -219,6 +219,7 @@ impl Scenario for Tutorial01 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
+        add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid(1));
     }
@@ -276,6 +277,7 @@ impl Scenario for Tutorial02 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
+        add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
@@ -392,6 +394,7 @@ impl Scenario for Tutorial03 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
+        add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
@@ -505,6 +508,7 @@ impl Scenario for Tutorial04 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
+        add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
@@ -618,6 +622,7 @@ impl Scenario for Tutorial05 {
     }
 
     fn init(&mut self, sim: &mut Simulation) {
+        add_walls(sim);
         self.ship_handle = Some(ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0)));
 
         let mut rng = rand::thread_rng();
