@@ -17,6 +17,7 @@ pub fn initialize() {
         });
     }));
     console_log::init_with_level(log::Level::Info).expect("initializing logging");
+    log::info!("Version {}", &crate::version());
 }
 
 #[wasm_bindgen]

@@ -3,6 +3,13 @@ use log::warn;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
+struct TelemetryMsg {
+    #[serde(flatten)]
+    payload: Telemetry,
+    build: String,
+}
+
+#[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Telemetry {
     StartScenario {
@@ -20,9 +27,13 @@ pub enum Telemetry {
     },
 }
 
-pub fn send(msg: Telemetry) {
+pub fn send(payload: Telemetry) {
+    let msg = TelemetryMsg {
+        payload,
+        build: crate::version(),
+    };
     match serde_json::to_string(&msg) {
-        Ok(payload) => api::send_telemetry(&payload),
+        Ok(serialized) => api::send_telemetry(&serialized),
         Err(msg) => warn!("Failed to serialize telemetry: {}", msg),
     };
 }
