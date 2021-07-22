@@ -35,7 +35,7 @@ impl Renderer {
 
         let context = canvas
             .get_context("webgl2")?
-            .unwrap()
+            .expect("Failed to get webgl2 context")
             .dyn_into::<WebGl2RenderingContext>()?;
 
         Ok(Renderer {
