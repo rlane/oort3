@@ -641,44 +641,14 @@ impl Scenario for Tutorial05 {
 
         sim.upload_code(
             r#"
-fn turn(speed) {
-    let acc = 10.0;
-    let margin = 0.01;
-    let av = api.angular_velocity();
-    if av < speed - margin {
-        api.torque(acc);
-    } else if av > speed + margin {
-        api.torque(-acc);
-    }
-}
-
-fn normalize_heading(h) {
-    while h < 0.0 {
-        h += 2 * PI();
-    }
-    while h > 2 * PI() {
-        h -= 2 * PI();
-    }
-    h
-}
-
-fn turn_to(target_heading) {
-    let speed = 1.0;
-    let margin = 0.1;
-    let dh = (api.heading() - target_heading) % (2 * PI());
-    if dh - margin > 0.0 {
-        turn(-speed);
-    } else if dh + margin < 0.0 {
-        turn(speed);
-    } else {
-         turn(-dh);
-    }
-}
+let target = api.position();
 
 fn tick() {
-    let target = vec2(0, 0);
-    turn_to((target - api.position()).angle());
-    api.accelerate(vec2(10, 0));
+    if (target - api.position()).magnitude() < 50 {
+        target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
+    }
+    api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
+    api.torque(-api.angular_velocity());
 }
         "#,
             1,
@@ -737,7 +707,7 @@ fn turn(speed) {
 }
 
 fn turn_to(target_heading) {
-    let speed = 1.0;
+    let speed = 2.0;
     let dh = (2 * PI() + api.heading() - target_heading) % (2 * PI());
     if dh < PI() {
         turn(-speed);
@@ -749,7 +719,7 @@ fn turn_to(target_heading) {
 fn tick() {
     turn_to((target - api.position()).angle());
     api.accelerate((target - api.position() - api.velocity())
-        .normalize().rotate(-api.heading()) * 100.0);
+        .normalize().rotate(-api.heading()) * 200.0);
     api.fire_weapon();
 }
 "#
