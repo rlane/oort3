@@ -129,14 +129,18 @@ impl Simulation {
                     sim.bullet_mut(bullet).destroy();
                 };
                 if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
-                    if self.bullets.contains(BulletHandle(idx1))
-                        && self.ships.contains(ShipHandle(idx2))
-                    {
-                        handle_hit(self, ShipHandle(idx2), BulletHandle(idx1));
-                    } else if self.bullets.contains(BulletHandle(idx2))
-                        && self.ships.contains(ShipHandle(idx1))
-                    {
-                        handle_hit(self, ShipHandle(idx1), BulletHandle(idx2));
+                    if self.bullets.contains(BulletHandle(idx1)) {
+                        if self.ships.contains(ShipHandle(idx2)) {
+                            handle_hit(self, ShipHandle(idx2), BulletHandle(idx1));
+                        } else {
+                            self.bullet_mut(BulletHandle(idx1)).destroy();
+                        }
+                    } else if self.bullets.contains(BulletHandle(idx2)) {
+                        if self.ships.contains(ShipHandle(idx1)) {
+                            handle_hit(self, ShipHandle(idx1), BulletHandle(idx2));
+                        } else {
+                            self.bullet_mut(BulletHandle(idx2)).destroy();
+                        }
                     }
                 }
 
