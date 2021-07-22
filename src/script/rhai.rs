@@ -493,7 +493,7 @@ mod ast_rewrite {
 
     pub fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) -> Stmt {
         match stmt {
-            Stmt::Let(expr, ident, _, pos) => {
+            Stmt::Let(expr, ident, b, pos) => {
                 if globals.contains(&ident.name) {
                     Stmt::Assignment(
                         Box::new((
@@ -504,7 +504,7 @@ mod ast_rewrite {
                         *pos,
                     )
                 } else {
-                    stmt.clone()
+                    Stmt::Let(rewrite_expr(&expr, globals), ident.clone(), *b, *pos)
                 }
             }
             Stmt::If(expr, bx, pos) => Stmt::If(
