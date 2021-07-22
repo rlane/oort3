@@ -148,7 +148,11 @@ mod vec2_module {
 
     #[rhai_fn(name = "angle")]
     pub fn angle(obj: &mut Vec2) -> f64 {
-        obj.y.atan2(obj.x)
+        let mut a = obj.y.atan2(obj.x);
+        if a < 0.0 {
+            a += std::f64::consts::TAU;
+        }
+        a
     }
 
     #[rhai_fn(name = "normalize")]
@@ -619,6 +623,22 @@ mod test {
         assert_eq(vec2(1, 2).rotate(PI() / 2), vec2(-2, 1.0000000000000002));
         assert_eq(vec2(1, 2).rotate(PI()), vec2(-1.0000000000000002, -1.9999999999999998));
         assert_eq(vec2(1, 2).rotate(3 * PI() / 2), vec2(1.9999999999999998, -1.0000000000000004));
+        assert_eq(vec2(3, 4).normalize(), vec2(0.6, 0.8));
+        ",
+        );
+    }
+
+    #[test]
+    fn test_vec2_angle() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            "
+        assert_eq(vec2(1.0, 0.0).angle(), 0.0);
+        assert_eq(vec2(0.0, 1.0).angle(), PI() / 2.0);
+        assert_eq(vec2(-1.0, 0.0).angle(), PI());
+        assert_eq(vec2(0.0, -1.0).angle(), 3 * PI() / 2.0);
         ",
         );
     }
@@ -641,21 +661,6 @@ mod test {
         assert_eq(api.position(), vec2(1.0, 2.0));
         assert_eq(api.velocity(), vec2(3.0, 4.0));
         assert_eq(api.heading(), PI());
-        ",
-        );
-    }
-
-    #[test]
-    fn test_angle() {
-        let mut sim = Simulation::new();
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
-        ctrl.test(
-            "
-        assert_eq(vec2(1.0, 0.0).angle(), 0.0);
-        assert_eq(vec2(0.0, 1.0).angle(), PI() / 2.0);
-        assert_eq(vec2(-1.0, 0.0).angle(), PI());
-        assert_eq(vec2(0.0, -1.0).angle(), -PI() / 2.0);
         ",
         );
     }
