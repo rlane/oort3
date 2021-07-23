@@ -1,4 +1,5 @@
 use crate::ui::telemetry;
+use crate::ui::userid;
 use crate::ui::UI;
 use lazy_static::lazy_static;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -92,6 +93,11 @@ pub fn get_initial_code() -> String {
     } else {
         "".to_string()
     }
+}
+
+#[wasm_bindgen]
+pub fn get_username() -> String {
+    userid::get_username(&userid::get_userid())
 }
 
 #[wasm_bindgen]

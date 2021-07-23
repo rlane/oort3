@@ -13,6 +13,8 @@ function initialize(m) {
   m.initialize();
   m.start("welcome");
 
+  document.getElementById("username").textContent = m.get_username();
+
   canvas.addEventListener('keydown', m.on_key_event);
   canvas.addEventListener('keyup', m.on_key_event);
   canvas.addEventListener('wheel', m.on_wheel_event);
