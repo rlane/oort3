@@ -96,8 +96,13 @@ pub fn get_initial_code() -> String {
 }
 
 #[wasm_bindgen]
-pub fn get_username() -> String {
-    userid::get_username(&userid::get_userid())
+pub fn get_userid() -> String {
+    userid::get_userid()
+}
+
+#[wasm_bindgen]
+pub fn get_username(userid: &str) -> String {
+    userid::get_username(userid)
 }
 
 #[wasm_bindgen]

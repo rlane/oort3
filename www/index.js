@@ -13,7 +13,7 @@ function initialize(m) {
   m.initialize();
   m.start("welcome");
 
-  document.getElementById("username").textContent = m.get_username();
+  document.getElementById("username").textContent = m.get_username(m.get_userid());
 
   canvas.addEventListener('keydown', m.on_key_event);
   canvas.addEventListener('keyup', m.on_key_event);
@@ -146,11 +146,13 @@ window.display_mission_complete_overlay = function(scenario_name, time, code_siz
         tbody.innerHTML = '';
         for (let row of rows) {
           var tr = document.createElement('tr');
-          for (let col of ['userid', colname]) {
+          let add_td = function(content) {
             var td = document.createElement('td');
-            td.textContent = row[col];
+            td.textContent = content;
             tr.appendChild(td);
           }
+          add_td(rust_module.get_username(row.userid));
+          add_td(row[colname]);
           tbody.appendChild(tr);
         }
       };
