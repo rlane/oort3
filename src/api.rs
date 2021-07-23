@@ -105,4 +105,6 @@ extern "C" {
     pub fn send_telemetry(data: &str);
 
     pub fn display_splash(contents: &str);
+
+    pub fn display_mission_complete_overlay(time: f64, code_size: usize, next_scenario: &str);
 }

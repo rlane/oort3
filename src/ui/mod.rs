@@ -323,25 +323,14 @@ impl UI {
     }
 
     pub fn display_finished_screen(&self) {
-        let mut html = "<h1>Mission Complete</h1>".to_string();
-        html += &format!(
-            "Time: {:.2}s",
-            self.tick as f64 * simulation::PHYSICS_TICK_LENGTH
+        api::display_mission_complete_overlay(
+            self.tick as f64 * simulation::PHYSICS_TICK_LENGTH,
+            code_size::calculate(&self.latest_code),
+            &self
+                .scenario
+                .next_scenario()
+                .unwrap_or_else(|| "".to_string()),
         );
-        html += "<br/><br/>";
-        html += &format!("Code size: {}", code_size::calculate(&self.latest_code));
-        html += "<br/><br/>";
-        html += &match self.scenario.next_scenario() {
-            Some(next_scenario) => format!(
-                r##"<a href="#" onclick='start_scenario({:?})'>Next mission</a>"##,
-                &next_scenario
-            ),
-            None => {
-                "Use the scenario list in the top-right of the page to choose your next mission."
-                    .to_string()
-            }
-        };
-        api::display_splash(&html);
     }
 }
 

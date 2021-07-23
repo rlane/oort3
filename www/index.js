@@ -90,6 +90,7 @@ window.send_telemetry = function(data) {
 var overlay = document.getElementById('overlay');
 var doc_overlay = document.getElementById('doc-overlay');
 var splash_overlay = document.getElementById('splash-overlay');
+var mission_complete_overlay = document.getElementById('mission-complete-overlay');
 
 function show_overlay(div) {
   div.onclick = (e) => e.stopPropagation();
@@ -106,6 +107,7 @@ function hide_overlay() {
   overlay.style.visibility = 'hidden'
   doc_overlay.style.visibility = 'hidden'
   splash_overlay.style.visibility = 'hidden'
+  mission_complete_overlay.style.visibility = 'hidden'
   document.onkeydown = null;
 }
 
@@ -117,4 +119,18 @@ doc_link.onclick = (e) => show_overlay(doc_overlay);
 window.display_splash = function(contents) {
   splash_overlay.innerHTML = contents;
   show_overlay(splash_overlay);
+}
+
+window.display_mission_complete_overlay = function(time, code_size, next_scenario) {
+  document.getElementById('mission-complete-time').textContent = time.toPrecision(2);
+  document.getElementById('mission-complete-code-size').textContent = code_size;
+  if (next_scenario) {
+    document.getElementById('mission-complete-next').style.display = 'inline';
+    document.getElementById('mission-complete-next').onclick = () => start_scenario(next_scenario);
+    document.getElementById('mission-complete-no-next').style.display = 'none';
+  } else {
+    document.getElementById('mission-complete-next').style.display = 'none';
+    document.getElementById('mission-complete-no-next').style.display = 'inline';
+  }
+  show_overlay(mission_complete_overlay);
 }
