@@ -64,6 +64,7 @@ impl UI {
 
         let userid = userid::get_userid();
         log::info!("userid {}", &userid);
+        log::info!("username {}", &userid::get_username(&userid));
 
         UI {
             sim,

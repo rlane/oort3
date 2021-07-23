@@ -626,7 +626,10 @@ dependencies = [
  "nalgebra",
  "no-comment",
  "oorandom",
+ "petname",
  "rand",
+ "rand_chacha",
+ "rand_seeder",
  "rapier2d-f64",
  "rbtag",
  "rhai",
@@ -671,6 +674,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10f4872ae94d7b90ae48754df22fd42ad52ce740b8f370b03da4835417403e53"
 dependencies = [
  "ucd-trie",
+]
+
+[[package]]
+name = "petname"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9ed8e1c7b7cdd47819f76bbec141b4d4b59bb8ffd26c372cc236c90cd90becc"
+dependencies = [
+ "clap",
+ "itertools 0.9.0",
+ "rand",
 ]
 
 [[package]]
@@ -785,6 +799,15 @@ name = "rand_hc"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d51e9f596de227fda2ea6c84607f5558e196eeaf43c986b724ba4fb8fdf497e7"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
+name = "rand_seeder"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "612dd698949d531335b4c29d1c64fb11942798decfc08abc218578942e66d7d0"
 dependencies = [
  "rand_core",
 ]
