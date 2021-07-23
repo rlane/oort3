@@ -2,6 +2,7 @@ pub mod code_size;
 pub mod fps;
 pub mod frame_timer;
 pub mod telemetry;
+pub mod userid;
 
 use crate::{api, renderer, simulation};
 use log::{debug, error, info};
@@ -60,6 +61,9 @@ impl UI {
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();
+
+        let userid = userid::get_userid();
+        log::info!("userid {}", &userid);
 
         UI {
             sim,

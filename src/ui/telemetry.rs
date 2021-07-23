@@ -1,3 +1,4 @@
+use super::userid::get_userid;
 use crate::api;
 use log::warn;
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,7 @@ struct TelemetryMsg {
     #[serde(flatten)]
     payload: Telemetry,
     build: String,
+    userid: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -31,6 +33,7 @@ pub fn send(payload: Telemetry) {
     let msg = TelemetryMsg {
         payload,
         build: crate::version(),
+        userid: get_userid(),
     };
     match serde_json::to_string(&msg) {
         Ok(serialized) => api::send_telemetry(&serialized),
