@@ -121,7 +121,7 @@ window.display_splash = function(contents) {
   show_overlay(splash_overlay);
 }
 
-window.display_mission_complete_overlay = function(time, code_size, next_scenario) {
+window.display_mission_complete_overlay = function(scenario_name, time, code_size, next_scenario) {
   document.getElementById('mission-complete-time').textContent = time.toPrecision(2);
   document.getElementById('mission-complete-code-size').textContent = code_size;
   if (next_scenario) {
@@ -132,5 +132,34 @@ window.display_mission_complete_overlay = function(time, code_size, next_scenari
     document.getElementById('mission-complete-next').style.display = 'none';
     document.getElementById('mission-complete-no-next').style.display = 'inline';
   }
+  document.getElementById('time-leaderboard').style.visibility = 'hidden';
+  document.getElementById('code-size-leaderboard').style.visibility = 'hidden';
   show_overlay(mission_complete_overlay);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "https://us-central1-oort-319301.cloudfunctions.net/leaderboard?scenario_name=" + scenario_name);
+  xhr.onreadystatechange = function () {
+    if(xhr.readyState === XMLHttpRequest.DONE && xhr.status == 200) {
+      let data = JSON.parse(xhr.responseText);
+
+      let update_leaderboard = function(tbody, rows, colname) {
+        tbody.innerHTML = '';
+        for (let row of rows) {
+          var tr = document.createElement('tr');
+          for (let col of ['userid', colname]) {
+            var td = document.createElement('td');
+            td.textContent = row[col];
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+      };
+
+      update_leaderboard(document.getElementById('time-leaderboard-tbody'), data.lowest_time, 'time');
+      update_leaderboard(document.getElementById('code-size-leaderboard-tbody'), data.lowest_code_size, 'code_size');
+      document.getElementById('time-leaderboard').style.visibility = 'unset';
+      document.getElementById('code-size-leaderboard').style.visibility = 'unset';
+    }
+  }
+  xhr.send();
 }

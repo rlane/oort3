@@ -106,5 +106,10 @@ extern "C" {
 
     pub fn display_splash(contents: &str);
 
-    pub fn display_mission_complete_overlay(time: f64, code_size: usize, next_scenario: &str);
+    pub fn display_mission_complete_overlay(
+        scenario_name: &str,
+        time: f64,
+        code_size: usize,
+        next_scenario: &str,
+    );
 }

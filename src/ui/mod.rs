@@ -324,6 +324,7 @@ impl UI {
 
     pub fn display_finished_screen(&self) {
         api::display_mission_complete_overlay(
+            &self.scenario.name(),
             self.tick as f64 * simulation::PHYSICS_TICK_LENGTH,
             code_size::calculate(&self.latest_code),
             &self

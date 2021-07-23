@@ -127,3 +127,26 @@ a:hover {
 #mission-complete-overlay {
   text-align: center;
 }
+
+.leaderboard table, th, td {
+  border: 1px solid rgba(191, 191, 191, 1.0);
+  border-collapse: collapse;
+}
+
+.leaderboard th, td {
+  padding: 10px;
+}
+
+#leaderboards {
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+
+#time-leaderboard {
+  float: left;
+}
+
+#code-size-leaderboard {
+  float: right;
+}
