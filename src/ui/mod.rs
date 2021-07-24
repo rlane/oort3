@@ -35,6 +35,7 @@ pub struct UI {
     physics_time: f64,
     fps: fps::FPS,
     latest_code: String,
+    manual_control: bool,
 }
 
 unsafe impl Send for UI {}
@@ -86,6 +87,7 @@ impl UI {
             physics_time: instant::now(),
             fps: fps::FPS::new(),
             latest_code: "".to_string(),
+            manual_control: false,
         }
     }
 
@@ -145,8 +147,11 @@ impl UI {
             self.status_div.set_text_content(Some("Exited"));
             self.quit = true;
         }
+        if self.keys_down.contains("m") {
+            self.manual_control = true;
+        }
 
-        if !self.paused {
+        if self.manual_control && !self.paused {
             if let Some(&ship_handle) = self.sim.ships.iter().next() {
                 let linear_acc = 100.0;
                 let angular_acc = 1.0;
@@ -197,12 +202,14 @@ impl UI {
         if self.status == Status::Running {
             self.status = self.scenario.status(&self.sim);
             if self.status == Status::Finished {
-                telemetry::send(Telemetry::FinishScenario {
-                    scenario_name: self.scenario.name(),
-                    code: self.latest_code.to_string(),
-                    ticks: self.tick,
-                    code_size: code_size::calculate(&self.latest_code),
-                });
+                if !self.manual_control {
+                    telemetry::send(Telemetry::FinishScenario {
+                        scenario_name: self.scenario.name(),
+                        code: self.latest_code.to_string(),
+                        ticks: self.tick,
+                        code_size: code_size::calculate(&self.latest_code),
+                    });
+                }
                 self.display_finished_screen();
             }
         }
@@ -231,6 +238,10 @@ impl UI {
             &self.sim,
             &self.scenario.lines(),
         );
+
+        if self.manual_control {
+            status_msgs.push("MANUAL".to_string());
+        }
 
         if self.paused {
             status_msgs.push("PAUSED".to_string());
