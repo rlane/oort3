@@ -310,6 +310,10 @@ impl UI {
         }
         self.sim.upload_code(code, /*team=*/ 0);
         self.latest_code = code.to_string();
+        if !self.sim.errors.is_empty() {
+            self.display_errors(&self.sim.errors);
+            self.paused = true;
+        }
     }
 
     pub fn get_initial_code(&self) -> String {

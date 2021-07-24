@@ -15,7 +15,7 @@ pub struct Error {
 
 pub trait ShipController {
     fn upload_code(&mut self, code: &str);
-    fn start(&mut self);
+    fn start(&mut self) -> Result<(), Error>;
     fn tick(&mut self) -> Result<(), Error>;
     fn write_target(&mut self, target: Vector2<f64>);
 }

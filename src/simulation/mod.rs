@@ -170,7 +170,9 @@ impl Simulation {
             if self.ship(handle).data().team == team {
                 if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
                     ship_controller.upload_code(code);
-                    ship_controller.start();
+                    if let Err(e) = ship_controller.start() {
+                        self.errors.push(e);
+                    }
                 }
             }
         }

@@ -345,16 +345,22 @@ impl ShipController for RhaiShipController {
         }
     }
 
-    fn start(&mut self) {
+    fn start(&mut self) -> Result<(), super::Error> {
         if let Some(ast) = &self.ast {
-            if let Err(msg) = self.engine.consume_ast_with_scope(&mut self.scope, &ast) {
-                error!("Script error: {}", msg);
+            let result = self.engine.consume_ast_with_scope(&mut self.scope, &ast);
+            if let Err(e) = result {
+                error!("Script error: {}", e);
                 self.ast = None;
+                return Err(super::Error {
+                    line: extract_line(&e.to_string()),
+                    msg: e.to_string(),
+                });
             }
         }
         if self.ast.is_some() {
             self.ast.as_mut().unwrap().clear_statements();
         }
+        Ok(())
     }
 
     fn tick(&mut self) -> Result<(), super::Error> {
