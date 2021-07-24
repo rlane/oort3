@@ -1,7 +1,7 @@
 use super::{buffer_arena, glutil, model};
 use crate::simulation::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
-use nalgebra::{storage::Storage, vector, Matrix4};
+use nalgebra::{storage::Storage, vector, Matrix4, Vector4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -10,7 +10,6 @@ pub struct ShipRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
-    color_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
 }
@@ -25,6 +24,8 @@ uniform mat4 transform;
 layout(location = 0) in vec2 vertex;
 layout(location = 1) in vec4 position;
 layout(location = 2) in float heading;
+layout(location = 3) in vec4 color;
+out vec4 varying_color;
 
 // https://gist.github.com/yiwenl/3f804e80d0930e34a0b33359259b556c
 vec2 rotate(vec2 v, float a) {
@@ -36,6 +37,7 @@ vec2 rotate(vec2 v, float a) {
 
 void main() {
     gl_Position = transform * (position + vec4(rotate(vertex, heading), 0.0, 0.0));
+    varying_color = color;
 }
     "#,
         )?;
@@ -44,10 +46,10 @@ void main() {
             gl::FRAGMENT_SHADER,
             r#"#version 300 es
 precision mediump float;
-uniform vec4 color;
+in vec4 varying_color;
 out vec4 fragmentColor;
 void main() {
-    fragmentColor = color;
+    fragmentColor = varying_color;
 }
     "#,
         )?;
@@ -57,17 +59,12 @@ void main() {
             .get_uniform_location(&program, "transform")
             .ok_or("did not find uniform")?;
 
-        let color_loc = context
-            .get_uniform_location(&program, "color")
-            .ok_or("did not find uniform")?;
-
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
             context: context.clone(),
             program,
             transform_loc,
-            color_loc,
             projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(context, gl::ARRAY_BUFFER, 1024 * 1024)?,
         })
@@ -77,20 +74,20 @@ void main() {
         self.projection_matrix = *m;
     }
 
+    fn team_color(team: i32) -> Vector4<f32> {
+        match team {
+            0 => vector![0.99, 0.98, 0.00, 1.00],
+            1 => vector![0.99, 0.00, 0.98, 1.00],
+            9 => vector![0.40, 0.40, 0.40, 1.00],
+            _ => vector![1.0, 1.0, 1.0, 1.0],
+        }
+    }
+
     pub fn draw(&mut self, sim: &Simulation) {
         let thickness = 2.0;
-        let color = vector![0.99, 0.98, 0.00, 1.00];
 
         self.context.use_program(Some(&self.program));
         self.context.line_width(thickness);
-
-        self.context.uniform4f(
-            Some(&self.color_loc),
-            color[0],
-            color[1],
-            color[2],
-            color[3],
-        );
 
         let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipHandle>>::new();
 
@@ -179,6 +176,33 @@ void main() {
             self.context.vertex_attrib_divisor(2, 1);
             self.context.enable_vertex_attrib_array(2);
 
+            // color
+
+            let mut color_data: Vec<f32> = vec![];
+            color_data.reserve(handles.len());
+            for &handle in handles {
+                let ship = sim.ship(handle);
+                let color = Self::team_color(ship.data().team);
+                color_data.push(color.x);
+                color_data.push(color.y);
+                color_data.push(color.z);
+                color_data.push(color.w);
+            }
+
+            let (buffer, offset) = self.buffer_arena.write(&color_data);
+            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
+
+            self.context.vertex_attrib_pointer_with_i32(
+                /*indx=*/ 3,
+                /*size=*/ 4,
+                /*type_=*/ gl::FLOAT,
+                /*normalized=*/ false,
+                /*stride=*/ 0,
+                offset as i32,
+            );
+            self.context.vertex_attrib_divisor(3, 1);
+            self.context.enable_vertex_attrib_array(3);
+
             // projection
 
             self.context.uniform_matrix4fv_with_f32_array(
@@ -197,10 +221,12 @@ void main() {
 
             self.context.vertex_attrib_divisor(1, 0);
             self.context.vertex_attrib_divisor(2, 0);
+            self.context.vertex_attrib_divisor(3, 0);
 
             self.context.disable_vertex_attrib_array(0);
             self.context.disable_vertex_attrib_array(1);
             self.context.disable_vertex_attrib_array(2);
+            self.context.disable_vertex_attrib_array(3);
         }
     }
 }

@@ -102,7 +102,7 @@ impl Scenario for BasicScenario {
     fn init(&mut self, sim: &mut Simulation) {
         add_walls(sim);
         ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
-        ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(0));
+        ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(1));
     }
 
     fn status(&self, sim: &Simulation) -> Status {

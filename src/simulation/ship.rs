@@ -52,7 +52,7 @@ pub fn asteroid(variant: i32) -> ShipData {
         class: ShipClass::Asteroid { variant },
         weapons: vec![],
         health: 200.0,
-        team: 1,
+        team: 9,
     }
 }
 
