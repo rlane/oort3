@@ -62,13 +62,15 @@ editor.addAction({
   }
 });
 
+var scenario_select = document.getElementById('scenario');
+
 window.start_scenario = function(name) {
+  scenario_select.value = name;
   rust_module.start(name);
   editor.setValue(rust_module.get_initial_code());
   hide_overlay();
 }
 
-var scenario_select = document.getElementById('scenario');
 var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'tutorial03', 'tutorial04', 'tutorial05', 'tutorial06', 'asteroid'];
 scenarios.forEach((scenario) => {
   var option = document.createElement('option');
