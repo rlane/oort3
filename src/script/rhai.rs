@@ -4,7 +4,7 @@ use crate::simulation::ship::ShipHandle;
 use crate::simulation::Simulation;
 use lazy_static::lazy_static;
 use log::{error, info};
-use nalgebra::Rotation2;
+use nalgebra::{vector, Point2, Rotation2};
 use regex::Regex;
 use rhai::plugin::*;
 use rhai::{Dynamic, Engine, Scope, AST, FLOAT, INT};
@@ -185,6 +185,11 @@ mod vec2_module {
     }
 
     #[rhai_fn(name = "assert_eq", return_raw)]
+    pub fn assert_eq_bool(a: &mut bool, b: bool) -> Result<(), Box<EvalAltResult>> {
+        assert_internal(a, b)
+    }
+
+    #[rhai_fn(name = "assert_eq", return_raw)]
     pub fn assert_eq_i64(a: &mut i64, b: i64) -> Result<(), Box<EvalAltResult>> {
         assert_internal(a, b)
     }
@@ -259,6 +264,56 @@ mod api_module {
 
     pub fn explode(api: Api) {
         api.sim().ship_mut(api.handle).explode();
+    }
+
+    #[derive(Copy, Clone)]
+    pub struct ScanResult {
+        pub found: bool,
+        pub position: Vec2,
+        pub velocity: Vec2,
+    }
+
+    #[rhai_fn(get = "found", pure)]
+    pub fn get_found(obj: &mut ScanResult) -> bool {
+        obj.found
+    }
+
+    #[rhai_fn(get = "position", pure)]
+    pub fn get_position(obj: &mut ScanResult) -> Vec2 {
+        obj.position
+    }
+
+    #[rhai_fn(get = "velocity", pure)]
+    pub fn get_velocity(obj: &mut ScanResult) -> Vec2 {
+        obj.velocity
+    }
+
+    pub fn scan(api: Api) -> ScanResult {
+        let sim = api.sim();
+        let own_team = sim.ship(api.handle).data().team;
+        let own_position: Point2<f64> = sim.ship(api.handle).position().vector.into();
+        let mut result = ScanResult {
+            found: false,
+            position: vector![0.0, 0.0],
+            velocity: vector![0.0, 0.0],
+        };
+        let mut best_distance = 0.0;
+        for &other in sim.ships.iter() {
+            if sim.ship(other).data().team == own_team {
+                continue;
+            }
+            let other_position: Point2<f64> = sim.ship(other).position().vector.into();
+            let distance = nalgebra::distance(&own_position, &other_position);
+            if !result.found || distance < best_distance {
+                result = ScanResult {
+                    found: true,
+                    position: other_position.coords,
+                    velocity: sim.ship(other).velocity(),
+                };
+                best_distance = distance;
+            }
+        }
+        result
     }
 }
 
@@ -789,6 +844,38 @@ assert_eq(rng.next(-10.0, 10.0), -3.0351627041509293);
 assert_eq(rng.next(-10.0, 10.0), -4.8407819174603075);
 assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
        "#,
+        );
+    }
+
+    #[test]
+    fn test_scan() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(
+            &mut sim,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            std::f64::consts::PI,
+            ship::fighter(0),
+        );
+        let _ship1 = ship::create(
+            &mut sim,
+            100.0,
+            2.0,
+            3.0,
+            4.0,
+            std::f64::consts::PI,
+            ship::fighter(1),
+        );
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            "
+let contact = api.scan();
+assert_eq(contact.found, true);
+assert_eq(contact.position, vec2(100, 2));
+assert_eq(contact.velocity, vec2(3, 4));
+        ",
         );
     }
 }
