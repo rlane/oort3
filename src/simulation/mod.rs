@@ -20,23 +20,22 @@ pub(crate) const BULLET_COLLISION_GROUP: u32 = 2;
 
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
-    pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
-    pub(crate) ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
+    ship_data: HashMap<ShipHandle, ShipData>,
+    ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
     pub bullets: IndexSet<BulletHandle>,
-    pub(crate) bullet_data: HashMap<BulletHandle, BulletData>,
-    pub(crate) bodies: RigidBodySet,
-    pub(crate) colliders: ColliderSet,
-    pub(crate) joints: JointSet,
+    bullet_data: HashMap<BulletHandle, BulletData>,
+    bodies: RigidBodySet,
+    colliders: ColliderSet,
+    joints: JointSet,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
-    pub(crate) island_manager: IslandManager,
+    island_manager: IslandManager,
     broad_phase: BroadPhase,
     narrow_phase: NarrowPhase,
     ccd_solver: CCDSolver,
     event_collector: rapier2d_f64::pipeline::ChannelEventCollector,
     contact_recv: crossbeam::channel::Receiver<ContactEvent>,
     intersection_recv: crossbeam::channel::Receiver<IntersectionEvent>,
-    pub collided: bool,
     pub errors: Vec<script::Error>,
 }
 
@@ -65,7 +64,6 @@ impl Simulation {
             event_collector: ChannelEventCollector::new(intersection_send, contact_send),
             contact_recv,
             intersection_recv,
-            collided: false,
             errors: Vec::new(),
         }
     }
@@ -146,8 +144,6 @@ impl Simulation {
                         }
                     }
                 }
-
-                self.collided = true;
             }
         }
 

@@ -231,11 +231,6 @@ impl UI {
             &self.scenario.lines(),
         );
 
-        if self.sim.collided {
-            self.sim.collided = false;
-            println!("collided");
-        }
-
         if self.paused {
             status_msgs.push("PAUSED".to_string());
         } else if self.status == Status::Finished {
