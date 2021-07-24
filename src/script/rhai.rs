@@ -210,56 +210,55 @@ mod vec2_module {
     }
 }
 
-#[derive(Copy, Clone)]
-struct Api {
-    handle: ShipHandle,
-    sim: *mut Simulation,
-}
-
-impl Api {
-    fn new(handle: ShipHandle, sim: *mut Simulation) -> Self {
-        Self { handle, sim }
+#[export_module]
+mod api_module {
+    #[derive(Copy, Clone)]
+    pub struct Api {
+        pub handle: ShipHandle,
+        pub sim: *mut Simulation,
     }
 
-    #[allow(clippy::mut_from_ref)]
-    fn sim(&self) -> &mut Simulation {
-        unsafe { &mut *self.sim }
+    impl Api {
+        #[allow(clippy::mut_from_ref)]
+        fn sim(&self) -> &mut Simulation {
+            unsafe { &mut *self.sim }
+        }
     }
 
-    fn position(&mut self) -> Vec2 {
-        self.sim().ship(self.handle).position().vector
+    pub fn position(api: Api) -> Vec2 {
+        api.sim().ship(api.handle).position().vector
     }
 
-    fn velocity(&mut self) -> Vec2 {
-        self.sim().ship(self.handle).velocity()
+    pub fn velocity(api: Api) -> Vec2 {
+        api.sim().ship(api.handle).velocity()
     }
 
-    fn heading(&mut self) -> f64 {
-        self.sim().ship(self.handle).heading()
+    pub fn heading(api: Api) -> f64 {
+        api.sim().ship(api.handle).heading()
     }
 
-    fn angular_velocity(&mut self) -> f64 {
-        self.sim().ship(self.handle).angular_velocity()
+    pub fn angular_velocity(api: Api) -> f64 {
+        api.sim().ship(api.handle).angular_velocity()
     }
 
-    fn accelerate(&mut self, acceleration: Vec2) {
-        self.sim().ship_mut(self.handle).accelerate(acceleration);
+    pub fn accelerate(api: Api, acceleration: Vec2) {
+        api.sim().ship_mut(api.handle).accelerate(acceleration);
     }
 
-    fn torque(&mut self, acceleration: FLOAT) {
-        self.sim().ship_mut(self.handle).torque(acceleration);
+    pub fn torque(api: Api, acceleration: FLOAT) {
+        api.sim().ship_mut(api.handle).torque(acceleration);
     }
 
-    fn fire_weapon(&mut self) {
-        self.sim().ship_mut(self.handle).fire_weapon(0);
+    pub fn fire_weapon(api: Api) {
+        api.sim().ship_mut(api.handle).fire_weapon(0);
     }
 
-    fn fire_weapon_with_index(&mut self, index: INT) {
-        self.sim().ship_mut(self.handle).fire_weapon(index);
+    pub fn fire_weapon_with_index(api: Api, index: INT) {
+        api.sim().ship_mut(api.handle).fire_weapon(index);
     }
 
-    fn explode(&mut self) {
-        self.sim().ship_mut(self.handle).explode();
+    pub fn explode(api: Api) {
+        api.sim().ship_mut(api.handle).explode();
     }
 }
 
@@ -281,18 +280,7 @@ impl RhaiShipController {
         engine.on_print(|x| info!("Script: {}", x));
         engine.on_debug(|x, src, pos| info!("Script ({}:{:?}): {}", src.unwrap_or(""), pos, x));
 
-        engine
-            .register_type::<Api>()
-            .register_fn("position", Api::position)
-            .register_fn("velocity", Api::velocity)
-            .register_fn("heading", Api::heading)
-            .register_fn("angular_velocity", Api::angular_velocity)
-            .register_fn("accelerate", Api::accelerate)
-            .register_fn("torque", Api::torque)
-            .register_fn("fire_weapon", Api::fire_weapon)
-            .register_fn("fire_weapon", Api::fire_weapon_with_index)
-            .register_fn("explode", Api::explode);
-
+        engine.register_global_module(exported_module!(api_module).into());
         engine.register_global_module(exported_module!(vec2_module).into());
         engine.register_global_module(exported_module!(globals_module).into());
         engine.register_global_module(exported_module!(random_module).into());
@@ -301,7 +289,7 @@ impl RhaiShipController {
         let seed = ((i as i64) << 32) | j as i64;
         let rng = random_module::new_rng(seed);
 
-        let api = Api::new(handle, sim);
+        let api = api_module::Api { handle, sim };
         let mut globals_map = Box::new(std::collections::HashMap::new());
         let globals = globals_module::Globals {
             map: &mut *globals_map,
