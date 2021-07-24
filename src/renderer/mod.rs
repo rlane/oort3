@@ -4,6 +4,7 @@ pub mod glutil;
 pub mod grid_renderer;
 pub mod line_renderer;
 pub mod model;
+pub mod particle_renderer;
 pub mod ship_renderer;
 
 use crate::simulation::scenario::Line;
@@ -12,6 +13,7 @@ use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
+use particle_renderer::ParticleRenderer;
 use ship_renderer::ShipRenderer;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -24,6 +26,7 @@ pub struct Renderer {
     line_renderer: LineRenderer,
     ship_renderer: ShipRenderer,
     bullet_renderer: BulletRenderer,
+    particle_renderer: ParticleRenderer,
     projection_matrix: Matrix4<f32>,
 }
 
@@ -38,12 +41,16 @@ impl Renderer {
             .expect("Failed to get webgl2 context")
             .dyn_into::<WebGl2RenderingContext>()?;
 
+        context.enable(gl::BLEND);
+        context.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
         Ok(Renderer {
             context: context.clone(),
             grid_renderer: GridRenderer::new(context.clone())?,
             line_renderer: LineRenderer::new(context.clone())?,
             ship_renderer: ShipRenderer::new(context.clone())?,
-            bullet_renderer: BulletRenderer::new(context)?,
+            bullet_renderer: BulletRenderer::new(context.clone())?,
+            particle_renderer: ParticleRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
         })
     }
@@ -97,10 +104,15 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
         self.bullet_renderer
             .update_projection_matrix(&self.projection_matrix);
+        self.particle_renderer
+            .update_projection_matrix(&self.projection_matrix);
+
+        self.particle_renderer.update(sim.time(), sim.events());
 
         self.grid_renderer.draw(zoom);
         self.line_renderer.draw(lines);
         self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
+        self.particle_renderer.draw(&sim);
     }
 }

@@ -8,6 +8,7 @@ use self::index_set::IndexSet;
 use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::script;
 use crate::script::ShipController;
+use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 
@@ -37,6 +38,7 @@ pub struct Simulation {
     contact_recv: crossbeam::channel::Receiver<ContactEvent>,
     intersection_recv: crossbeam::channel::Receiver<IntersectionEvent>,
     events: SimEvents,
+    tick: u32,
 }
 
 impl Simulation {
@@ -65,7 +67,12 @@ impl Simulation {
             contact_recv,
             intersection_recv,
             events: SimEvents::new(),
+            tick: 0,
         }
+    }
+
+    pub fn time(&self) -> f64 {
+        self.tick as f64 * PHYSICS_TICK_LENGTH
     }
 
     pub fn ship(self: &Simulation, handle: ShipHandle) -> ShipAccessor {
@@ -128,6 +135,9 @@ impl Simulation {
                     if ship_destroyed {
                         sim.ship_mut(ship).explode();
                     }
+                    sim.events
+                        .hits
+                        .push(sim.bullet(bullet).body().position().translation.vector);
                     sim.bullet_mut(bullet).destroy();
                 };
                 if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
@@ -159,6 +169,8 @@ impl Simulation {
                 }
             }
         }
+
+        self.tick += 1;
     }
 
     pub fn upload_code(&mut self, code: &str, team: i32) {
@@ -216,15 +228,20 @@ impl Default for CollisionEventHandler {
 
 pub struct SimEvents {
     pub errors: Vec<script::Error>,
+    pub hits: Vec<Vector2<f64>>,
 }
 
 impl SimEvents {
     pub fn new() -> Self {
-        Self { errors: vec![] }
+        Self {
+            errors: vec![],
+            hits: vec![],
+        }
     }
 
     pub fn clear(&mut self) {
         self.errors.clear();
+        self.hits.clear();
     }
 }
 
