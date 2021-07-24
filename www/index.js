@@ -1,6 +1,7 @@
 const rust = import("../pkg");
 import * as monaco from 'monaco-editor'
 import "./main.css";
+import "./attribution.txt"
 
 window.dbg = {};
 
