@@ -18,7 +18,7 @@ pub struct ParticleRenderer {
 }
 
 pub struct Particle {
-    pub position: Vector2<f32>,
+    position: Vector2<f32>,
     velocity: Vector2<f32>,
     creation_time: f32,
 }
@@ -129,83 +129,72 @@ void main() {
     }
 
     pub fn draw(&mut self, sim: &Simulation) {
-        let num_instances = self.particles.len();
-
         self.context.use_program(Some(&self.program));
 
+        let current_time = sim.time() as f32;
         self.context
-            .uniform1f(Some(&self.current_time_loc), sim.time() as f32);
+            .uniform1f(Some(&self.current_time_loc), current_time);
+
+        let mut num_instances = 0;
+        let stride = 5 * 4;
+        let mut data: Vec<f32> = vec![];
+        data.reserve(self.particles.len() * 5);
+        for particle in self.particles.iter() {
+            if particle.creation_time < current_time - 10.0 {
+                continue;
+            }
+            num_instances += 1;
+            data.push(particle.position.x);
+            data.push(particle.position.y);
+            data.push(particle.velocity.x);
+            data.push(particle.velocity.y);
+            data.push(particle.creation_time);
+        }
+
+        if num_instances == 0 {
+            return;
+        }
+
+        let (buffer, offset) = self.buffer_arena.write(&data);
+        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
         // position
         let position_index = 0;
-
-        let mut position_data: Vec<f32> = vec![];
-        position_data.reserve(num_instances * 2);
-        for particle in self.particles.iter() {
-            position_data.push(particle.position.x);
-            position_data.push(particle.position.y);
-        }
-
-        let (buffer, offset) = self.buffer_arena.write(&position_data);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ position_index,
             /*size=*/ 2,
             /*type_=*/ gl::FLOAT,
             /*normalized=*/ false,
-            /*stride=*/ 0,
+            /*stride=*/ stride,
             offset as i32,
         );
         self.context.enable_vertex_attrib_array(position_index);
 
         // velocity
         let velocity_index = 1;
-
-        let mut velocity_data: Vec<f32> = vec![];
-        velocity_data.reserve(num_instances * 2);
-        for particle in self.particles.iter() {
-            velocity_data.push(particle.velocity.x);
-            velocity_data.push(particle.velocity.y);
-        }
-
-        let (buffer, offset) = self.buffer_arena.write(&velocity_data);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ velocity_index,
             /*size=*/ 2,
             /*type_=*/ gl::FLOAT,
             /*normalized=*/ false,
-            /*stride=*/ 0,
-            offset as i32,
+            /*stride=*/ stride,
+            8 + offset as i32,
         );
         self.context.enable_vertex_attrib_array(velocity_index);
 
         // creation_time
         let creation_time_index = 2;
-
-        let mut creation_time_data: Vec<f32> = vec![];
-        creation_time_data.reserve(num_instances);
-        for particle in self.particles.iter() {
-            creation_time_data.push(particle.creation_time);
-        }
-
-        let (buffer, offset) = self.buffer_arena.write(&creation_time_data);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ creation_time_index,
             /*size=*/ 1,
             /*type_=*/ gl::FLOAT,
             /*normalized=*/ false,
-            /*stride=*/ 0,
-            offset as i32,
+            /*stride=*/ stride,
+            16 + offset as i32,
         );
         self.context.enable_vertex_attrib_array(creation_time_index);
 
         // projection
-
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
