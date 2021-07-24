@@ -2,8 +2,10 @@ use super::rhai_random::random_module;
 use super::ShipController;
 use crate::simulation::ship::ShipHandle;
 use crate::simulation::Simulation;
+use lazy_static::lazy_static;
 use log::{error, info};
 use nalgebra::Rotation2;
+use regex::Regex;
 use rhai::plugin::*;
 use rhai::{Dynamic, Engine, Scope, AST, FLOAT, INT};
 use smartstring::alias::CompactString;
@@ -355,19 +357,34 @@ impl ShipController for RhaiShipController {
         }
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self) -> Result<(), super::Error> {
         if let Some(ast) = &self.ast {
             let result: Result<(), _> = self.engine.call_fn(&mut self.scope, &ast, "tick", ());
-            if let Err(msg) = result {
-                error!("Script error: {}", msg);
+            if let Err(e) = result {
+                error!("Script error: {}", e);
                 self.ast = None;
+                return Err(super::Error {
+                    line: extract_line(&e.to_string()),
+                    msg: e.to_string(),
+                });
             }
         }
+        Ok(())
     }
 
     fn write_target(&mut self, target: Vec2) {
         self.scope.push("target", target);
     }
+}
+
+fn extract_line(msg: &str) -> usize {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"line (?P<line>\d+)").unwrap();
+    }
+    RE.captures(msg)
+        .and_then(|cap| cap.name("line").map(|line| line.as_str().parse()))
+        .unwrap_or(Ok(0))
+        .unwrap_or(0)
 }
 
 #[allow(deprecated)]

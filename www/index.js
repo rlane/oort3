@@ -170,7 +170,7 @@ window.display_mission_complete_overlay = function(scenario_name, time, code_siz
 }
 
 let current_decorations = [];
-window.set_errors = function(errors) {
+window.display_errors = function(errors) {
   let new_decorations = [];
   for (let error of errors) {
     new_decorations.push({

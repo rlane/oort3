@@ -6,6 +6,7 @@ pub mod ship;
 use self::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
 use self::index_set::IndexSet;
 use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
+use crate::script;
 use crate::script::ShipController;
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
@@ -36,6 +37,7 @@ pub struct Simulation {
     contact_recv: crossbeam::channel::Receiver<ContactEvent>,
     intersection_recv: crossbeam::channel::Receiver<IntersectionEvent>,
     pub collided: bool,
+    pub errors: Vec<script::Error>,
 }
 
 impl Simulation {
@@ -64,6 +66,7 @@ impl Simulation {
             contact_recv,
             intersection_recv,
             collided: false,
+            errors: Vec::new(),
         }
     }
 
@@ -150,11 +153,14 @@ impl Simulation {
 
         while self.intersection_recv.try_recv().is_ok() {}
 
+        self.errors.clear();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
             self.ship_mut(handle).tick();
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
-                ship_controller.tick();
+                if let Err(e) = ship_controller.tick() {
+                    self.errors.push(e);
+                }
             }
         }
     }

@@ -117,4 +117,6 @@ extern "C" {
         code_size: usize,
         next_scenario: &str,
     );
+
+    pub fn display_errors(errors: JsValue);
 }

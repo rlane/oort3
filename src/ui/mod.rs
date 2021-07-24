@@ -4,12 +4,13 @@ pub mod frame_timer;
 pub mod telemetry;
 pub mod userid;
 
-use crate::{api, renderer, simulation};
+use crate::{api, renderer, script, simulation};
 use log::{debug, error, info};
 use nalgebra::{point, vector, Point2};
 use simulation::scenario;
 use simulation::scenario::Status;
 use telemetry::Telemetry;
+use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
@@ -213,6 +214,10 @@ impl UI {
                 self.scenario.tick(&mut self.sim);
                 self.sim.step();
                 self.physics_time += dt;
+                if !self.sim.errors.is_empty() {
+                    self.display_errors(&self.sim.errors);
+                    self.paused = true;
+                }
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
@@ -336,6 +341,10 @@ impl UI {
                 .next_scenario()
                 .unwrap_or_else(|| "".to_string()),
         );
+    }
+
+    pub fn display_errors(&self, errors: &[script::Error]) {
+        api::display_errors(JsValue::from_serde(errors).unwrap());
     }
 }
 
