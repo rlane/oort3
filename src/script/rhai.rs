@@ -173,6 +173,19 @@ mod vec2_module {
         rotatef(obj, angle as f64)
     }
 
+    #[rhai_fn(name = "to_string")]
+    pub fn to_string(obj: &mut Vec2) -> String {
+        format!("({:.2}, {:.2})", obj.x, obj.y)
+    }
+
+    #[rhai_fn(name = "to_debug")]
+    pub fn to_debug(obj: &mut Vec2) -> String {
+        format!("({}, {})", obj.x, obj.y)
+    }
+}
+
+#[export_module]
+mod util_module {
     fn assert_internal<T: PartialEq + std::fmt::Debug>(
         a: &mut T,
         b: T,
@@ -202,16 +215,6 @@ mod vec2_module {
     #[rhai_fn(name = "assert_eq", return_raw)]
     pub fn assert_eq_vec2(a: &mut Vec2, b: Vec2) -> Result<(), Box<EvalAltResult>> {
         assert_internal(a, b)
-    }
-
-    #[rhai_fn(name = "to_string")]
-    pub fn to_string(obj: &mut Vec2) -> String {
-        format!("({:.2}, {:.2})", obj.x, obj.y)
-    }
-
-    #[rhai_fn(name = "to_debug")]
-    pub fn to_debug(obj: &mut Vec2) -> String {
-        format!("({}, {})", obj.x, obj.y)
     }
 }
 
@@ -339,6 +342,7 @@ impl RhaiShipController {
         engine.register_global_module(exported_module!(vec2_module).into());
         engine.register_global_module(exported_module!(globals_module).into());
         engine.register_global_module(exported_module!(random_module).into());
+        engine.register_global_module(exported_module!(util_module).into());
 
         let (i, j) = handle.0.into_raw_parts();
         let seed = ((i as i64) << 32) | j as i64;
