@@ -150,3 +150,7 @@ a:hover {
 #code-size-leaderboard {
   float: right;
 }
+
+.errorDecoration {
+  background-color: #881e1e;
+}

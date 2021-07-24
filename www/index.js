@@ -168,3 +168,19 @@ window.display_mission_complete_overlay = function(scenario_name, time, code_siz
   }
   xhr.send();
 }
+
+let current_decorations = [];
+window.set_errors = function(errors) {
+  let new_decorations = [];
+  for (let error of errors) {
+    new_decorations.push({
+      range: new monaco.Range(error.line,1,error.line,1),
+      options: {
+        isWholeLine: true,
+        className: 'errorDecoration',
+        hoverMessage: { value: error.msg },
+      }
+    });
+  }
+  current_decorations = editor.deltaDecorations(current_decorations, new_decorations);
+};
