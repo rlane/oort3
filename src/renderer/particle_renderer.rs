@@ -122,7 +122,7 @@ void main() {
                 self.add_particle(Particle {
                     position: p,
                     velocity: v,
-                    creation_time: current_time as f32,
+                    creation_time: current_time as f32 + rng.gen_range(-0.1..0.3),
                 });
             }
         }
