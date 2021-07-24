@@ -107,6 +107,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial03" => Box::new(Tutorial03::new()),
         "tutorial04" => Box::new(Tutorial04::new()),
         "tutorial05" => Box::new(Tutorial05::new()),
+        "tutorial06" => Box::new(Tutorial06::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -728,6 +729,118 @@ fn turn_to(target_heading) {
 fn tick() {
     turn_to((target - api.position()).angle());
     api.accelerate((target - api.position() - api.velocity())
+        .normalize().rotate(-api.heading()) * 200.0);
+    api.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial06".to_string())
+    }
+}
+
+struct Tutorial06 {}
+
+impl Tutorial06 {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Tutorial06 {
+    fn name(&self) -> String {
+        "tutorial06".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation) {
+        add_walls(sim);
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+
+        let mut rng = rand::thread_rng();
+        let size = 500.0;
+        let range = -size..size;
+        for _ in 0..3 {
+            let target = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+            ship::create(
+                sim,
+                target.x,
+                target.y,
+                rng.gen_range(0.0..std::f64::consts::TAU),
+                rng.gen_range(-400.0..400.0),
+                rng.gen_range(-400.0..400.0),
+                fighter(1),
+            );
+        }
+
+        sim.upload_code(
+            r#"
+let target = api.position();
+
+fn tick() {
+    if (target - api.position()).magnitude() < 50 {
+        target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
+    }
+    api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
+    api.torque(-api.angular_velocity());
+}
+        "#,
+            1,
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tutorial_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        r#"
+// Tutorial 06
+// Destroy the enemy ships. Use your radar to find them.
+
+fn tick() {
+    let contact = api.scan();
+    api.accelerate(0.1 * (contact.position - api.position()));
+    api.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn solution(&self) -> String {
+        r#"
+// Tutorial 06
+// Destroy the enemy ships. Use your radar to find them.
+
+fn turn(speed) {
+    let acc = 10.0;
+    let margin = 0.01;
+    let av = api.angular_velocity();
+    if av < speed - margin {
+        api.torque(acc);
+    } else if av > speed + margin {
+        api.torque(-acc);
+    }
+}
+
+fn turn_to(target_heading) {
+    let speed = 2.0;
+    let dh = (2 * PI() + api.heading() - target_heading) % (2 * PI());
+    if dh < PI() {
+        turn(-speed);
+    } else if dh >= PI() {
+        turn(speed);
+    }
+}
+
+fn tick() {
+    let contact = api.scan();
+    let target_position = contact.position + contact.velocity * 0.1;
+    turn_to((target_position - api.position()).angle());
+    api.accelerate((target_position - api.position() - api.velocity())
         .normalize().rotate(-api.heading()) * 200.0);
     api.fire_weapon();
 }
