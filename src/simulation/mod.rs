@@ -133,6 +133,9 @@ impl Simulation {
                         ship_data.health <= 0.0
                     };
                     if ship_destroyed {
+                        sim.events
+                            .ships_destroyed
+                            .push(sim.ship(ship).body().position().translation.vector);
                         sim.ship_mut(ship).explode();
                     }
                     sim.events
@@ -229,6 +232,7 @@ impl Default for CollisionEventHandler {
 pub struct SimEvents {
     pub errors: Vec<script::Error>,
     pub hits: Vec<Vector2<f64>>,
+    pub ships_destroyed: Vec<Vector2<f64>>,
 }
 
 impl SimEvents {
@@ -236,12 +240,14 @@ impl SimEvents {
         Self {
             errors: vec![],
             hits: vec![],
+            ships_destroyed: vec![],
         }
     }
 
     pub fn clear(&mut self) {
         self.errors.clear();
         self.hits.clear();
+        self.ships_destroyed.clear();
     }
 }
 

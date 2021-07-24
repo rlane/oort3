@@ -107,12 +107,14 @@ impl Renderer {
         self.particle_renderer
             .update_projection_matrix(&self.projection_matrix);
 
-        self.particle_renderer.update(sim.time(), sim.events());
-
         self.grid_renderer.draw(zoom);
         self.line_renderer.draw(lines);
         self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
         self.particle_renderer.draw(&sim);
+    }
+
+    pub fn update(&mut self, sim: &Simulation) {
+        self.particle_renderer.update(sim.time(), sim.events());
     }
 }

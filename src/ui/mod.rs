@@ -218,6 +218,7 @@ impl UI {
                     self.display_errors(&self.sim.events().errors);
                     self.paused = true;
                 }
+                self.renderer.update(&self.sim);
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;

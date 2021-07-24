@@ -113,6 +113,19 @@ void main() {
                 creation_time: current_time as f32,
             });
         }
+
+        for position in events.ships_destroyed.iter() {
+            let s = 200.0;
+            for _ in 0..10 {
+                let v = vector![rng.gen_range(-s..s), rng.gen_range(-s..s)];
+                let p = vector![position.x as f32, position.y as f32] + v * rng.gen_range(0.0..0.1);
+                self.add_particle(Particle {
+                    position: p,
+                    velocity: v,
+                    creation_time: current_time as f32,
+                });
+            }
+        }
     }
 
     pub fn draw(&mut self, sim: &Simulation) {
