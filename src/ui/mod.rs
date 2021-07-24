@@ -68,7 +68,7 @@ impl UI {
         log::info!("userid {}", &userid);
         log::info!("username {}", &userid::get_username(&userid));
 
-        UI {
+        let ui = UI {
             sim,
             renderer,
             zoom,
@@ -88,7 +88,9 @@ impl UI {
             fps: fps::FPS::new(),
             latest_code: "".to_string(),
             manual_control: false,
-        }
+        };
+        ui.display_errors(&[]);
+        ui
     }
 
     pub fn render(&mut self) {
