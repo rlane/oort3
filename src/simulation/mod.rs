@@ -36,7 +36,7 @@ pub struct Simulation {
     event_collector: rapier2d_f64::pipeline::ChannelEventCollector,
     contact_recv: crossbeam::channel::Receiver<ContactEvent>,
     intersection_recv: crossbeam::channel::Receiver<IntersectionEvent>,
-    pub errors: Vec<script::Error>,
+    events: SimEvents,
 }
 
 impl Simulation {
@@ -64,7 +64,7 @@ impl Simulation {
             event_collector: ChannelEventCollector::new(intersection_send, contact_send),
             contact_recv,
             intersection_recv,
-            errors: Vec::new(),
+            events: SimEvents::new(),
         }
     }
 
@@ -97,6 +97,7 @@ impl Simulation {
     }
 
     pub fn step(self: &mut Simulation) {
+        self.events.clear();
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
 
@@ -149,13 +150,12 @@ impl Simulation {
 
         while self.intersection_recv.try_recv().is_ok() {}
 
-        self.errors.clear();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
             self.ship_mut(handle).tick();
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
                 if let Err(e) = ship_controller.tick() {
-                    self.errors.push(e);
+                    self.events.errors.push(e);
                 }
             }
         }
@@ -167,11 +167,15 @@ impl Simulation {
                 if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
                     ship_controller.upload_code(code);
                     if let Err(e) = ship_controller.start() {
-                        self.errors.push(e);
+                        self.events.errors.push(e);
                     }
                 }
             }
         }
+    }
+
+    pub fn events(&self) -> &SimEvents {
+        &self.events
     }
 }
 
@@ -207,5 +211,25 @@ impl EventHandler for CollisionEventHandler {
 impl Default for CollisionEventHandler {
     fn default() -> Self {
         CollisionEventHandler::new()
+    }
+}
+
+pub struct SimEvents {
+    pub errors: Vec<script::Error>,
+}
+
+impl SimEvents {
+    pub fn new() -> Self {
+        Self { errors: vec![] }
+    }
+
+    pub fn clear(&mut self) {
+        self.errors.clear();
+    }
+}
+
+impl Default for SimEvents {
+    fn default() -> Self {
+        SimEvents::new()
     }
 }

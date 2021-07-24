@@ -214,8 +214,8 @@ impl UI {
                 self.scenario.tick(&mut self.sim);
                 self.sim.step();
                 self.physics_time += dt;
-                if !self.sim.errors.is_empty() {
-                    self.display_errors(&self.sim.errors);
+                if !self.sim.events().errors.is_empty() {
+                    self.display_errors(&self.sim.events().errors);
                     self.paused = true;
                 }
             }
@@ -305,8 +305,8 @@ impl UI {
         }
         self.sim.upload_code(code, /*team=*/ 0);
         self.latest_code = code.to_string();
-        if !self.sim.errors.is_empty() {
-            self.display_errors(&self.sim.errors);
+        if !self.sim.events().errors.is_empty() {
+            self.display_errors(&self.sim.events().errors);
             self.paused = true;
         }
     }
