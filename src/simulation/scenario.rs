@@ -14,12 +14,33 @@ use Status::Running;
 pub enum Status {
     Running,
     Finished,
+    Failed,
 }
 
 pub struct Line {
     pub a: Point2<f64>,
     pub b: Point2<f64>,
     pub color: Vector4<f32>,
+}
+
+fn check_tutorial_victory(sim: &Simulation) -> Status {
+    let mut player_alive = false;
+    let mut enemy_alive = false;
+    for &handle in sim.ships.iter() {
+        let team = sim.ship(handle).data().team;
+        if team == 0 {
+            player_alive = true;
+        } else {
+            enemy_alive = true;
+        }
+    }
+    if !player_alive {
+        Status::Failed
+    } else if !enemy_alive {
+        Status::Finished
+    } else {
+        Status::Running
+    }
 }
 
 pub trait Scenario {
@@ -225,11 +246,7 @@ impl Scenario for Tutorial01 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.iter().len() > 1 {
-            Running
-        } else {
-            Status::Finished
-        }
+        check_tutorial_victory(sim)
     }
 
     fn initial_code(&self) -> String {
@@ -526,11 +543,7 @@ impl Scenario for Tutorial04 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.iter().len() > 1 {
-            Running
-        } else {
-            Status::Finished
-        }
+        check_tutorial_victory(sim)
     }
 
     fn initial_code(&self) -> String {
@@ -667,11 +680,7 @@ fn tick() {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.iter().len() > 1 {
-            Running
-        } else {
-            Status::Finished
-        }
+        check_tutorial_victory(sim)
     }
 
     fn initial_code(&self) -> String {

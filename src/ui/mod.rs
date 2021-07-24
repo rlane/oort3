@@ -8,6 +8,7 @@ use crate::{api, renderer, simulation};
 use log::{debug, error, info};
 use nalgebra::{point, vector, Point2};
 use simulation::scenario;
+use simulation::scenario::Status;
 use telemetry::Telemetry;
 
 const MIN_ZOOM: f32 = 5e-5;
@@ -20,7 +21,7 @@ pub struct UI {
     zoom: f32,
     camera_target: Point2<f32>,
     frame_timer: frame_timer::FrameTimer,
-    finished: bool,
+    status: Status,
     quit: bool,
     single_steps: i32,
     paused: bool,
@@ -53,7 +54,6 @@ impl UI {
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
         let paused = false;
-        let finished = false;
         let single_steps = 0;
 
         let mut scenario = scenario::load(scenario_name);
@@ -72,7 +72,7 @@ impl UI {
             zoom,
             camera_target,
             frame_timer,
-            finished,
+            status: Status::Running,
             quit: false,
             single_steps,
             paused,
@@ -193,18 +193,20 @@ impl UI {
             self.physics_time = now;
         }
 
-        if !self.finished && self.scenario.status(&self.sim) == scenario::Status::Finished {
-            self.finished = true;
-            telemetry::send(Telemetry::FinishScenario {
-                scenario_name: self.scenario.name(),
-                code: self.latest_code.to_string(),
-                ticks: self.tick,
-                code_size: code_size::calculate(&self.latest_code),
-            });
-            self.display_finished_screen();
+        if self.status == Status::Running {
+            self.status = self.scenario.status(&self.sim);
+            if self.status == Status::Finished {
+                telemetry::send(Telemetry::FinishScenario {
+                    scenario_name: self.scenario.name(),
+                    code: self.latest_code.to_string(),
+                    ticks: self.tick,
+                    code_size: code_size::calculate(&self.latest_code),
+                });
+                self.display_finished_screen();
+            }
         }
 
-        if !self.finished && (!self.paused || self.single_steps > 0) {
+        if self.status == Status::Running && (!self.paused || self.single_steps > 0) {
             let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
             self.physics_time = self.physics_time.max(now - dt * 2.0);
             if self.single_steps > 0 || self.physics_time + dt < now {
@@ -231,8 +233,10 @@ impl UI {
 
         if self.paused {
             status_msgs.push("PAUSED".to_string());
-        } else if self.finished {
+        } else if self.status == Status::Finished {
             status_msgs.push("FINISHED".to_string());
+        } else if self.status == Status::Failed {
+            status_msgs.push("FAILED".to_string());
         }
 
         if self.tick % 10 == 0 {
