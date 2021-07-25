@@ -657,12 +657,17 @@ impl Scenario for Tutorial05 {
             r#"
 let target = api.position();
 
+fn turn_to(target_heading) {
+    api.torque(20 * (angle_diff(api.heading(), target_heading)
+        - 0.1 * api.angular_velocity()));
+}
+
 fn tick() {
     if (target - api.position()).magnitude() < 50 {
         target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
     }
     api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
-    api.torque(-api.angular_velocity());
+    turn_to((target - api.position()).angle());
 }
         "#,
             1,
@@ -705,25 +710,9 @@ fn tick() {
 // Destroy the enemy ship. Its location is given by the
 // "target" variable.
 
-fn turn(speed) {
-    let acc = 10.0;
-    let margin = 0.01;
-    let av = api.angular_velocity();
-    if av < speed - margin {
-        api.torque(acc);
-    } else if av > speed + margin {
-        api.torque(-acc);
-    }
-}
-
 fn turn_to(target_heading) {
-    let speed = 2.0;
-    let dh = (2 * PI() + api.heading() - target_heading) % (2 * PI());
-    if dh < PI() {
-        turn(-speed);
-    } else if dh >= PI() {
-        turn(speed);
-    }
+    api.torque(20 * (angle_diff(api.heading(), target_heading)
+        - 0.1*api.angular_velocity()));
 }
 
 fn tick() {
@@ -779,12 +768,17 @@ impl Scenario for Tutorial06 {
             r#"
 let target = api.position();
 
+fn turn_to(target_heading) {
+    api.torque(20 * (angle_diff(api.heading(), target_heading)
+        - 0.5 * api.angular_velocity()));
+}
+
 fn tick() {
     if (target - api.position()).magnitude() < 50 {
         target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
     }
     api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
-    api.torque(-api.angular_velocity());
+    turn_to((target - api.position()).angle());
 }
         "#,
             1,
@@ -813,34 +807,18 @@ fn tick() {
     fn solution(&self) -> String {
         r#"
 // Tutorial 06
-// Destroy the enemy ships. Use your radar to find them.
-
-fn turn(speed) {
-    let acc = 10.0;
-    let margin = 0.01;
-    let av = api.angular_velocity();
-    if av < speed - margin {
-        api.torque(acc);
-    } else if av > speed + margin {
-        api.torque(-acc);
-    }
-}
+// Destroy the enemy ship. Its location is given by the
+// "target" variable.
 
 fn turn_to(target_heading) {
-    let speed = 2.0;
-    let dh = (2 * PI() + api.heading() - target_heading) % (2 * PI());
-    if dh < PI() {
-        turn(-speed);
-    } else if dh >= PI() {
-        turn(speed);
-    }
+    api.torque(20 * (angle_diff(api.heading(), target_heading)
+        - 0.1*api.angular_velocity()));
 }
 
 fn tick() {
     let contact = api.scan();
-    let target_position = contact.position + contact.velocity * 0.1;
-    turn_to((target_position - api.position()).angle());
-    api.accelerate((target_position - api.position() - api.velocity())
+    turn_to((contact.position - api.position()).angle());
+    api.accelerate((contact.position - api.position() - api.velocity())
         .normalize().rotate(-api.heading()) * 200.0);
     api.fire_weapon();
 }

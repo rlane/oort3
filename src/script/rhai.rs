@@ -216,6 +216,45 @@ mod util_module {
     pub fn assert_eq_vec2(a: &mut Vec2, b: Vec2) -> Result<(), Box<EvalAltResult>> {
         assert_internal(a, b)
     }
+
+    fn normalize_angle(a: f64) -> f64 {
+        use std::f64::consts::TAU;
+        let mut a = a;
+        if a.abs() > TAU {
+            a %= TAU;
+        }
+        if a < 0.0 {
+            a += TAU;
+        }
+        a
+    }
+
+    #[rhai_fn(name = "angle_diff")]
+    pub fn angle_diff_ff(a: f64, b: f64) -> f64 {
+        use std::f64::consts::PI;
+        use std::f64::consts::TAU;
+        let c = normalize_angle(b - a);
+        if c > PI {
+            c - TAU
+        } else {
+            c
+        }
+    }
+
+    #[rhai_fn(name = "angle_diff")]
+    pub fn angle_diff_fi(a: f64, b: i64) -> f64 {
+        angle_diff_ff(a, b as f64)
+    }
+
+    #[rhai_fn(name = "angle_diff")]
+    pub fn angle_diff_if(a: i64, b: f64) -> f64 {
+        angle_diff_ff(a as f64, b)
+    }
+
+    #[rhai_fn(name = "angle_diff")]
+    pub fn angle_diff_ii(a: i64, b: i64) -> f64 {
+        angle_diff_ff(a as f64, b as f64)
+    }
 }
 
 #[export_module]
@@ -880,6 +919,31 @@ assert_eq(contact.found, true);
 assert_eq(contact.position, vec2(100, 2));
 assert_eq(contact.velocity, vec2(3, 4));
         ",
+        );
+    }
+
+    #[test]
+    fn test_angle_diff() {
+        let mut sim = Simulation::new();
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
+        let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
+        ctrl.test(
+            r#"
+assert_eq(angle_diff(0.0, 0.0), 0.0);
+assert_eq(angle_diff(0.0, PI()/2), PI()/2);
+assert_eq(angle_diff(0.0, PI()), PI());
+assert_eq(angle_diff(0.0, 3*PI()/2), -PI()/2);
+
+assert_eq(angle_diff(PI()/2, PI()/2), 0.0);
+assert_eq(angle_diff(PI()/2, PI()), PI()/2);
+assert_eq(angle_diff(PI()/2, 3*PI()/2), PI());
+assert_eq(angle_diff(PI()/2, 0.0), -PI()/2);
+
+assert_eq(angle_diff(-PI()/2, -PI()/2), 0.0);
+assert_eq(angle_diff(-PI()/2, 0.0), PI()/2);
+assert_eq(angle_diff(-PI()/2, PI()/2), PI());
+assert_eq(angle_diff(-PI()/2, PI()), -PI()/2);
+       "#,
         );
     }
 }
