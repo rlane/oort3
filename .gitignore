@@ -1,3 +1,5 @@
 /target
 /wbindgen
 /pkg
+/flamegraph.svg
+perf.data*
