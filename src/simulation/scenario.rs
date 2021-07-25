@@ -200,6 +200,14 @@ impl Scenario for BulletStressScenario {
             );
         }
     }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        if sim.bullets.is_empty() {
+            Status::Finished
+        } else {
+            Status::Running
+        }
+    }
 }
 
 struct WelcomeScenario {}

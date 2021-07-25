@@ -1,14 +1,14 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use oort::simulation;
+use oort::simulation::scenario;
 
 fn many_bullets() {
     let mut sim = simulation::Simulation::new();
+    let mut scenario = scenario::load("bullet-stress");
+    scenario.init(&mut sim);
 
-    let ship0 = sim.add_ship(-100.0, 0.0, 0.0, 0.0, 0.0);
-    sim.add_ship(100.0, 0.0, 0.0, 0.0, 0.1);
-
-    for _ in 0..1000 {
-        sim.fire_weapon(ship0);
+    while scenario.status(&sim) == scenario::Status::Running {
+        scenario.tick(&mut sim);
         sim.step();
     }
 }

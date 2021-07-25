@@ -73,3 +73,7 @@ wasm-opt = false
 [[bench]]
 name = "bullets"
 harness = false
+
+[[bench]]
+name = "tutorials"
+harness = false
