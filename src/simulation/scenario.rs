@@ -99,7 +99,7 @@ pub fn add_walls(sim: &mut Simulation) {
 pub fn load(name: &str) -> Box<dyn Scenario> {
     let scenario: Box<dyn Scenario> = match name {
         "basic" => Box::new(BasicScenario {}),
-        "asteroid" => Box::new(AsteroidScenario {}),
+        "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario {}),
         "tutorial01" => Box::new(Tutorial01 {}),
@@ -137,11 +137,11 @@ impl Scenario for BasicScenario {
     }
 }
 
-struct AsteroidScenario {}
+struct AsteroidStressScenario {}
 
-impl Scenario for AsteroidScenario {
+impl Scenario for AsteroidStressScenario {
     fn name(&self) -> String {
-        "asteroid".into()
+        "asteroid-stress".into()
     }
 
     fn init(&mut self, sim: &mut Simulation) {
