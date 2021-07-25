@@ -108,6 +108,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial04" => Box::new(Tutorial04::new()),
         "tutorial05" => Box::new(Tutorial05::new()),
         "tutorial06" => Box::new(Tutorial06::new()),
+        "furball" => Box::new(Furball::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -809,6 +810,103 @@ fn tick() {
 // Tutorial 06
 // Destroy the enemy ship. Its location is given by the
 // "target" variable.
+
+fn turn_to(target_heading) {
+    api.torque(20 * (angle_diff(api.heading(), target_heading)
+        - 0.1*api.angular_velocity()));
+}
+
+fn tick() {
+    let contact = api.scan();
+    turn_to((contact.position - api.position()).angle());
+    api.accelerate((contact.position - api.position() - api.velocity())
+        .normalize().rotate(-api.heading()) * 200.0);
+    api.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+}
+
+struct Furball {}
+
+impl Furball {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Furball {
+    fn name(&self) -> String {
+        "furball".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation) {
+        for team in 0..2 {
+            for _ in 0..10 {
+                let mut rng = rand::thread_rng();
+                let size = 500.0;
+                let range = -size..size;
+                let center = point![(team as f64 - 0.5) * 1000.0, 0.0];
+                let offset = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+                ship::create(
+                    sim,
+                    center.x + offset.x,
+                    center.y + offset.y,
+                    rng.gen_range(0.0..std::f64::consts::TAU),
+                    0.0,
+                    0.0,
+                    fighter(team),
+                );
+            }
+        }
+
+        sim.upload_code(
+            r#"
+let target = api.position();
+
+fn turn_to(target_heading) {
+    api.torque(20 * (angle_diff(api.heading(), target_heading)
+        - 0.5 * api.angular_velocity()));
+}
+
+fn tick() {
+    if (target - api.position()).magnitude() < 50 {
+        target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
+    }
+    api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
+    turn_to((target - api.position()).angle());
+    api.fire_weapon();
+}
+        "#,
+            1,
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tutorial_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        r#"
+// Furball
+// Destroy the enemy ships.
+
+fn tick() {
+    let contact = api.scan();
+    api.accelerate(0.1 * (contact.position - api.position()));
+    api.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn solution(&self) -> String {
+        r#"
+// Furball
+// Destroy the enemy ships.
 
 fn turn_to(target_heading) {
     api.torque(20 * (angle_diff(api.heading(), target_heading)
