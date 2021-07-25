@@ -408,7 +408,7 @@ impl RhaiShipController {
     }
 
     pub fn test(&mut self, code: &str) {
-        self.upload_code(code);
+        self.upload_code(code).expect("Uploading code failed");
         if let Some(v) = self
             .engine
             .consume_ast_with_scope(&mut self.scope, self.ast.as_ref().unwrap())
@@ -420,13 +420,18 @@ impl RhaiShipController {
 }
 
 impl ShipController for RhaiShipController {
-    fn upload_code(&mut self, code: &str) {
+    fn upload_code(&mut self, code: &str) -> Result<(), super::Error> {
         match self.engine.compile(code) {
             Ok(ast) => {
                 self.ast = Some(ast_rewrite::rewrite_ast(ast));
+                Ok(())
             }
-            Err(msg) => {
-                error!("Compilation failed: {}", msg);
+            Err(e) => {
+                error!("Compilation failed: {}", e);
+                Err(super::Error {
+                    line: extract_line(&e.to_string()),
+                    msg: e.to_string(),
+                })
             }
         }
     }
