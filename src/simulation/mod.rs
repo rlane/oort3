@@ -126,6 +126,10 @@ impl Simulation {
             if let ContactEvent::Started(h1, h2) = event {
                 let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
                 let handle_hit = |sim: &mut Simulation, ship, bullet| {
+                    if sim.bullet(bullet).data().team == sim.ship(ship).data().team {
+                        sim.bullet_mut(bullet).destroy();
+                        return;
+                    }
                     let damage = sim.bullet(bullet).data().damage;
                     let ship_destroyed = {
                         let ship_data = sim.ship_data.get_mut(&ship).unwrap();

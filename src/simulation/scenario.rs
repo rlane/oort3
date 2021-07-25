@@ -193,7 +193,10 @@ impl Scenario for BulletStressScenario {
                 rng.gen_range(-bound..bound),
                 rng.gen_range(-s..s),
                 rng.gen_range(-s..s),
-                BulletData { damage: 10.0 },
+                BulletData {
+                    damage: 10.0,
+                    team: 0,
+                },
             );
         }
     }

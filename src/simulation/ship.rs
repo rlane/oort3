@@ -192,6 +192,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
     pub fn fire_weapon(&mut self, index: i64) {
         let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+        let team = ship_data.team;
         let damage;
         {
             let weapon = &mut ship_data.weapons[index as usize];
@@ -214,7 +215,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             p.y,
             v.x,
             v.y,
-            BulletData { damage },
+            BulletData { damage, team },
         );
     }
 

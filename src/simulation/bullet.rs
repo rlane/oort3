@@ -14,6 +14,7 @@ impl HasIndex for BulletHandle {
 
 pub struct BulletData {
     pub damage: f64,
+    pub team: i32,
 }
 
 pub fn create(sim: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, data: BulletData) {
