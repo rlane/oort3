@@ -108,7 +108,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial04" => Box::new(Tutorial04::new()),
         "tutorial05" => Box::new(Tutorial05::new()),
         "tutorial06" => Box::new(Tutorial06::new()),
-        "furball" => Box::new(Furball::new()),
+        "tutorial07" => Box::new(Tutorial07::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -830,22 +830,27 @@ fn tick() {
         .trim()
         .to_string()
     }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial07".to_string())
+    }
 }
 
-struct Furball {}
+struct Tutorial07 {}
 
-impl Furball {
+impl Tutorial07 {
     fn new() -> Self {
         Self {}
     }
 }
 
-impl Scenario for Furball {
+impl Scenario for Tutorial07 {
     fn name(&self) -> String {
-        "furball".into()
+        "tutorial07".into()
     }
 
     fn init(&mut self, sim: &mut Simulation) {
+        add_walls(sim);
         for team in 0..2 {
             for _ in 0..10 {
                 let mut rng = rand::thread_rng();
@@ -893,7 +898,7 @@ fn tick() {
 
     fn initial_code(&self) -> String {
         r#"
-// Furball
+// tutorial07
 // Destroy the enemy ships.
 
 fn tick() {
@@ -908,7 +913,7 @@ fn tick() {
 
     fn solution(&self) -> String {
         r#"
-// Furball
+// tutorial07
 // Destroy the enemy ships.
 
 fn turn_to(target_heading) {

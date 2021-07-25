@@ -49,3 +49,8 @@ fn test_tutorial05() {
 fn test_tutorial06() {
     check_solution("tutorial06");
 }
+
+#[test]
+fn test_tutorial07() {
+    check_solution("tutorial07");
+}
