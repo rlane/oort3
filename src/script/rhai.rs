@@ -371,7 +371,7 @@ pub struct RhaiShipController {
 impl RhaiShipController {
     pub fn new(handle: ShipHandle, sim: *mut Simulation) -> Self {
         let mut engine = Engine::new();
-        engine.set_max_expr_depths(64, 32);
+        engine.set_max_expr_depths(64, 64);
         engine.set_max_operations(1000);
 
         engine.on_print(|x| info!("Script: {}", x));
