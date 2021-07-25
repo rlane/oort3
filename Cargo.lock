@@ -631,6 +631,7 @@ dependencies = [
  "rand_chacha",
  "rand_seeder",
  "rapier2d-f64",
+ "rayon",
  "rbtag",
  "regex",
  "rhai",
