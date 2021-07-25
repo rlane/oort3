@@ -311,7 +311,7 @@ impl Scenario for Tutorial02 {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
             if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0
-                && ship.velocity().magnitude() < 1.0
+                && ship.velocity().magnitude() < 5.0
             {
                 self.on_target_ticks += 1;
             } else {
@@ -432,7 +432,7 @@ impl Scenario for Tutorial03 {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
             if (ship.position().vector - self.target.coords).magnitude() < 50.0
-                && ship.velocity().magnitude() < 1.0
+                && ship.velocity().magnitude() < 5.0
             {
                 self.on_target_ticks += 1;
             } else {
