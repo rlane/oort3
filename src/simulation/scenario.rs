@@ -353,20 +353,23 @@ impl Scenario for Tutorial02 {
     }
 
     fn initial_code(&self) -> String {
-        "\
+        r#"
 // Tutorial 02
-// Fly to the target circle and stop.
+// Fly to the target circle and stop. The target is in a location
+// given by the "target" variable.
 
 fn tick() {
     api.accelerate(vec2(100.0, 0.0));
-}"
+}"#
+        .trim()
         .to_string()
     }
 
     fn solution(&self) -> String {
-        "\
+        r#"
 // Tutorial 02
-// Fly to the target circle and stop.
+// Fly to the target circle and stop. The target is in a location
+// given by the "target" variable.
 
 fn tick() {
     let acc = 100.0;
@@ -384,7 +387,8 @@ fn tick() {
         api.accelerate(vec2(-acc, 0.0));
     }
 }
-"
+"#
+        .trim()
         .to_string()
     }
 
