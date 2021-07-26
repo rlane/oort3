@@ -1,7 +1,7 @@
 use super::{buffer_arena, glutil};
-use nalgebra::{storage::Storage, vector, Matrix4, Vector4};
+use nalgebra::{storage::Storage, vector, Matrix4};
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
 
 pub struct GridRenderer {
@@ -10,7 +10,11 @@ pub struct GridRenderer {
     transform_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
-    buffer_arena: buffer_arena::BufferArena,
+    buffer: WebGlBuffer,
+    coarse_offset: i32,
+    coarse_num_vertices: i32,
+    fine_offset: i32,
+    fine_num_vertices: i32,
 }
 
 impl GridRenderer {
@@ -49,34 +53,38 @@ void main() {
             .get_uniform_location(&program, "color")
             .ok_or("did not find uniform")?;
 
+        let mut buffer_arena = buffer_arena::BufferArena::new(
+            "grid_renderer",
+            context.clone(),
+            gl::ARRAY_BUFFER,
+            1024 * 1024,
+        )?;
+
+        let coarse_vertex_data = Self::generate_vertices(1e3);
+        let coarse_num_vertices = (coarse_vertex_data.len() / 2) as i32;
+        let (_, coarse_offset) = buffer_arena.write(&coarse_vertex_data);
+
+        let fine_vertex_data = Self::generate_vertices(1e2);
+        let fine_num_vertices = (fine_vertex_data.len() / 2) as i32;
+        let (buffer, fine_offset) = buffer_arena.write(&fine_vertex_data);
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
-            context: context.clone(),
+            context,
             program,
             transform_loc,
             color_loc,
             projection_matrix: Matrix4::identity(),
-            buffer_arena: buffer_arena::BufferArena::new(
-                "grid_renderer",
-                context,
-                gl::ARRAY_BUFFER,
-                1024 * 1024,
-            )?,
+            buffer,
+            coarse_offset: coarse_offset as i32,
+            coarse_num_vertices,
+            fine_offset: fine_offset as i32,
+            fine_num_vertices,
         })
     }
 
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
-    }
-
-    pub fn draw(&mut self, zoom: f32) {
-        let f = |z: f32| 0.2 * (zoom * z * 10.0).log(10.0).clamp(0.0, 1.0);
-        self.draw_subgrid(1e2, vector![0.0, f(1e3), 0.0, 1.0]);
-        self.draw_subgrid(1e3, vector![0.0, f(1e4), 0.0, 1.0]);
-    }
-
-    pub fn draw_subgrid(&mut self, grid_size: f32, color: Vector4<f32>) {
+    fn generate_vertices(grid_size: f32) -> Vec<f32> {
         use crate::simulation::WORLD_SIZE;
 
         let mut vertices = vec![];
@@ -86,42 +94,29 @@ void main() {
             // Vertical
             vertices.push((i as f32) * grid_size);
             vertices.push((-WORLD_SIZE as f32) / 2.0);
-            vertices.push(0.0);
             vertices.push((i as f32) * grid_size);
             vertices.push((WORLD_SIZE as f32) / 2.0);
-            vertices.push(0.0);
 
             // Horizontal
             vertices.push((-WORLD_SIZE as f32) / 2.0);
             vertices.push((i as f32) * grid_size);
-            vertices.push(0.0);
             vertices.push((WORLD_SIZE as f32) / 2.0);
             vertices.push((i as f32) * grid_size);
-            vertices.push(0.0);
         }
 
+        vertices
+    }
+
+    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
+        self.projection_matrix = *m;
+    }
+
+    pub fn draw(&mut self, zoom: f32) {
+        let f = |z: f32| 0.2 * (zoom * z * 10.0).log(10.0).clamp(0.0, 1.0);
+        let fine_color = vector![0.0, f(1e3), 0.0, 1.0];
+        let coarse_color = vector![0.0, f(1e4), 0.0, 1.0];
+
         self.context.use_program(Some(&self.program));
-
-        let (buffer, offset) = self.buffer_arena.write(&vertices);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 3,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(0);
-
-        self.context.uniform4f(
-            Some(&self.color_loc),
-            color[0],
-            color[1],
-            color[2],
-            color[3],
-        );
 
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
@@ -132,7 +127,39 @@ void main() {
         self.context.line_width(1.0);
 
         self.context
-            .draw_arrays(gl::LINES, 0, (vertices.len() / 3) as i32);
+            .bind_buffer(gl::ARRAY_BUFFER, Some(&self.buffer));
+
+        self.context.vertex_attrib_pointer_with_i32(
+            /*indx=*/ 0,
+            /*size=*/ 2,
+            /*type_=*/ gl::FLOAT,
+            /*normalized=*/ false,
+            /*stride=*/ 0,
+            self.fine_offset,
+        );
+        self.context.enable_vertex_attrib_array(0);
+
+        self.context
+            .uniform4fv_with_f32_array(Some(&self.color_loc), &fine_color.data.as_slice());
+
+        self.context
+            .draw_arrays(gl::LINES, 0, self.fine_num_vertices);
+
+        self.context.vertex_attrib_pointer_with_i32(
+            /*indx=*/ 0,
+            /*size=*/ 2,
+            /*type_=*/ gl::FLOAT,
+            /*normalized=*/ false,
+            /*stride=*/ 0,
+            self.coarse_offset,
+        );
+        self.context.enable_vertex_attrib_array(0);
+
+        self.context
+            .uniform4fv_with_f32_array(Some(&self.color_loc), &coarse_color.data.as_slice());
+
+        self.context
+            .draw_arrays(gl::LINES, 0, self.coarse_num_vertices);
 
         self.context.disable_vertex_attrib_array(0);
     }
