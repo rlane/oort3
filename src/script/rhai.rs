@@ -395,6 +395,7 @@ impl RhaiShipController {
         globals_map.insert("rng".into(), Dynamic::from(rng));
         engine.on_var(move |name, _index, _context| match name {
             "api" => Ok(Some(Dynamic::from(api))),
+            "ship" => Ok(Some(Dynamic::from(api))),
             "globals" => Ok(Some(Dynamic::from(globals))),
             _ => Ok(None),
         });
@@ -785,9 +786,9 @@ mod test {
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             "
-        assert_eq(api.position(), vec2(1.0, 2.0));
-        assert_eq(api.velocity(), vec2(3.0, 4.0));
-        assert_eq(api.heading(), PI());
+        assert_eq(ship.position(), vec2(1.0, 2.0));
+        assert_eq(ship.velocity(), vec2(3.0, 4.0));
+        assert_eq(ship.heading(), PI());
         ",
         );
     }
@@ -800,10 +801,10 @@ mod test {
         ctrl.test(
             "
             fn foo() {
-                assert_eq(api.position(), vec2(0.0, 0.0));
+                assert_eq(ship.position(), vec2(0.0, 0.0));
             }
 
-            assert_eq(api.velocity(), vec2(0.0, 0.0));
+            assert_eq(ship.velocity(), vec2(0.0, 0.0));
             foo();
         ",
         );
@@ -919,7 +920,7 @@ assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
         let mut ctrl = super::RhaiShipController::new(ship0, &mut sim);
         ctrl.test(
             "
-let contact = api.scan();
+let contact = ship.scan();
 assert_eq(contact.found, true);
 assert_eq(contact.position, vec2(100, 2));
 assert_eq(contact.velocity, vec2(3, 4));

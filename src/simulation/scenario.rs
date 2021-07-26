@@ -269,7 +269,7 @@ impl Scenario for Tutorial01 {
 
 fn tick() {
     // Uncomment me, then press ctrl-Enter to upload the code.
-    // api.fire_weapon();
+    // ship.fire_weapon();
 }"
         .to_string()
     }
@@ -281,7 +281,7 @@ fn tick() {
 
 fn tick() {
     // Uncomment me, then press ctrl-Enter to upload the code.
-    api.fire_weapon();
+    ship.fire_weapon();
 }"
         .to_string()
     }
@@ -367,7 +367,7 @@ impl Scenario for Tutorial02 {
 // given by the "target" variable.
 
 fn tick() {
-    api.accelerate(vec2(100.0, 0.0));
+    ship.accelerate(vec2(100.0, 0.0));
 }"#
         .trim()
         .to_string()
@@ -381,18 +381,18 @@ fn tick() {
 
 fn tick() {
     let acc = 100.0;
-    let x = api.position().x;
+    let x = ship.position().x;
     let dx = target.x - x;
-    let vx = api.velocity().x;
+    let vx = ship.velocity().x;
     let margin = 10.0;
     let t = abs(vx / acc);
     let pdx = (x + vx * t + 0.5 * -acc * t*t) - target.x;
     if pdx > -margin && pdx < margin {
-        api.accelerate(vec2(-vx * 10, 0.0));
+        ship.accelerate(vec2(-vx * 10, 0.0));
     } else if pdx < -margin {
-        api.accelerate(vec2(acc, 0.0));
+        ship.accelerate(vec2(acc, 0.0));
     } else if pdx > margin {
-        api.accelerate(vec2(-acc, 0.0));
+        ship.accelerate(vec2(-acc, 0.0));
     }
 }
 "#
@@ -488,7 +488,7 @@ impl Scenario for Tutorial03 {
 // location given by the "target" variable.
 
 fn tick() {
-    api.accelerate(0.1 * (target - api.position()));
+    ship.accelerate(0.1 * (target - ship.position()));
 }
 "#
         .trim()
@@ -502,12 +502,12 @@ fn tick() {
 // location given by the "target" variable.
 
 fn tick() {
-    let dp = target - api.position();
+    let dp = target - ship.position();
     if dp.magnitude() < 50.0 {
-        api.accelerate(api.velocity() * -10.0);
+        ship.accelerate(ship.velocity() * -10.0);
     } else {
-        if api.velocity().magnitude() < 100.0 {
-            api.accelerate(dp);
+        if ship.velocity().magnitude() < 100.0 {
+            ship.accelerate(dp);
         }
     }
 }
@@ -570,8 +570,8 @@ impl Scenario for Tutorial04 {
 // location given by the "target" variable.
 
 fn tick() {
-    api.accelerate(0.1 * (target - api.position()));
-    api.fire_weapon();
+    ship.accelerate(0.1 * (target - ship.position()));
+    ship.fire_weapon();
 }
 "#
         .trim()
@@ -587,11 +587,11 @@ fn tick() {
 fn turn(speed) {
     let acc = 10.0;
     let margin = 0.01;
-    let av = api.angular_velocity();
+    let av = ship.angular_velocity();
     if av < speed - margin {
-        api.torque(acc);
+        ship.torque(acc);
     } else if av > speed + margin {
-        api.torque(-acc);
+        ship.torque(-acc);
     }
 }
 
@@ -608,7 +608,7 @@ fn normalize_heading(h) {
 fn turn_to(target_heading) {
     let speed = 1.0;
     let margin = 0.1;
-    let dh = (api.heading() - target_heading) % (2 * PI());
+    let dh = (ship.heading() - target_heading) % (2 * PI());
     if dh - margin > 0.0 {
         turn(-speed);
     } else if dh + margin < 0.0 {
@@ -619,8 +619,8 @@ fn turn_to(target_heading) {
 }
 
 fn tick() {
-    turn_to((target - api.position()).angle());
-    api.fire_weapon();
+    turn_to((target - ship.position()).angle());
+    ship.fire_weapon();
 }
 "#
         .trim()
@@ -671,19 +671,19 @@ impl Scenario for Tutorial05 {
 
         sim.upload_code(
             r#"
-let target = api.position();
+let target = ship.position();
 
 fn turn_to(target_heading) {
-    api.torque(20 * (angle_diff(api.heading(), target_heading)
-        - 0.1 * api.angular_velocity()));
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.1 * ship.angular_velocity()));
 }
 
 fn tick() {
-    if (target - api.position()).magnitude() < 50 {
+    if (target - ship.position()).magnitude() < 50 {
         target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
     }
-    api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
-    turn_to((target - api.position()).angle());
+    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
+    turn_to((target - ship.position()).angle());
 }
         "#,
             1,
@@ -712,8 +712,8 @@ fn tick() {
 // "target" variable.
 
 fn tick() {
-    api.accelerate(0.1 * (target - api.position()));
-    api.fire_weapon();
+    ship.accelerate(0.1 * (target - ship.position()));
+    ship.fire_weapon();
 }
 "#
         .trim()
@@ -727,15 +727,15 @@ fn tick() {
 // "target" variable.
 
 fn turn_to(target_heading) {
-    api.torque(20 * (angle_diff(api.heading(), target_heading)
-        - 0.1*api.angular_velocity()));
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.1*ship.angular_velocity()));
 }
 
 fn tick() {
-    turn_to((target - api.position()).angle());
-    api.accelerate((target - api.position() - api.velocity())
-        .normalize().rotate(-api.heading()) * 200.0);
-    api.fire_weapon();
+    turn_to((target - ship.position()).angle());
+    ship.accelerate((target - ship.position() - ship.velocity())
+        .normalize().rotate(-ship.heading()) * 200.0);
+    ship.fire_weapon();
 }
 "#
         .trim()
@@ -782,19 +782,19 @@ impl Scenario for Tutorial06 {
 
         sim.upload_code(
             r#"
-let target = api.position();
+let target = ship.position();
 
 fn turn_to(target_heading) {
-    api.torque(20 * (angle_diff(api.heading(), target_heading)
-        - 0.5 * api.angular_velocity()));
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.5 * ship.angular_velocity()));
 }
 
 fn tick() {
-    if (target - api.position()).magnitude() < 50 {
+    if (target - ship.position()).magnitude() < 50 {
         target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
     }
-    api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
-    turn_to((target - api.position()).angle());
+    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
+    turn_to((target - ship.position()).angle());
 }
         "#,
             1,
@@ -811,9 +811,9 @@ fn tick() {
 // Destroy the enemy ships. Use your radar to find them.
 
 fn tick() {
-    let contact = api.scan();
-    api.accelerate(0.1 * (contact.position - api.position()));
-    api.fire_weapon();
+    let contact = ship.scan();
+    ship.accelerate(0.1 * (contact.position - ship.position()));
+    ship.fire_weapon();
 }
 "#
         .trim()
@@ -827,16 +827,16 @@ fn tick() {
 // "target" variable.
 
 fn turn_to(target_heading) {
-    api.torque(20 * (angle_diff(api.heading(), target_heading)
-        - 0.1*api.angular_velocity()));
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.1*ship.angular_velocity()));
 }
 
 fn tick() {
-    let contact = api.scan();
-    turn_to((contact.position - api.position()).angle());
-    api.accelerate((contact.position - api.position() - api.velocity())
-        .normalize().rotate(-api.heading()) * 200.0);
-    api.fire_weapon();
+    let contact = ship.scan();
+    turn_to((contact.position - ship.position()).angle());
+    ship.accelerate((contact.position - ship.position() - ship.velocity())
+        .normalize().rotate(-ship.heading()) * 200.0);
+    ship.fire_weapon();
 }
 "#
         .trim()
@@ -884,20 +884,20 @@ impl Scenario for Tutorial07 {
 
         sim.upload_code(
             r#"
-let target = api.position();
+let target = ship.position();
 
 fn turn_to(target_heading) {
-    api.torque(20 * (angle_diff(api.heading(), target_heading)
-        - 0.5 * api.angular_velocity()));
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.5 * ship.angular_velocity()));
 }
 
 fn tick() {
-    if (target - api.position()).magnitude() < 50 {
+    if (target - ship.position()).magnitude() < 50 {
         target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
     }
-    api.accelerate((target - api.position() - api.velocity()).rotate(-api.heading()));
-    turn_to((target - api.position()).angle());
-    api.fire_weapon();
+    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
+    turn_to((target - ship.position()).angle());
+    ship.fire_weapon();
 }
         "#,
             1,
@@ -914,9 +914,9 @@ fn tick() {
 // Destroy the enemy ships.
 
 fn tick() {
-    let contact = api.scan();
-    api.accelerate(0.1 * (contact.position - api.position()));
-    api.fire_weapon();
+    let contact = ship.scan();
+    ship.accelerate(0.1 * (contact.position - ship.position()));
+    ship.fire_weapon();
 }
 "#
         .trim()
@@ -929,16 +929,16 @@ fn tick() {
 // Destroy the enemy ships.
 
 fn turn_to(target_heading) {
-    api.torque(20 * (angle_diff(api.heading(), target_heading)
-        - 0.1*api.angular_velocity()));
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.1*ship.angular_velocity()));
 }
 
 fn tick() {
-    let contact = api.scan();
-    turn_to((contact.position - api.position()).angle());
-    api.accelerate((contact.position - api.position() - api.velocity())
-        .normalize().rotate(-api.heading()) * 200.0);
-    api.fire_weapon();
+    let contact = ship.scan();
+    turn_to((contact.position - ship.position()).angle());
+    ship.accelerate((contact.position - ship.position() - ship.velocity())
+        .normalize().rotate(-ship.heading()) * 200.0);
+    ship.fire_weapon();
 }
 "#
         .trim()

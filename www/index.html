@@ -42,15 +42,15 @@
 
       <h2>Ship Control</h2>
       <ul>
-        <li><code>api.position() &rarr; vec2</code>: Get the current position in meters.</li>
-        <li><code>api.velocity() &rarr; vec2</code>: Get the current velocity in m/s.</li>
-        <li><code>api.heading() &rarr; float</code>: Get the current heading in radians.</li>
-        <li><code>api.angular_velocity() &rarr; float</code>: Get the current angular velocity in radians/s.</li>
-        <li><code>api.accelerate(acceleration: vec2)</code>: Linear acceleration. X axis is forward/back, Y axis is left/right. Units are m/s<sup>2</sup></li>
-        <li><code>api.torque(acceleration: float)</code>: Angular acceleration. Unit is radians/s<sup>2</sup>.</li>
-        <li><code>api.fire_weapon()</code>: Fire the ship's main weapon.</li>
-        <li><code>api.explode()</code>: Self-destruct.</li>
-        <li><code>api.scan() &rarr; ScanResult</code>: Find the closest enemy ship</li>
+        <li><code>ship.position() &rarr; vec2</code>: Get the current position in meters.</li>
+        <li><code>ship.velocity() &rarr; vec2</code>: Get the current velocity in m/s.</li>
+        <li><code>ship.heading() &rarr; float</code>: Get the current heading in radians.</li>
+        <li><code>ship.angular_velocity() &rarr; float</code>: Get the current angular velocity in radians/s.</li>
+        <li><code>ship.accelerate(acceleration: vec2)</code>: Linear acceleration. X axis is forward/back, Y axis is left/right. Units are m/s<sup>2</sup></li>
+        <li><code>ship.torque(acceleration: float)</code>: Angular acceleration. Unit is radians/s<sup>2</sup>.</li>
+        <li><code>ship.fire_weapon()</code>: Fire the ship's main weapon.</li>
+        <li><code>ship.explode()</code>: Self-destruct.</li>
+        <li><code>ship.scan() &rarr; ScanResult</code>: Find the closest enemy ship</li>
         <li><code>ScanResult { position: vec2, velocity: vec2, found: bool }</code></li>
       </ul>
 
