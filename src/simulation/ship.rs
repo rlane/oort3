@@ -3,7 +3,7 @@ use crate::script;
 use crate::simulation;
 use crate::simulation::{bullet, Simulation};
 use bullet::BulletData;
-use nalgebra::Vector2;
+use nalgebra::{vector, Vector2};
 use rapier2d_f64::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
@@ -32,6 +32,21 @@ pub struct ShipData {
     pub weapons: Vec<Weapon>,
     pub health: f64,
     pub team: i32,
+    pub acceleration: Vector2<f64>,
+    pub angular_acceleration: f64,
+}
+
+impl Default for ShipData {
+    fn default() -> ShipData {
+        ShipData {
+            class: ShipClass::Fighter,
+            weapons: vec![],
+            health: 100.0,
+            team: 0,
+            acceleration: vector![0.0, 0.0],
+            angular_acceleration: 0.0,
+        }
+    }
 }
 
 pub fn fighter(team: i32) -> ShipData {
@@ -44,6 +59,7 @@ pub fn fighter(team: i32) -> ShipData {
         }],
         health: 100.0,
         team,
+        ..Default::default()
     }
 }
 
@@ -53,6 +69,7 @@ pub fn asteroid(variant: i32) -> ShipData {
         weapons: vec![],
         health: 200.0,
         team: 9,
+        ..Default::default()
     }
 }
 
@@ -178,16 +195,16 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             .unwrap()
     }
 
-    pub fn accelerate(&mut self, acceleration: Vector2<f64>) {
-        let body = self.body();
-        let rotation_matrix = body.position().rotation.to_rotation_matrix();
-        body.apply_force(rotation_matrix * acceleration * body.mass(), true);
+    pub fn data(&mut self) -> &mut ShipData {
+        self.simulation.ship_data.get_mut(&self.handle).unwrap()
     }
 
-    pub fn torque(&mut self, acceleration: f64) {
-        let inertia_sqrt = 1.0 / self.body().mass_properties().inv_principal_inertia_sqrt;
-        let torque = acceleration * inertia_sqrt * inertia_sqrt;
-        self.body().apply_torque(torque, true);
+    pub fn accelerate(&mut self, acceleration: Vector2<f64>) {
+        self.data().acceleration = acceleration;
+    }
+
+    pub fn torque(&mut self, angular_acceleration: f64) {
+        self.data().angular_acceleration = angular_acceleration;
     }
 
     pub fn fire_weapon(&mut self, index: i64) {
@@ -230,10 +247,31 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn tick(&mut self) {
-        let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
-        for weapon in ship_data.weapons.iter_mut() {
-            weapon.reload_time_remaining =
-                (weapon.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
+        // Weapons.
+        {
+            let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+            for weapon in ship_data.weapons.iter_mut() {
+                weapon.reload_time_remaining =
+                    (weapon.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
+            }
+        }
+
+        // Acceleration.
+        {
+            let acceleration = self.data().acceleration;
+            let mass = self.body().mass();
+            let rotation_matrix = self.body().position().rotation.to_rotation_matrix();
+            self.body()
+                .apply_force(rotation_matrix * acceleration * mass, true);
+            self.data().acceleration = vector![0.0, 0.0];
+        }
+
+        // Torque.
+        {
+            let inertia_sqrt = 1.0 / self.body().mass_properties().inv_principal_inertia_sqrt;
+            let torque = self.data().angular_acceleration * inertia_sqrt * inertia_sqrt;
+            self.body().apply_torque(torque, true);
+            self.data().angular_acceleration = 0.0;
         }
     }
 }

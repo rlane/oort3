@@ -48,8 +48,8 @@ pub mod plugin {
         obj.ship_mut().accelerate(acceleration);
     }
 
-    pub fn torque(obj: ShipApi, acceleration: f64) {
-        obj.ship_mut().torque(acceleration);
+    pub fn torque(obj: ShipApi, angular_acceleration: f64) {
+        obj.ship_mut().torque(angular_acceleration);
     }
 
     pub fn fire_weapon(obj: ShipApi) {
