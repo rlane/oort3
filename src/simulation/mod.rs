@@ -199,6 +199,24 @@ impl Simulation {
     pub fn events(&self) -> &SimEvents {
         &self.events
     }
+
+    pub fn hash(&self) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::Hasher;
+        let fixedpoint = |v: f64| (v * 1e9) as i64;
+        let mut s = DefaultHasher::new();
+        for handle in self.ships.iter() {
+            let ship = self.ship(*handle);
+            s.write_i64(fixedpoint(ship.position().x));
+            s.write_i64(fixedpoint(ship.position().y));
+            s.write_i64(fixedpoint(ship.heading()));
+            s.write_i64(fixedpoint(ship.velocity().x));
+            s.write_i64(fixedpoint(ship.velocity().y));
+            s.write_i64(fixedpoint(ship.angular_velocity()));
+            s.write_i64(fixedpoint(ship.data().health));
+        }
+        s.finish()
+    }
 }
 
 impl Default for Simulation {

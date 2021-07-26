@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use test_env_log::test;
 
 fn check_solution(scenario_name: &str) {
-    let check_once = || {
+    let check_once = || -> u64 {
         let mut sim = simulation::Simulation::new();
         let mut scenario = scenario::load(scenario_name);
         scenario.init(&mut sim, 0);
@@ -18,8 +18,10 @@ fn check_solution(scenario_name: &str) {
         }
 
         assert_eq!(scenario.status(&sim), scenario::Status::Finished);
+        sim.hash()
     };
-    (0..10usize).into_par_iter().for_each(|_| check_once());
+    let hashes: Vec<u64> = (0..2usize).into_par_iter().map(|_| check_once()).collect();
+    assert_eq!(hashes[0], hashes[1]);
 }
 
 #[test]
