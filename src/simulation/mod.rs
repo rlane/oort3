@@ -169,12 +169,12 @@ impl Simulation {
 
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
-            self.ship_mut(handle).tick();
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
                 if let Err(e) = ship_controller.tick() {
                     self.events.errors.push(e);
                 }
             }
+            self.ship_mut(handle).tick();
         }
 
         self.tick += 1;
