@@ -1,3 +1,4 @@
+use super::rng::new_rng;
 use super::ship::{asteroid, fighter, ShipHandle};
 use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
@@ -46,7 +47,7 @@ fn check_tutorial_victory(sim: &Simulation) -> Status {
 pub trait Scenario {
     fn name(&self) -> String;
 
-    fn init(&mut self, sim: &mut Simulation);
+    fn init(&mut self, sim: &mut Simulation, seed: u64);
 
     fn tick(&mut self, _: &mut Simulation) {}
 
@@ -122,7 +123,7 @@ impl Scenario for BasicScenario {
         "basic".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
         add_walls(sim);
         ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(1));
@@ -144,8 +145,8 @@ impl Scenario for AsteroidStressScenario {
         "asteroid-stress".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
-        let mut rng = rand::thread_rng();
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+        let mut rng = new_rng(seed);
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
 
@@ -179,8 +180,8 @@ impl Scenario for BulletStressScenario {
         "bullet-stress".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
-        let mut rng = rand::thread_rng();
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+        let mut rng = new_rng(seed);
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
 
@@ -217,8 +218,8 @@ impl Scenario for WelcomeScenario {
         "welcome".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
-        let mut rng = rand::thread_rng();
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+        let mut rng = new_rng(seed);
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         let asteroid_variants = [1, 6, 14];
@@ -252,7 +253,7 @@ impl Scenario for Tutorial01 {
         "tutorial01".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid(1));
@@ -306,7 +307,7 @@ impl Scenario for Tutorial02 {
         "tutorial02".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
@@ -407,17 +408,14 @@ fn tick() {
 
 struct Tutorial03 {
     on_target_ticks: i32,
-    target: Point2<f64>,
+    target: Option<Point2<f64>>,
 }
 
 impl Tutorial03 {
     fn new() -> Self {
-        let mut rng = rand::thread_rng();
-        let size = 500.0;
-        let range = -size..size;
         Self {
             on_target_ticks: 0,
-            target: point![rng.gen_range(range.clone()), rng.gen_range(range)],
+            target: None,
         }
     }
 }
@@ -427,19 +425,23 @@ impl Scenario for Tutorial03 {
         "tutorial03".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+        let mut rng = new_rng(seed);
+        let size = 500.0;
+        let range = -size..size;
+        self.target = Some(point![rng.gen_range(range.clone()), rng.gen_range(range)]);
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
-            c.unwrap().write_target(self.target.coords);
+            c.unwrap().write_target(self.target.unwrap().coords);
         }
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
-            if (ship.position().vector - self.target.coords).magnitude() < 50.0
+            if (ship.position().vector - self.target.unwrap().coords).magnitude() < 50.0
                 && ship.velocity().magnitude() < 5.0
             {
                 self.on_target_ticks += 1;
@@ -459,7 +461,7 @@ impl Scenario for Tutorial03 {
 
     fn lines(&self) -> Vec<Line> {
         let mut lines = vec![];
-        let center: Point2<f64> = self.target;
+        let center: Point2<f64> = self.target.unwrap();
         let n = 20;
         let r = 50.0;
         let on_target_frac = self.on_target_ticks as f64 / 120.0;
@@ -521,18 +523,11 @@ fn tick() {
     }
 }
 
-struct Tutorial04 {
-    target: Point2<f64>,
-}
+struct Tutorial04 {}
 
 impl Tutorial04 {
     fn new() -> Self {
-        let mut rng = rand::thread_rng();
-        let size = 500.0;
-        let range = -size..size;
-        Self {
-            target: point![rng.gen_range(range.clone()), rng.gen_range(range)],
-        }
+        Self {}
     }
 }
 
@@ -541,22 +536,18 @@ impl Scenario for Tutorial04 {
         "tutorial04".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
+        let mut rng = new_rng(seed);
+        let size = 500.0;
+        let range = -size..size;
+        let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
             let c = sim.ship_controllers.get_mut(&handle);
-            c.unwrap().write_target(self.target.coords);
+            c.unwrap().write_target(target.coords);
         }
-        ship::create(
-            sim,
-            self.target.x,
-            self.target.y,
-            0.0,
-            0.0,
-            0.0,
-            asteroid(1),
-        );
+        ship::create(sim, target.x, target.y, 0.0, 0.0, 0.0, asteroid(1));
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -651,11 +642,11 @@ impl Scenario for Tutorial05 {
         "tutorial05".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
         self.ship_handle = Some(ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0)));
 
-        let mut rng = rand::thread_rng();
+        let mut rng = new_rng(seed);
         let size = 500.0;
         let range = -size..size;
         let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
@@ -760,11 +751,11 @@ impl Scenario for Tutorial06 {
         "tutorial06".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
 
-        let mut rng = rand::thread_rng();
+        let mut rng = new_rng(seed);
         let size = 500.0;
         let range = -size..size;
         for _ in 0..3 {
@@ -860,11 +851,11 @@ impl Scenario for Tutorial07 {
         "tutorial07".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation) {
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
+        let mut rng = new_rng(seed);
         for team in 0..2 {
             for _ in 0..10 {
-                let mut rng = rand::thread_rng();
                 let size = 500.0;
                 let range = -size..size;
                 let center = point![(team as f64 - 0.5) * 1000.0, 0.0];

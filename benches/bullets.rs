@@ -5,7 +5,7 @@ use oort::simulation::scenario;
 fn many_bullets() {
     let mut sim = simulation::Simulation::new();
     let mut scenario = scenario::load("bullet-stress");
-    scenario.init(&mut sim);
+    scenario.init(&mut sim, 0);
 
     while scenario.status(&sim) == scenario::Status::Running {
         scenario.tick(&mut sim);

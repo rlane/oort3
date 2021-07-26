@@ -1,5 +1,6 @@
 pub mod bullet;
 pub mod index_set;
+pub mod rng;
 pub mod scenario;
 pub mod ship;
 

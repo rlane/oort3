@@ -7,6 +7,7 @@ pub mod userid;
 use crate::{api, renderer, script, simulation};
 use log::{debug, error, info};
 use nalgebra::{point, vector, Point2};
+use rand::Rng;
 use simulation::scenario;
 use simulation::scenario::Status;
 use telemetry::Telemetry;
@@ -57,9 +58,10 @@ impl UI {
         let frame_timer: frame_timer::FrameTimer = Default::default();
         let paused = false;
         let single_steps = 0;
+        let seed: u64 = rand::thread_rng().gen();
 
         let mut scenario = scenario::load(scenario_name);
-        scenario.init(&mut sim);
+        scenario.init(&mut sim, seed);
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();
