@@ -4,6 +4,8 @@ use crate::simulation::Simulation;
 use nalgebra::{vector, Point2};
 use rhai::plugin::*;
 
+const MAX_RADAR_DISTANCE: f64 = 3000.0;
+
 #[export_module]
 pub mod plugin {
     #[derive(Copy, Clone)]
@@ -39,6 +41,9 @@ pub mod plugin {
             }
             let other_position: Point2<f64> = sim.ship(other).position().vector.into();
             let distance = nalgebra::distance(&own_position, &other_position);
+            if distance > MAX_RADAR_DISTANCE {
+                continue;
+            }
             if !result.found || distance < best_distance {
                 result = ScanResult {
                     found: true,

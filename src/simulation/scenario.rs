@@ -1040,7 +1040,7 @@ fn tick() {
     fn initial_code(&self) -> String {
         r#"
 // tutorial08
-// Destroy the far-away enemy ships.
+// Destroy the enemy ships. They are initially outside of your radar range.
 
 fn tick() {
     let contact = ship.scan();
@@ -1055,19 +1055,36 @@ fn tick() {
     fn solution(&self) -> String {
         r#"
 // tutorial08
-// Destroy the far-away enemy ships.
+// Destroy the enemy ships. They are initially outside of your radar range.
+
+let initial_position = ship.position();
+let target_position = initial_position;
+let target_velocity = vec2(0.0, 0.0);
 
 fn turn_to(target_heading) {
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.1*ship.angular_velocity()));
+        - 0.5 * ship.angular_velocity()));
 }
 
 fn tick() {
     let contact = radar.scan();
-    turn_to((contact.position - ship.position()).angle());
-    ship.accelerate((contact.position - ship.position() - ship.velocity())
-        .normalize().rotate(-ship.heading()) * 100.0);
-    ship.fire_weapon();
+    if (contact.found) {
+        target_position = contact.position;
+        target_velocity = contact.velocity;
+        ship.fire_weapon();
+    } else {
+        if (target_position - ship.position()).magnitude() < 100 {
+            target_position = vec2(rng.next(3500.0, 4500.0), 0).rotate(rng.next(0.0, 2*PI()));
+            target_velocity = vec2(0.0, 0.0);
+        }
+    }
+    let dp = target_position - ship.position();
+    let dist = dp.magnitude();
+    let bullet_speed = 1000.0;
+    let t = dist / bullet_speed;
+    let predicted_dp = dp + t * (target_velocity - ship.velocity());
+    turn_to(predicted_dp.angle());
+    ship.accelerate((dp - ship.velocity()).rotate(-ship.heading()));
 }
 "#
         .trim()
