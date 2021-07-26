@@ -35,5 +35,10 @@ module.exports = {
     experiments: {
         syncWebAssembly: true,
     },
-    mode: 'development'
+    cache: {
+        type: 'filesystem',
+        buildDependencies: {
+            config: [__filename]
+        }
+    },
 };
