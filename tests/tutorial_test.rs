@@ -25,41 +25,13 @@ fn check_solution(scenario_name: &str) {
 }
 
 #[test]
-fn test_tutorial01() {
-    check_solution("tutorial01");
-}
-
-#[test]
-fn test_tutorial02() {
-    check_solution("tutorial02");
-}
-
-#[test]
-fn test_tutorial03() {
-    check_solution("tutorial03");
-}
-
-#[test]
-fn test_tutorial04() {
-    check_solution("tutorial04");
-}
-
-#[test]
-fn test_tutorial05() {
-    check_solution("tutorial05");
-}
-
-#[test]
-fn test_tutorial06() {
-    check_solution("tutorial06");
-}
-
-#[test]
-fn test_tutorial07() {
-    check_solution("tutorial07");
-}
-
-#[test]
-fn test_tutorial08() {
-    check_solution("tutorial08");
+fn test_tutorials() {
+    let scenario_names: Vec<String> = scenario::list()
+        .iter()
+        .filter(|x| x.starts_with("tutorial"))
+        .cloned()
+        .collect();
+    scenario_names
+        .into_par_iter()
+        .for_each(|x| check_solution(&x));
 }
