@@ -1,5 +1,6 @@
 mod ast_rewrite;
 mod globals;
+mod radar;
 mod random;
 mod ship;
 mod util;
@@ -37,6 +38,7 @@ impl RhaiShipController {
         engine.register_global_module(exported_module!(ship::plugin).into());
         engine.register_global_module(exported_module!(vec2::plugin).into());
         engine.register_global_module(exported_module!(globals::plugin).into());
+        engine.register_global_module(exported_module!(radar::plugin).into());
         engine.register_global_module(exported_module!(self::random::plugin).into());
         engine.register_global_module(exported_module!(self::util::plugin).into());
 
@@ -45,6 +47,7 @@ impl RhaiShipController {
         let rng = self::random::plugin::new_rng(seed);
 
         let ship = ship::plugin::Ship { handle, sim };
+        let radar = radar::plugin::Radar { handle, sim };
         let mut globals_map = Box::new(std::collections::HashMap::new());
         let globals = globals::plugin::Globals {
             map: &mut *globals_map,
@@ -53,6 +56,7 @@ impl RhaiShipController {
         engine.on_var(move |name, _index, _context| match name {
             "api" => Ok(Some(Dynamic::from(ship))),
             "ship" => Ok(Some(Dynamic::from(ship))),
+            "radar" => Ok(Some(Dynamic::from(radar))),
             "globals" => Ok(Some(Dynamic::from(globals))),
             _ => Ok(None),
         });

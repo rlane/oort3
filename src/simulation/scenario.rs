@@ -811,7 +811,7 @@ fn tick() {
 // Destroy the enemy ships. Use your radar to find them.
 
 fn tick() {
-    let contact = ship.scan();
+    let contact = radar.scan();
     ship.accelerate(0.1 * (contact.position - ship.position()));
     ship.fire_weapon();
 }
@@ -823,8 +823,7 @@ fn tick() {
     fn solution(&self) -> String {
         r#"
 // Tutorial 06
-// Destroy the enemy ship. Its location is given by the
-// "target" variable.
+// Destroy the enemy ships. Use your radar to find them.
 
 fn turn_to(target_heading) {
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
@@ -832,7 +831,7 @@ fn turn_to(target_heading) {
 }
 
 fn tick() {
-    let contact = ship.scan();
+    let contact = radar.scan();
     turn_to((contact.position - ship.position()).angle());
     ship.accelerate((contact.position - ship.position() - ship.velocity())
         .normalize().rotate(-ship.heading()) * 200.0);
@@ -934,7 +933,7 @@ fn turn_to(target_heading) {
 }
 
 fn tick() {
-    let contact = ship.scan();
+    let contact = radar.scan();
     turn_to((contact.position - ship.position()).angle());
     ship.accelerate((contact.position - ship.position() - ship.velocity())
         .normalize().rotate(-ship.heading()) * 200.0);
