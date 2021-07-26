@@ -258,54 +258,54 @@ mod util_module {
 }
 
 #[export_module]
-mod api_module {
+mod ship_module {
     #[derive(Copy, Clone)]
-    pub struct Api {
+    pub struct Ship {
         pub handle: ShipHandle,
         pub sim: *mut Simulation,
     }
 
-    impl Api {
+    impl Ship {
         #[allow(clippy::mut_from_ref)]
         fn sim(&self) -> &mut Simulation {
             unsafe { &mut *self.sim }
         }
     }
 
-    pub fn position(api: Api) -> Vec2 {
-        api.sim().ship(api.handle).position().vector
+    pub fn position(ship: Ship) -> Vec2 {
+        ship.sim().ship(ship.handle).position().vector
     }
 
-    pub fn velocity(api: Api) -> Vec2 {
-        api.sim().ship(api.handle).velocity()
+    pub fn velocity(ship: Ship) -> Vec2 {
+        ship.sim().ship(ship.handle).velocity()
     }
 
-    pub fn heading(api: Api) -> f64 {
-        api.sim().ship(api.handle).heading()
+    pub fn heading(ship: Ship) -> f64 {
+        ship.sim().ship(ship.handle).heading()
     }
 
-    pub fn angular_velocity(api: Api) -> f64 {
-        api.sim().ship(api.handle).angular_velocity()
+    pub fn angular_velocity(ship: Ship) -> f64 {
+        ship.sim().ship(ship.handle).angular_velocity()
     }
 
-    pub fn accelerate(api: Api, acceleration: Vec2) {
-        api.sim().ship_mut(api.handle).accelerate(acceleration);
+    pub fn accelerate(ship: Ship, acceleration: Vec2) {
+        ship.sim().ship_mut(ship.handle).accelerate(acceleration);
     }
 
-    pub fn torque(api: Api, acceleration: FLOAT) {
-        api.sim().ship_mut(api.handle).torque(acceleration);
+    pub fn torque(ship: Ship, acceleration: FLOAT) {
+        ship.sim().ship_mut(ship.handle).torque(acceleration);
     }
 
-    pub fn fire_weapon(api: Api) {
-        api.sim().ship_mut(api.handle).fire_weapon(0);
+    pub fn fire_weapon(ship: Ship) {
+        ship.sim().ship_mut(ship.handle).fire_weapon(0);
     }
 
-    pub fn fire_weapon_with_index(api: Api, index: INT) {
-        api.sim().ship_mut(api.handle).fire_weapon(index);
+    pub fn fire_weapon_with_index(ship: Ship, index: INT) {
+        ship.sim().ship_mut(ship.handle).fire_weapon(index);
     }
 
-    pub fn explode(api: Api) {
-        api.sim().ship_mut(api.handle).explode();
+    pub fn explode(ship: Ship) {
+        ship.sim().ship_mut(ship.handle).explode();
     }
 
     #[derive(Copy, Clone)]
@@ -330,10 +330,10 @@ mod api_module {
         obj.velocity
     }
 
-    pub fn scan(api: Api) -> ScanResult {
-        let sim = api.sim();
-        let own_team = sim.ship(api.handle).data().team;
-        let own_position: Point2<f64> = sim.ship(api.handle).position().vector.into();
+    pub fn scan(ship: Ship) -> ScanResult {
+        let sim = ship.sim();
+        let own_team = sim.ship(ship.handle).data().team;
+        let own_position: Point2<f64> = sim.ship(ship.handle).position().vector.into();
         let mut result = ScanResult {
             found: false,
             position: vector![0.0, 0.0],
@@ -377,7 +377,7 @@ impl RhaiShipController {
         engine.on_print(|x| info!("Script: {}", x));
         engine.on_debug(|x, src, pos| info!("Script ({}:{:?}): {}", src.unwrap_or(""), pos, x));
 
-        engine.register_global_module(exported_module!(api_module).into());
+        engine.register_global_module(exported_module!(ship_module).into());
         engine.register_global_module(exported_module!(vec2_module).into());
         engine.register_global_module(exported_module!(globals_module).into());
         engine.register_global_module(exported_module!(random_module).into());
@@ -387,15 +387,15 @@ impl RhaiShipController {
         let seed = ((i as i64) << 32) | j as i64;
         let rng = random_module::new_rng(seed);
 
-        let api = api_module::Api { handle, sim };
+        let ship = ship_module::Ship { handle, sim };
         let mut globals_map = Box::new(std::collections::HashMap::new());
         let globals = globals_module::Globals {
             map: &mut *globals_map,
         };
         globals_map.insert("rng".into(), Dynamic::from(rng));
         engine.on_var(move |name, _index, _context| match name {
-            "api" => Ok(Some(Dynamic::from(api))),
-            "ship" => Ok(Some(Dynamic::from(api))),
+            "api" => Ok(Some(Dynamic::from(ship))),
+            "ship" => Ok(Some(Dynamic::from(ship))),
             "globals" => Ok(Some(Dynamic::from(globals))),
             _ => Ok(None),
         });
