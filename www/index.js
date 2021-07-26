@@ -71,7 +71,7 @@ window.start_scenario = function(name) {
   hide_overlay();
 }
 
-var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'tutorial03', 'tutorial04', 'tutorial05', 'tutorial06', 'tutorial07'];
+var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'tutorial03', 'tutorial04', 'tutorial05', 'tutorial06', 'tutorial07', 'tutorial08'];
 scenarios.forEach((scenario) => {
   var option = document.createElement('option');
   option.value = scenario;

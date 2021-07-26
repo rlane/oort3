@@ -5,7 +5,7 @@ use super::{
     WORLD_SIZE,
 };
 use bullet::BulletData;
-use nalgebra::{Point2, Translation2, Vector4};
+use nalgebra::{Point2, Rotation2, Translation2, Vector4};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
@@ -110,6 +110,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial05" => Box::new(Tutorial05::new()),
         "tutorial06" => Box::new(Tutorial06::new()),
         "tutorial07" => Box::new(Tutorial07::new()),
+        "tutorial08" => Box::new(Tutorial08::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -917,6 +918,127 @@ fn tick() {
         r#"
 // tutorial07
 // Destroy the enemy ships.
+
+fn turn_to(target_heading) {
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.1*ship.angular_velocity()));
+}
+
+fn tick() {
+    let contact = radar.scan();
+    turn_to((contact.position - ship.position()).angle());
+    ship.accelerate((contact.position - ship.position() - ship.velocity())
+        .normalize().rotate(-ship.heading()) * 100.0);
+    ship.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial08".to_string())
+    }
+}
+
+struct Tutorial08 {}
+
+impl Tutorial08 {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Tutorial08 {
+    fn name(&self) -> String {
+        "tutorial08".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+        add_walls(sim);
+        let mut rng = new_rng(seed);
+        {
+            for _ in 0..3 {
+                let position = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                    .transform_point(&point![rng.gen_range(100.0..500.0), 0.0]);
+                ship::create(
+                    sim,
+                    position.x,
+                    position.y,
+                    0.0,
+                    0.0,
+                    rng.gen_range(0.0..std::f64::consts::TAU),
+                    fighter(0),
+                );
+            }
+        }
+        {
+            for _ in 0..3 {
+                let position = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                    .transform_point(&point![rng.gen_range(3500.0..4500.0), 0.0]);
+                ship::create(
+                    sim,
+                    position.x,
+                    position.y,
+                    0.0,
+                    0.0,
+                    rng.gen_range(0.0..std::f64::consts::TAU),
+                    fighter(1),
+                );
+            }
+        }
+
+        sim.upload_code(
+            r#"
+let initial_position = ship.position();
+let target = initial_position;
+
+fn turn_to(target_heading) {
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.5 * ship.angular_velocity()));
+}
+
+fn tick() {
+    if (target - ship.position()).magnitude() < 50 {
+        target = initial_position + vec2(rng.next(0.0, 200.0), 0).rotate(rng.next(0.0, 2*PI()));
+    }
+    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
+    let contact = radar.scan();
+    if (contact.position.distance(ship.position()) < 1000.0) {
+        turn_to((contact.position - ship.position()).angle());
+        ship.fire_weapon();
+    } else {
+        turn_to((target - ship.position()).angle());
+    }
+}
+        "#,
+            1,
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tutorial_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        r#"
+// tutorial08
+// Destroy the far-away enemy ships.
+
+fn tick() {
+    let contact = ship.scan();
+    ship.accelerate(0.1 * (contact.position - ship.position()));
+    ship.fire_weapon();
+}
+"#
+        .trim()
+        .to_string()
+    }
+
+    fn solution(&self) -> String {
+        r#"
+// tutorial08
+// Destroy the far-away enemy ships.
 
 fn turn_to(target_heading) {
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
