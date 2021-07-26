@@ -1,3 +1,4 @@
+use crate::simulation::scenario;
 use crate::ui::telemetry;
 use crate::ui::userid;
 use crate::ui::UI;
@@ -103,6 +104,11 @@ pub fn get_userid() -> String {
 #[wasm_bindgen]
 pub fn get_username(userid: &str) -> String {
     userid::get_username(userid)
+}
+
+#[wasm_bindgen]
+pub fn get_scenarios() -> JsValue {
+    JsValue::from_serde(&scenario::list()).unwrap()
 }
 
 #[wasm_bindgen]

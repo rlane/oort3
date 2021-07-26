@@ -117,6 +117,23 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
     scenario
 }
 
+pub fn list() -> Vec<String> {
+    vec![
+        "welcome",
+        "tutorial01",
+        "tutorial02",
+        "tutorial03",
+        "tutorial04",
+        "tutorial05",
+        "tutorial06",
+        "tutorial07",
+        "tutorial08",
+    ]
+    .iter()
+    .map(|x| x.to_string())
+    .collect()
+}
+
 struct BasicScenario {}
 
 impl Scenario for BasicScenario {

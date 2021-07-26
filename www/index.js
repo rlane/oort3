@@ -5,6 +5,7 @@ import "./attribution.txt"
 
 window.dbg = {};
 
+
 var rust_module = null
 function initialize(m) {
   var canvas = document.getElementById("glcanvas");
@@ -12,6 +13,7 @@ function initialize(m) {
   window.dbg.rust = m;
 
   m.initialize();
+  initialize_scenario_list(m.get_scenarios());
   m.start("welcome");
 
   document.getElementById("username").textContent = m.get_username(m.get_userid());
@@ -71,15 +73,16 @@ window.start_scenario = function(name) {
   hide_overlay();
 }
 
-var scenarios = ['welcome', 'tutorial01', 'tutorial02', 'tutorial03', 'tutorial04', 'tutorial05', 'tutorial06', 'tutorial07', 'tutorial08'];
-scenarios.forEach((scenario) => {
-  var option = document.createElement('option');
-  option.value = scenario;
-  option.innerHTML = scenario;
-  scenario_select.appendChild(option);
-});
-scenario_select.onchange = function(e) {
-  start_scenario(e.target.value);
+function initialize_scenario_list(scenarios) {
+  scenarios.forEach((scenario) => {
+    var option = document.createElement('option');
+    option.value = scenario;
+    option.innerHTML = scenario;
+    scenario_select.appendChild(option);
+  });
+  scenario_select.onchange = function(e) {
+    start_scenario(e.target.value);
+  }
 }
 
 window.send_telemetry = function(data) {
