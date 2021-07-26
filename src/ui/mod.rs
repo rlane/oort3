@@ -289,17 +289,17 @@ impl UI {
         let amount = e.delta_y();
         self.zoom *= (1.0 - amount.signum() * 0.01).powf(amount.abs() / 30.0) as f32;
         self.zoom = self.zoom.clamp(MIN_ZOOM, MAX_ZOOM);
-        if amount < 0.0 {
-            let zoom_target = self
-                .renderer
-                .unproject(e.offset_x() as i32, e.offset_y() as i32);
-            self.renderer.set_view(self.zoom, self.camera_target);
-            let new_zoom_target = self
-                .renderer
-                .unproject(e.offset_x() as i32, e.offset_y() as i32);
-            let diff = new_zoom_target - zoom_target;
-            self.camera_target -= vector![diff.x as f32, diff.y as f32];
-        }
+
+        // Move camera target to keep cursor in the same location.
+        let zoom_target = self
+            .renderer
+            .unproject(e.offset_x() as i32, e.offset_y() as i32);
+        self.renderer.set_view(self.zoom, self.camera_target);
+        let new_zoom_target = self
+            .renderer
+            .unproject(e.offset_x() as i32, e.offset_y() as i32);
+        let diff = new_zoom_target - zoom_target;
+        self.camera_target -= vector![diff.x as f32, diff.y as f32];
     }
 
     pub fn upload_code(&mut self, code: &str) {
