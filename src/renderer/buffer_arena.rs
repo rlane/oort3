@@ -1,31 +1,42 @@
-use log::debug;
+use instant::Instant;
+use log::{debug, info};
 use web_sys::{WebGl2RenderingContext, WebGlBuffer};
 use WebGl2RenderingContext as gl;
 
 pub struct BufferArena {
+    name: String,
     context: WebGl2RenderingContext,
     buffer_size: u32,
     active_buffer: WebGlBuffer,
     standby_buffer: WebGlBuffer,
     offset: u32,
     target: u32,
+    fill_count: u32,
+    creation_time: Instant,
 }
 
 impl BufferArena {
     pub fn new(
+        name: &str,
         context: WebGl2RenderingContext,
         target: u32,
         buffer_size: u32,
     ) -> Result<Self, String> {
         let active_buffer = context.create_buffer().ok_or("failed to create buffer")?;
         let standby_buffer = context.create_buffer().ok_or("failed to create buffer")?;
+        context.bind_buffer(target, Some(&active_buffer));
+        context.buffer_data_with_i32(target, buffer_size as i32, gl::DYNAMIC_DRAW);
+        let now = Instant::now();
         Ok(BufferArena {
+            name: name.to_string(),
             context,
             buffer_size,
             active_buffer,
             standby_buffer,
-            offset: buffer_size,
+            offset: 0,
             target,
+            fill_count: 0,
+            creation_time: now,
         })
     }
 
@@ -41,8 +52,22 @@ impl BufferArena {
                 self.buffer_size as i32,
                 gl::DYNAMIC_DRAW,
             );
+            self.fill_count += 1;
+            debug!(
+                "Allocated new buffer name={} len={} fill_count={}",
+                &self.name, self.buffer_size, self.fill_count
+            );
+            if self.fill_count == 1 || self.fill_count == 10 || self.fill_count == 100 {
+                let elapsed = self.creation_time.elapsed().as_secs_f64();
+                info!(
+                    "Filled {} rendering buffer {} time(s) in {:.2}s, {:.2} MB/s",
+                    &self.name,
+                    self.fill_count,
+                    elapsed,
+                    (self.fill_count * self.buffer_size) as f64 / (elapsed * 1e6)
+                );
+            }
             self.offset = 0;
-            debug!("Allocated new buffer len={}", self.buffer_size);
         }
         let offset = self.offset;
         self.context
