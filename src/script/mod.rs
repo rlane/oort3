@@ -1,5 +1,4 @@
 pub mod rhai;
-pub mod rhai_random;
 
 use self::rhai::RhaiShipController;
 use crate::simulation::ship::ShipHandle;

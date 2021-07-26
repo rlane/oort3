@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 #[export_module]
-pub mod random_module {
+pub mod plugin {
     #[derive(Clone)]
     pub struct Random {
         rng: Rc<RefCell<Rand64>>,
