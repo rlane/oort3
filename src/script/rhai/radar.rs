@@ -1,5 +1,5 @@
 use super::vec2::Vec2;
-use crate::simulation::ship::ShipHandle;
+use crate::simulation::ship::{ShipAccessor, ShipHandle};
 use crate::simulation::Simulation;
 use nalgebra::{vector, Point2};
 use rhai::plugin::*;
@@ -7,22 +7,26 @@ use rhai::plugin::*;
 #[export_module]
 pub mod plugin {
     #[derive(Copy, Clone)]
-    pub struct Radar {
+    pub struct RadarApi {
         pub handle: ShipHandle,
         pub sim: *mut Simulation,
     }
 
-    impl Radar {
+    impl RadarApi {
         #[allow(clippy::mut_from_ref)]
         fn sim(&self) -> &mut Simulation {
             unsafe { &mut *self.sim }
         }
+
+        fn ship(&self) -> ShipAccessor {
+            self.sim().ship(self.handle)
+        }
     }
 
-    pub fn scan(radar: Radar) -> ScanResult {
-        let sim = radar.sim();
-        let own_team = sim.ship(radar.handle).data().team;
-        let own_position: Point2<f64> = sim.ship(radar.handle).position().vector.into();
+    pub fn scan(obj: RadarApi) -> ScanResult {
+        let sim = obj.sim();
+        let own_team = obj.ship().data().team;
+        let own_position: Point2<f64> = obj.ship().position().vector.into();
         let mut result = ScanResult {
             found: false,
             position: vector![0.0, 0.0],

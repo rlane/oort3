@@ -1,66 +1,74 @@
 use super::radar::plugin::ScanResult;
 use super::vec2::Vec2;
 use crate::script::rhai::radar;
-use crate::simulation::ship::ShipHandle;
+use crate::simulation::ship::{ShipAccessor, ShipAccessorMut, ShipHandle};
 use crate::simulation::Simulation;
 use rhai::plugin::*;
 
 #[export_module]
 pub mod plugin {
     #[derive(Copy, Clone)]
-    pub struct Ship {
+    pub struct ShipApi {
         pub handle: ShipHandle,
         pub sim: *mut Simulation,
     }
 
-    impl Ship {
+    impl ShipApi {
         #[allow(clippy::mut_from_ref)]
         fn sim(&self) -> &mut Simulation {
             unsafe { &mut *self.sim }
         }
+
+        fn ship(&self) -> ShipAccessor {
+            self.sim().ship(self.handle)
+        }
+
+        fn ship_mut(&self) -> ShipAccessorMut {
+            self.sim().ship_mut(self.handle)
+        }
     }
 
-    pub fn position(ship: Ship) -> Vec2 {
-        ship.sim().ship(ship.handle).position().vector
+    pub fn position(obj: ShipApi) -> Vec2 {
+        obj.ship().position().vector
     }
 
-    pub fn velocity(ship: Ship) -> Vec2 {
-        ship.sim().ship(ship.handle).velocity()
+    pub fn velocity(obj: ShipApi) -> Vec2 {
+        obj.ship().velocity()
     }
 
-    pub fn heading(ship: Ship) -> f64 {
-        ship.sim().ship(ship.handle).heading()
+    pub fn heading(obj: ShipApi) -> f64 {
+        obj.ship().heading()
     }
 
-    pub fn angular_velocity(ship: Ship) -> f64 {
-        ship.sim().ship(ship.handle).angular_velocity()
+    pub fn angular_velocity(obj: ShipApi) -> f64 {
+        obj.ship().angular_velocity()
     }
 
-    pub fn accelerate(ship: Ship, acceleration: Vec2) {
-        ship.sim().ship_mut(ship.handle).accelerate(acceleration);
+    pub fn accelerate(obj: ShipApi, acceleration: Vec2) {
+        obj.ship_mut().accelerate(acceleration);
     }
 
-    pub fn torque(ship: Ship, acceleration: f64) {
-        ship.sim().ship_mut(ship.handle).torque(acceleration);
+    pub fn torque(obj: ShipApi, acceleration: f64) {
+        obj.ship_mut().torque(acceleration);
     }
 
-    pub fn fire_weapon(ship: Ship) {
-        ship.sim().ship_mut(ship.handle).fire_weapon(0);
+    pub fn fire_weapon(obj: ShipApi) {
+        obj.ship_mut().fire_weapon(0);
     }
 
-    pub fn fire_weapon_with_index(ship: Ship, index: i64) {
-        ship.sim().ship_mut(ship.handle).fire_weapon(index);
+    pub fn fire_weapon_with_index(obj: ShipApi, index: i64) {
+        obj.ship_mut().fire_weapon(index);
     }
 
-    pub fn explode(ship: Ship) {
-        ship.sim().ship_mut(ship.handle).explode();
+    pub fn explode(obj: ShipApi) {
+        obj.ship_mut().explode();
     }
 
     // Backwards compatibility.
-    pub fn scan(ship: Ship) -> ScanResult {
-        let radar = radar::plugin::Radar {
-            sim: ship.sim,
-            handle: ship.handle,
+    pub fn scan(obj: ShipApi) -> ScanResult {
+        let radar = radar::plugin::RadarApi {
+            sim: obj.sim,
+            handle: obj.handle,
         };
         radar::plugin::scan(radar)
     }

@@ -46,8 +46,8 @@ impl RhaiShipController {
         let seed = ((i as i64) << 32) | j as i64;
         let rng = self::random::plugin::new_rng(seed);
 
-        let ship = ship::plugin::Ship { handle, sim };
-        let radar = radar::plugin::Radar { handle, sim };
+        let ship = ship::plugin::ShipApi { handle, sim };
+        let radar = radar::plugin::RadarApi { handle, sim };
         let mut globals_map = Box::new(std::collections::HashMap::new());
         let globals = globals::plugin::Globals {
             map: &mut *globals_map,
