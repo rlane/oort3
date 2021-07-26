@@ -34,6 +34,8 @@ pub struct ShipData {
     pub team: i32,
     pub acceleration: Vector2<f64>,
     pub angular_acceleration: f64,
+    pub max_acceleration: Vector2<f64>,
+    pub max_angular_acceleration: f64,
 }
 
 impl Default for ShipData {
@@ -45,6 +47,8 @@ impl Default for ShipData {
             team: 0,
             acceleration: vector![0.0, 0.0],
             angular_acceleration: 0.0,
+            max_acceleration: vector![0.0, 0.0],
+            max_angular_acceleration: 0.0,
         }
     }
 }
@@ -59,6 +63,8 @@ pub fn fighter(team: i32) -> ShipData {
         }],
         health: 100.0,
         team,
+        max_acceleration: vector![200.0, 100.0],
+        max_angular_acceleration: std::f64::consts::TAU,
         ..Default::default()
     }
 }
@@ -195,20 +201,24 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             .unwrap()
     }
 
-    pub fn data(&mut self) -> &mut ShipData {
+    pub fn data(&self) -> &ShipData {
+        self.simulation.ship_data.get(&self.handle).unwrap()
+    }
+
+    pub fn data_mut(&mut self) -> &mut ShipData {
         self.simulation.ship_data.get_mut(&self.handle).unwrap()
     }
 
     pub fn accelerate(&mut self, acceleration: Vector2<f64>) {
-        self.data().acceleration = acceleration;
+        self.data_mut().acceleration = acceleration;
     }
 
     pub fn torque(&mut self, angular_acceleration: f64) {
-        self.data().angular_acceleration = angular_acceleration;
+        self.data_mut().angular_acceleration = angular_acceleration;
     }
 
     pub fn fire_weapon(&mut self, index: i64) {
-        let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+        let ship_data = self.data_mut();
         let team = ship_data.team;
         let damage;
         {
@@ -258,20 +268,30 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         // Acceleration.
         {
-            let acceleration = self.data().acceleration;
+            let max_acceleration = self.data().max_acceleration;
+            let acceleration = self
+                .data()
+                .acceleration
+                .inf(&max_acceleration)
+                .sup(&-max_acceleration);
             let mass = self.body().mass();
             let rotation_matrix = self.body().position().rotation.to_rotation_matrix();
             self.body()
                 .apply_force(rotation_matrix * acceleration * mass, true);
-            self.data().acceleration = vector![0.0, 0.0];
+            self.data_mut().acceleration = vector![0.0, 0.0];
         }
 
         // Torque.
         {
+            let max_angular_acceleration = self.data().max_angular_acceleration;
+            let angular_acceleration = self
+                .data()
+                .angular_acceleration
+                .clamp(-max_angular_acceleration, max_angular_acceleration);
             let inertia_sqrt = 1.0 / self.body().mass_properties().inv_principal_inertia_sqrt;
-            let torque = self.data().angular_acceleration * inertia_sqrt * inertia_sqrt;
+            let torque = angular_acceleration * inertia_sqrt * inertia_sqrt;
             self.body().apply_torque(torque, true);
-            self.data().angular_acceleration = 0.0;
+            self.data_mut().angular_acceleration = 0.0;
         }
     }
 }

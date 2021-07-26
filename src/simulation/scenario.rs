@@ -507,7 +507,7 @@ fn tick() {
         ship.accelerate(ship.velocity() * -10.0);
     } else {
         if ship.velocity().magnitude() < 100.0 {
-            ship.accelerate(dp);
+            ship.accelerate(dp.normalize() * 100.0);
         }
     }
 }
@@ -936,7 +936,7 @@ fn tick() {
     let contact = radar.scan();
     turn_to((contact.position - ship.position()).angle());
     ship.accelerate((contact.position - ship.position() - ship.velocity())
-        .normalize().rotate(-ship.heading()) * 200.0);
+        .normalize().rotate(-ship.heading()) * 100.0);
     ship.fire_weapon();
 }
 "#
