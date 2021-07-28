@@ -58,6 +58,7 @@ impl Simulation {
             joints: JointSet::new(),
             integration_parameters: IntegrationParameters {
                 dt: PHYSICS_TICK_LENGTH,
+                max_ccd_substeps: 2,
                 ..Default::default()
             },
             physics_pipeline: PhysicsPipeline::new(),
