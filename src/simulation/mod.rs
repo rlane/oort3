@@ -40,6 +40,7 @@ pub struct Simulation {
     intersection_recv: crossbeam::channel::Receiver<IntersectionEvent>,
     events: SimEvents,
     tick: u32,
+    pub cheats: bool,
 }
 
 impl Simulation {
@@ -69,6 +70,7 @@ impl Simulation {
             intersection_recv,
             events: SimEvents::new(),
             tick: 0,
+            cheats: false,
         }
     }
 

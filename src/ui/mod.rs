@@ -206,7 +206,7 @@ impl UI {
         if self.status == Status::Running {
             self.status = self.scenario.status(&self.sim);
             if self.status == Status::Finished {
-                if !self.manual_control {
+                if !self.manual_control && !self.sim.cheats {
                     telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario.name(),
                         code: self.latest_code.to_string(),
@@ -245,6 +245,10 @@ impl UI {
 
         if self.manual_control {
             status_msgs.push("MANUAL".to_string());
+        }
+
+        if self.sim.cheats {
+            status_msgs.push("CHEATS".to_string());
         }
 
         if self.paused {

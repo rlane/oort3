@@ -15,15 +15,15 @@ pub mod plugin {
 
     impl ShipApi {
         #[allow(clippy::mut_from_ref)]
-        fn sim(&self) -> &mut Simulation {
+        pub fn sim(&self) -> &mut Simulation {
             unsafe { &mut *self.sim }
         }
 
-        fn ship(&self) -> ShipAccessor {
+        pub fn ship(&self) -> ShipAccessor {
             self.sim().ship(self.handle)
         }
 
-        fn ship_mut(&self) -> ShipAccessorMut {
+        pub fn ship_mut(&self) -> ShipAccessorMut {
             self.sim().ship_mut(self.handle)
         }
     }

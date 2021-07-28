@@ -1,3 +1,4 @@
+use super::ship::plugin::ShipApi;
 use super::vec2::Vec2;
 use rhai::plugin::*;
 
@@ -32,5 +33,25 @@ pub mod plugin {
     #[rhai_fn(name = "assert_eq", return_raw)]
     pub fn assert_eq_vec2(a: &mut Vec2, b: Vec2) -> Result<(), Box<EvalAltResult>> {
         assert_internal(a, b)
+    }
+
+    pub fn cheat_set_position(obj: ShipApi, position: Vec2) {
+        obj.sim().cheats = true;
+        obj.ship_mut().body().set_translation(position, true);
+    }
+
+    pub fn cheat_set_velocity(obj: ShipApi, velocity: Vec2) {
+        obj.sim().cheats = true;
+        obj.ship_mut().body().set_linvel(velocity, true);
+    }
+
+    pub fn cheat_set_heading(obj: ShipApi, heading: f64) {
+        obj.sim().cheats = true;
+        obj.ship_mut().body().set_rotation(heading, true);
+    }
+
+    pub fn cheat_set_angular_velocity(obj: ShipApi, angular_velocity: f64) {
+        obj.sim().cheats = true;
+        obj.ship_mut().body().set_angvel(angular_velocity, true);
     }
 }
