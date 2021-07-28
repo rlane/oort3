@@ -1,5 +1,6 @@
 mod ast_rewrite;
 mod globals;
+mod math;
 mod radar;
 mod random;
 mod ship;
@@ -41,6 +42,7 @@ impl RhaiShipController {
         engine.register_global_module(exported_module!(radar::plugin).into());
         engine.register_global_module(exported_module!(self::random::plugin).into());
         engine.register_global_module(exported_module!(self::util::plugin).into());
+        engine.register_global_module(exported_module!(self::math::plugin).into());
 
         let (i, j) = handle.0.into_raw_parts();
         let seed = ((i as i64) << 32) | j as i64;
