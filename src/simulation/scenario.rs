@@ -1,5 +1,5 @@
 use super::rng::new_rng;
-use super::ship::{asteroid, fighter, ShipHandle};
+use super::ship::{asteroid, fighter, target, ShipHandle};
 use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
@@ -165,18 +165,21 @@ impl Scenario for GunneryScenario {
         "gunnery".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
-        ship::create(
-            sim,
-            2000.0,
-            -2000.0,
-            0.0,
-            1000.0,
-            std::f64::consts::PI,
-            fighter(1),
-        );
+        let mut rng = new_rng(seed);
+        for _ in 0..4 {
+            ship::create(
+                sim,
+                2000.0 + rng.gen_range(-500.0..500.0),
+                -2000.0 + rng.gen_range(-500.0..500.0),
+                0.0 + rng.gen_range(-10.0..10.0),
+                700.0 + rng.gen_range(-300.0..300.0),
+                std::f64::consts::PI,
+                target(1),
+            );
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {

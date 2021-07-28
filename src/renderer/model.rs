@@ -26,3 +26,13 @@ pub fn asteroid(variant: i32) -> Vec<Vector2<f32>> {
     }
     scale(50.0, &vertices)
 }
+
+pub fn target() -> Vec<Vector2<f32>> {
+    let n = 20;
+    let mut vertices = vec![];
+    for i in 0..n {
+        let rotation = Rotation2::new(i as f32 * 2.0 * std::f32::consts::PI / n as f32);
+        vertices.push(rotation.transform_vector(&vector![1.0, 0.0]));
+    }
+    scale(10.0, &vertices)
+}

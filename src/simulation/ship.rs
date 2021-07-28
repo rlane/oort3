@@ -19,6 +19,7 @@ impl HasIndex for ShipHandle {
 pub enum ShipClass {
     Fighter,
     Asteroid { variant: i32 },
+    Target,
 }
 
 pub struct Weapon {
@@ -75,6 +76,15 @@ pub fn asteroid(variant: i32) -> ShipData {
         weapons: vec![],
         health: 200.0,
         team: 9,
+        ..Default::default()
+    }
+}
+
+pub fn target(team: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::Target,
+        health: 1.0,
+        team,
         ..Default::default()
     }
 }
@@ -137,6 +147,28 @@ pub fn create(
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
+        }
+        ShipClass::Target => {
+            let vertices = crate::renderer::model::target()
+                .iter()
+                .map(|&v| point![v.x as f64, v.y as f64])
+                .collect::<Vec<_>>();
+            let collider = ColliderBuilder::convex_hull(&vertices)
+                .unwrap()
+                .restitution(1.0)
+                .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+                .collision_groups(InteractionGroups::new(
+                    1 << simulation::SHIP_COLLISION_GROUP,
+                    1 << simulation::WALL_COLLISION_GROUP
+                        | 1 << simulation::SHIP_COLLISION_GROUP
+                        | 1 << simulation::BULLET_COLLISION_GROUP,
+                ))
+                .build();
+            sim.colliders
+                .insert_with_parent(collider, body_handle, &mut sim.bodies);
+            let sim_ptr = sim as *mut Simulation;
+            sim.ship_controllers
+                .insert(handle, script::new_ship_controller(handle, sim_ptr));
         }
     }
     sim.ships.insert(handle);

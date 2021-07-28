@@ -111,6 +111,7 @@ void main() {
             let model_vertices = match class {
                 ShipClass::Fighter => model::ship(),
                 ShipClass::Asteroid { variant } => model::asteroid(*variant),
+                ShipClass::Target => model::target(),
             };
 
             let num_vertices = model_vertices.len();
