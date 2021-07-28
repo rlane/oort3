@@ -100,6 +100,7 @@ pub fn add_walls(sim: &mut Simulation) {
 pub fn load(name: &str) -> Box<dyn Scenario> {
     let scenario: Box<dyn Scenario> = match name {
         "basic" => Box::new(BasicScenario {}),
+        "gunnery" => Box::new(GunneryScenario {}),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario {}),
@@ -128,6 +129,7 @@ pub fn list() -> Vec<String> {
         "tutorial06",
         "tutorial07",
         "tutorial08",
+        "gunnery",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -153,6 +155,60 @@ impl Scenario for BasicScenario {
         } else {
             Status::Finished
         }
+    }
+}
+
+struct GunneryScenario {}
+
+impl Scenario for GunneryScenario {
+    fn name(&self) -> String {
+        "gunnery".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
+        add_walls(sim);
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(
+            sim,
+            2000.0,
+            -2000.0,
+            0.0,
+            1000.0,
+            std::f64::consts::PI,
+            fighter(1),
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        if sim.ships.iter().len() > 1 {
+            Running
+        } else {
+            Status::Finished
+        }
+    }
+
+    fn solution(&self) -> String {
+        r#"
+fn tick() {
+    let contact = radar.scan();
+    if (contact.found) {
+        let dp = contact.position - ship.position();
+        let dv = contact.velocity - ship.velocity();
+        let bullet_speed = 1000.0;
+        let bullet_offset = 20.0;
+        let predicted_dp = dp;
+        for i in range(0, 10) {
+            let dist = predicted_dp.magnitude() - bullet_offset;
+            let t = dist / bullet_speed;
+            predicted_dp = dp + t * dv;
+        }
+        ship.cheat_set_heading(predicted_dp.angle());
+        ship.fire_weapon();
+    }
+}
+    "#
+        .trim()
+        .to_string()
     }
 }
 

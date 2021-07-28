@@ -35,3 +35,8 @@ fn test_tutorials() {
         .into_par_iter()
         .for_each(|x| check_solution(&x));
 }
+
+#[test]
+fn test_gunnery() {
+    check_solution("gunnery");
+}
