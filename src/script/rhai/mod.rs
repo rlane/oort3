@@ -4,6 +4,7 @@ mod math;
 mod radar;
 mod random;
 mod ship;
+mod testing;
 mod util;
 mod vec2;
 
@@ -43,6 +44,9 @@ impl RhaiShipController {
         engine.register_global_module(exported_module!(self::random::plugin).into());
         engine.register_global_module(exported_module!(self::util::plugin).into());
         engine.register_global_module(exported_module!(self::math::plugin).into());
+
+        #[cfg(test)]
+        engine.register_global_module(exported_module!(testing::plugin).into());
 
         let (i, j) = handle.0.into_raw_parts();
         let seed = ((i as i64) << 32) | j as i64;
