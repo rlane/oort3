@@ -36,3 +36,17 @@ pub fn target() -> Vec<Vector2<f32>> {
     }
     scale(10.0, &vertices)
 }
+
+pub fn missile() -> Vec<Vector2<f32>> {
+    scale(
+        1.0,
+        &[
+            vector![-0.7, -0.71],
+            vector![0.0, 0.0],
+            vector![1.0, 0.0],
+            vector![0.0, 0.0],
+            vector![-0.7, 0.71],
+            vector![0.0, 0.0],
+        ],
+    )
+}

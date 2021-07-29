@@ -144,7 +144,7 @@ impl Simulation {
                         sim.events
                             .ships_destroyed
                             .push(sim.ship(ship).body().position().translation.vector);
-                        sim.ship_mut(ship).explode();
+                        sim.ship_mut(ship).data_mut().destroyed = true;
                     }
                     sim.events
                         .hits

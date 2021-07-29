@@ -1,5 +1,5 @@
 use super::rng::new_rng;
-use super::ship::{asteroid, fighter, target, ShipHandle};
+use super::ship::{asteroid, fighter, missile, target, ShipHandle};
 use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
@@ -101,6 +101,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
     let scenario: Box<dyn Scenario> = match name {
         "basic" => Box::new(BasicScenario {}),
         "gunnery" => Box::new(GunneryScenario {}),
+        "missile" => Box::new(MissileScenario {}),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario {}),
@@ -130,6 +131,7 @@ pub fn list() -> Vec<String> {
         "tutorial07",
         "tutorial08",
         "gunnery",
+        "missile",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -1167,6 +1169,74 @@ fn tick() {
     ship.accelerate((dp - ship.velocity()).rotate(-ship.heading()));
 }
 "#
+        .trim()
+        .to_string()
+    }
+}
+
+struct MissileScenario {}
+
+impl Scenario for MissileScenario {
+    fn name(&self) -> String {
+        "missile".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+        add_walls(sim);
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, missile(0));
+        let mut rng = new_rng(seed);
+        ship::create(
+            sim,
+            2000.0 + rng.gen_range(-500.0..500.0),
+            -2000.0 + rng.gen_range(-500.0..500.0),
+            0.0 + rng.gen_range(-10.0..10.0),
+            700.0 + rng.gen_range(-300.0..300.0),
+            std::f64::consts::PI,
+            target(1),
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        if sim.ships.iter().len() > 0 {
+            Running
+        } else {
+            Status::Finished
+        }
+    }
+
+    fn solution(&self) -> String {
+        r#"
+fn turn_to(target_heading, target_angular_velocity) {
+    let acc = 2 * PI();
+    let dh = angle_diff(ship.heading(), target_heading);
+    let vh = ship.angular_velocity() - target_angular_velocity;
+    let margin = 0.001;
+    let t = abs(vh / acc);
+    let pdh = vh * t + 0.5 * -acc * t*t - dh;
+    if pdh < 0 {
+        ship.torque(acc);
+    } else if pdh > 0 {
+        ship.torque(-acc);
+    }
+}
+
+fn tick() {
+    let contact = radar.scan();
+    if (contact.found) {
+        let dp = contact.position - ship.position();
+        if dp.magnitude() < 20 {
+            ship.explode();
+            return;
+        }
+        let dv = contact.velocity - ship.velocity();
+        let t = dp.magnitude() / 500.0;
+        let predicted_dp = dp + dv * t;
+        let target_heading = predicted_dp.angle();
+        turn_to(target_heading, 0.0);
+        ship.accelerate(predicted_dp.rotate(-ship.heading()));
+    }
+}
+    "#
         .trim()
         .to_string()
     }

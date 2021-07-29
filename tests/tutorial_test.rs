@@ -40,3 +40,8 @@ fn test_tutorials() {
 fn test_gunnery() {
     check_solution("gunnery");
 }
+
+#[test]
+fn test_missile() {
+    check_solution("missile");
+}

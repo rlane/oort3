@@ -112,6 +112,7 @@ void main() {
                 ShipClass::Fighter => model::ship(),
                 ShipClass::Asteroid { variant } => model::asteroid(*variant),
                 ShipClass::Target => model::target(),
+                ShipClass::Missile => model::missile(),
             };
 
             let num_vertices = model_vertices.len();

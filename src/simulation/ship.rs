@@ -1,9 +1,11 @@
 use super::index_set::{HasIndex, Index};
+use super::rng::new_rng;
 use crate::script;
 use crate::simulation;
 use crate::simulation::{bullet, Simulation};
 use bullet::BulletData;
-use nalgebra::{vector, Vector2};
+use nalgebra::{vector, Rotation2, Vector2};
+use rand::Rng;
 use rapier2d_f64::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
@@ -20,6 +22,7 @@ pub enum ShipClass {
     Fighter,
     Asteroid { variant: i32 },
     Target,
+    Missile,
 }
 
 pub struct Weapon {
@@ -37,6 +40,7 @@ pub struct ShipData {
     pub angular_acceleration: f64,
     pub max_acceleration: Vector2<f64>,
     pub max_angular_acceleration: f64,
+    pub destroyed: bool,
 }
 
 impl Default for ShipData {
@@ -50,6 +54,7 @@ impl Default for ShipData {
             angular_acceleration: 0.0,
             max_acceleration: vector![0.0, 0.0],
             max_angular_acceleration: 0.0,
+            destroyed: false,
         }
     }
 }
@@ -84,6 +89,17 @@ pub fn target(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Target,
         health: 1.0,
+        team,
+        ..Default::default()
+    }
+}
+
+pub fn missile(team: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::Missile,
+        health: 1.0,
+        max_acceleration: vector![400.0, 0.0],
+        max_angular_acceleration: 2.0 * std::f64::consts::TAU,
         team,
         ..Default::default()
     }
@@ -150,6 +166,28 @@ pub fn create(
         }
         ShipClass::Target => {
             let vertices = crate::renderer::model::target()
+                .iter()
+                .map(|&v| point![v.x as f64, v.y as f64])
+                .collect::<Vec<_>>();
+            let collider = ColliderBuilder::convex_hull(&vertices)
+                .unwrap()
+                .restitution(1.0)
+                .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+                .collision_groups(InteractionGroups::new(
+                    1 << simulation::SHIP_COLLISION_GROUP,
+                    1 << simulation::WALL_COLLISION_GROUP
+                        | 1 << simulation::SHIP_COLLISION_GROUP
+                        | 1 << simulation::BULLET_COLLISION_GROUP,
+                ))
+                .build();
+            sim.colliders
+                .insert_with_parent(collider, body_handle, &mut sim.bodies);
+            let sim_ptr = sim as *mut Simulation;
+            sim.ship_controllers
+                .insert(handle, script::new_ship_controller(handle, sim_ptr));
+        }
+        ShipClass::Missile => {
+            let vertices = crate::renderer::model::missile()
                 .iter()
                 .map(|&v| point![v.x as f64, v.y as f64])
                 .collect::<Vec<_>>();
@@ -279,13 +317,27 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn explode(&mut self) {
-        self.simulation.ships.remove(self.handle);
-        self.simulation.bodies.remove(
-            RigidBodyHandle(self.handle.index()),
-            &mut self.simulation.island_manager,
-            &mut self.simulation.colliders,
-            &mut self.simulation.joints,
-        );
+        if self.data().destroyed {
+            return;
+        }
+        self.data_mut().destroyed = true;
+
+        let team = self.data().team;
+        let speed = 1000.0;
+        let p = self.body().position().translation;
+        let mut rng = new_rng(0);
+        for _ in 0..10 {
+            let rot = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU));
+            let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
+            bullet::create(
+                &mut self.simulation,
+                p.x,
+                p.y,
+                v.x,
+                v.y,
+                BulletData { damage: 10.0, team },
+            );
+        }
     }
 
     pub fn tick(&mut self) {
@@ -324,6 +376,17 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             let torque = angular_acceleration * inertia_sqrt * inertia_sqrt;
             self.body().apply_torque(torque, true);
             self.data_mut().angular_acceleration = 0.0;
+        }
+
+        // Destruction.
+        if self.data().destroyed {
+            self.simulation.ships.remove(self.handle);
+            self.simulation.bodies.remove(
+                RigidBodyHandle(self.handle.index()),
+                &mut self.simulation.island_manager,
+                &mut self.simulation.colliders,
+                &mut self.simulation.joints,
+            );
         }
     }
 }
