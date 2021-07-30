@@ -1,6 +1,5 @@
 use super::index_set::{HasIndex, Index};
 use super::rng::new_rng;
-use crate::script;
 use crate::simulation;
 use crate::simulation::{bullet, Simulation};
 use bullet::BulletData;
@@ -122,6 +121,7 @@ pub fn create(
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
     let handle = ShipHandle(body_handle.0);
+    let team = data.team;
     match data.class {
         ShipClass::Fighter => {
             let vertices = crate::renderer::model::ship()
@@ -141,9 +141,6 @@ pub fn create(
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
-            let sim_ptr = sim as *mut Simulation;
-            sim.ship_controllers
-                .insert(handle, script::new_ship_controller(handle, sim_ptr));
         }
         ShipClass::Asteroid { variant } => {
             let vertices = crate::renderer::model::asteroid(variant)
@@ -182,9 +179,6 @@ pub fn create(
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
-            let sim_ptr = sim as *mut Simulation;
-            sim.ship_controllers
-                .insert(handle, script::new_ship_controller(handle, sim_ptr));
         }
         ShipClass::Missile => {
             let vertices = crate::renderer::model::missile()
@@ -204,13 +198,23 @@ pub fn create(
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
-            let sim_ptr = sim as *mut Simulation;
-            sim.ship_controllers
-                .insert(handle, script::new_ship_controller(handle, sim_ptr));
         }
     }
+
     sim.ships.insert(handle);
     sim.ship_data.insert(handle, data);
+
+    let sim_ptr: *mut Simulation = sim;
+    if let Some(team_ctrl) = sim.team_controllers.get_mut(&team) {
+        match team_ctrl.create_ship_controller(handle, sim_ptr) {
+            Ok(ship_ctrl) => {
+                sim.ship_controllers.insert(handle, ship_ctrl);
+            }
+            Err(e) => {
+                sim.events.errors.push(e);
+            }
+        }
+    }
     handle
 }
 

@@ -8,7 +8,7 @@ use self::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
 use self::index_set::IndexSet;
 use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::script;
-use crate::script::ShipController;
+use crate::script::{ShipController, TeamController};
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
@@ -23,6 +23,7 @@ pub(crate) const BULLET_COLLISION_GROUP: u32 = 2;
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
     ship_data: HashMap<ShipHandle, ShipData>,
+    team_controllers: HashMap<i32, Box<dyn TeamController>>,
     ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
     pub bullets: IndexSet<BulletHandle>,
     bullet_data: HashMap<BulletHandle, BulletData>,
@@ -50,6 +51,7 @@ impl Simulation {
         Simulation {
             ships: IndexSet::new(),
             ship_data: HashMap::new(),
+            team_controllers: HashMap::new(),
             ship_controllers: HashMap::new(),
             bullets: IndexSet::new(),
             bullet_data: HashMap::new(),
@@ -184,17 +186,13 @@ impl Simulation {
         self.tick += 1;
     }
 
-    pub fn upload_code(&mut self, code: &str, team: i32) {
-        for &handle in self.ships.iter() {
-            if self.ship(handle).data().team == team {
-                if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
-                    if let Err(e) = ship_controller.upload_code(code) {
-                        self.events.errors.push(e);
-                    }
-                    if let Err(e) = ship_controller.start() {
-                        self.events.errors.push(e);
-                    }
-                }
+    pub fn upload_code(&mut self, team: i32, code: &str) {
+        match script::new_team_controller(code) {
+            Ok(team_ctrl) => {
+                self.team_controllers.insert(team, team_ctrl);
+            }
+            Err(e) => {
+                self.events.errors.push(e);
             }
         }
     }

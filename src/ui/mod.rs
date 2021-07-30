@@ -42,7 +42,7 @@ pub struct UI {
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(scenario_name: &str) -> Self {
+    pub fn new(scenario_name: &str, mut code: &str) -> Self {
         info!("Loading scenario {}", scenario_name);
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -56,12 +56,11 @@ impl UI {
         let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
-        let paused = false;
+        let mut paused = false;
         let single_steps = 0;
         let seed: u64 = rand::thread_rng().gen();
 
         let mut scenario = scenario::load(scenario_name);
-        scenario.init(&mut sim, seed);
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();
@@ -69,6 +68,25 @@ impl UI {
         let userid = userid::get_userid();
         log::info!("userid {}", &userid);
         log::info!("username {}", &userid::get_username(&userid));
+
+        if !code.is_empty() {
+            let storage = window
+                .local_storage()
+                .expect("failed to get local storage")
+                .unwrap();
+            if let Err(msg) = storage.set_item(&format!("/code/{}", scenario.name()), code) {
+                error!("Failed to save code: {:?}", msg);
+            }
+        } else {
+            code = "fn tick() {}";
+        }
+
+        sim.upload_code(/*team=*/ 0, code);
+        scenario.init(&mut sim, seed);
+        let latest_code = code.to_string();
+        if !sim.events().errors.is_empty() {
+            paused = true;
+        }
 
         let ui = UI {
             sim,
@@ -88,10 +106,10 @@ impl UI {
             last_render_time: instant::now(),
             physics_time: instant::now(),
             fps: fps::FPS::new(),
-            latest_code: "".to_string(),
+            latest_code,
             manual_control: false,
         };
-        ui.display_errors(&[]);
+        ui.display_errors(&ui.sim.events().errors);
         ui
     }
 
@@ -308,29 +326,6 @@ impl UI {
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
     }
 
-    pub fn upload_code(&mut self, code: &str) {
-        let window = web_sys::window().expect("no global `window` exists");
-        let storage = window
-            .local_storage()
-            .expect("failed to get local storage")
-            .unwrap();
-        if let Err(msg) = storage.set_item(&format!("/code/{}", self.scenario.name()), code) {
-            error!("Failed to save code: {:?}", msg);
-        }
-        if false {
-            telemetry::send(Telemetry::StartScenario {
-                scenario_name: self.scenario.name(),
-                code: code.to_string(),
-            });
-        }
-        self.sim.upload_code(code, /*team=*/ 0);
-        self.latest_code = code.to_string();
-        if !self.sim.events().errors.is_empty() {
-            self.display_errors(&self.sim.events().errors);
-            self.paused = true;
-        }
-    }
-
     pub fn get_initial_code(&self) -> String {
         let window = web_sys::window().expect("no global `window` exists");
         let storage = window
@@ -369,6 +364,6 @@ impl UI {
 
 impl Default for UI {
     fn default() -> Self {
-        Self::new("asteroid")
+        Self::new("asteroid", "fn tick() {}")
     }
 }

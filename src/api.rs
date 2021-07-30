@@ -31,12 +31,12 @@ pub fn initialize() {
 }
 
 #[wasm_bindgen]
-pub fn start(scenario_name: &str) {
+pub fn start(scenario_name: &str, code: &str) {
     if has_panicked() {
         return;
     }
     let mut ui = OORT_UI.lock().unwrap();
-    *ui = Some(UI::new(scenario_name));
+    *ui = Some(UI::new(scenario_name, code));
 }
 
 #[wasm_bindgen]
@@ -69,17 +69,6 @@ pub fn on_wheel_event(e: web_sys::WheelEvent) {
     let mut ui = OORT_UI.lock().unwrap();
     if ui.is_some() {
         ui.as_mut().unwrap().on_wheel_event(e);
-    }
-}
-
-#[wasm_bindgen]
-pub fn upload_code(code: &str) {
-    if has_panicked() {
-        return;
-    }
-    let mut ui = OORT_UI.lock().unwrap();
-    if ui.is_some() {
-        ui.as_mut().unwrap().upload_code(code);
     }
 }
 

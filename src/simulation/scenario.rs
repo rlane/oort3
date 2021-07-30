@@ -761,6 +761,7 @@ impl Scenario for Tutorial05 {
         ));
 
         sim.upload_code(
+            1,
             r#"
 let target = ship.position();
 
@@ -777,7 +778,6 @@ fn tick() {
     turn_to((target - ship.position()).angle());
 }
         "#,
-            1,
         );
     }
 
@@ -872,6 +872,7 @@ impl Scenario for Tutorial06 {
         }
 
         sim.upload_code(
+            1,
             r#"
 let target = ship.position();
 
@@ -888,7 +889,6 @@ fn tick() {
     turn_to((target - ship.position()).angle());
 }
         "#,
-            1,
         );
     }
 
@@ -973,6 +973,7 @@ impl Scenario for Tutorial07 {
         }
 
         sim.upload_code(
+            1,
             r#"
 let target = ship.position();
 
@@ -990,7 +991,6 @@ fn tick() {
     ship.fire_weapon();
 }
         "#,
-            1,
         );
     }
 
@@ -1088,6 +1088,7 @@ impl Scenario for Tutorial08 {
         }
 
         sim.upload_code(
+            1,
             r#"
 let initial_position = ship.position();
 let target = initial_position;
@@ -1111,7 +1112,6 @@ fn tick() {
     }
 }
         "#,
-            1,
         );
     }
 

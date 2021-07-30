@@ -6,7 +6,7 @@ fn check_solution(scenario_name: &str) {
     let mut sim = simulation::Simulation::new();
     let mut scenario = scenario::load(scenario_name);
     scenario.init(&mut sim, 0);
-    sim.upload_code(&scenario.solution(), /*team=*/ 0);
+    sim.upload_code(/*team=*/ 0, &scenario.solution());
 
     let mut i = 0;
     while scenario.status(&sim) == scenario::Status::Running && i < 10000 {

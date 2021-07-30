@@ -14,7 +14,7 @@ function initialize(m) {
 
   m.initialize();
   initialize_scenario_list(m.get_scenarios());
-  m.start("welcome");
+  rust_module.start("welcome", "");
 
   document.getElementById("username").textContent = m.get_username(m.get_userid());
 
@@ -58,8 +58,7 @@ editor.addAction({
   contextMenuGroupId: 'navigation',
   contextMenuOrder: 1.5,
   run: function(ed) {
-    rust_module.start(document.getElementById('scenario').value);
-    rust_module.upload_code(ed.getValue());
+    rust_module.start(document.getElementById('scenario').value, ed.getValue());
     return null;
   }
 });
@@ -68,7 +67,7 @@ var scenario_select = document.getElementById('scenario');
 
 window.start_scenario = function(name) {
   scenario_select.value = name;
-  rust_module.start(name);
+  rust_module.start(name, "");
   editor.setValue(rust_module.get_initial_code());
   hide_overlay();
 }

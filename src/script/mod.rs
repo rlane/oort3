@@ -1,6 +1,6 @@
 pub mod rhai;
 
-use self::rhai::RhaiShipController;
+use self::rhai::RhaiTeamController;
 use crate::simulation::ship::ShipHandle;
 use crate::simulation::Simulation;
 use nalgebra::Vector2;
@@ -12,13 +12,19 @@ pub struct Error {
     pub msg: String,
 }
 
+pub trait TeamController {
+    fn create_ship_controller(
+        &mut self,
+        handle: ShipHandle,
+        sim: *mut Simulation,
+    ) -> Result<Box<dyn ShipController>, Error>;
+}
+
 pub trait ShipController {
-    fn upload_code(&mut self, code: &str) -> Result<(), Error>;
-    fn start(&mut self) -> Result<(), Error>;
     fn tick(&mut self) -> Result<(), Error>;
     fn write_target(&mut self, target: Vector2<f64>);
 }
 
-pub fn new_ship_controller(handle: ShipHandle, sim: *mut Simulation) -> Box<dyn ShipController> {
-    Box::new(RhaiShipController::new(handle, sim))
+pub fn new_team_controller(code: &str) -> Result<Box<dyn TeamController>, Error> {
+    RhaiTeamController::create(code)
 }
