@@ -33,6 +33,7 @@ pub struct Weapon {
 pub struct ShipData {
     pub class: ShipClass,
     pub weapons: Vec<Weapon>,
+    pub missile: Option<Weapon>,
     pub health: f64,
     pub team: i32,
     pub acceleration: Vector2<f64>,
@@ -47,6 +48,7 @@ impl Default for ShipData {
         ShipData {
             class: ShipClass::Fighter,
             weapons: vec![],
+            missile: None,
             health: 100.0,
             team: 0,
             acceleration: vector![0.0, 0.0],
@@ -66,6 +68,11 @@ pub fn fighter(team: i32) -> ShipData {
             reload_time_remaining: 0.0,
             damage: 20.0,
         }],
+        missile: Some(Weapon {
+            reload_time: 5.0,
+            reload_time_remaining: 0.0,
+            damage: 0.0,
+        }),
         health: 100.0,
         team,
         max_acceleration: vector![200.0, 100.0],
@@ -320,6 +327,34 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         );
     }
 
+    pub fn launch_missile(&mut self) {
+        if let Some(missile) = self.data_mut().missile.as_mut() {
+            if missile.reload_time_remaining > 0.0 {
+                return;
+            }
+            missile.reload_time_remaining += missile.reload_time;
+        } else {
+            return;
+        }
+
+        let speed = 100.0;
+        let offset = vector![20.0, 0.0];
+        let body = self.body();
+        let rot = body.position().rotation;
+        let p = body.position().translation.vector + rot.transform_vector(&offset);
+        let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
+        let team = self.data().team;
+        create(
+            &mut self.simulation,
+            p.x,
+            p.y,
+            v.x,
+            v.y,
+            rot.angle(),
+            missile(team),
+        );
+    }
+
     pub fn explode(&mut self) {
         if self.data().destroyed {
             return;
@@ -352,8 +387,12 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 weapon.reload_time_remaining =
                     (weapon.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
             }
-        }
 
+            if let Some(missile) = ship_data.missile.as_mut() {
+                missile.reload_time_remaining =
+                    (missile.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
+            }
+        }
         // Acceleration.
         {
             let max_acceleration = self.data().max_acceleration;

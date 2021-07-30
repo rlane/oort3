@@ -1,7 +1,7 @@
 use super::radar::plugin::ScanResult;
 use super::vec2::Vec2;
 use crate::script::rhai::radar;
-use crate::simulation::ship::{ShipAccessor, ShipAccessorMut, ShipHandle};
+use crate::simulation::ship::{ShipAccessor, ShipAccessorMut, ShipClass, ShipHandle};
 use crate::simulation::Simulation;
 use rhai::plugin::*;
 
@@ -60,8 +60,21 @@ pub mod plugin {
         obj.ship_mut().fire_weapon(index);
     }
 
+    pub fn launch_missile(obj: ShipApi) {
+        obj.ship_mut().launch_missile();
+    }
+
     pub fn explode(obj: ShipApi) {
         obj.ship_mut().explode();
+    }
+
+    pub fn class(obj: ShipApi) -> String {
+        match obj.ship().data().class {
+            ShipClass::Fighter => "fighter".to_string(),
+            ShipClass::Asteroid { .. } => "asteroid".to_string(),
+            ShipClass::Target => "target".to_string(),
+            ShipClass::Missile => "missile".to_string(),
+        }
     }
 
     // Backwards compatibility.

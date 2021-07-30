@@ -1,5 +1,5 @@
 use super::rng::new_rng;
-use super::ship::{asteroid, fighter, missile, target, ShipHandle};
+use super::ship::{asteroid, fighter, target, ShipHandle};
 use super::{
     bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
     WORLD_SIZE,
@@ -101,7 +101,6 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
     let scenario: Box<dyn Scenario> = match name {
         "basic" => Box::new(BasicScenario {}),
         "gunnery" => Box::new(GunneryScenario {}),
-        "missile" => Box::new(MissileScenario {}),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario {}),
@@ -113,6 +112,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial06" => Box::new(Tutorial06::new()),
         "tutorial07" => Box::new(Tutorial07::new()),
         "tutorial08" => Box::new(Tutorial08::new()),
+        "tutorial09" => Box::new(Tutorial09::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -130,8 +130,8 @@ pub fn list() -> Vec<String> {
         "tutorial06",
         "tutorial07",
         "tutorial08",
+        "tutorial09",
         "gunnery",
-        "missile",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -1055,6 +1055,34 @@ impl Scenario for Tutorial08 {
 
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
+
+        sim.upload_code(
+            1,
+            r#"
+let initial_position = ship.position();
+let target = initial_position;
+
+fn turn_to(target_heading) {
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.5 * ship.angular_velocity()));
+}
+
+fn tick() {
+    if (target - ship.position()).magnitude() < 50 {
+        target = initial_position + vec2(rng.next(0.0, 200.0), 0).rotate(rng.next(0.0, 2*PI()));
+    }
+    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
+    let contact = radar.scan();
+    if (contact.position.distance(ship.position()) < 1000.0) {
+        turn_to((contact.position - ship.position()).angle());
+        ship.fire_weapon();
+    } else {
+        turn_to((target - ship.position()).angle());
+    }
+}
+        "#,
+        );
+
         let mut rng = new_rng(seed);
         {
             for _ in 0..3 {
@@ -1086,33 +1114,6 @@ impl Scenario for Tutorial08 {
                 );
             }
         }
-
-        sim.upload_code(
-            1,
-            r#"
-let initial_position = ship.position();
-let target = initial_position;
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.5 * ship.angular_velocity()));
-}
-
-fn tick() {
-    if (target - ship.position()).magnitude() < 50 {
-        target = initial_position + vec2(rng.next(0.0, 200.0), 0).rotate(rng.next(0.0, 2*PI()));
-    }
-    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
-    let contact = radar.scan();
-    if (contact.position.distance(ship.position()) < 1000.0) {
-        turn_to((contact.position - ship.position()).angle());
-        ship.fire_weapon();
-    } else {
-        turn_to((target - ship.position()).angle());
-    }
-}
-        "#,
-        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -1174,16 +1175,52 @@ fn tick() {
     }
 }
 
-struct MissileScenario {}
+struct Tutorial09 {}
 
-impl Scenario for MissileScenario {
+impl Tutorial09 {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Tutorial09 {
     fn name(&self) -> String {
-        "missile".into()
+        "tutorial09".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, missile(0));
+
+        sim.upload_code(
+            1,
+            r#"
+let initial_position = ship.position();
+let target = initial_position;
+
+fn turn_to(target_heading) {
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.5 * ship.angular_velocity()));
+}
+
+fn tick() {
+    if (target - ship.position()).magnitude() < 50 {
+        target = initial_position + vec2(rng.next(0.0, 200.0), 0).rotate(rng.next(0.0, 2*PI()));
+    }
+    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
+    let contact = radar.scan();
+    if (contact.position.distance(ship.position()) < 1000.0) {
+        turn_to((contact.position - ship.position()).angle());
+        ship.fire_weapon();
+    } else {
+        turn_to((target - ship.position()).angle());
+    }
+}
+        "#,
+        );
+
+        let mut shipdata = fighter(0);
+        shipdata.weapons.clear();
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, shipdata);
         let mut rng = new_rng(seed);
         ship::create(
             sim,
@@ -1192,20 +1229,56 @@ impl Scenario for MissileScenario {
             0.0 + rng.gen_range(-10.0..10.0),
             700.0 + rng.gen_range(-300.0..300.0),
             std::f64::consts::PI,
-            target(1),
+            fighter(1),
         );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.iter().len() > 0 {
-            Running
+        check_tutorial_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        r#"
+// tutorial09
+// Destroy the enemy ship with your missiles.
+
+fn tick() {
+    let contact = ship.scan();
+    if contact.found {
+        if ship.class() == "missile" {
+            let dp = contact.position - ship.position();
+            ship.torque(20 * (angle_diff(ship.heading(), dp.angle())
+                - 0.1 * ship.angular_velocity()));
+            ship.accelerate(dp.rotate(-ship.heading()));
+            if dp.magnitude() < 100 {
+                ship.explode();
+            }
         } else {
-            Status::Finished
+            ship.launch_missile();
         }
+    }
+}
+"#
+        .trim()
+        .to_string()
     }
 
     fn solution(&self) -> String {
         r#"
+// tutorial09
+// Destroy the enemy ship with your missiles.
+
+fn tick() {
+    if ship.class() == "missile" {
+        missile_tick();
+    } else {
+        ship.launch_missile();
+        if ship.angular_velocity() < 1.0 {
+            ship.torque(1.0);
+        }
+    }
+}
+
 fn turn_to(target_heading, target_angular_velocity) {
     let acc = 2 * PI();
     let dh = angle_diff(ship.heading(), target_heading);
@@ -1220,21 +1293,28 @@ fn turn_to(target_heading, target_angular_velocity) {
     }
 }
 
-fn tick() {
+let last_dist = 1e9;
+fn missile_tick() {
     let contact = radar.scan();
-    if (contact.found) {
-        let dp = contact.position - ship.position();
-        if dp.magnitude() < 20 {
-            ship.explode();
-            return;
+    if (!contact.found) {
+        if ship.velocity().magnitude() < 1000 {
+            ship.accelerate(vec2(1000, 0));
         }
-        let dv = contact.velocity - ship.velocity();
-        let t = dp.magnitude() / 500.0;
-        let predicted_dp = dp + dv * t;
-        let target_heading = predicted_dp.angle();
-        turn_to(target_heading, 0.0);
-        ship.accelerate(predicted_dp.rotate(-ship.heading()));
+        return;
     }
+    let dp = contact.position - ship.position();
+    let dist = dp.magnitude();
+    if dist < 10 || dist < 100 && dist > last_dist {
+        ship.explode();
+        return;
+    }
+    last_dist = dist;
+    let dv = contact.velocity - ship.velocity();
+    let t = dp.magnitude() / 500.0;
+    let predicted_dp = dp + dv * t;
+    let target_heading = predicted_dp.angle();
+    turn_to(target_heading, 0.0);
+    ship.accelerate(predicted_dp.rotate(-ship.heading()));
 }
     "#
         .trim()
