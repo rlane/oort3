@@ -261,8 +261,12 @@ impl UI {
             }
         }
 
-        self.renderer
-            .render(self.camera_target, self.zoom, &self.sim);
+        self.renderer.render(
+            self.camera_target,
+            self.zoom,
+            &self.sim,
+            &self.scenario.lines(),
+        );
 
         if self.manual_control {
             status_msgs.push("MANUAL".to_string());

@@ -7,7 +7,7 @@ pub mod model;
 pub mod particle_renderer;
 pub mod ship_renderer;
 
-use crate::simulation::Simulation;
+use crate::simulation::{Line, Simulation};
 use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
@@ -86,7 +86,13 @@ impl Renderer {
         point![coords.x as f64, coords.y as f64]
     }
 
-    pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, sim: &Simulation) {
+    pub fn render(
+        &mut self,
+        camera_target: Point2<f32>,
+        zoom: f32,
+        sim: &Simulation,
+        lines: &[Line],
+    ) {
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(gl::COLOR_BUFFER_BIT);
 
@@ -110,6 +116,7 @@ impl Renderer {
         if self.debug {
             self.line_renderer.draw(&sim.events().debug_lines);
         }
+        self.line_renderer.draw(lines);
         self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
         self.particle_renderer.draw(&sim);
