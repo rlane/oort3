@@ -1302,12 +1302,14 @@ fn missile_tick() {
         return;
     }
 
+    let dp = dp.rotate(dp.magnitude() / 1e4);  // Evade guns.
     let badv = -(dv - dot(dv, dp) * dp.normalize() / dp.magnitude());
     let a = (dp - badv * 10).rotate(-ship.heading()).normalize() * acc;
     ship.accelerate(a);
     turn_to(a.rotate(ship.heading()).angle(), 0);
 
     dbg.draw_diamond(contact.position, 20.0, 0xffff00);
+    dbg.draw_diamond(ship.position() + dp, 5.0, 0xffffff);
     dbg.draw_line(ship.position(), ship.position() + dp, 0x222222);
     dbg.draw_line(ship.position(), ship.position() - dv, 0xffffff);
     dbg.draw_line(ship.position(), ship.position() + badv, 0x222299);
