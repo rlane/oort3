@@ -27,6 +27,7 @@ pub struct Renderer {
     bullet_renderer: BulletRenderer,
     particle_renderer: ParticleRenderer,
     projection_matrix: Matrix4<f32>,
+    debug: bool,
 }
 
 impl Renderer {
@@ -51,6 +52,7 @@ impl Renderer {
             bullet_renderer: BulletRenderer::new(context.clone())?,
             particle_renderer: ParticleRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
+            debug: false,
         })
     }
 
@@ -66,6 +68,10 @@ impl Renderer {
         let znear = -1.0;
         let zfar = 1.0;
         self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
+    }
+
+    pub fn set_debug(&mut self, debug: bool) {
+        self.debug = debug;
     }
 
     pub fn unproject(&self, x: i32, y: i32) -> Point2<f64> {
@@ -101,7 +107,9 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
 
         self.grid_renderer.draw(zoom);
-        self.line_renderer.draw(&sim.events().debug_lines);
+        if self.debug {
+            self.line_renderer.draw(&sim.events().debug_lines);
+        }
         self.bullet_renderer.draw(&sim);
         self.ship_renderer.draw(&sim);
         self.particle_renderer.draw(&sim);

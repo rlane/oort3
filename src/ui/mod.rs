@@ -37,6 +37,7 @@ pub struct UI {
     fps: fps::FPS,
     latest_code: String,
     manual_control: bool,
+    debug: bool,
 }
 
 unsafe impl Send for UI {}
@@ -108,6 +109,7 @@ impl UI {
             fps: fps::FPS::new(),
             latest_code,
             manual_control: false,
+            debug: false,
         };
         ui.display_errors(&ui.sim.events().errors);
         ui
@@ -164,6 +166,11 @@ impl UI {
             self.keys_ignored.insert("n".to_string());
             self.paused = true;
             self.single_steps += 1;
+        }
+        if self.keys_down.contains("g") && !self.keys_ignored.contains("g") {
+            self.keys_ignored.insert("g".to_string());
+            self.debug = !self.debug;
+            self.renderer.set_debug(self.debug);
         }
         if self.keys_down.contains("q") {
             self.status_div.set_text_content(Some("Exited"));
