@@ -129,7 +129,6 @@ pub struct RhaiShipController {
     scope: Scope<'static>,
     #[allow(unused)]
     globals_map: Box<std::collections::HashMap<CompactString, Dynamic>>,
-    // TODO share AST across ships
     ast: Rc<AST>,
 }
 
