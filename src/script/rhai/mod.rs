@@ -1,4 +1,5 @@
 mod ast_rewrite;
+mod debug;
 mod globals;
 mod math;
 mod radar;
@@ -36,6 +37,7 @@ pub fn new_engine() -> Engine {
     engine.register_global_module(exported_module!(self::util::plugin).into());
     engine.register_global_module(exported_module!(self::math::plugin).into());
     engine.register_global_module(exported_module!(testing::plugin).into());
+    engine.register_global_module(exported_module!(debug::plugin).into());
 
     engine
 }
@@ -83,6 +85,7 @@ impl TeamController for RhaiTeamController {
 
         let ship = ship::plugin::ShipApi { handle, sim };
         let radar = radar::plugin::RadarApi { handle, sim };
+        let dbg = debug::plugin::DebugApi { handle, sim };
         let mut globals_map = Box::new(std::collections::HashMap::new());
         let globals = globals::plugin::Globals {
             map: &mut *globals_map,
@@ -92,6 +95,7 @@ impl TeamController for RhaiTeamController {
             "api" => Ok(Some(Dynamic::from(ship))),
             "ship" => Ok(Some(Dynamic::from(ship))),
             "radar" => Ok(Some(Dynamic::from(radar))),
+            "dbg" => Ok(Some(Dynamic::from(dbg))),
             "globals" => Ok(Some(Dynamic::from(globals))),
             _ => Ok(None),
         });

@@ -288,6 +288,7 @@ impl SimEvents {
         self.errors.clear();
         self.hits.clear();
         self.ships_destroyed.clear();
+        self.debug_lines.clear();
     }
 }
 
