@@ -15,7 +15,7 @@ use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
-const INITIAL_ZOOM: f32 = 8e-4;
+const INITIAL_ZOOM: f32 = 4e-4;
 
 pub struct UI {
     sim: Box<simulation::Simulation>,
