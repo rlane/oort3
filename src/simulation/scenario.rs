@@ -1193,11 +1193,11 @@ fn turn_to(target_heading) {
 
 fn tick() {
     if (target - ship.position()).magnitude() < 50 {
-        target = initial_position + vec2(rng.next(0.0, 200.0), 0).rotate(rng.next(0.0, 2*PI()));
+        target = initial_position + vec2(rng.next(0.0, 1000.0), 0).rotate(rng.next(0.0, 2*PI()));
     }
     ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
     let contact = radar.scan();
-    if (contact.position.distance(ship.position()) < 1000.0) {
+    if (contact.position.distance(ship.position()) < 1000.0 && contact.velocity.magnitude() > 100) {
         turn_to((contact.position - ship.position()).angle());
         ship.fire_weapon();
     } else {
@@ -1210,16 +1210,15 @@ fn tick() {
         let mut shipdata = fighter(0);
         shipdata.weapons.clear();
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, shipdata);
+
         let mut rng = new_rng(seed);
-        ship::create(
-            sim,
-            2000.0 + rng.gen_range(-500.0..500.0),
-            -2000.0 + rng.gen_range(-500.0..500.0),
-            0.0 + rng.gen_range(-10.0..10.0),
-            700.0 + rng.gen_range(-300.0..300.0),
-            std::f64::consts::PI,
-            fighter(1),
-        );
+        for _ in 0..3 {
+            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
+            let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
+            ship::create(sim, p.x, p.y, v.x, v.y, std::f64::consts::PI, fighter(1));
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -1229,7 +1228,7 @@ fn tick() {
     fn initial_code(&self) -> String {
         r#"
 // tutorial09
-// Destroy the enemy ship with your missiles.
+// Destroy the enemy ships with your missiles.
 
 fn tick() {
     let contact = ship.scan();
@@ -1255,21 +1254,22 @@ fn tick() {
     fn solution(&self) -> String {
         r#"
 // tutorial09
-// Destroy the enemy ship with your missiles.
+// Destroy the enemy ships with your missiles.
 
 fn tick() {
     if ship.class() == "missile" {
         missile_tick();
     } else {
-        ship.launch_missile();
-        if ship.angular_velocity() < 1.0 {
-            ship.torque(1.0);
+        let contact = radar.scan();
+        if contact.found {
+            turn_to((contact.position - ship.position()).angle(), 0.0);
+            ship.launch_missile();
         }
     }
 }
 
 fn turn_to(target_heading, target_angular_velocity) {
-    let acc = 2 * PI();
+    let acc = 4 * PI();
     let dh = angle_diff(ship.heading(), target_heading);
     let vh = ship.angular_velocity() - target_angular_velocity;
     let margin = 0.001;
@@ -1282,30 +1282,38 @@ fn turn_to(target_heading, target_angular_velocity) {
     }
 }
 
-let last_dist = 1e9;
 fn missile_tick() {
+    let acc = 400;
+    dbg.draw_line(ship.position(), ship.position() + vec2(50, 0).rotate(ship.heading()), 0xff0000);
+    dbg.draw_line(ship.position(), ship.position() + ship.velocity(), 0x006666);
+
     let contact = radar.scan();
     if (!contact.found) {
-        if ship.velocity().magnitude() < 1000 {
-            ship.accelerate(vec2(1000, 0));
-        }
         return;
     }
+
     let dp = contact.position - ship.position();
+    let dv = contact.velocity - ship.velocity();
+
     let dist = dp.magnitude();
-    if dist < 10 || dist < 100 && dist > last_dist {
+    let next_dist = (dp + dv / 60).magnitude();
+    if next_dist < 10 || dist < 100 && next_dist > dist {
         ship.explode();
         return;
     }
-    last_dist = dist;
-    let dv = contact.velocity - ship.velocity();
-    let t = dp.magnitude() / 500.0;
-    let predicted_dp = dp + dv * t;
-    let target_heading = predicted_dp.angle();
-    turn_to(target_heading, 0.0);
-    ship.accelerate(predicted_dp.rotate(-ship.heading()));
+
+    let badv = -(dv - dot(dv, dp) * dp.normalize() / dp.magnitude());
+    let a = (dp - badv * 10).rotate(-ship.heading()).normalize() * acc;
+    ship.accelerate(a);
+    turn_to(a.rotate(ship.heading()).angle(), 0);
+
+    dbg.draw_diamond(contact.position, 20.0, 0xffff00);
+    dbg.draw_line(ship.position(), ship.position() + dp, 0x222222);
+    dbg.draw_line(ship.position(), ship.position() - dv, 0xffffff);
+    dbg.draw_line(ship.position(), ship.position() + badv, 0x222299);
+    dbg.draw_line(ship.position(), ship.position() + a.rotate(ship.heading()), 0x88ff00);
 }
-    "#
+"#
         .trim()
         .to_string()
     }

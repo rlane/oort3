@@ -104,7 +104,7 @@ pub fn missile(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Missile,
         health: 1.0,
-        max_acceleration: vector![400.0, 0.0],
+        max_acceleration: vector![400.0, 100.0],
         max_angular_acceleration: 2.0 * std::f64::consts::TAU,
         team,
         ..Default::default()
