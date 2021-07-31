@@ -1,4 +1,4 @@
-use super::rng::new_rng;
+use super::rng::{new_rng, SeededRng};
 use super::ship::{asteroid, fighter, target, ShipHandle};
 use super::{
     bullet, ship, Line, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP,
@@ -93,7 +93,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "gunnery" => Box::new(GunneryScenario {}),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
-        "welcome" => Box::new(WelcomeScenario {}),
+        "welcome" => Box::new(WelcomeScenario::new()),
         "tutorial01" => Box::new(Tutorial01 {}),
         "tutorial02" => Box::new(Tutorial02::new()),
         "tutorial03" => Box::new(Tutorial03::new()),
@@ -301,7 +301,17 @@ impl Scenario for BulletStressScenario {
     }
 }
 
-struct WelcomeScenario {}
+struct WelcomeScenario {
+    rng: Option<SeededRng>,
+}
+
+impl WelcomeScenario {
+    fn new() -> Self {
+        Self {
+            rng: None as Option<SeededRng>,
+        }
+    }
+}
 
 impl Scenario for WelcomeScenario {
     fn name(&self) -> String {
@@ -309,7 +319,7 @@ impl Scenario for WelcomeScenario {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
-        let mut rng = new_rng(seed);
+        self.rng = Some(new_rng(seed));
         add_walls(sim);
         sim.upload_code(
             0,
@@ -403,8 +413,12 @@ fn missile_tick() {
             "#,
         );
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        let rng = self.rng.as_mut().unwrap();
         let asteroid_variants = [1, 6, 14];
-        for _ in 0..20 {
+        while sim.ships.len() < 20 {
             let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_point(&point![rng.gen_range(500.0..2000.0), 0.0]);
             ship::create(
@@ -414,7 +428,7 @@ fn missile_tick() {
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(-30.0..30.0),
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                asteroid(*asteroid_variants.choose(&mut rng).unwrap()),
+                asteroid(*asteroid_variants.choose(rng).unwrap()),
             );
         }
     }
