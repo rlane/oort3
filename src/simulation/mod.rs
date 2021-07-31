@@ -9,6 +9,7 @@ use self::index_set::IndexSet;
 use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::script;
 use crate::script::{ShipController, TeamController};
+use crossbeam::channel::Sender;
 use nalgebra::Vector2;
 use nalgebra::{Point2, Vector4};
 use rapier2d_f64::prelude::*;
@@ -37,9 +38,8 @@ pub struct Simulation {
     broad_phase: BroadPhase,
     narrow_phase: NarrowPhase,
     ccd_solver: CCDSolver,
-    event_collector: rapier2d_f64::pipeline::ChannelEventCollector,
+    event_collector: CollisionEventHandler,
     contact_recv: crossbeam::channel::Receiver<ContactEvent>,
-    intersection_recv: crossbeam::channel::Receiver<IntersectionEvent>,
     events: SimEvents,
     tick: u32,
     pub cheats: bool,
@@ -48,7 +48,6 @@ pub struct Simulation {
 impl Simulation {
     pub fn new() -> Simulation {
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
-        let (intersection_send, intersection_recv) = crossbeam::channel::unbounded();
         Simulation {
             ships: IndexSet::new(),
             ship_data: HashMap::new(),
@@ -69,9 +68,8 @@ impl Simulation {
             broad_phase: BroadPhase::new(),
             narrow_phase: NarrowPhase::new(),
             ccd_solver: CCDSolver::new(),
-            event_collector: ChannelEventCollector::new(intersection_send, contact_send),
+            event_collector: CollisionEventHandler::new(contact_send),
             contact_recv,
-            intersection_recv,
             events: SimEvents::new(),
             tick: 0,
             cheats: false,
@@ -172,8 +170,6 @@ impl Simulation {
             }
         }
 
-        while self.intersection_recv.try_recv().is_ok() {}
-
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
@@ -232,13 +228,13 @@ impl Default for Simulation {
 }
 
 pub struct CollisionEventHandler {
-    pub collision: crossbeam::atomic::AtomicCell<bool>,
+    contact_event_sender: Sender<ContactEvent>,
 }
 
 impl CollisionEventHandler {
-    pub fn new() -> CollisionEventHandler {
+    pub fn new(contact_event_sender: Sender<ContactEvent>) -> CollisionEventHandler {
         CollisionEventHandler {
-            collision: crossbeam::atomic::AtomicCell::new(false),
+            contact_event_sender,
         }
     }
 }
@@ -247,16 +243,7 @@ impl EventHandler for CollisionEventHandler {
     fn handle_intersection_event(&self, _event: IntersectionEvent) {}
 
     fn handle_contact_event(&self, event: ContactEvent, _contact_pair: &ContactPair) {
-        if let ContactEvent::Started(_, _) = event {
-            self.collision.store(true);
-            //println!("Collision: {:?}", event);
-        }
-    }
-}
-
-impl Default for CollisionEventHandler {
-    fn default() -> Self {
-        CollisionEventHandler::new()
+        let _ = self.contact_event_sender.send(event);
     }
 }
 
