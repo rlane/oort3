@@ -1,11 +1,11 @@
 use super::rng::new_rng;
 use super::ship::{asteroid, fighter, target, ShipHandle};
 use super::{
-    bullet, ship, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP, WALL_COLLISION_GROUP,
-    WORLD_SIZE,
+    bullet, ship, Line, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP,
+    WALL_COLLISION_GROUP, WORLD_SIZE,
 };
 use bullet::BulletData;
-use nalgebra::{Point2, Rotation2, Translation2, Vector4};
+use nalgebra::{Point2, Rotation2, Translation2};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
@@ -16,12 +16,6 @@ pub enum Status {
     Running,
     Finished,
     Failed,
-}
-
-pub struct Line {
-    pub a: Point2<f64>,
-    pub b: Point2<f64>,
-    pub color: Vector4<f32>,
 }
 
 fn check_tutorial_victory(sim: &Simulation) -> Status {
@@ -53,10 +47,6 @@ pub trait Scenario {
 
     fn status(&self, _: &Simulation) -> Status {
         Running
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        Vec::new()
     }
 
     fn initial_code(&self) -> String {
@@ -427,6 +417,30 @@ impl Scenario for Tutorial02 {
                 self.on_target_ticks = 0;
             }
         }
+
+        {
+            let mut lines = vec![];
+            let center: Point2<f64> = point![200.0, 0.0];
+            let n = 20;
+            let r = 50.0;
+            let on_target_frac = self.on_target_ticks as f64 / 120.0;
+            for i in 0..n {
+                let frac = (i as f64) / (n as f64);
+                let angle_a = std::f64::consts::TAU * frac;
+                let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
+                let color = if on_target_frac > frac {
+                    vector![0.0, 1.0, 0.0, 1.0]
+                } else {
+                    vector![1.0, 0.0, 0.0, 1.0]
+                };
+                lines.push(Line {
+                    a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
+                    b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+                    color,
+                });
+            }
+            sim.emit_debug_lines(&lines);
+        }
     }
 
     fn status(&self, _: &Simulation) -> Status {
@@ -435,30 +449,6 @@ impl Scenario for Tutorial02 {
         } else {
             Status::Running
         }
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        let mut lines = vec![];
-        let center: Point2<f64> = point![200.0, 0.0];
-        let n = 20;
-        let r = 50.0;
-        let on_target_frac = self.on_target_ticks as f64 / 120.0;
-        for i in 0..n {
-            let frac = (i as f64) / (n as f64);
-            let angle_a = std::f64::consts::TAU * frac;
-            let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
-            let color = if on_target_frac > frac {
-                vector![0.0, 1.0, 0.0, 1.0]
-            } else {
-                vector![1.0, 0.0, 0.0, 1.0]
-            };
-            lines.push(Line {
-                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-                color,
-            });
-        }
-        lines
     }
 
     fn initial_code(&self) -> String {
@@ -549,6 +539,29 @@ impl Scenario for Tutorial03 {
                 self.on_target_ticks = 0;
             }
         }
+        {
+            let mut lines = vec![];
+            let center: Point2<f64> = self.target.unwrap();
+            let n = 20;
+            let r = 50.0;
+            let on_target_frac = self.on_target_ticks as f64 / 120.0;
+            for i in 0..n {
+                let frac = (i as f64) / (n as f64);
+                let angle_a = std::f64::consts::TAU * frac;
+                let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
+                let color = if on_target_frac > frac {
+                    vector![0.0, 1.0, 0.0, 1.0]
+                } else {
+                    vector![1.0, 0.0, 0.0, 1.0]
+                };
+                lines.push(Line {
+                    a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
+                    b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+                    color,
+                });
+            }
+            sim.emit_debug_lines(&lines);
+        }
     }
 
     fn status(&self, _: &Simulation) -> Status {
@@ -557,30 +570,6 @@ impl Scenario for Tutorial03 {
         } else {
             Status::Running
         }
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        let mut lines = vec![];
-        let center: Point2<f64> = self.target.unwrap();
-        let n = 20;
-        let r = 50.0;
-        let on_target_frac = self.on_target_ticks as f64 / 120.0;
-        for i in 0..n {
-            let frac = (i as f64) / (n as f64);
-            let angle_a = std::f64::consts::TAU * frac;
-            let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
-            let color = if on_target_frac > frac {
-                vector![0.0, 1.0, 0.0, 1.0]
-            } else {
-                vector![1.0, 0.0, 0.0, 1.0]
-            };
-            lines.push(Line {
-                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-                color,
-            });
-        }
-        lines
     }
 
     fn initial_code(&self) -> String {

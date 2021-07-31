@@ -10,6 +10,7 @@ use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::script;
 use crate::script::{ShipController, TeamController};
 use nalgebra::Vector2;
+use nalgebra::{Point2, Vector4};
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 
@@ -201,6 +202,10 @@ impl Simulation {
         &self.events
     }
 
+    pub fn emit_debug_lines(&mut self, lines: &[Line]) {
+        self.events.debug_lines.extend(lines.iter().cloned());
+    }
+
     pub fn hash(&self) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::Hasher;
@@ -255,10 +260,18 @@ impl Default for CollisionEventHandler {
     }
 }
 
+#[derive(Clone)]
+pub struct Line {
+    pub a: Point2<f64>,
+    pub b: Point2<f64>,
+    pub color: Vector4<f32>,
+}
+
 pub struct SimEvents {
     pub errors: Vec<script::Error>,
     pub hits: Vec<Vector2<f64>>,
     pub ships_destroyed: Vec<Vector2<f64>>,
+    pub debug_lines: Vec<Line>,
 }
 
 impl SimEvents {
@@ -267,6 +280,7 @@ impl SimEvents {
             errors: vec![],
             hits: vec![],
             ships_destroyed: vec![],
+            debug_lines: vec![],
         }
     }
 
