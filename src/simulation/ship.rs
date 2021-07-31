@@ -365,7 +365,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let speed = 1000.0;
         let p = self.body().position().translation;
         let mut rng = new_rng(0);
-        for _ in 0..10 {
+        for _ in 0..25 {
             let rot = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU));
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             bullet::create(
@@ -374,7 +374,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 p.y,
                 v.x,
                 v.y,
-                BulletData { damage: 10.0, team },
+                BulletData { damage: 20.0, team },
             );
         }
     }
