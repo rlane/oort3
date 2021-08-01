@@ -108,13 +108,7 @@ void main() {
         for (class, handles) in ships_by_class.iter() {
             // vertex
 
-            let model_vertices = match class {
-                ShipClass::Fighter => model::ship(),
-                ShipClass::Asteroid { variant } => model::asteroid(*variant),
-                ShipClass::Target => model::target(),
-                ShipClass::Missile => model::missile(),
-            };
-
+            let model_vertices = model::load(*class);
             let num_vertices = model_vertices.len();
             let mut vertex_data: Vec<f32> = vec![];
             vertex_data.reserve(model_vertices.len() * 2);

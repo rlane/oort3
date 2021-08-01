@@ -1,5 +1,6 @@
 use super::index_set::{HasIndex, Index};
 use super::rng::new_rng;
+use crate::renderer::model;
 use crate::simulation;
 use crate::simulation::{bullet, collision, Simulation};
 use bullet::BulletData;
@@ -129,64 +130,19 @@ pub fn create(
     let body_handle = sim.bodies.insert(rigid_body);
     let handle = ShipHandle(body_handle.0);
     let team = data.team;
-    match data.class {
-        ShipClass::Fighter => {
-            let vertices = crate::renderer::model::ship()
-                .iter()
-                .map(|&v| point![v.x as f64, v.y as f64])
-                .collect::<Vec<_>>();
-            let collider = ColliderBuilder::convex_hull(&vertices)
-                .unwrap()
-                .restitution(1.0)
-                .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(collision::ship_interaction_groups())
-                .build();
-            sim.colliders
-                .insert_with_parent(collider, body_handle, &mut sim.bodies);
-        }
-        ShipClass::Asteroid { variant } => {
-            let vertices = crate::renderer::model::asteroid(variant)
-                .iter()
-                .map(|&v| point![v.x as f64, v.y as f64])
-                .collect::<Vec<_>>();
-            let collider = ColliderBuilder::convex_hull(&vertices)
-                .unwrap()
-                .restitution(1.0)
-                .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(collision::ship_interaction_groups())
-                .build();
-            sim.colliders
-                .insert_with_parent(collider, body_handle, &mut sim.bodies);
-        }
-        ShipClass::Target => {
-            let vertices = crate::renderer::model::target()
-                .iter()
-                .map(|&v| point![v.x as f64, v.y as f64])
-                .collect::<Vec<_>>();
-            let collider = ColliderBuilder::convex_hull(&vertices)
-                .unwrap()
-                .restitution(1.0)
-                .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(collision::ship_interaction_groups())
-                .build();
-            sim.colliders
-                .insert_with_parent(collider, body_handle, &mut sim.bodies);
-        }
-        ShipClass::Missile => {
-            let vertices = crate::renderer::model::missile()
-                .iter()
-                .map(|&v| point![v.x as f64, v.y as f64])
-                .collect::<Vec<_>>();
-            let collider = ColliderBuilder::convex_hull(&vertices)
-                .unwrap()
-                .restitution(1.0)
-                .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(collision::ship_interaction_groups())
-                .build();
-            sim.colliders
-                .insert_with_parent(collider, body_handle, &mut sim.bodies);
-        }
-    }
+    let model = model::load(data.class);
+    let vertices = model
+        .iter()
+        .map(|&v| point![v.x as f64, v.y as f64])
+        .collect::<Vec<_>>();
+    let collider = ColliderBuilder::convex_hull(&vertices)
+        .unwrap()
+        .restitution(1.0)
+        .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
+        .collision_groups(collision::ship_interaction_groups())
+        .build();
+    sim.colliders
+        .insert_with_parent(collider, body_handle, &mut sim.bodies);
 
     sim.ships.insert(handle);
     sim.ship_data.insert(handle, data);

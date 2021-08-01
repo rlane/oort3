@@ -1,3 +1,4 @@
+use crate::simulation::ship::ShipClass;
 use nalgebra::{vector, Rotation2, Vector2};
 use oorandom::Rand32;
 
@@ -49,4 +50,13 @@ pub fn missile() -> Vec<Vector2<f32>> {
             vector![0.0, 0.0],
         ],
     )
+}
+
+pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
+    match class {
+        ShipClass::Fighter => ship(),
+        ShipClass::Asteroid { variant } => asteroid(variant),
+        ShipClass::Target => target(),
+        ShipClass::Missile => missile(),
+    }
 }
