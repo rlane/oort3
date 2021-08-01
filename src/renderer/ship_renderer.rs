@@ -1,7 +1,7 @@
 use super::{buffer_arena, glutil, model};
 use crate::simulation::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
-use nalgebra::{storage::Storage, vector, Matrix4, Vector4};
+use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;

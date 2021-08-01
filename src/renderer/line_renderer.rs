@@ -1,6 +1,6 @@
 use super::{buffer_arena, glutil};
 use crate::simulation::Line;
-use nalgebra::{storage::Storage, Matrix4};
+use nalgebra::{storage::ContiguousStorage, Matrix4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;

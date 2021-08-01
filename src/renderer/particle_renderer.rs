@@ -1,6 +1,6 @@
 use super::{buffer_arena, glutil};
 use crate::simulation::{SimEvents, Simulation};
-use nalgebra::{storage::Storage, vector, Matrix4, Vector2};
+use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector2};
 use rand::Rng;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
