@@ -1,7 +1,7 @@
 use super::index_set::{HasIndex, Index};
 use super::rng::new_rng;
 use crate::simulation;
-use crate::simulation::{bullet, Simulation};
+use crate::simulation::{bullet, collision, Simulation};
 use bullet::BulletData;
 use nalgebra::{vector, Rotation2, Vector2};
 use rand::Rng;
@@ -139,12 +139,7 @@ pub fn create(
                 .unwrap()
                 .restitution(1.0)
                 .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(InteractionGroups::new(
-                    1 << simulation::SHIP_COLLISION_GROUP,
-                    1 << simulation::WALL_COLLISION_GROUP
-                        | 1 << simulation::SHIP_COLLISION_GROUP
-                        | 1 << simulation::BULLET_COLLISION_GROUP,
-                ))
+                .collision_groups(collision::ship_interaction_groups())
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
@@ -158,12 +153,7 @@ pub fn create(
                 .unwrap()
                 .restitution(1.0)
                 .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(InteractionGroups::new(
-                    1 << simulation::SHIP_COLLISION_GROUP,
-                    1 << simulation::WALL_COLLISION_GROUP
-                        | 1 << simulation::SHIP_COLLISION_GROUP
-                        | 1 << simulation::BULLET_COLLISION_GROUP,
-                ))
+                .collision_groups(collision::ship_interaction_groups())
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
@@ -177,12 +167,7 @@ pub fn create(
                 .unwrap()
                 .restitution(1.0)
                 .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(InteractionGroups::new(
-                    1 << simulation::SHIP_COLLISION_GROUP,
-                    1 << simulation::WALL_COLLISION_GROUP
-                        | 1 << simulation::SHIP_COLLISION_GROUP
-                        | 1 << simulation::BULLET_COLLISION_GROUP,
-                ))
+                .collision_groups(collision::ship_interaction_groups())
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);
@@ -196,12 +181,7 @@ pub fn create(
                 .unwrap()
                 .restitution(1.0)
                 .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-                .collision_groups(InteractionGroups::new(
-                    1 << simulation::SHIP_COLLISION_GROUP,
-                    1 << simulation::WALL_COLLISION_GROUP
-                        | 1 << simulation::SHIP_COLLISION_GROUP
-                        | 1 << simulation::BULLET_COLLISION_GROUP,
-                ))
+                .collision_groups(collision::ship_interaction_groups())
                 .build();
             sim.colliders
                 .insert_with_parent(collider, body_handle, &mut sim.bodies);

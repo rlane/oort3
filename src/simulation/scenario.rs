@@ -1,9 +1,6 @@
 use super::rng::{new_rng, SeededRng};
 use super::ship::{asteroid, fighter, target, ShipHandle};
-use super::{
-    bullet, ship, Line, Simulation, BULLET_COLLISION_GROUP, SHIP_COLLISION_GROUP,
-    WALL_COLLISION_GROUP, WORLD_SIZE,
-};
+use super::{bullet, collision, ship, Line, Simulation, WORLD_SIZE};
 use bullet::BulletData;
 use nalgebra::{Point2, Rotation2, Translation2};
 use rand::seq::SliceRandom;
@@ -77,10 +74,7 @@ pub fn add_walls(sim: &mut Simulation) {
         let body_handle = sim.bodies.insert(rigid_body);
         let collider = ColliderBuilder::cuboid(edge_length / 2.0, edge_width / 2.0)
             .restitution(1.0)
-            .collision_groups(InteractionGroups::new(
-                1 << WALL_COLLISION_GROUP,
-                1 << SHIP_COLLISION_GROUP | 1 << BULLET_COLLISION_GROUP,
-            ))
+            .collision_groups(collision::wall_interaction_groups())
             .build();
         sim.colliders
             .insert_with_parent(collider, body_handle, &mut sim.bodies);

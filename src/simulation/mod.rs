@@ -1,4 +1,5 @@
 pub mod bullet;
+pub mod collision;
 pub mod index_set;
 pub mod rng;
 pub mod scenario;
@@ -17,10 +18,6 @@ use std::collections::HashMap;
 
 pub const WORLD_SIZE: f64 = 10000.0;
 pub(crate) const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
-
-pub(crate) const WALL_COLLISION_GROUP: u32 = 0;
-pub(crate) const SHIP_COLLISION_GROUP: u32 = 1;
-pub(crate) const BULLET_COLLISION_GROUP: u32 = 2;
 
 pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,

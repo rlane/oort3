@@ -1,6 +1,5 @@
 use super::index_set::{HasIndex, Index};
-use super::Simulation;
-use crate::simulation;
+use super::{collision, Simulation};
 use rapier2d_f64::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone)]
@@ -17,7 +16,14 @@ pub struct BulletData {
     pub team: i32,
 }
 
-pub fn create(sim: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, data: BulletData) {
+pub fn create(
+    sim: &mut Simulation,
+    x: f64,
+    y: f64,
+    vx: f64,
+    vy: f64,
+    data: BulletData,
+) -> BulletHandle {
     let rigid_body = RigidBodyBuilder::new_dynamic()
         .translation(vector![x, y])
         .linvel(vector![vx, vy])
@@ -27,16 +33,14 @@ pub fn create(sim: &mut Simulation, x: f64, y: f64, vx: f64, vy: f64, data: Bull
     let collider = ColliderBuilder::ball(1.0)
         .restitution(1.0)
         .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-        .collision_groups(InteractionGroups::new(
-            1 << simulation::BULLET_COLLISION_GROUP,
-            1 << simulation::WALL_COLLISION_GROUP | 1 << simulation::SHIP_COLLISION_GROUP,
-        ))
+        .collision_groups(collision::bullet_interaction_groups())
         .build();
     sim.colliders
         .insert_with_parent(collider, body_handle, &mut sim.bodies);
     let handle = BulletHandle(body_handle.0);
     sim.bullet_data.insert(handle, data);
     sim.bullets.insert(handle);
+    handle
 }
 
 pub struct BulletAccessor<'a> {
