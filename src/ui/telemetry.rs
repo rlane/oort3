@@ -21,7 +21,7 @@ pub enum Telemetry {
     FinishScenario {
         scenario_name: String,
         code: String,
-        ticks: u64,
+        ticks: u32,
         code_size: usize,
     },
     Crash {

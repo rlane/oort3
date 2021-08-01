@@ -31,7 +31,7 @@ pub struct UI {
     keys_down: std::collections::HashSet<String>,
     keys_ignored: std::collections::HashSet<String>,
     status_div: web_sys::Element,
-    tick: u64,
+    frame: u64,
     last_render_time: f64,
     physics_time: f64,
     fps: fps::FPS,
@@ -103,7 +103,7 @@ impl UI {
             keys_down,
             keys_ignored,
             status_div,
-            tick: 0,
+            frame: 0,
             last_render_time: instant::now(),
             physics_time: instant::now(),
             fps: fps::FPS::new(),
@@ -235,7 +235,7 @@ impl UI {
                     telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario.name(),
                         code: self.latest_code.to_string(),
-                        ticks: self.tick,
+                        ticks: self.sim.tick(),
                         code_size: code_size::calculate(&self.latest_code),
                     });
                 }
@@ -284,7 +284,7 @@ impl UI {
             status_msgs.push("FAILED".to_string());
         }
 
-        if self.tick % 10 == 0 {
+        if self.frame % 10 == 0 {
             status_msgs.push(format!("{:.0} fps", self.fps.fps()));
             {
                 let (a, b, c) = self.frame_timer.get_latency();
@@ -294,15 +294,15 @@ impl UI {
             self.status_div.set_text_content(Some(&status_msg));
         }
 
-        if self.tick == 600 {
+        if self.frame == 600 {
             info!(
-                "Average frame time after {} ticks: {:.1} ms",
-                self.tick,
+                "Average frame time after {} frames: {:.1} ms",
+                self.frame,
                 self.frame_timer.get_average()
             );
         }
 
-        self.tick += 1;
+        self.frame += 1;
 
         self.frame_timer.end(instant::now());
     }
@@ -355,7 +355,7 @@ impl UI {
     pub fn display_finished_screen(&self) {
         api::display_mission_complete_overlay(
             &self.scenario.name(),
-            self.tick as f64 * simulation::PHYSICS_TICK_LENGTH,
+            self.sim.time(),
             code_size::calculate(&self.latest_code),
             &self
                 .scenario

@@ -73,6 +73,10 @@ impl Simulation {
         }
     }
 
+    pub fn tick(&self) -> u32 {
+        self.tick
+    }
+
     pub fn time(&self) -> f64 {
         self.tick as f64 * PHYSICS_TICK_LENGTH
     }
