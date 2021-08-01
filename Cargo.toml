@@ -75,9 +75,11 @@ wasm-opt = false
 
 [profile.release]
 debug = true
+lto = true
 
 [profile.bench]
 debug = true
+lto = true
 
 [[bench]]
 name = "bullets"
