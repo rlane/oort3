@@ -227,11 +227,16 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn accelerate(&mut self, acceleration: Vector2<f64>) {
-        self.data_mut().acceleration = acceleration;
+        let max_acceleration = self.data().max_acceleration;
+        let clamped_acceleration = acceleration.inf(&max_acceleration).sup(&-max_acceleration);
+        self.data_mut().acceleration = clamped_acceleration;
     }
 
     pub fn torque(&mut self, angular_acceleration: f64) {
-        self.data_mut().angular_acceleration = angular_acceleration;
+        let max_angular_acceleration = self.data().max_angular_acceleration;
+        let clamped_angular_acceleration =
+            angular_acceleration.clamp(-max_angular_acceleration, max_angular_acceleration);
+        self.data_mut().angular_acceleration = clamped_angular_acceleration;
     }
 
     pub fn fire_weapon(&mut self, index: i64) {
@@ -331,12 +336,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
         // Acceleration.
         {
-            let max_acceleration = self.data().max_acceleration;
-            let acceleration = self
-                .data()
-                .acceleration
-                .inf(&max_acceleration)
-                .sup(&-max_acceleration);
+            let acceleration = self.data().acceleration;
             let mass = self.body().mass();
             let rotation_matrix = self.body().position().rotation.to_rotation_matrix();
             self.body()
@@ -346,13 +346,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         // Torque.
         {
-            let max_angular_acceleration = self.data().max_angular_acceleration;
-            let angular_acceleration = self
-                .data()
-                .angular_acceleration
-                .clamp(-max_angular_acceleration, max_angular_acceleration);
             let inertia_sqrt = 1.0 / self.body().mass_properties().inv_principal_inertia_sqrt;
-            let torque = angular_acceleration * inertia_sqrt * inertia_sqrt;
+            let torque = self.data().angular_acceleration * inertia_sqrt * inertia_sqrt;
             self.body().apply_torque(torque, true);
             self.data_mut().angular_acceleration = 0.0;
         }

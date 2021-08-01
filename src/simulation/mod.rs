@@ -1,5 +1,6 @@
 pub mod bullet;
 pub mod collision;
+pub mod debug;
 pub mod index_set;
 pub mod rng;
 pub mod scenario;
@@ -11,8 +12,8 @@ use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::script;
 use crate::script::{ShipController, TeamController};
 use crossbeam::channel::Sender;
+pub use debug::Line;
 use nalgebra::Vector2;
-use nalgebra::{Point2, Vector4};
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 
@@ -178,6 +179,7 @@ impl Simulation {
                     self.events.errors.push(e);
                 }
             }
+            debug::emit_ship(self, handle);
             self.ship_mut(handle).tick();
         }
 
@@ -246,13 +248,6 @@ impl EventHandler for CollisionEventHandler {
     fn handle_contact_event(&self, event: ContactEvent, _contact_pair: &ContactPair) {
         let _ = self.contact_event_sender.send(event);
     }
-}
-
-#[derive(Clone)]
-pub struct Line {
-    pub a: Point2<f64>,
-    pub b: Point2<f64>,
-    pub color: Vector4<f32>,
 }
 
 pub struct SimEvents {

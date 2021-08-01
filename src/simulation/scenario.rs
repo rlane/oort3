@@ -377,8 +377,6 @@ fn turn_to(target_heading, target_angular_velocity) {
 
 fn missile_tick() {
     let acc = 400;
-    dbg.draw_line(ship.position(), ship.position() + vec2(50, 0).rotate(ship.heading()), 0xff0000);
-    dbg.draw_line(ship.position(), ship.position() + ship.velocity(), 0x006666);
 
     let contact = radar.scan();
     if (!contact.found) {
@@ -406,7 +404,6 @@ fn missile_tick() {
     dbg.draw_line(ship.position(), ship.position() + dp, 0x222222);
     dbg.draw_line(ship.position(), ship.position() - dv, 0xffffff);
     dbg.draw_line(ship.position(), ship.position() + badv, 0x222299);
-    dbg.draw_line(ship.position(), ship.position() + a.rotate(ship.heading()), 0x88ff00);
 }
             "#,
         );
@@ -1411,8 +1408,6 @@ fn turn_to(target_heading, target_angular_velocity) {
 
 fn missile_tick() {
     let acc = 400;
-    dbg.draw_line(ship.position(), ship.position() + vec2(50, 0).rotate(ship.heading()), 0xff0000);
-    dbg.draw_line(ship.position(), ship.position() + ship.velocity(), 0x006666);
 
     let contact = radar.scan();
     if (!contact.found) {
@@ -1440,7 +1435,6 @@ fn missile_tick() {
     dbg.draw_line(ship.position(), ship.position() + dp, 0x222222);
     dbg.draw_line(ship.position(), ship.position() - dv, 0xffffff);
     dbg.draw_line(ship.position(), ship.position() + badv, 0x222299);
-    dbg.draw_line(ship.position(), ship.position() + a.rotate(ship.heading()), 0x88ff00);
 }
 "#
         .trim()
