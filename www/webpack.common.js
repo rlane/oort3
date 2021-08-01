@@ -26,8 +26,6 @@ module.exports = {
         }),
         new WasmPackPlugin({
             crateDirectory: path.resolve(__dirname, ".."),
-            extraArgs: '--profiling',
-            forceMode: "production",
         }),
         new MonacoWebpackPlugin(),
         new MiniCssExtractPlugin()

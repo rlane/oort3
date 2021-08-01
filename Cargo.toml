@@ -66,6 +66,9 @@ criterion = { version = "0.3", features = ["html_reports"] }
 [profile.dev.package.'*']
 opt-level = 3
 
+[profile.dev]
+opt-level = 0
+
 [package.metadata.wasm-pack.profile.profiling]
 debug = 1
 wasm-opt = false
