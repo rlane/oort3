@@ -139,7 +139,7 @@ pub fn create(
         .unwrap()
         .restitution(1.0)
         .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-        .collision_groups(collision::ship_interaction_groups())
+        .collision_groups(collision::ship_interaction_groups(team, data.class))
         .build();
     sim.colliders
         .insert_with_parent(collider, body_handle, &mut sim.bodies);

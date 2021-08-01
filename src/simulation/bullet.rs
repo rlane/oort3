@@ -33,7 +33,7 @@ pub fn create(
     let collider = ColliderBuilder::ball(1.0)
         .restitution(1.0)
         .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
-        .collision_groups(collision::bullet_interaction_groups())
+        .collision_groups(collision::bullet_interaction_groups(data.team))
         .build();
     sim.colliders
         .insert_with_parent(collider, body_handle, &mut sim.bodies);

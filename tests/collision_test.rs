@@ -1,6 +1,6 @@
 use oort::simulation;
-use oort::simulation::ship::fighter;
-use oort::simulation::{scenario, ship, WORLD_SIZE};
+use oort::simulation::ship::{fighter, missile};
+use oort::simulation::{bullet, scenario, ship, WORLD_SIZE};
 use rand::Rng;
 use test_env_log::test;
 
@@ -58,4 +58,134 @@ fn test_head_on_collision() {
 
     assert!(sim.ship(ship0).velocity().x < 0.0);
     assert!(sim.ship(ship1).velocity().x > 0.0);
+}
+
+#[test]
+fn test_fighter_bullet_collision_same_team() {
+    let mut sim = simulation::Simulation::new();
+
+    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    bullet::create(
+        &mut sim,
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        bullet::BulletData {
+            team: 0,
+            damage: 10.0,
+        },
+    );
+
+    for _ in 0..60 {
+        sim.step();
+    }
+
+    assert_ne!(sim.ship(ship).velocity().x, 0.0);
+    assert_eq!(sim.bullets.len(), 0);
+}
+
+#[test]
+fn test_fighter_bullet_collision_different_team() {
+    let mut sim = simulation::Simulation::new();
+
+    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    bullet::create(
+        &mut sim,
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        bullet::BulletData {
+            team: 1,
+            damage: 10.0,
+        },
+    );
+
+    for _ in 0..60 {
+        sim.step();
+    }
+
+    assert_ne!(sim.ship(ship).velocity().x, 0.0);
+    assert_eq!(sim.bullets.len(), 0);
+}
+
+#[test]
+fn test_missile_bullet_collision_same_team() {
+    let mut sim = simulation::Simulation::new();
+
+    let msl = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, missile(0));
+    let blt = bullet::create(
+        &mut sim,
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        bullet::BulletData {
+            team: 0,
+            damage: 10.0,
+        },
+    );
+
+    for _ in 0..60 {
+        sim.step();
+    }
+
+    assert_eq!(sim.ship(msl).velocity().x, 0.0);
+    assert_eq!(sim.bullet(blt).body().linvel().x, 1000.0);
+}
+
+#[test]
+fn test_missile_bullet_collision_different_team() {
+    let mut sim = simulation::Simulation::new();
+
+    ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, missile(0));
+    bullet::create(
+        &mut sim,
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        bullet::BulletData {
+            team: 1,
+            damage: 10.0,
+        },
+    );
+
+    for _ in 0..60 {
+        sim.step();
+    }
+
+    assert_eq!(sim.ships.len(), 0);
+    assert_eq!(sim.bullets.len(), 0);
+}
+
+#[test]
+fn test_missile_fighter_collision_same_team() {
+    let mut sim = simulation::Simulation::new();
+
+    let msl = ship::create(&mut sim, 0.0, 0.0, 400.0, 0.0, 0.0, missile(0));
+    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+
+    for _ in 0..60 {
+        sim.step();
+    }
+
+    assert_ne!(sim.ship(ship).velocity().x, 0.0);
+    assert_ne!(sim.ship(msl).body().linvel().x, 400.0);
+}
+
+#[test]
+fn test_missile_fighter_collision_different_team() {
+    let mut sim = simulation::Simulation::new();
+
+    let msl = ship::create(&mut sim, 0.0, 0.0, 400.0, 0.0, 0.0, missile(0));
+    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(1));
+
+    for _ in 0..60 {
+        sim.step();
+    }
+
+    assert_ne!(sim.ship(ship).velocity().x, 0.0);
+    assert_ne!(sim.ship(msl).body().linvel().x, 400.0);
 }
