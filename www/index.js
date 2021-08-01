@@ -5,16 +5,17 @@ import "./attribution.txt"
 
 window.dbg = {};
 
+var canvas = document.getElementById("glcanvas");
 
 var rust_module = null
 function initialize(m) {
-  var canvas = document.getElementById("glcanvas");
   rust_module = m;
   window.dbg.rust = m;
 
   m.initialize();
   initialize_scenario_list(m.get_scenarios());
   rust_module.start("welcome", "");
+  window.setTimeout(() => canvas.focus(), 0);
 
   document.getElementById("username").textContent = m.get_username(m.get_userid());
 
@@ -59,6 +60,7 @@ editor.addAction({
   contextMenuOrder: 1.5,
   run: function(ed) {
     rust_module.start(document.getElementById('scenario').value, ed.getValue());
+    window.setTimeout(() => canvas.focus(), 0);
     return null;
   }
 });
@@ -70,6 +72,7 @@ window.start_scenario = function(name) {
   rust_module.start(name, "");
   editor.setValue(rust_module.get_initial_code());
   hide_overlay();
+  window.setTimeout(() => canvas.focus(), 0);
 }
 
 function initialize_scenario_list(scenarios) {
