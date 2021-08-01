@@ -117,9 +117,9 @@ impl Renderer {
             self.line_renderer.draw(&sim.events().debug_lines);
         }
         self.line_renderer.draw(lines);
-        self.bullet_renderer.draw(&sim);
-        self.ship_renderer.draw(&sim);
-        self.particle_renderer.draw(&sim);
+        self.bullet_renderer.draw(sim);
+        self.ship_renderer.draw(sim);
+        self.particle_renderer.draw(sim);
     }
 
     pub fn update(&mut self, sim: &Simulation) {

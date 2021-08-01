@@ -140,7 +140,7 @@ void main() {
         self.context.enable_vertex_attrib_array(0);
 
         self.context
-            .uniform4fv_with_f32_array(Some(&self.color_loc), &fine_color.data.as_slice());
+            .uniform4fv_with_f32_array(Some(&self.color_loc), fine_color.data.as_slice());
 
         self.context
             .draw_arrays(gl::LINES, 0, self.fine_num_vertices);
@@ -156,7 +156,7 @@ void main() {
         self.context.enable_vertex_attrib_array(0);
 
         self.context
-            .uniform4fv_with_f32_array(Some(&self.color_loc), &coarse_color.data.as_slice());
+            .uniform4fv_with_f32_array(Some(&self.color_loc), coarse_color.data.as_slice());
 
         self.context
             .draw_arrays(gl::LINES, 0, self.coarse_num_vertices);

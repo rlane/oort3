@@ -126,7 +126,7 @@ fn rewrite_stmt_block(
     StmtBlock::new(
         block
             .iter()
-            .map(|stmt| rewrite_stmt(&stmt, globals))
+            .map(|stmt| rewrite_stmt(stmt, globals))
             .collect(),
         block.position(),
     )
@@ -146,11 +146,11 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
                     *pos,
                 )
             } else {
-                Stmt::Let(rewrite_expr(&expr, globals), ident.clone(), *b, *pos)
+                Stmt::Let(rewrite_expr(expr, globals), ident.clone(), *b, *pos)
             }
         }
         Stmt::If(expr, bx, pos) => Stmt::If(
-            rewrite_expr(&expr, globals),
+            rewrite_expr(expr, globals),
             Box::new((
                 rewrite_stmt_block(&bx.0, globals),
                 rewrite_stmt_block(&bx.1, globals),
@@ -158,7 +158,7 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             *pos,
         ),
         Stmt::Switch(expr, bx, pos) => Stmt::Switch(
-            rewrite_expr(&expr, globals),
+            rewrite_expr(expr, globals),
             Box::new((
                 bx.0.iter()
                     .map(|(k, v)| {
@@ -176,18 +176,18 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             *pos,
         ),
         Stmt::While(expr, bx, pos) => Stmt::While(
-            rewrite_expr(&expr, globals),
+            rewrite_expr(expr, globals),
             Box::new(rewrite_stmt_block(&*bx, globals)),
             *pos,
         ),
         Stmt::Do(bx, expr, b, pos) => Stmt::Do(
             Box::new(rewrite_stmt_block(&*bx, globals)),
-            rewrite_expr(&expr, globals),
+            rewrite_expr(expr, globals),
             *b,
             *pos,
         ),
         Stmt::For(expr, bx, pos) => Stmt::For(
-            rewrite_expr(&expr, globals),
+            rewrite_expr(expr, globals),
             Box::new((
                 bx.0.clone(),
                 bx.1.clone(),
@@ -219,7 +219,7 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
         ),
         Stmt::Return(t, expr_opt, pos) => Stmt::Return(
             *t,
-            expr_opt.as_ref().map(|expr| rewrite_expr(&expr, globals)),
+            expr_opt.as_ref().map(|expr| rewrite_expr(expr, globals)),
             *pos,
         ),
         _ => stmt.clone(),
