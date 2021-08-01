@@ -25,8 +25,6 @@ lazy_static = "*"
 console_log = "0.2.0"
 log = "0.4"
 rhai = { version = "1.0", features = ["internals"] }
-test-env-log = "0.2"
-env_logger = "0.9"
 smartstring = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -38,7 +36,6 @@ petname = "1.1.0"
 rand_chacha = "0.3.1"
 rand_seeder = "0.2.2"
 regex = "1.5"
-rayon = "1.5"
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -61,7 +58,10 @@ features = [
 ]
 
 [dev-dependencies]
+rayon = "1.5"
 criterion = { version = "0.3", features = ["html_reports"] }
+test-env-log = "0.2"
+env_logger = "0.9"
 
 [profile.dev.package.'*']
 opt-level = 3
