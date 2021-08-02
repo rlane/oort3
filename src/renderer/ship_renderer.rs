@@ -79,7 +79,7 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    fn team_color(team: i32) -> Vector4<f32> {
+    pub fn team_color(team: i32) -> Vector4<f32> {
         match team {
             0 => vector![0.99, 0.98, 0.00, 1.00],
             1 => vector![0.99, 0.00, 0.98, 1.00],

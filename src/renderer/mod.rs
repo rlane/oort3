@@ -6,6 +6,7 @@ pub mod line_renderer;
 pub mod model;
 pub mod particle_renderer;
 pub mod ship_renderer;
+pub mod trail_renderer;
 
 use crate::simulation::{Line, Simulation};
 use bullet_renderer::BulletRenderer;
@@ -14,6 +15,7 @@ use line_renderer::LineRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
 use particle_renderer::ParticleRenderer;
 use ship_renderer::ShipRenderer;
+use trail_renderer::TrailRenderer;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
@@ -26,6 +28,7 @@ pub struct Renderer {
     ship_renderer: ShipRenderer,
     bullet_renderer: BulletRenderer,
     particle_renderer: ParticleRenderer,
+    trail_renderer: TrailRenderer,
     projection_matrix: Matrix4<f32>,
     debug: bool,
 }
@@ -50,7 +53,8 @@ impl Renderer {
             line_renderer: LineRenderer::new(context.clone())?,
             ship_renderer: ShipRenderer::new(context.clone())?,
             bullet_renderer: BulletRenderer::new(context.clone())?,
-            particle_renderer: ParticleRenderer::new(context)?,
+            particle_renderer: ParticleRenderer::new(context.clone())?,
+            trail_renderer: TrailRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
             debug: false,
         })
@@ -111,8 +115,11 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
         self.particle_renderer
             .update_projection_matrix(&self.projection_matrix);
+        self.trail_renderer
+            .update_projection_matrix(&self.projection_matrix);
 
         self.grid_renderer.draw(zoom);
+        self.trail_renderer.draw();
         if self.debug {
             self.line_renderer.draw(&sim.events().debug_lines);
         }
@@ -124,5 +131,6 @@ impl Renderer {
 
     pub fn update(&mut self, sim: &Simulation) {
         self.particle_renderer.update(sim.time(), sim.events());
+        self.trail_renderer.update(sim);
     }
 }
