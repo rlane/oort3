@@ -1,5 +1,5 @@
 use super::{buffer_arena, glutil};
-use crate::simulation::Simulation;
+use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
 use nalgebra::{point, storage::ContiguousStorage, vector, Matrix4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
@@ -99,13 +99,14 @@ void main() {
         for &index in sim.bullets.iter() {
             let bullet = sim.bullet(index);
             let body = bullet.body();
-            let p1 = point![
+            let p = point![
                 body.position().translation.x as f32,
                 body.position().translation.y as f32
             ];
-            let v = point![body.linvel().x as f32, body.linvel().y as f32];
-            let dt = 2.0 / 60.0;
-            let p2 = p1 - v * dt;
+            let v = vector![body.linvel().x as f32, body.linvel().y as f32];
+            let dt = PHYSICS_TICK_LENGTH as f32;
+            let p1 = p - v * dt;
+            let p2 = p + v * dt;
             vertex_data.push(p1.x);
             vertex_data.push(p1.y);
             vertex_data.push(p2.x);
