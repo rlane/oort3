@@ -8,14 +8,16 @@ use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
 
-const MAX_VERTICES: i32 = 1024;
-const FLOATS_PER_VERTEX: i32 = 6;
+// Sizing: 50 ships * 2 vertex/tick * 60 tick/s * 2 s
+const MAX_VERTICES: i32 = 1024 * 16;
+const FLOATS_PER_VERTEX: i32 = 8;
 const VERTEX_ATTRIB_SIZE: i32 = FLOATS_PER_VERTEX * 4;
 
 pub struct TrailRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
+    current_time_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
     buffer: WebGlBuffer,
     index: i32,
@@ -29,12 +31,17 @@ impl TrailRenderer {
             gl::VERTEX_SHADER,
             r#"#version 300 es
 uniform mat4 transform;
+uniform float current_time;
 layout(location = 0) in vec4 vertex;
 layout(location = 1) in vec4 color;
+layout(location = 2) in float creation_time;
 out vec4 varying_color;
 void main() {
     gl_Position = transform * vertex;
     varying_color = color;
+    float lifetime = 2.0;
+    float age_frac = clamp((current_time - creation_time) / lifetime, 0.0, 1.0);
+    varying_color.a = (1.0 - age_frac) * 0.5;
 }
     "#,
         )?;
@@ -56,6 +63,10 @@ void main() {
             .get_uniform_location(&program, "transform")
             .ok_or("did not find uniform")?;
 
+        let current_time_loc = context
+            .get_uniform_location(&program, "current_time")
+            .ok_or("did not find uniform")?;
+
         let buffer = context.create_buffer().ok_or("failed to create buffer")?;
         context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
         context.buffer_data_with_i32(
@@ -70,6 +81,7 @@ void main() {
             context,
             program,
             transform_loc,
+            current_time_loc,
             projection_matrix: Matrix4::identity(),
             buffer,
             index: 0,
@@ -85,6 +97,7 @@ void main() {
         let mut data = vec![];
         data.reserve(sim.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
         let mut n = 0;
+        let creation_time = sim.time() as f32;
         for &handle in sim.ships.iter() {
             let ship = sim.ship(handle);
             let color = super::ShipRenderer::team_color(ship.data().team);
@@ -100,6 +113,8 @@ void main() {
                         data.push(color.y);
                         data.push(color.z);
                         data.push(color.w);
+                        data.push(creation_time);
+                        data.push(0.0);
 
                         data.push(current_position.x);
                         data.push(current_position.y);
@@ -107,6 +122,8 @@ void main() {
                         data.push(color.y);
                         data.push(color.z);
                         data.push(color.w);
+                        data.push(creation_time);
+                        data.push(0.0);
 
                         n += 2;
                     }
@@ -174,7 +191,7 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, current_time: f32) {
         self.context.use_program(Some(&self.program));
 
         self.context
@@ -200,17 +217,31 @@ void main() {
         );
         self.context.enable_vertex_attrib_array(1);
 
+        self.context.vertex_attrib_pointer_with_i32(
+            /*indx=*/ 2,
+            /*size=*/ 1,
+            /*type_=*/ gl::FLOAT,
+            /*normalized=*/ false,
+            /*stride=*/ VERTEX_ATTRIB_SIZE,
+            /*offset=*/ 24,
+        );
+        self.context.enable_vertex_attrib_array(2);
+
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
             self.projection_matrix.data.as_slice(),
         );
 
-        self.context.line_width(1.0);
+        self.context
+            .uniform1f(Some(&self.current_time_loc), current_time);
+
+        self.context.line_width(2.0);
 
         self.context.draw_arrays(gl::LINES, 0, MAX_VERTICES);
 
         self.context.disable_vertex_attrib_array(0);
         self.context.disable_vertex_attrib_array(1);
+        self.context.disable_vertex_attrib_array(2);
     }
 }

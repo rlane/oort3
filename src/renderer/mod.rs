@@ -119,7 +119,7 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
 
         self.grid_renderer.draw(zoom);
-        self.trail_renderer.draw();
+        self.trail_renderer.draw(sim.time() as f32);
         if self.debug {
             self.line_renderer.draw(&sim.events().debug_lines);
         }
