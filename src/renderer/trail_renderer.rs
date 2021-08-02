@@ -1,5 +1,5 @@
 use super::glutil;
-use crate::simulation::ship::ShipHandle;
+use crate::simulation::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
 use log::warn;
 use nalgebra::{storage::ContiguousStorage, Matrix4, Point2};
@@ -100,6 +100,9 @@ void main() {
         let creation_time = sim.time() as f32;
         for &handle in sim.ships.iter() {
             let ship = sim.ship(handle);
+            if let ShipClass::Asteroid { .. } = ship.data().class {
+                continue;
+            }
             let color = super::ShipRenderer::team_color(ship.data().team);
             let current_position: Point2<f32> = ship.position().vector.cast::<f32>().into();
             {
