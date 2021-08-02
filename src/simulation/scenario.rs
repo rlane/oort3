@@ -1044,24 +1044,6 @@ impl Scenario for Tutorial07 {
 
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
-        let mut rng = new_rng(seed);
-        for team in 0..2 {
-            for _ in 0..10 {
-                let size = 500.0;
-                let range = -size..size;
-                let center = point![(team as f64 - 0.5) * 1000.0, 0.0];
-                let offset = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
-                ship::create(
-                    sim,
-                    center.x + offset.x,
-                    center.y + offset.y,
-                    rng.gen_range(0.0..std::f64::consts::TAU),
-                    0.0,
-                    0.0,
-                    fighter(team),
-                );
-            }
-        }
 
         sim.upload_code(
             1,
@@ -1083,6 +1065,26 @@ fn tick() {
 }
         "#,
         );
+
+        let mut rng = new_rng(seed);
+        for team in 0..2 {
+            for _ in 0..10 {
+                let size = 500.0;
+                let range = -size..size;
+                let center = point![(team as f64 - 0.5) * 1000.0, 0.0];
+                let offset = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+                let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
+                ship::create(
+                    sim,
+                    center.x + offset.x,
+                    center.y + offset.y,
+                    0.0,
+                    0.0,
+                    heading,
+                    fighter(team),
+                );
+            }
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {
