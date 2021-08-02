@@ -18,6 +18,12 @@ fn has_panicked() -> bool {
 }
 
 #[wasm_bindgen]
+pub fn initialize_worker() {
+    console_log::init_with_level(log::Level::Info).expect("initializing logging");
+    log::info!("Hello from Rust worker");
+}
+
+#[wasm_bindgen]
 pub fn initialize() {
     std::panic::set_hook(Box::new(|panic_info| {
         console_error_panic_hook::hook(panic_info);

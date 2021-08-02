@@ -35,6 +35,8 @@ function initialize(m) {
 
 rust.then((m) => initialize(m)).catch(console.error);
 
+new Worker(new URL('./worker.js', import.meta.url));
+
 var editor = monaco.editor.create(document.getElementById('editor'), {
   value: `\
 // Welcome to Oort.
