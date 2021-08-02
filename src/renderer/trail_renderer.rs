@@ -1,6 +1,6 @@
 use super::glutil;
 use crate::simulation::ship::ShipHandle;
-use crate::simulation::Simulation;
+use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
 use log::warn;
 use nalgebra::{storage::ContiguousStorage, Matrix4, Point2};
 use std::collections::HashMap;
@@ -113,7 +113,7 @@ void main() {
                         data.push(color.y);
                         data.push(color.z);
                         data.push(color.w);
-                        data.push(creation_time);
+                        data.push(creation_time - PHYSICS_TICK_LENGTH as f32);
                         data.push(0.0);
 
                         data.push(current_position.x);
