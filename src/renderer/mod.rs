@@ -126,7 +126,7 @@ impl Renderer {
         }
         self.line_renderer.draw(&snapshot.scenario_lines);
         self.bullet_renderer.draw(sim);
-        self.ship_renderer.draw(sim);
+        self.ship_renderer.draw(snapshot);
         self.particle_renderer.draw(snapshot);
     }
 

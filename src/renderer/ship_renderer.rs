@@ -1,6 +1,6 @@
 use super::{buffer_arena, glutil, model};
-use crate::simulation::ship::{ShipClass, ShipHandle};
-use crate::simulation::Simulation;
+use crate::simulation::ship::ShipClass;
+use crate::simulation::snapshot::{ShipSnapshot, Snapshot};
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
@@ -88,24 +88,23 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self, sim: &Simulation) {
+    pub fn draw(&mut self, snapshot: &Snapshot) {
         let thickness = 2.0;
 
         self.context.use_program(Some(&self.program));
         self.context.line_width(thickness);
 
-        let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipHandle>>::new();
+        let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipSnapshot>>::new();
 
-        for &handle in sim.ships.iter() {
-            let ship = sim.ship(handle);
-            let class = &ship.data().class;
-            if !ships_by_class.contains_key(class) {
-                ships_by_class.insert(*class, vec![]);
-            }
-            ships_by_class.get_mut(class).unwrap().push(handle);
+        for ship in snapshot.ships.iter() {
+            ships_by_class.entry(ship.class).or_insert_with(Vec::new);
+            ships_by_class
+                .get_mut(&ship.class)
+                .unwrap()
+                .push((*ship).clone());
         }
 
-        for (class, handles) in ships_by_class.iter() {
+        for (class, ships) in ships_by_class.iter() {
             // vertex
 
             let model_vertices = model::load(*class);
@@ -133,11 +132,10 @@ void main() {
             // position
 
             let mut position_data: Vec<f32> = vec![];
-            position_data.reserve(handles.len() * 2);
-            for &handle in handles {
-                let ship = sim.ship(handle);
-                position_data.push(ship.position().x as f32);
-                position_data.push(ship.position().y as f32);
+            position_data.reserve(ships.len() * 2);
+            for ship in ships.iter() {
+                position_data.push(ship.position.x as f32);
+                position_data.push(ship.position.y as f32);
             }
 
             let (buffer, offset) = self.buffer_arena.write(&position_data);
@@ -157,10 +155,9 @@ void main() {
             // heading
 
             let mut heading_data: Vec<f32> = vec![];
-            heading_data.reserve(handles.len());
-            for &handle in handles {
-                let ship = sim.ship(handle);
-                heading_data.push(ship.heading() as f32);
+            heading_data.reserve(ships.len());
+            for ship in ships.iter() {
+                heading_data.push(ship.heading as f32);
             }
 
             let (buffer, offset) = self.buffer_arena.write(&heading_data);
@@ -180,10 +177,9 @@ void main() {
             // color
 
             let mut color_data: Vec<f32> = vec![];
-            color_data.reserve(handles.len());
-            for &handle in handles {
-                let ship = sim.ship(handle);
-                let color = Self::team_color(ship.data().team);
+            color_data.reserve(ships.len());
+            for ship in ships.iter() {
+                let color = Self::team_color(ship.team);
                 color_data.push(color.x);
                 color_data.push(color.y);
                 color_data.push(color.z);
@@ -212,7 +208,7 @@ void main() {
                 self.projection_matrix.data.as_slice(),
             );
 
-            let num_instances = handles.len();
+            let num_instances = ships.len();
             self.context.draw_arrays_instanced(
                 gl::LINE_LOOP,
                 0,

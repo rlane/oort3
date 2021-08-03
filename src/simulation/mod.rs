@@ -245,6 +245,7 @@ impl Simulation {
             snapshot.ships.push(ShipSnapshot {
                 id,
                 position,
+                heading: ship.heading(),
                 team,
                 class,
             });
