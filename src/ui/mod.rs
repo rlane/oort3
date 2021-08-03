@@ -147,14 +147,6 @@ impl UI {
         if self.keys_down.contains("x") && self.zoom < MAX_ZOOM {
             self.zoom *= 1.01;
         }
-        if self.keys_down.contains("u") && !self.keys_ignored.contains("u") {
-            self.keys_ignored.insert("u".to_string());
-            println!(
-                "Number of: ships={} bullets={}",
-                self.sim.ships.iter().count(),
-                self.sim.bullets.iter().count()
-            );
-        }
         if self.keys_down.contains(" ") && !self.keys_ignored.contains(" ") {
             self.keys_ignored.insert(" ".to_string());
             self.paused = !self.paused;
