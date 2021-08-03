@@ -38,7 +38,6 @@ pub struct UI {
     physics_time: f64,
     fps: fps::FPS,
     latest_code: String,
-    manual_control: bool,
     debug: bool,
 }
 
@@ -112,7 +111,6 @@ impl UI {
             physics_time: instant::now(),
             fps: fps::FPS::new(),
             latest_code,
-            manual_control: false,
             debug: false,
         };
         ui.display_errors(&ui.sim.events().errors);
@@ -180,53 +178,6 @@ impl UI {
             self.status_div.set_text_content(Some("Exited"));
             self.quit = true;
         }
-        if self.keys_down.contains("m") {
-            self.manual_control = true;
-        }
-
-        if self.manual_control && !self.paused {
-            if let Some(&ship_handle) = self.sim.ships.iter().next() {
-                let linear_acc = 100.0;
-                let angular_acc = 1.0;
-                if self.keys_down.contains("ArrowUp") {
-                    self.sim
-                        .ship_mut(ship_handle)
-                        .accelerate(vector![linear_acc, 0.0]);
-                }
-                if self.keys_down.contains("ArrowDown") {
-                    self.sim
-                        .ship_mut(ship_handle)
-                        .accelerate(vector![-linear_acc, 0.0]);
-                }
-                if self.keys_down.contains("ArrowLeft") {
-                    if self.keys_down.contains("Shift") {
-                        self.sim
-                            .ship_mut(ship_handle)
-                            .accelerate(vector![0.0, linear_acc]);
-                    } else {
-                        self.sim.ship_mut(ship_handle).torque(angular_acc);
-                    }
-                }
-                if self.keys_down.contains("ArrowRight") {
-                    if self.keys_down.contains("Shift") {
-                        self.sim
-                            .ship_mut(ship_handle)
-                            .accelerate(vector![0.0, -linear_acc]);
-                    } else {
-                        self.sim.ship_mut(ship_handle).torque(-angular_acc);
-                    }
-                }
-                if self.keys_down.contains("f") {
-                    self.sim.ship_mut(ship_handle).fire_weapon(0);
-                }
-                if self.keys_down.contains("Shift") && self.keys_down.contains("f") {
-                    self.sim.ship_mut(ship_handle).fire_weapon(0);
-                }
-                if self.keys_down.contains("Shift") && self.keys_down.contains("k") {
-                    self.sim.ship_mut(ship_handle).explode();
-                }
-            }
-        }
 
         if self.paused {
             self.physics_time = now;
@@ -235,7 +186,7 @@ impl UI {
         if self.status == Status::Running {
             self.status = self.scenario.status(&self.sim);
             if self.status == Status::Finished {
-                if !self.manual_control && !self.sim.cheats {
+                if !self.sim.cheats {
                     telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario.name(),
                         code: self.latest_code.to_string(),
@@ -269,10 +220,6 @@ impl UI {
 
         self.renderer
             .render(self.camera_target, self.zoom, &self.snapshot);
-
-        if self.manual_control {
-            status_msgs.push("MANUAL".to_string());
-        }
 
         if self.sim.cheats {
             status_msgs.push("CHEATS".to_string());
