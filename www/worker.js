@@ -1,8 +1,29 @@
-console.log("Hello world from worker");
-const rust = import("../pkg");
-rust.then((m) => m.initialize_worker()).catch(console.error);
+const rust_import = import("../pkg");
 
-onmessage = function(e) {
-  console.log('Worker: Message received from main script: ' + JSON.stringify(e.data));
-  postMessage(e.data + "bar");
-}
+(async function () {
+  let rust = await rust_import;
+  rust.worker_initialize();
+})();
+
+onmessage = async function (e) {
+  let rust = await rust_import;
+  if (e.data.type == "run") {
+    postMessage(
+      rust.worker_run_scenario(
+        e.data.scenario_name,
+        BigInt(e.data.seed),
+        e.data.code
+      )
+    );
+  } else if (e.data.type == "start") {
+    postMessage(
+      rust.worker_start_scenario(
+        e.data.scenario_name,
+        BigInt(e.data.seed),
+        e.data.code
+      )
+    );
+  } else if (e.data.type == "request_snapshot") {
+    postMessage(rust.worker_request_snapshot());
+  }
+};

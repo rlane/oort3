@@ -3,6 +3,7 @@ pub mod renderer;
 pub mod script;
 pub mod simulation;
 pub mod ui;
+pub mod worker_api;
 
 use chrono::NaiveDateTime;
 use rbtag::{BuildDateTime, BuildInfo};

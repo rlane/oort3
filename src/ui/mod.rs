@@ -5,9 +5,8 @@ pub mod telemetry;
 pub mod userid;
 
 use crate::{api, renderer, script, simulation};
-use log::{debug, error, info};
+use log::{debug, info};
 use nalgebra::{point, vector, Point2};
-use rand::Rng;
 use simulation::scenario;
 use simulation::scenario::Status;
 use simulation::snapshot::Snapshot;
@@ -19,8 +18,7 @@ const MAX_ZOOM: f32 = 1e-2;
 const INITIAL_ZOOM: f32 = 4e-4;
 
 pub struct UI {
-    sim: Box<simulation::Simulation>,
-    snapshot: Snapshot,
+    snapshot: Option<Snapshot>,
     renderer: renderer::Renderer,
     zoom: f32,
     camera_target: Point2<f32>,
@@ -44,7 +42,7 @@ pub struct UI {
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(scenario_name: &str, mut code: &str) -> Self {
+    pub fn new(scenario_name: &str, code: &str) -> Self {
         info!("Loading scenario {}", scenario_name);
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -53,13 +51,11 @@ impl UI {
             .expect("should have a status div");
         status_div.set_inner_html("Hello from Rust");
 
-        let seed: u64 = rand::thread_rng().gen();
-        let sim = simulation::Simulation::new(scenario_name, seed, code);
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
-        let mut paused = false;
+        let paused = false;
         let single_steps = 0;
 
         let keys_down = std::collections::HashSet::<String>::new();
@@ -69,27 +65,10 @@ impl UI {
         log::info!("userid {}", &userid);
         log::info!("username {}", &userid::get_username(&userid));
 
-        if !code.is_empty() {
-            let storage = window
-                .local_storage()
-                .expect("failed to get local storage")
-                .unwrap();
-            if let Err(msg) = storage.set_item(&format!("/code/{}", scenario_name), code) {
-                error!("Failed to save code: {:?}", msg);
-            }
-        } else {
-            code = "fn tick() {}";
-        }
-
-        let snapshot = sim.snapshot();
         let latest_code = code.to_string();
-        if !snapshot.errors.is_empty() {
-            paused = true;
-        }
 
-        let ui = UI {
-            sim,
-            snapshot,
+        UI {
+            snapshot: None,
             renderer,
             zoom,
             camera_target,
@@ -108,13 +87,11 @@ impl UI {
             latest_code,
             debug: false,
             scenario_name: scenario_name.to_owned(),
-        };
-        ui.display_errors(&ui.snapshot.errors);
-        ui
+        }
     }
 
     pub fn render(&mut self) {
-        if self.quit {
+        if self.quit || self.snapshot.is_none() {
             return;
         }
 
@@ -171,43 +148,25 @@ impl UI {
             self.physics_time = now;
         }
 
-        if self.status == Status::Running {
-            self.status = self.snapshot.status;
-            if self.status == Status::Finished {
-                if !self.snapshot.cheats {
-                    telemetry::send(Telemetry::FinishScenario {
-                        scenario_name: self.scenario_name.clone(),
-                        code: self.latest_code.to_string(),
-                        ticks: (self.snapshot.time / simulation::PHYSICS_TICK_LENGTH) as u32,
-                        code_size: code_size::calculate(&self.latest_code),
-                    });
-                }
-                self.display_finished_screen();
-            }
-        }
-
         if self.status == Status::Running && (!self.paused || self.single_steps > 0) {
             let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
             self.physics_time = self.physics_time.max(now - dt * 2.0);
             if self.single_steps > 0 || self.physics_time + dt < now {
-                self.sim.step();
+                api::request_snapshot();
                 self.physics_time += dt;
-                if !self.snapshot.errors.is_empty() {
-                    self.display_errors(&self.snapshot.errors);
-                    self.paused = true;
-                }
-                self.snapshot = self.sim.snapshot();
-                self.renderer.update(&self.snapshot);
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
             }
         }
 
-        self.renderer
-            .render(self.camera_target, self.zoom, &self.snapshot);
+        self.renderer.render(
+            self.camera_target,
+            self.zoom,
+            self.snapshot.as_ref().unwrap(),
+        );
 
-        if self.snapshot.cheats {
+        if self.snapshot.as_ref().unwrap().cheats {
             status_msgs.push("CHEATS".to_string());
         }
 
@@ -242,6 +201,30 @@ impl UI {
         self.frame_timer.end(instant::now());
     }
 
+    pub fn on_snapshot(&mut self, snapshot: Snapshot) {
+        self.snapshot = Some(snapshot);
+        let snapshot = self.snapshot.as_ref().unwrap();
+        self.display_errors(&snapshot.errors);
+        if !snapshot.errors.is_empty() {
+            self.paused = true;
+        }
+        if self.status == Status::Running {
+            self.status = snapshot.status;
+            if self.status == Status::Finished {
+                if !snapshot.cheats {
+                    telemetry::send(Telemetry::FinishScenario {
+                        scenario_name: self.scenario_name.clone(),
+                        code: self.latest_code.to_string(),
+                        ticks: (snapshot.time / simulation::PHYSICS_TICK_LENGTH) as u32,
+                        code_size: code_size::calculate(&self.latest_code),
+                    });
+                }
+                self.display_finished_screen();
+            }
+        }
+        self.renderer.update(snapshot);
+    }
+
     pub fn on_key_event(&mut self, e: web_sys::KeyboardEvent) {
         if e.type_() == "keydown" {
             self.keys_down.insert(e.key());
@@ -268,31 +251,11 @@ impl UI {
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
     }
 
-    pub fn get_initial_code(&self) -> String {
-        let window = web_sys::window().expect("no global `window` exists");
-        let storage = window
-            .local_storage()
-            .expect("failed to get local storage")
-            .unwrap();
-        let initial_code = scenario::load(&self.scenario_name).initial_code();
-        match storage.get_item(&format!("/code/{}", self.scenario_name)) {
-            Ok(Some(code)) => code,
-            Ok(None) => {
-                info!("No saved code, using starter code");
-                initial_code
-            }
-            Err(msg) => {
-                error!("Failed to load code: {:?}", msg);
-                initial_code
-            }
-        }
-    }
-
     pub fn display_finished_screen(&self) {
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         api::display_mission_complete_overlay(
             &self.scenario_name,
-            self.snapshot.time,
+            self.snapshot.as_ref().unwrap().time,
             code_size::calculate(&self.latest_code),
             &next_scenario.unwrap_or_else(|| "".to_string()),
         );

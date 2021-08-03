@@ -14,7 +14,7 @@ function initialize(m) {
 
   m.initialize();
   initialize_scenario_list(m.get_scenarios());
-  rust_module.start("welcome", "");
+  start_simulation("welcome", 0, "");
   window.setTimeout(() => canvas.focus(), 0);
 
   document.getElementById("username").textContent = m.get_username(m.get_userid());
@@ -37,9 +37,18 @@ rust.then((m) => initialize(m)).catch(console.error);
 
 var worker = new Worker(new URL('./worker.js', import.meta.url));
 worker.onmessage = function(e) {
-  console.log('Message received from worker: ' + JSON.stringify(e.data));
+  rust_module.on_snapshot(e.data);
 }
-worker.postMessage("foo");
+
+function start_simulation(scenario_name, seed, code) {
+  console.log("start_simulation scenario_name=" + scenario_name + " code=" + JSON.stringify(code));
+  rust_module.start(scenario_name, code);
+  worker.postMessage({ type: "start", scenario_name: scenario_name, seed: seed, code: code});
+}
+
+window.request_snapshot = function() {
+  worker.postMessage({ type: "request_snapshot" });
+}
 
 var editor = monaco.editor.create(document.getElementById('editor'), {
   value: `\
@@ -65,7 +74,10 @@ editor.addAction({
   contextMenuGroupId: 'navigation',
   contextMenuOrder: 1.5,
   run: function(ed) {
-    rust_module.start(document.getElementById('scenario').value, ed.getValue());
+    let scenario_name = document.getElementById('scenario').value;
+    let code = ed.getValue();
+    rust_module.save_code(scenario_name, code);
+    start_simulation(scenario_name, 0, code);
     window.setTimeout(() => canvas.focus(), 0);
     return null;
   }
@@ -75,8 +87,8 @@ var scenario_select = document.getElementById('scenario');
 
 window.start_scenario = function(name) {
   scenario_select.value = name;
-  rust_module.start(name, "");
-  editor.setValue(rust_module.get_initial_code());
+  editor.setValue(rust_module.get_initial_code(name));
+  start_simulation(name, 0, "");
   hide_overlay();
   window.setTimeout(() => canvas.focus(), 0);
 }

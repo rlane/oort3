@@ -3,6 +3,7 @@ use crate::ui::telemetry;
 use crate::ui::userid;
 use crate::ui::UI;
 use lazy_static::lazy_static;
+use log::{error, info};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
@@ -15,12 +16,6 @@ static PANICKED: AtomicBool = AtomicBool::new(false);
 
 fn has_panicked() -> bool {
     PANICKED.load(Ordering::SeqCst)
-}
-
-#[wasm_bindgen]
-pub fn initialize_worker() {
-    console_log::init_with_level(log::Level::Info).expect("initializing logging");
-    log::info!("Hello from Rust worker");
 }
 
 #[wasm_bindgen]
@@ -57,6 +52,19 @@ pub fn render() {
 }
 
 #[wasm_bindgen]
+pub fn on_snapshot(value: JsValue) {
+    if has_panicked() {
+        return;
+    }
+    let mut ui = OORT_UI.lock().unwrap();
+    if ui.is_some() {
+        ui.as_mut()
+            .unwrap()
+            .on_snapshot(value.into_serde().unwrap());
+    }
+}
+
+#[wasm_bindgen]
 pub fn on_key_event(e: web_sys::KeyboardEvent) {
     if has_panicked() {
         return;
@@ -79,15 +87,43 @@ pub fn on_wheel_event(e: web_sys::WheelEvent) {
 }
 
 #[wasm_bindgen]
-pub fn get_initial_code() -> String {
+pub fn get_initial_code(scenario_name: &str) -> String {
     if has_panicked() {
         return "".to_string();
     }
-    let mut ui = OORT_UI.lock().unwrap();
-    if ui.is_some() {
-        ui.as_mut().unwrap().get_initial_code()
-    } else {
-        "".to_string()
+    let window = web_sys::window().expect("no global `window` exists");
+    let storage = window
+        .local_storage()
+        .expect("failed to get local storage")
+        .unwrap();
+    let initial_code = scenario::load(scenario_name).initial_code();
+    match storage.get_item(&format!("/code/{}", scenario_name)) {
+        Ok(Some(code)) => code,
+        Ok(None) => {
+            info!("No saved code, using starter code");
+            initial_code
+        }
+        Err(msg) => {
+            error!("Failed to load code: {:?}", msg);
+            initial_code
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn save_code(scenario_name: &str, code: &str) {
+    if has_panicked() {
+        return;
+    }
+    let window = web_sys::window().expect("no global `window` exists");
+    if !code.is_empty() {
+        let storage = window
+            .local_storage()
+            .expect("failed to get local storage")
+            .unwrap();
+        if let Err(msg) = storage.set_item(&format!("/code/{}", scenario_name), code) {
+            error!("Failed to save code: {:?}", msg);
+        }
     }
 }
 
@@ -120,4 +156,6 @@ extern "C" {
     );
 
     pub fn display_errors(errors: JsValue);
+
+    pub fn request_snapshot();
 }

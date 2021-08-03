@@ -48,7 +48,10 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    pub fn new(scenario_name: &str, seed: u64, code: &str) -> Box<Simulation> {
+    pub fn new(scenario_name: &str, seed: u64, mut code: &str) -> Box<Simulation> {
+        if code.is_empty() {
+            code = "fn tick(){}";
+        }
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
         let mut sim = Box::new(Simulation {
             scenario: None,
