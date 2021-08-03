@@ -1,8 +1,9 @@
 use super::ship::ShipHandle;
 use super::Simulation;
 use nalgebra::{vector, Point2, Vector4};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Line {
     pub a: Point2<f64>,
     pub b: Point2<f64>,

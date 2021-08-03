@@ -5,6 +5,7 @@ pub mod index_set;
 pub mod rng;
 pub mod scenario;
 pub mod ship;
+pub mod snapshot;
 
 use self::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
 use self::index_set::IndexSet;
@@ -15,6 +16,7 @@ use crossbeam::channel::Sender;
 pub use debug::Line;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
+use snapshot::Snapshot;
 use std::collections::HashMap;
 
 pub const WORLD_SIZE: f64 = 10000.0;
@@ -221,6 +223,17 @@ impl Simulation {
             s.write_i64(fixedpoint(ship.data().health));
         }
         s.finish()
+    }
+
+    pub fn snapshot(&self) -> Snapshot {
+        let mut snapshot = Snapshot {
+            debug_lines: vec![],
+            scenario_lines: vec![],
+        };
+
+        snapshot.debug_lines = self.events.debug_lines.clone();
+
+        snapshot
     }
 }
 

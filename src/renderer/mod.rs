@@ -8,7 +8,8 @@ pub mod particle_renderer;
 pub mod ship_renderer;
 pub mod trail_renderer;
 
-use crate::simulation::{Line, Simulation};
+use crate::simulation::snapshot::Snapshot;
+use crate::simulation::Simulation;
 use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
@@ -95,7 +96,7 @@ impl Renderer {
         camera_target: Point2<f32>,
         zoom: f32,
         sim: &Simulation,
-        lines: &[Line],
+        snapshot: &Snapshot,
     ) {
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(gl::COLOR_BUFFER_BIT);
@@ -121,9 +122,9 @@ impl Renderer {
         self.grid_renderer.draw(zoom);
         self.trail_renderer.draw(sim.time() as f32);
         if self.debug {
-            self.line_renderer.draw(&sim.events().debug_lines);
+            self.line_renderer.draw(&snapshot.debug_lines);
         }
-        self.line_renderer.draw(lines);
+        self.line_renderer.draw(&snapshot.scenario_lines);
         self.bullet_renderer.draw(sim);
         self.ship_renderer.draw(sim);
         self.particle_renderer.draw(sim);

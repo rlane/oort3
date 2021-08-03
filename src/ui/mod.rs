@@ -261,12 +261,11 @@ impl UI {
             }
         }
 
-        self.renderer.render(
-            self.camera_target,
-            self.zoom,
-            &self.sim,
-            &self.scenario.lines(),
-        );
+        let mut snapshot = self.sim.snapshot();
+        snapshot.scenario_lines = self.scenario.lines();
+
+        self.renderer
+            .render(self.camera_target, self.zoom, &self.sim, &snapshot);
 
         if self.manual_control {
             status_msgs.push("MANUAL".to_string());
