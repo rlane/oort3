@@ -1,6 +1,7 @@
 use super::{buffer_arena, glutil};
-use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
-use nalgebra::{point, storage::ContiguousStorage, vector, Matrix4};
+use crate::simulation::snapshot::Snapshot;
+use crate::simulation::PHYSICS_TICK_LENGTH;
+use nalgebra::{storage::ContiguousStorage, vector, Matrix4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -71,10 +72,10 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    pub fn draw(&mut self, sim: &Simulation) {
+    pub fn draw(&mut self, snapshot: &Snapshot) {
         let thickness = 1.0;
         let color = vector![1.00, 0.63, 0.00, 1.00];
-        let num_instances = sim.bullets.len();
+        let num_instances = snapshot.bullets.len();
         let num_vertices = 2;
 
         if num_instances == 0 {
@@ -96,14 +97,9 @@ void main() {
 
         let mut vertex_data: Vec<f32> = vec![];
         vertex_data.reserve(num_instances * num_vertices);
-        for &index in sim.bullets.iter() {
-            let bullet = sim.bullet(index);
-            let body = bullet.body();
-            let p = point![
-                body.position().translation.x as f32,
-                body.position().translation.y as f32
-            ];
-            let v = vector![body.linvel().x as f32, body.linvel().y as f32];
+        for bullet in snapshot.bullets.iter() {
+            let p = bullet.position.cast();
+            let v = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
             let p1 = p - v * dt;
             let p2 = p + v * dt;

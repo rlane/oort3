@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct Snapshot {
     pub time: f64,
     pub ships: Vec<ShipSnapshot>,
+    pub bullets: Vec<BulletSnapshot>,
     pub debug_lines: Vec<Line>,
     pub scenario_lines: Vec<Line>,
     pub hits: Vec<Vector2<f64>>,
@@ -20,4 +21,10 @@ pub struct ShipSnapshot {
     pub heading: f64,
     pub team: i32,
     pub class: ShipClass,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BulletSnapshot {
+    pub position: Point2<f64>,
+    pub velocity: Vector2<f64>,
 }

@@ -229,6 +229,7 @@ impl Simulation {
         let mut snapshot = Snapshot {
             time: self.time(),
             ships: vec![],
+            bullets: vec![],
             debug_lines: vec![],
             scenario_lines: vec![],
             hits: vec![],
@@ -248,6 +249,14 @@ impl Simulation {
                 heading: ship.heading(),
                 team,
                 class,
+            });
+        }
+
+        for &handle in self.bullets.iter() {
+            let bullet = self.bullet(handle);
+            snapshot.bullets.push(BulletSnapshot {
+                position: bullet.body().position().translation.vector.into(),
+                velocity: *bullet.body().linvel(),
             });
         }
 

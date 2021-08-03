@@ -268,7 +268,7 @@ impl UI {
         }
 
         self.renderer
-            .render(self.camera_target, self.zoom, &self.sim, &self.snapshot);
+            .render(self.camera_target, self.zoom, &self.snapshot);
 
         if self.manual_control {
             status_msgs.push("MANUAL".to_string());
