@@ -3,12 +3,8 @@ use oort::simulation;
 use oort::simulation::scenario;
 
 fn many_bullets() {
-    let mut sim = simulation::Simulation::new();
-    let mut scenario = scenario::load("bullet-stress");
-    scenario.init(&mut sim, 0);
-
-    while scenario.status(&sim) == scenario::Status::Running {
-        scenario.tick(&mut sim);
+    let mut sim = simulation::Simulation::new("bullet-stress", 0, "");
+    while sim.status() == scenario::Status::Running {
         sim.step();
     }
 }

@@ -9,6 +9,7 @@ pub mod snapshot;
 
 use self::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
 use self::index_set::IndexSet;
+use self::scenario::Scenario;
 use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::script;
 use crate::script::{ShipController, TeamController};
@@ -23,6 +24,7 @@ pub const WORLD_SIZE: f64 = 10000.0;
 pub(crate) const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
 pub struct Simulation {
+    scenario: Option<Box<dyn Scenario>>,
     pub ships: IndexSet<ShipHandle>,
     ship_data: HashMap<ShipHandle, ShipData>,
     team_controllers: HashMap<i32, Box<dyn TeamController>>,
@@ -46,9 +48,10 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    pub fn new() -> Simulation {
+    pub fn new(scenario_name: &str, seed: u64, code: &str) -> Box<Simulation> {
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
-        Simulation {
+        let mut sim = Box::new(Simulation {
+            scenario: None,
             ships: IndexSet::new(),
             ship_data: HashMap::new(),
             team_controllers: HashMap::new(),
@@ -73,7 +76,15 @@ impl Simulation {
             events: SimEvents::new(),
             tick: 0,
             cheats: false,
-        }
+        });
+
+        sim.upload_code(/*team=*/ 0, code);
+
+        let mut scenario = scenario::load(scenario_name);
+        scenario.init(&mut sim, seed);
+        sim.scenario = Some(scenario);
+
+        sim
     }
 
     pub fn tick(&self) -> u32 {
@@ -82,6 +93,10 @@ impl Simulation {
 
     pub fn time(&self) -> f64 {
         self.tick as f64 * PHYSICS_TICK_LENGTH
+    }
+
+    pub fn status(&self) -> scenario::Status {
+        self.scenario.as_ref().unwrap().status(self)
     }
 
     pub fn ship(self: &Simulation, handle: ShipHandle) -> ShipAccessor {
@@ -185,6 +200,10 @@ impl Simulation {
             self.ship_mut(handle).tick();
         }
 
+        let mut scenario = std::mem::take(&mut self.scenario);
+        scenario.as_mut().unwrap().tick(self);
+        self.scenario = scenario;
+
         self.tick += 1;
     }
 
@@ -230,10 +249,10 @@ impl Simulation {
             time: self.time(),
             ships: vec![],
             bullets: vec![],
-            debug_lines: vec![],
-            scenario_lines: vec![],
-            hits: vec![],
-            ships_destroyed: vec![],
+            scenario_lines: self.scenario.as_ref().unwrap().lines(),
+            debug_lines: self.events.debug_lines.clone(),
+            hits: self.events.hits.clone(),
+            ships_destroyed: self.events.ships_destroyed.clone(),
         };
 
         for &handle in self.ships.iter() {
@@ -260,17 +279,7 @@ impl Simulation {
             });
         }
 
-        snapshot.debug_lines = self.events.debug_lines.clone();
-        snapshot.hits = self.events.hits.clone();
-        snapshot.ships_destroyed = self.events.ships_destroyed.clone();
-
         snapshot
-    }
-}
-
-impl Default for Simulation {
-    fn default() -> Self {
-        Simulation::new()
     }
 }
 

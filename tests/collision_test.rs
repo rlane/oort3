@@ -7,7 +7,7 @@ use test_env_log::test;
 #[test]
 fn test_world_edge() {
     let mut rng = rand::thread_rng();
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
     scenario::add_walls(&mut sim);
 
     for _ in 0..100 {
@@ -44,7 +44,7 @@ fn test_world_edge() {
 
 #[test]
 fn test_head_on_collision() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let ship0 = ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, fighter(0));
     let ship1 = ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, fighter(0));
@@ -62,7 +62,7 @@ fn test_head_on_collision() {
 
 #[test]
 fn test_fighter_bullet_collision_same_team() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     bullet::create(
@@ -87,7 +87,7 @@ fn test_fighter_bullet_collision_same_team() {
 
 #[test]
 fn test_fighter_bullet_collision_different_team() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     bullet::create(
@@ -112,7 +112,7 @@ fn test_fighter_bullet_collision_different_team() {
 
 #[test]
 fn test_missile_bullet_collision_same_team() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let msl = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, missile(0));
     let blt = bullet::create(
@@ -137,7 +137,7 @@ fn test_missile_bullet_collision_same_team() {
 
 #[test]
 fn test_missile_bullet_collision_different_team() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, missile(0));
     bullet::create(
@@ -162,7 +162,7 @@ fn test_missile_bullet_collision_different_team() {
 
 #[test]
 fn test_missile_fighter_collision_same_team() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let msl = ship::create(&mut sim, 0.0, 0.0, 400.0, 0.0, 0.0, missile(0));
     let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
@@ -177,7 +177,7 @@ fn test_missile_fighter_collision_same_team() {
 
 #[test]
 fn test_missile_fighter_collision_different_team() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let msl = ship::create(&mut sim, 0.0, 0.0, 400.0, 0.0, 0.0, missile(0));
     let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(1));

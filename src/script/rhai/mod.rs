@@ -176,8 +176,8 @@ mod test {
 
     #[test]
     fn test_vec2() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             "
         let v1 = vec2(1.0, 2.0);
@@ -200,8 +200,8 @@ mod test {
 
     #[test]
     fn test_vec2_angle() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             "
         assert_eq(vec2(1.0, 0.0).angle(), 0.0);
@@ -216,8 +216,8 @@ mod test {
 
     #[test]
     fn test_pos_vel_hd() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             "
         assert_eq(ship.position(), vec2(1.0, 2.0));
@@ -239,8 +239,8 @@ mod test {
 
     #[test]
     fn test_function() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             "
             fn foo() {
@@ -257,8 +257,8 @@ mod test {
 
     #[test]
     fn test_globals() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             r#"
            let a = 1;
@@ -295,8 +295,8 @@ mod test {
 
     #[test]
     fn test_mixed_integer_float() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             r#"
 assert_eq(vec2(1, 2), vec2(1.0, 2.0));
@@ -313,8 +313,8 @@ assert_eq(vec2(1, 1) / 2.0, vec2(1, 1) / 2);
     #[test]
     #[should_panic(expected = "Too many operations")]
     fn test_infinite_loop() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             r#"
 let i = 0;
@@ -330,8 +330,8 @@ while true {
 
     #[test]
     fn test_random() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             r#"
 let rng = new_rng(1);
@@ -347,8 +347,8 @@ assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
 
     #[test]
     fn test_scan() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             "
 let contact = ship.scan();
@@ -380,8 +380,8 @@ assert_eq(contact.velocity, vec2(3, 4));
 
     #[test]
     fn test_angle_diff() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             r#"
 assert_eq(angle_diff(0.0, 0.0), 0.0);

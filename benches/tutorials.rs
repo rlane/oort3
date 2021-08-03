@@ -3,19 +3,16 @@ use oort::simulation;
 use oort::simulation::scenario;
 
 fn check_solution(scenario_name: &str) {
-    let mut sim = simulation::Simulation::new();
-    let mut scenario = scenario::load(scenario_name);
-    scenario.init(&mut sim, 0);
-    sim.upload_code(/*team=*/ 0, &scenario.solution());
+    let scenario = scenario::load(scenario_name);
+    let mut sim = simulation::Simulation::new(scenario_name, 0, &scenario.solution());
 
     let mut i = 0;
-    while scenario.status(&sim) == scenario::Status::Running && i < 10000 {
-        scenario.tick(&mut sim);
+    while sim.status() == scenario::Status::Running && i < 10000 {
         sim.step();
         i += 1;
     }
 
-    assert_eq!(scenario.status(&sim), scenario::Status::Finished);
+    assert_eq!(sim.status(), scenario::Status::Finished);
 }
 
 fn tutorials() {

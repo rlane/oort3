@@ -52,8 +52,8 @@ mod test {
 
     #[test]
     fn test_min_max() {
-        let mut sim = Simulation::new();
-        sim.upload_code(
+        let mut sim = Simulation::new(
+            "test",
             0,
             r#"
 assert_eq(min(5, 7), 5);

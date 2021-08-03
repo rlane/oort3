@@ -5,19 +5,16 @@ use test_env_log::test;
 
 fn check_solution(scenario_name: &str) {
     let check_once = || -> u64 {
-        let mut sim = simulation::Simulation::new();
-        let mut scenario = scenario::load(scenario_name);
-        sim.upload_code(/*team=*/ 0, &scenario.solution());
-        scenario.init(&mut sim, 0);
+        let scenario = scenario::load(scenario_name);
+        let mut sim = simulation::Simulation::new(scenario_name, 0, &scenario.solution());
 
         let mut i = 0;
-        while scenario.status(&sim) == scenario::Status::Running && i < 10000 {
-            scenario.tick(&mut sim);
+        while sim.status() == scenario::Status::Running && i < 10000 {
             sim.step();
             i += 1;
         }
 
-        assert_eq!(scenario.status(&sim), scenario::Status::Finished);
+        assert_eq!(sim.status(), scenario::Status::Finished);
         sim.hash()
     };
     let hashes: Vec<u64> = (0..2usize).into_par_iter().map(|_| check_once()).collect();

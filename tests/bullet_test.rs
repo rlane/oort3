@@ -5,7 +5,7 @@ use test_env_log::test;
 
 #[test]
 fn test_hit() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter(1));
@@ -31,7 +31,7 @@ fn test_hit() {
 
 #[test]
 fn test_destroyed() {
-    let mut sim = simulation::Simulation::new();
+    let mut sim = simulation::Simulation::new("test", 0, "");
 
     let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter(1));

@@ -29,7 +29,6 @@ pub struct UI {
     quit: bool,
     single_steps: i32,
     paused: bool,
-    scenario: Box<dyn scenario::Scenario>,
     keys_down: std::collections::HashSet<String>,
     keys_ignored: std::collections::HashSet<String>,
     status_div: web_sys::Element,
@@ -39,6 +38,7 @@ pub struct UI {
     fps: fps::FPS,
     latest_code: String,
     debug: bool,
+    scenario_name: String,
 }
 
 unsafe impl Send for UI {}
@@ -53,16 +53,14 @@ impl UI {
             .expect("should have a status div");
         status_div.set_inner_html("Hello from Rust");
 
-        let mut sim = Box::new(simulation::Simulation::new());
+        let seed: u64 = rand::thread_rng().gen();
+        let sim = simulation::Simulation::new(scenario_name, seed, code);
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
         let mut paused = false;
         let single_steps = 0;
-        let seed: u64 = rand::thread_rng().gen();
-
-        let mut scenario = scenario::load(scenario_name);
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();
@@ -76,15 +74,13 @@ impl UI {
                 .local_storage()
                 .expect("failed to get local storage")
                 .unwrap();
-            if let Err(msg) = storage.set_item(&format!("/code/{}", scenario.name()), code) {
+            if let Err(msg) = storage.set_item(&format!("/code/{}", scenario_name), code) {
                 error!("Failed to save code: {:?}", msg);
             }
         } else {
             code = "fn tick() {}";
         }
 
-        sim.upload_code(/*team=*/ 0, code);
-        scenario.init(&mut sim, seed);
         let snapshot = sim.snapshot();
         let latest_code = code.to_string();
         if !sim.events().errors.is_empty() {
@@ -102,7 +98,6 @@ impl UI {
             quit: false,
             single_steps,
             paused,
-            scenario,
             keys_down,
             keys_ignored,
             status_div,
@@ -112,6 +107,7 @@ impl UI {
             fps: fps::FPS::new(),
             latest_code,
             debug: false,
+            scenario_name: scenario_name.to_owned(),
         };
         ui.display_errors(&ui.sim.events().errors);
         ui
@@ -184,11 +180,11 @@ impl UI {
         }
 
         if self.status == Status::Running {
-            self.status = self.scenario.status(&self.sim);
+            self.status = self.sim.status();
             if self.status == Status::Finished {
                 if !self.sim.cheats {
                     telemetry::send(Telemetry::FinishScenario {
-                        scenario_name: self.scenario.name(),
+                        scenario_name: self.scenario_name.clone(),
                         code: self.latest_code.to_string(),
                         ticks: self.sim.tick(),
                         code_size: code_size::calculate(&self.latest_code),
@@ -202,7 +198,6 @@ impl UI {
             let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
             self.physics_time = self.physics_time.max(now - dt * 2.0);
             if self.single_steps > 0 || self.physics_time + dt < now {
-                self.scenario.tick(&mut self.sim);
                 self.sim.step();
                 self.physics_time += dt;
                 if !self.sim.events().errors.is_empty() {
@@ -210,7 +205,6 @@ impl UI {
                     self.paused = true;
                 }
                 self.snapshot = self.sim.snapshot();
-                self.snapshot.scenario_lines = self.scenario.lines();
                 self.renderer.update(&self.snapshot);
             }
             if self.single_steps > 0 {
@@ -288,28 +282,27 @@ impl UI {
             .local_storage()
             .expect("failed to get local storage")
             .unwrap();
-        match storage.get_item(&format!("/code/{}", self.scenario.name())) {
+        let initial_code = scenario::load(&self.scenario_name).initial_code();
+        match storage.get_item(&format!("/code/{}", self.scenario_name)) {
             Ok(Some(code)) => code,
             Ok(None) => {
                 info!("No saved code, using starter code");
-                self.scenario.initial_code()
+                initial_code
             }
             Err(msg) => {
                 error!("Failed to load code: {:?}", msg);
-                self.scenario.initial_code()
+                initial_code
             }
         }
     }
 
     pub fn display_finished_screen(&self) {
+        let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         api::display_mission_complete_overlay(
-            &self.scenario.name(),
+            &self.scenario_name,
             self.sim.time(),
             code_size::calculate(&self.latest_code),
-            &self
-                .scenario
-                .next_scenario()
-                .unwrap_or_else(|| "".to_string()),
+            &next_scenario.unwrap_or_else(|| "".to_string()),
         );
     }
 

@@ -87,6 +87,7 @@ pub fn add_walls(sim: &mut Simulation) {
 
 pub fn load(name: &str) -> Box<dyn Scenario> {
     let scenario: Box<dyn Scenario> = match name {
+        "test" => Box::new(TestScenario {}),
         "basic" => Box::new(BasicScenario {}),
         "gunnery" => Box::new(GunneryScenario {}),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
@@ -124,6 +125,16 @@ pub fn list() -> Vec<String> {
     .iter()
     .map(|x| x.to_string())
     .collect()
+}
+
+struct TestScenario {}
+
+impl Scenario for TestScenario {
+    fn name(&self) -> String {
+        "test".into()
+    }
+
+    fn init(&mut self, _sim: &mut Simulation, _seed: u64) {}
 }
 
 struct BasicScenario {}
