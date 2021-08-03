@@ -247,6 +247,7 @@ impl Simulation {
     pub fn snapshot(&self) -> Snapshot {
         let mut snapshot = Snapshot {
             time: self.time(),
+            status: self.status(),
             ships: vec![],
             bullets: vec![],
             scenario_lines: self.scenario.as_ref().unwrap().lines(),
@@ -254,6 +255,7 @@ impl Simulation {
             hits: self.events.hits.clone(),
             ships_destroyed: self.events.ships_destroyed.clone(),
             errors: self.events.errors.clone(),
+            cheats: self.cheats,
         };
 
         for &handle in self.ships.iter() {

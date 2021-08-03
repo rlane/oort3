@@ -6,9 +6,10 @@ use nalgebra::{Point2, Rotation2, Translation2};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
+use serde::{Deserialize, Serialize};
 use Status::Running;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Status {
     Running,
     Finished,

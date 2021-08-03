@@ -172,13 +172,13 @@ impl UI {
         }
 
         if self.status == Status::Running {
-            self.status = self.sim.status();
+            self.status = self.snapshot.status;
             if self.status == Status::Finished {
-                if !self.sim.cheats {
+                if !self.snapshot.cheats {
                     telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario_name.clone(),
                         code: self.latest_code.to_string(),
-                        ticks: self.sim.tick(),
+                        ticks: (self.snapshot.time / simulation::PHYSICS_TICK_LENGTH) as u32,
                         code_size: code_size::calculate(&self.latest_code),
                     });
                 }
@@ -207,7 +207,7 @@ impl UI {
         self.renderer
             .render(self.camera_target, self.zoom, &self.snapshot);
 
-        if self.sim.cheats {
+        if self.snapshot.cheats {
             status_msgs.push("CHEATS".to_string());
         }
 
@@ -292,7 +292,7 @@ impl UI {
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         api::display_mission_complete_overlay(
             &self.scenario_name,
-            self.sim.time(),
+            self.snapshot.time,
             code_size::calculate(&self.latest_code),
             &next_scenario.unwrap_or_else(|| "".to_string()),
         );
