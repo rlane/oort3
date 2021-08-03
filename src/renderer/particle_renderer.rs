@@ -1,5 +1,5 @@
 use super::{buffer_arena, glutil};
-use crate::simulation::{SimEvents, Simulation};
+use crate::simulation::snapshot::Snapshot;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector2};
 use rand::Rng;
 use wasm_bindgen::prelude::*;
@@ -108,18 +108,18 @@ void main() {
         }
     }
 
-    pub fn update(&mut self, current_time: f64, events: &SimEvents) {
+    pub fn update(&mut self, snapshot: &Snapshot) {
         let mut rng = rand::thread_rng();
-        for position in events.hits.iter() {
+        for position in snapshot.hits.iter() {
             let s = 400.0;
             self.add_particle(Particle {
                 position: vector![position.x as f32, position.y as f32],
                 velocity: vector![rng.gen_range(-s..s), rng.gen_range(-s..s)],
-                creation_time: current_time as f32,
+                creation_time: snapshot.time as f32,
             });
         }
 
-        for position in events.ships_destroyed.iter() {
+        for position in snapshot.ships_destroyed.iter() {
             let s = 200.0;
             for _ in 0..10 {
                 let v = vector![rng.gen_range(-s..s), rng.gen_range(-s..s)];
@@ -127,16 +127,16 @@ void main() {
                 self.add_particle(Particle {
                     position: p,
                     velocity: v,
-                    creation_time: current_time as f32 + rng.gen_range(-0.1..0.3),
+                    creation_time: snapshot.time as f32 + rng.gen_range(-0.1..0.3),
                 });
             }
         }
     }
 
-    pub fn draw(&mut self, sim: &Simulation) {
+    pub fn draw(&mut self, snapshot: &Snapshot) {
         self.context.use_program(Some(&self.program));
 
-        let current_time = sim.time() as f32;
+        let current_time = snapshot.time as f32;
         self.context
             .uniform1f(Some(&self.current_time_loc), current_time);
 

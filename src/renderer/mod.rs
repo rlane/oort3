@@ -127,11 +127,11 @@ impl Renderer {
         self.line_renderer.draw(&snapshot.scenario_lines);
         self.bullet_renderer.draw(sim);
         self.ship_renderer.draw(sim);
-        self.particle_renderer.draw(sim);
+        self.particle_renderer.draw(snapshot);
     }
 
-    pub fn update(&mut self, sim: &Simulation, snapshot: &Snapshot) {
-        self.particle_renderer.update(sim.time(), sim.events());
+    pub fn update(&mut self, snapshot: &Snapshot) {
+        self.particle_renderer.update(snapshot);
         self.trail_renderer.update(snapshot);
     }
 }

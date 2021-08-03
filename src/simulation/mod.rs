@@ -231,6 +231,8 @@ impl Simulation {
             ships: vec![],
             debug_lines: vec![],
             scenario_lines: vec![],
+            hits: vec![],
+            ships_destroyed: vec![],
         };
 
         for &handle in self.ships.iter() {
@@ -249,6 +251,8 @@ impl Simulation {
         }
 
         snapshot.debug_lines = self.events.debug_lines.clone();
+        snapshot.hits = self.events.hits.clone();
+        snapshot.ships_destroyed = self.events.ships_destroyed.clone();
 
         snapshot
     }

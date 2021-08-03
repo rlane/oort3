@@ -260,7 +260,7 @@ impl UI {
                 }
                 self.snapshot = self.sim.snapshot();
                 self.snapshot.scenario_lines = self.scenario.lines();
-                self.renderer.update(&self.sim, &self.snapshot);
+                self.renderer.update(&self.snapshot);
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
