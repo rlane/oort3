@@ -35,7 +35,11 @@ function initialize(m) {
 
 rust.then((m) => initialize(m)).catch(console.error);
 
-new Worker(new URL('./worker.js', import.meta.url));
+var worker = new Worker(new URL('./worker.js', import.meta.url));
+worker.onmessage = function(e) {
+  console.log('Message received from worker: ' + JSON.stringify(e.data));
+}
+worker.postMessage("foo");
 
 var editor = monaco.editor.create(document.getElementById('editor'), {
   value: `\
