@@ -253,6 +253,7 @@ impl Simulation {
             debug_lines: self.events.debug_lines.clone(),
             hits: self.events.hits.clone(),
             ships_destroyed: self.events.ships_destroyed.clone(),
+            errors: self.events.errors.clone(),
         };
 
         for &handle in self.ships.iter() {

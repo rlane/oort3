@@ -1,3 +1,4 @@
+use crate::script;
 use crate::simulation::ship::ShipClass;
 use crate::simulation::Line;
 use nalgebra::{Point2, Vector2};
@@ -12,6 +13,7 @@ pub struct Snapshot {
     pub scenario_lines: Vec<Line>,
     pub hits: Vec<Vector2<f64>>,
     pub ships_destroyed: Vec<Vector2<f64>>,
+    pub errors: Vec<script::Error>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

@@ -83,7 +83,7 @@ impl UI {
 
         let snapshot = sim.snapshot();
         let latest_code = code.to_string();
-        if !sim.events().errors.is_empty() {
+        if !snapshot.errors.is_empty() {
             paused = true;
         }
 
@@ -109,7 +109,7 @@ impl UI {
             debug: false,
             scenario_name: scenario_name.to_owned(),
         };
-        ui.display_errors(&ui.sim.events().errors);
+        ui.display_errors(&ui.snapshot.errors);
         ui
     }
 
@@ -192,8 +192,8 @@ impl UI {
             if self.single_steps > 0 || self.physics_time + dt < now {
                 self.sim.step();
                 self.physics_time += dt;
-                if !self.sim.events().errors.is_empty() {
-                    self.display_errors(&self.sim.events().errors);
+                if !self.snapshot.errors.is_empty() {
+                    self.display_errors(&self.snapshot.errors);
                     self.paused = true;
                 }
                 self.snapshot = self.sim.snapshot();

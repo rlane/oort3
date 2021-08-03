@@ -6,7 +6,7 @@ use crate::simulation::Simulation;
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
     pub line: usize,
     pub msg: String,
