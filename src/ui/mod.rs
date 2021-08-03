@@ -10,6 +10,7 @@ use nalgebra::{point, vector, Point2};
 use rand::Rng;
 use simulation::scenario;
 use simulation::scenario::Status;
+use simulation::snapshot::Snapshot;
 use telemetry::Telemetry;
 use wasm_bindgen::JsValue;
 
@@ -19,6 +20,7 @@ const INITIAL_ZOOM: f32 = 4e-4;
 
 pub struct UI {
     sim: Box<simulation::Simulation>,
+    snapshot: Snapshot,
     renderer: renderer::Renderer,
     zoom: f32,
     camera_target: Point2<f32>,
@@ -84,6 +86,7 @@ impl UI {
 
         sim.upload_code(/*team=*/ 0, code);
         scenario.init(&mut sim, seed);
+        let snapshot = sim.snapshot();
         let latest_code = code.to_string();
         if !sim.events().errors.is_empty() {
             paused = true;
@@ -91,6 +94,7 @@ impl UI {
 
         let ui = UI {
             sim,
+            snapshot,
             renderer,
             zoom,
             camera_target,
@@ -254,18 +258,17 @@ impl UI {
                     self.display_errors(&self.sim.events().errors);
                     self.paused = true;
                 }
-                self.renderer.update(&self.sim);
+                self.snapshot = self.sim.snapshot();
+                self.snapshot.scenario_lines = self.scenario.lines();
+                self.renderer.update(&self.sim, &self.snapshot);
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
             }
         }
 
-        let mut snapshot = self.sim.snapshot();
-        snapshot.scenario_lines = self.scenario.lines();
-
         self.renderer
-            .render(self.camera_target, self.zoom, &self.sim, &snapshot);
+            .render(self.camera_target, self.zoom, &self.sim, &self.snapshot);
 
         if self.manual_control {
             status_msgs.push("MANUAL".to_string());

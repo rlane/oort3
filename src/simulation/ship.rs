@@ -7,6 +7,7 @@ use bullet::BulletData;
 use nalgebra::{vector, Rotation2, Vector2};
 use rand::Rng;
 use rapier2d_f64::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ShipHandle(pub Index);
@@ -17,7 +18,7 @@ impl HasIndex for ShipHandle {
     }
 }
 
-#[derive(Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ShipClass {
     Fighter,
     Asteroid { variant: i32 },

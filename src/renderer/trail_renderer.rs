@@ -1,6 +1,7 @@
 use super::glutil;
-use crate::simulation::ship::{ShipClass, ShipHandle};
-use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
+use crate::simulation::ship::ShipClass;
+use crate::simulation::snapshot::Snapshot;
+use crate::simulation::PHYSICS_TICK_LENGTH;
 use log::warn;
 use nalgebra::{storage::ContiguousStorage, Matrix4, Point2};
 use std::collections::HashMap;
@@ -21,7 +22,7 @@ pub struct TrailRenderer {
     projection_matrix: Matrix4<f32>,
     buffer: WebGlBuffer,
     index: i32,
-    last_positions: HashMap<ShipHandle, Point2<f32>>,
+    last_positions: HashMap<u64, Point2<f32>>,
 }
 
 impl TrailRenderer {
@@ -93,21 +94,20 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    pub fn update(&mut self, sim: &Simulation) {
+    pub fn update(&mut self, snapshot: &Snapshot) {
         let mut data = vec![];
-        data.reserve(sim.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
+        data.reserve(snapshot.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
         let mut n = 0;
-        let creation_time = sim.time() as f32;
-        for &handle in sim.ships.iter() {
-            let ship = sim.ship(handle);
-            if let ShipClass::Asteroid { .. } = ship.data().class {
+        let creation_time = snapshot.time as f32;
+        for ship in snapshot.ships.iter() {
+            if let ShipClass::Asteroid { .. } = ship.class {
                 continue;
             }
-            let color = super::ShipRenderer::team_color(ship.data().team);
-            let current_position: Point2<f32> = ship.position().vector.cast::<f32>().into();
+            let color = super::ShipRenderer::team_color(ship.team);
+            let current_position: Point2<f32> = ship.position.cast();
             {
                 use std::collections::hash_map::Entry;
-                match self.last_positions.entry(handle) {
+                match self.last_positions.entry(ship.id) {
                     Entry::Occupied(mut e) => {
                         let last_position = e.insert(current_position);
                         data.push(last_position.x);

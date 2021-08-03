@@ -16,7 +16,7 @@ use crossbeam::channel::Sender;
 pub use debug::Line;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
-use snapshot::Snapshot;
+use snapshot::*;
 use std::collections::HashMap;
 
 pub const WORLD_SIZE: f64 = 10000.0;
@@ -227,9 +227,26 @@ impl Simulation {
 
     pub fn snapshot(&self) -> Snapshot {
         let mut snapshot = Snapshot {
+            time: self.time(),
+            ships: vec![],
             debug_lines: vec![],
             scenario_lines: vec![],
         };
+
+        for &handle in self.ships.iter() {
+            let ship = self.ship(handle);
+            let (gen, idx) = handle.0.into_raw_parts();
+            let id = ((gen as u64) << 32) | idx as u64;
+            let position = ship.position().vector.into();
+            let team = ship.data().team;
+            let class = ship.data().class;
+            snapshot.ships.push(ShipSnapshot {
+                id,
+                position,
+                team,
+                class,
+            });
+        }
 
         snapshot.debug_lines = self.events.debug_lines.clone();
 

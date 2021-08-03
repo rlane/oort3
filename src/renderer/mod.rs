@@ -120,7 +120,7 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
 
         self.grid_renderer.draw(zoom);
-        self.trail_renderer.draw(sim.time() as f32);
+        self.trail_renderer.draw(snapshot.time as f32);
         if self.debug {
             self.line_renderer.draw(&snapshot.debug_lines);
         }
@@ -130,8 +130,8 @@ impl Renderer {
         self.particle_renderer.draw(sim);
     }
 
-    pub fn update(&mut self, sim: &Simulation) {
+    pub fn update(&mut self, sim: &Simulation, snapshot: &Snapshot) {
         self.particle_renderer.update(sim.time(), sim.events());
-        self.trail_renderer.update(sim);
+        self.trail_renderer.update(snapshot);
     }
 }
