@@ -132,13 +132,17 @@ pub fn create(
     let handle = ShipHandle(body_handle.0);
     let team = data.team;
     let model = model::load(data.class);
+    let restitution = match data.class {
+        ShipClass::Missile => 0.0,
+        _ => 0.1,
+    };
     let vertices = model
         .iter()
         .map(|&v| point![v.x as f64, v.y as f64])
         .collect::<Vec<_>>();
     let collider = ColliderBuilder::convex_hull(&vertices)
         .unwrap()
-        .restitution(1.0)
+        .restitution(restitution)
         .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
         .collision_groups(collision::ship_interaction_groups(team, data.class))
         .build();
