@@ -41,6 +41,7 @@ pub struct UI {
     debug: bool,
     scenario_name: String,
     last_status_msg: String,
+    snapshot_requests_in_flight: usize,
 }
 
 unsafe impl Send for UI {}
@@ -93,11 +94,12 @@ impl UI {
             debug: false,
             scenario_name: scenario_name.to_owned(),
             last_status_msg: "".to_owned(),
+            snapshot_requests_in_flight: 0,
         }
     }
 
     pub fn render(&mut self) {
-        if self.quit || self.snapshot.is_none() {
+        if self.quit {
             return;
         }
 
@@ -166,14 +168,16 @@ impl UI {
             }
         }
 
-        self.renderer.render(
-            self.camera_target,
-            self.zoom,
-            self.snapshot.as_ref().unwrap(),
-        );
+        if self.snapshot.is_some() {
+            self.renderer.render(
+                self.camera_target,
+                self.zoom,
+                self.snapshot.as_ref().unwrap(),
+            );
 
-        if self.snapshot.as_ref().unwrap().cheats {
-            status_msgs.push("CHEATS".to_string());
+            if self.snapshot.as_ref().unwrap().cheats {
+                status_msgs.push("CHEATS".to_string());
+            }
         }
 
         if self.paused {
@@ -217,20 +221,23 @@ impl UI {
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
         if self.snapshot.is_none() {
             self.snapshot = Some(snapshot);
-            for _ in 0..SNAPSHOT_PRELOAD {
-                api::request_snapshot();
-            }
         } else {
             self.pending_snapshots.push_back(snapshot);
+            assert!(self.snapshot_requests_in_flight > 0);
+            self.snapshot_requests_in_flight -= 1;
         }
     }
 
     pub fn update_snapshot(&mut self) {
+        while self.snapshot_requests_in_flight < SNAPSHOT_PRELOAD {
+            api::request_snapshot();
+            self.snapshot_requests_in_flight += 1;
+        }
+
         if self.pending_snapshots.is_empty() || self.pending_snapshots[0].time > self.physics_time {
             return;
         }
 
-        api::request_snapshot();
         self.snapshot = self.pending_snapshots.pop_front();
         let snapshot = self.snapshot.as_ref().unwrap();
 
