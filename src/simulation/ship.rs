@@ -246,6 +246,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
     pub fn fire_weapon(&mut self, index: i64) {
         let ship_data = self.data_mut();
+        if index as usize >= ship_data.weapons.len() {
+            return;
+        }
         let team = ship_data.team;
         let damage;
         {
