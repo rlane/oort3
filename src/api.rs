@@ -52,7 +52,7 @@ pub fn render() {
 }
 
 #[wasm_bindgen]
-pub fn on_snapshot(value: JsValue) {
+pub fn on_snapshot(value: &[u8]) {
     if has_panicked() {
         return;
     }
@@ -60,7 +60,7 @@ pub fn on_snapshot(value: JsValue) {
     if ui.is_some() {
         ui.as_mut()
             .unwrap()
-            .on_snapshot(value.into_serde().unwrap());
+            .on_snapshot(bincode::deserialize(value).unwrap());
     }
 }
 

@@ -39,15 +39,15 @@ pub fn worker_run_scenario(scenario_name: &str, seed: u64, code: &str) -> JsValu
 }
 
 #[wasm_bindgen]
-pub fn worker_start_scenario(scenario_name: &str, seed: u64, code: &str) -> JsValue {
+pub fn worker_start_scenario(scenario_name: &str, seed: u64, code: &str) -> Vec<u8> {
     if has_panicked() {
-        return JsValue::NULL;
+        return vec![];
     }
     let mut worker_lock = OORT_WORKER.lock().unwrap();
     *worker_lock = Some(Worker {
         sim: Some(Simulation::new(scenario_name, seed, code)),
     });
-    JsValue::from_serde(
+    bincode::serialize(
         &worker_lock
             .as_ref()
             .unwrap()
@@ -60,14 +60,14 @@ pub fn worker_start_scenario(scenario_name: &str, seed: u64, code: &str) -> JsVa
 }
 
 #[wasm_bindgen]
-pub fn worker_request_snapshot() -> JsValue {
+pub fn worker_request_snapshot() -> Vec<u8> {
     if has_panicked() {
-        return JsValue::NULL;
+        return vec![];
     }
     let mut worker_lock = OORT_WORKER.lock().unwrap();
     let worker = worker_lock.as_mut().unwrap();
     if worker.sim.as_ref().unwrap().status() == Status::Running {
         worker.sim.as_mut().unwrap().step();
     }
-    JsValue::from_serde(&worker.sim.as_ref().unwrap().snapshot()).unwrap()
+    bincode::serialize(&worker.sim.as_ref().unwrap().snapshot()).unwrap()
 }
