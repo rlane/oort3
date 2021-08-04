@@ -223,8 +223,9 @@ impl UI {
             self.snapshot = Some(snapshot);
         } else {
             self.pending_snapshots.push_back(snapshot);
-            assert!(self.snapshot_requests_in_flight > 0);
-            self.snapshot_requests_in_flight -= 1;
+            if self.snapshot_requests_in_flight > 0 {
+                self.snapshot_requests_in_flight -= 1;
+            }
         }
     }
 
