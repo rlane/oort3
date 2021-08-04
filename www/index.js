@@ -43,11 +43,11 @@ worker.onmessage = function(e) {
 function start_simulation(scenario_name, seed, code) {
   console.log("start_simulation scenario_name=" + scenario_name + " code=" + JSON.stringify(code));
   rust_module.start(scenario_name, code);
-  worker.postMessage({ type: "start", scenario_name: scenario_name, seed: seed, code: code});
+  worker.postMessage({ type: "start", scenario_name: scenario_name, seed: seed, code: code, nonce: 0});
 }
 
-window.request_snapshot = function() {
-  worker.postMessage({ type: "request_snapshot" });
+window.request_snapshot = function(nonce) {
+  worker.postMessage({ type: "request_snapshot", nonce: nonce });
 }
 
 var editor = monaco.editor.create(document.getElementById('editor'), {

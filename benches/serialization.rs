@@ -10,16 +10,24 @@ fn make_snapshot() -> Snapshot {
     for _ in 0..300 {
         sim.step();
     }
-    sim.snapshot()
+    sim.snapshot(0)
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
     let snapshot = make_snapshot();
     c.bench_function("json", |b| {
-        b.iter(|| black_box(serde_json::from_str::<Snapshot>(&serde_json::to_string(&snapshot).unwrap())))
+        b.iter(|| {
+            black_box(serde_json::from_str::<Snapshot>(
+                &serde_json::to_string(&snapshot).unwrap(),
+            ))
+        })
     });
     c.bench_function("bincode", |b| {
-        b.iter(|| black_box(bincode::deserialize::<Snapshot>(&bincode::serialize(&snapshot).unwrap())))
+        b.iter(|| {
+            black_box(bincode::deserialize::<Snapshot>(
+                &bincode::serialize(&snapshot).unwrap(),
+            ))
+        })
     });
 }
 

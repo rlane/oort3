@@ -24,7 +24,7 @@ onmessage = async function (e) {
       )
     );
   } else if (e.data.type == "request_snapshot") {
-    let snapshot = rust.worker_request_snapshot();
+    let snapshot = rust.worker_request_snapshot(e.data.nonce);
     postMessage(snapshot, [snapshot.buffer]);
   }
 };

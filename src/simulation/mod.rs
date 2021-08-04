@@ -247,8 +247,9 @@ impl Simulation {
         s.finish()
     }
 
-    pub fn snapshot(&self) -> Snapshot {
+    pub fn snapshot(&self, nonce: u64) -> Snapshot {
         let mut snapshot = Snapshot {
+            nonce,
             time: self.time(),
             status: self.status(),
             ships: vec![],

@@ -7,6 +7,7 @@ pub mod userid;
 use crate::{api, renderer, script, simulation};
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
+use rand::Rng;
 use simulation::scenario;
 use simulation::scenario::Status;
 use simulation::snapshot::Snapshot;
@@ -42,6 +43,7 @@ pub struct UI {
     scenario_name: String,
     last_status_msg: String,
     snapshot_requests_in_flight: usize,
+    nonce: u64,
 }
 
 unsafe impl Send for UI {}
@@ -95,6 +97,7 @@ impl UI {
             scenario_name: scenario_name.to_owned(),
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
+            nonce: rand::thread_rng().gen(),
         }
     }
 
@@ -219,6 +222,10 @@ impl UI {
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
+        if snapshot.nonce != self.nonce && self.nonce != 0 {
+            return;
+        }
+
         if self.snapshot.is_none() {
             self.snapshot = Some(snapshot);
         } else {
@@ -231,7 +238,7 @@ impl UI {
 
     pub fn update_snapshot(&mut self) {
         while self.snapshot_requests_in_flight < SNAPSHOT_PRELOAD {
-            api::request_snapshot();
+            api::request_snapshot(self.nonce);
             self.snapshot_requests_in_flight += 1;
         }
 

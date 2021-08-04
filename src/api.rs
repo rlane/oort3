@@ -157,5 +157,5 @@ extern "C" {
 
     pub fn display_errors(errors: JsValue);
 
-    pub fn request_snapshot();
+    pub fn request_snapshot(nonce: u64);
 }

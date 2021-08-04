@@ -54,13 +54,13 @@ pub fn worker_start_scenario(scenario_name: &str, seed: u64, code: &str) -> Vec<
             .sim
             .as_ref()
             .unwrap()
-            .snapshot(),
+            .snapshot(0),
     )
     .unwrap()
 }
 
 #[wasm_bindgen]
-pub fn worker_request_snapshot() -> Vec<u8> {
+pub fn worker_request_snapshot(nonce: u64) -> Vec<u8> {
     if has_panicked() {
         return vec![];
     }
@@ -69,5 +69,5 @@ pub fn worker_request_snapshot() -> Vec<u8> {
     if worker.sim.as_ref().unwrap().status() == Status::Running {
         worker.sim.as_mut().unwrap().step();
     }
-    bincode::serialize(&worker.sim.as_ref().unwrap().snapshot()).unwrap()
+    bincode::serialize(&worker.sim.as_ref().unwrap().snapshot(nonce)).unwrap()
 }
