@@ -36,6 +36,7 @@ petname = "1.1.0"
 rand_chacha = "0.3.1"
 rand_seeder = "0.2.2"
 regex = "1.5"
+bincode = "1.3"
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -87,4 +88,8 @@ harness = false
 
 [[bench]]
 name = "tutorials"
+harness = false
+
+[[bench]]
+name = "serialization"
 harness = false
