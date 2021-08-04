@@ -1,9 +1,10 @@
-html, body {
+html,
+body {
   margin: 0px;
   padding: 0px;
   background: black;
   color: #d4d4d4;
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
 }
 
 #editor {
@@ -42,7 +43,7 @@ html, body {
 
   position: absolute;
   color: #dddddd;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: "Share Tech Mono", monospace;
   font-size: 24px;
 }
 
@@ -57,7 +58,7 @@ html, body {
 
   background-color: #1e1e1e;
   color: #d4d4d4;
-  border-bottom: 1px solid rgba(191, 191, 191, .4);;
+  border-bottom: 1px solid rgba(191, 191, 191, 0.4);
 }
 
 .toolbar-elem {
@@ -66,7 +67,7 @@ html, body {
 
 .title {
   font-size: 24px;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: "Share Tech Mono", monospace;
   font-feature-settings: "liga" 0, "calt" 0;
   float: left;
 }
@@ -117,7 +118,7 @@ a:hover {
   visibility: hidden;
   overflow: auto;
   background-color: black;
-  border: 1px solid rgba(191, 191, 191, .4);
+  border: 1px solid rgba(191, 191, 191, 0.4);
 }
 
 #splash-overlay {
@@ -128,12 +129,15 @@ a:hover {
   text-align: center;
 }
 
-.leaderboard table, th, td {
-  border: 1px solid rgba(191, 191, 191, 1.0);
+.leaderboard table,
+th,
+td {
+  border: 1px solid rgba(191, 191, 191, 1);
   border-collapse: collapse;
 }
 
-.leaderboard th, td {
+.leaderboard th,
+td {
   padding: 10px;
 }
 
