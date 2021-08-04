@@ -40,6 +40,7 @@ pub struct UI {
     latest_code: String,
     debug: bool,
     scenario_name: String,
+    last_status_msg: String,
 }
 
 unsafe impl Send for UI {}
@@ -52,7 +53,7 @@ impl UI {
         let status_div = document
             .get_element_by_id("status")
             .expect("should have a status div");
-        status_div.set_inner_html("Hello from Rust");
+        status_div.set_inner_html("LOADING...");
 
         let renderer = renderer::Renderer::new().expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
@@ -91,6 +92,7 @@ impl UI {
             latest_code,
             debug: false,
             scenario_name: scenario_name.to_owned(),
+            last_status_msg: "".to_owned(),
         }
     }
 
@@ -188,12 +190,15 @@ impl UI {
 
         if self.frame % 10 == 0 {
             status_msgs.push(format!("{:.0} fps", self.fps.fps()));
-            {
+            if self.debug {
                 let (a, b, c) = self.frame_timer.get_latency();
-                status_msgs.push(format!("{:.1}/{:.1}/{:.1} ms", a, b, c,));
+                status_msgs.push(format!("LATENCY {:.1}/{:.1}/{:.1} ms", a, b, c,));
             }
             let status_msg = status_msgs.join("; ");
-            self.status_div.set_text_content(Some(&status_msg));
+            if status_msg != self.last_status_msg {
+                self.status_div.set_text_content(Some(&status_msg));
+                self.last_status_msg = status_msg;
+            }
         }
 
         if self.frame == 600 {
