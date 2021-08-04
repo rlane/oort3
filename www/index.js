@@ -6,6 +6,14 @@ import "./attribution.txt"
 window.dbg = {};
 
 var canvas = document.getElementById("glcanvas");
+var username_div = document.getElementById("username");
+var editor_div = document.getElementById('editor');
+var scenario_select = document.getElementById('scenario');
+var overlay = document.getElementById('overlay');
+var doc_overlay = document.getElementById('doc-overlay');
+var splash_overlay = document.getElementById('splash-overlay');
+var mission_complete_overlay = document.getElementById('mission-complete-overlay');
+var doc_link = document.getElementById('doc_link');
 
 var rust_module = null
 function initialize(m) {
@@ -17,7 +25,7 @@ function initialize(m) {
   start_simulation("welcome", 0, "");
   window.setTimeout(() => canvas.focus(), 0);
 
-  document.getElementById("username").textContent = m.get_username(m.get_userid());
+  username_div.textContent = m.get_username(m.get_userid());
 
   canvas.addEventListener('keydown', m.on_key_event);
   canvas.addEventListener('keyup', m.on_key_event);
@@ -49,7 +57,7 @@ window.request_snapshot = function(nonce) {
   worker.postMessage({ type: "request_snapshot", nonce: nonce });
 }
 
-var editor = monaco.editor.create(document.getElementById('editor'), {
+var editor = monaco.editor.create(editor_div, {
   value: `\
 // Welcome to Oort.
 // Select a scenario from the list in the top-right of the page.
@@ -73,7 +81,7 @@ editor.addAction({
   contextMenuGroupId: 'navigation',
   contextMenuOrder: 1.5,
   run: function(ed) {
-    let scenario_name = document.getElementById('scenario').value;
+    let scenario_name = scenario_select.value;
     let code = ed.getValue();
     rust_module.save_code(scenario_name, code);
     start_simulation(scenario_name, 0, code);
@@ -81,8 +89,6 @@ editor.addAction({
     return null;
   }
 });
-
-var scenario_select = document.getElementById('scenario');
 
 window.start_scenario = function(name) {
   scenario_select.value = name;
@@ -115,11 +121,6 @@ window.send_telemetry = function(data) {
   console.log("Sent telemetry: " + data);
 }
 
-var overlay = document.getElementById('overlay');
-var doc_overlay = document.getElementById('doc-overlay');
-var splash_overlay = document.getElementById('splash-overlay');
-var mission_complete_overlay = document.getElementById('mission-complete-overlay');
-
 function show_overlay(div) {
   div.onclick = (e) => e.stopPropagation();
   div.style.visibility = 'visible';
@@ -141,7 +142,6 @@ function hide_overlay() {
 
 overlay.onclick = hide_overlay;
 
-var doc_link = document.getElementById('doc_link');
 doc_link.onclick = (e) => show_overlay(doc_overlay);
 
 window.display_splash = function(contents) {
