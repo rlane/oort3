@@ -41,7 +41,6 @@ worker.onmessage = function(e) {
 }
 
 function start_simulation(scenario_name, seed, code) {
-  console.log("start_simulation scenario_name=" + scenario_name + " code=" + JSON.stringify(code));
   rust_module.start(scenario_name, code);
   worker.postMessage({ type: "start", scenario_name: scenario_name, seed: seed, code: code, nonce: 0});
 }
