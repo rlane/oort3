@@ -17,6 +17,10 @@ var mission_complete_overlay = document.getElementById(
 );
 var doc_link = document.getElementById("doc_link");
 
+function random_seed() {
+  return Math.floor(Math.random() * 1e9);
+}
+
 var rust_module = null;
 function initialize(m) {
   rust_module = m;
@@ -24,7 +28,7 @@ function initialize(m) {
 
   m.initialize();
   initialize_scenario_list(m.get_scenarios());
-  start_simulation("welcome", 0, "");
+  start_simulation("welcome", random_seed(), "");
   window.setTimeout(() => canvas.focus(), 0);
 
   username_div.textContent = m.get_username(m.get_userid());
@@ -90,7 +94,7 @@ editor.addAction({
     let scenario_name = scenario_select.value;
     let code = ed.getValue();
     rust_module.save_code(scenario_name, code);
-    start_simulation(scenario_name, 0, code);
+    start_simulation(scenario_name, random_seed(), code);
     window.setTimeout(() => canvas.focus(), 0);
     return null;
   },
@@ -99,7 +103,7 @@ editor.addAction({
 window.start_scenario = function (name) {
   scenario_select.value = name;
   editor.setValue(rust_module.get_initial_code(name));
-  start_simulation(name, 0, "");
+  start_simulation(name, random_seed(), "");
   hide_overlay();
   window.setTimeout(() => canvas.focus(), 0);
 };
