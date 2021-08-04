@@ -1,30 +1,19 @@
 const rust_import = import("../pkg");
 
-(async function () {
-  let rust = await rust_import;
-  rust.worker_initialize();
-})();
+let worker_promise = rust_import.then((x) => x.create_worker());
 
 onmessage = async function (e) {
-  let rust = await rust_import;
-  if (e.data.type == "run") {
+  let worker = await worker_promise;
+  if (e.data.type == "start") {
     postMessage(
-      rust.worker_run_scenario(
-        e.data.scenario_name,
-        BigInt(e.data.seed),
-        e.data.code
-      )
-    );
-  } else if (e.data.type == "start") {
-    postMessage(
-      rust.worker_start_scenario(
+      worker.start_scenario(
         e.data.scenario_name,
         BigInt(e.data.seed),
         e.data.code
       )
     );
   } else if (e.data.type == "request_snapshot") {
-    let snapshot = rust.worker_request_snapshot(e.data.nonce);
+    let snapshot = worker.request_snapshot(e.data.nonce);
     postMessage(snapshot, [snapshot.buffer]);
   }
 };
