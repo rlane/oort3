@@ -79,7 +79,7 @@ lto = true
 
 [profile.bench]
 debug = true
-lto = true
+lto = false
 
 [[bench]]
 name = "bullets"
