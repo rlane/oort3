@@ -10,15 +10,18 @@ use nalgebra::{point, vector, Point2};
 use simulation::scenario;
 use simulation::scenario::Status;
 use simulation::snapshot::Snapshot;
+use std::collections::VecDeque;
 use telemetry::Telemetry;
 use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
 const INITIAL_ZOOM: f32 = 4e-4;
+const SNAPSHOT_PRELOAD: usize = 5;
 
 pub struct UI {
     snapshot: Option<Snapshot>,
+    pending_snapshots: VecDeque<Snapshot>,
     renderer: renderer::Renderer,
     zoom: f32,
     camera_target: Point2<f32>,
@@ -69,6 +72,7 @@ impl UI {
 
         UI {
             snapshot: None,
+            pending_snapshots: VecDeque::new(),
             renderer,
             zoom,
             camera_target,
@@ -152,8 +156,8 @@ impl UI {
             let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
             self.physics_time = self.physics_time.max(now - dt * 2.0);
             if self.single_steps > 0 || self.physics_time + dt < now {
-                api::request_snapshot();
                 self.physics_time += dt;
+                self.update_snapshot();
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
@@ -176,6 +180,10 @@ impl UI {
             status_msgs.push("FINISHED".to_string());
         } else if self.status == Status::Failed {
             status_msgs.push("FAILED".to_string());
+        }
+
+        if self.pending_snapshots.len() <= 1 {
+            status_msgs.push("SLOW SIM".to_owned());
         }
 
         if self.frame % 10 == 0 {
@@ -202,12 +210,30 @@ impl UI {
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
-        self.snapshot = Some(snapshot);
+        if self.snapshot.is_none() {
+            self.snapshot = Some(snapshot);
+            for _ in 0..SNAPSHOT_PRELOAD {
+                api::request_snapshot();
+            }
+        } else {
+            self.pending_snapshots.push_back(snapshot);
+        }
+    }
+
+    pub fn update_snapshot(&mut self) {
+        if self.pending_snapshots.is_empty() || self.pending_snapshots[0].time > self.physics_time {
+            return;
+        }
+
+        api::request_snapshot();
+        self.snapshot = self.pending_snapshots.pop_front();
         let snapshot = self.snapshot.as_ref().unwrap();
+
         self.display_errors(&snapshot.errors);
         if !snapshot.errors.is_empty() {
             self.paused = true;
         }
+
         if self.status == Status::Running {
             self.status = snapshot.status;
             if self.status == Status::Finished {
@@ -222,6 +248,7 @@ impl UI {
                 self.display_finished_screen();
             }
         }
+
         self.renderer.update(snapshot);
     }
 
