@@ -4,4 +4,4 @@ if which fnm >/dev/null; then
   eval "$(fnm env)"
 fi
 set +x
-npm run serve
+npm run serve -- "$@"
