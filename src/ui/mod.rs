@@ -19,6 +19,7 @@ const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
 const INITIAL_ZOOM: f32 = 4e-4;
 const SNAPSHOT_PRELOAD: usize = 5;
+const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
 
 pub struct UI {
     snapshot: Option<Snapshot>,
@@ -200,6 +201,7 @@ impl UI {
             if self.debug {
                 let (a, b, c) = self.frame_timer.get_latency();
                 status_msgs.push(format!("LATENCY {:.1}/{:.1}/{:.1} ms", a, b, c,));
+                status_msgs.push(format!("SNAP {}", self.pending_snapshots.len()));
             }
             let status_msg = status_msgs.join("; ");
             if status_msg != self.last_status_msg {
@@ -237,9 +239,12 @@ impl UI {
     }
 
     pub fn update_snapshot(&mut self) {
-        while self.snapshot_requests_in_flight < SNAPSHOT_PRELOAD {
+        if self.pending_snapshots.len() < SNAPSHOT_PRELOAD
+            && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
+        {
             api::request_snapshot(self.nonce);
-            self.snapshot_requests_in_flight += 1;
+            api::request_snapshot(self.nonce);
+            self.snapshot_requests_in_flight += 2;
         }
 
         if self.pending_snapshots.is_empty() || self.pending_snapshots[0].time > self.physics_time {
