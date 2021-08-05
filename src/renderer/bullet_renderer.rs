@@ -2,7 +2,7 @@ use super::{buffer_arena, glutil};
 use crate::simulation::snapshot::Snapshot;
 use crate::simulation::PHYSICS_TICK_LENGTH;
 use glutil::VertexAttribBuilder;
-use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2};
+use nalgebra::{point, storage::ContiguousStorage, vector, Matrix4, Point2, Unit, Vector2};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -10,7 +10,7 @@ use WebGl2RenderingContext as gl;
 pub struct BulletRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
-    transform_loc: WebGlUniformLocation,
+    projection_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
@@ -22,11 +22,12 @@ impl BulletRenderer {
             &context,
             gl::VERTEX_SHADER,
             r#"#version 300 es
-uniform mat4 transform;
+uniform mat4 projection;
 layout(location = 0) in vec4 vertex;
+layout(location = 1) in mat4 transform;
 
 void main() {
-    gl_Position = transform * vertex;
+    gl_Position = projection * (transform * vertex);
 }
     "#,
         )?;
@@ -44,8 +45,8 @@ void main() {
         )?;
         let program = glutil::link_program(&context, &vert_shader, &frag_shader)?;
 
-        let transform_loc = context
-            .get_uniform_location(&program, "transform")
+        let projection_loc = context
+            .get_uniform_location(&program, "projection")
             .ok_or("did not find uniform")?;
 
         let color_loc = context
@@ -57,7 +58,7 @@ void main() {
         Ok(Self {
             context: context.clone(),
             program,
-            transform_loc,
+            projection_loc,
             color_loc,
             projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
@@ -77,7 +78,6 @@ void main() {
         let thickness = 1.0;
         let color = vector![1.00, 0.63, 0.00, 1.00];
         let num_instances = snapshot.bullets.len();
-        let num_vertices = 2;
 
         if num_instances == 0 {
             return;
@@ -95,36 +95,71 @@ void main() {
         );
 
         // vertex
-
-        let mut vertex_data: Vec<Point2<f32>> = vec![];
-        vertex_data.reserve(num_instances * num_vertices);
-        for bullet in snapshot.bullets.iter() {
-            let p = bullet.position.cast();
-            let v = bullet.velocity.cast();
-            let dt = PHYSICS_TICK_LENGTH as f32;
-            let p1 = p - v * dt;
-            let p2 = p + v * dt;
-            vertex_data.push(p1);
-            vertex_data.push(p2);
-        }
-
+        let vertices: Vec<Point2<f32>> = vec![point![-0.5, 0.0], point![0.5, 0.0]];
         VertexAttribBuilder::new(&self.context)
-            .data(&mut self.buffer_arena, &vertex_data)
+            .data(&mut self.buffer_arena, &vertices)
             .index(0)
             .size(2)
             .build();
 
-        // projection
+        struct BulletAttribs {
+            transform: Matrix4<f32>,
+        }
 
+        let mut attribs = vec![];
+        attribs.reserve(num_instances);
+        for bullet in snapshot.bullets.iter() {
+            let p: Point2<f32> = bullet.position.cast();
+            let v: Vector2<f32> = bullet.velocity.cast();
+            let dt = PHYSICS_TICK_LENGTH as f32;
+            let axis = Unit::new_normalize(vector![0.0, 0.0, 1.0]);
+            let angle = v.y.atan2(v.x);
+            let transform = Matrix4::from_axis_angle(&axis, angle)
+                .prepend_nonuniform_scaling(&vector![v.magnitude() * dt, 1.0, 1.0])
+                .append_translation(&vector![p.x, p.y, 0.0]);
+            attribs.push(BulletAttribs { transform });
+        }
+
+        let vab = VertexAttribBuilder::new(&self.context)
+            .data(&mut self.buffer_arena, &attribs)
+            .size(4)
+            .divisor(1);
+        vab.index(1)
+            .offset(offset_of!(BulletAttribs, transform))
+            .build();
+        vab.index(2)
+            .offset(offset_of!(BulletAttribs, transform) + 16)
+            .build();
+        vab.index(3)
+            .offset(offset_of!(BulletAttribs, transform) + 32)
+            .build();
+        vab.index(4)
+            .offset(offset_of!(BulletAttribs, transform) + 48)
+            .build();
+
+        // projection
         self.context.uniform_matrix4fv_with_f32_array(
-            Some(&self.transform_loc),
+            Some(&self.projection_loc),
             false,
             self.projection_matrix.data.as_slice(),
         );
 
-        self.context
-            .draw_arrays(gl::LINES, 0, (num_vertices * num_instances) as i32);
+        self.context.draw_arrays_instanced(
+            gl::LINES,
+            0,
+            vertices.len() as i32,
+            num_instances as i32,
+        );
+
+        self.context.vertex_attrib_divisor(1, 0);
+        self.context.vertex_attrib_divisor(2, 0);
+        self.context.vertex_attrib_divisor(3, 0);
+        self.context.vertex_attrib_divisor(4, 0);
 
         self.context.disable_vertex_attrib_array(0);
+        self.context.disable_vertex_attrib_array(1);
+        self.context.disable_vertex_attrib_array(2);
+        self.context.disable_vertex_attrib_array(3);
+        self.context.disable_vertex_attrib_array(4);
     }
 }
