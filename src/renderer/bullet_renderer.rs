@@ -1,7 +1,8 @@
 use super::{buffer_arena, glutil};
 use crate::simulation::snapshot::Snapshot;
 use crate::simulation::PHYSICS_TICK_LENGTH;
-use nalgebra::{storage::ContiguousStorage, vector, Matrix4};
+use glutil::VertexAttribBuilder;
+use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -95,7 +96,7 @@ void main() {
 
         // vertex
 
-        let mut vertex_data: Vec<f32> = vec![];
+        let mut vertex_data: Vec<Point2<f32>> = vec![];
         vertex_data.reserve(num_instances * num_vertices);
         for bullet in snapshot.bullets.iter() {
             let p = bullet.position.cast();
@@ -103,24 +104,15 @@ void main() {
             let dt = PHYSICS_TICK_LENGTH as f32;
             let p1 = p - v * dt;
             let p2 = p + v * dt;
-            vertex_data.push(p1.x);
-            vertex_data.push(p1.y);
-            vertex_data.push(p2.x);
-            vertex_data.push(p2.y);
+            vertex_data.push(p1);
+            vertex_data.push(p2);
         }
 
-        let (buffer, offset) = self.buffer_arena.write(&vertex_data);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(0);
+        VertexAttribBuilder::new(&self.context)
+            .data(&mut self.buffer_arena, &vertex_data)
+            .index(0)
+            .size(2)
+            .build();
 
         // projection
 
