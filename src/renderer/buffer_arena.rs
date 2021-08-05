@@ -40,9 +40,19 @@ impl BufferArena {
         })
     }
 
-    pub fn write(&mut self, data: &[f32]) -> (WebGlBuffer, u32) {
+    pub fn write<T>(&mut self, data: &[T]) -> (WebGlBuffer, u32) {
+        let buf = unsafe {
+            std::slice::from_raw_parts(
+                data.as_ptr() as *const u8,
+                data.len() * std::mem::size_of::<T>(),
+            )
+        };
+        self.write_buf(buf)
+    }
+
+    pub fn write_buf(&mut self, data: &[u8]) -> (WebGlBuffer, u32) {
         assert!(!data.is_empty());
-        let data_length = (data.len() * 4) as u32;
+        let data_length = data.len() as u32;
         if (self.buffer_size - self.offset) < data_length {
             std::mem::swap(&mut self.active_buffer, &mut self.standby_buffer);
             self.context
@@ -81,7 +91,7 @@ impl BufferArena {
             //
             // As a result, after `Float32Array::view` we have to be very careful not to
             // do any memory allocations before it's dropped.
-            let view = js_sys::Float32Array::view(data);
+            let view = js_sys::Uint8Array::view(data);
             self.context.buffer_sub_data_with_i32_and_array_buffer_view(
                 /*target=*/ self.target,
                 /*offset=*/ offset as i32,
