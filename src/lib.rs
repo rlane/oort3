@@ -5,6 +5,9 @@ pub mod simulation;
 pub mod ui;
 pub mod worker_api;
 
+#[macro_use]
+extern crate memoffset;
+
 use chrono::NaiveDateTime;
 use rbtag::{BuildDateTime, BuildInfo};
 

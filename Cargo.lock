@@ -635,6 +635,7 @@ dependencies = [
  "js-sys",
  "lazy_static",
  "log",
+ "memoffset",
  "nalgebra",
  "no-comment",
  "oorandom",

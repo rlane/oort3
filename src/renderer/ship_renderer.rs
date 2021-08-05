@@ -1,7 +1,7 @@
 use super::{buffer_arena, glutil, model};
 use crate::simulation::ship::ShipClass;
 use crate::simulation::snapshot::{ShipSnapshot, Snapshot};
-use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector4};
+use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Vector4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -104,6 +104,12 @@ void main() {
                 .push((*ship).clone());
         }
 
+        struct ShipAttribs {
+            position: Point2<f32>,
+            heading: f32,
+            color: Vector4<f32>,
+        }
+
         for (class, ships) in ships_by_class.iter() {
             // vertex
 
@@ -129,76 +135,57 @@ void main() {
             );
             self.context.enable_vertex_attrib_array(0);
 
-            // position
-
-            let mut position_data: Vec<f32> = vec![];
-            position_data.reserve(ships.len() * 2);
+            let mut attribs: Vec<ShipAttribs> = vec![];
+            attribs.reserve(ships.len());
             for ship in ships.iter() {
-                position_data.push(ship.position.x as f32);
-                position_data.push(ship.position.y as f32);
+                attribs.push(ShipAttribs {
+                    position: ship.position.cast(),
+                    heading: ship.heading as f32,
+                    color: Self::team_color(ship.team),
+                });
             }
 
-            let (buffer, offset) = self.buffer_arena.write(&position_data);
-            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
+            {
+                let (buffer, offset) = self.buffer_arena.write(&attribs);
+                self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
+                let stride = std::mem::size_of::<ShipAttribs>() as i32;
 
-            self.context.vertex_attrib_pointer_with_i32(
-                /*indx=*/ 1,
-                /*size=*/ 2,
-                /*type_=*/ gl::FLOAT,
-                /*normalized=*/ false,
-                /*stride=*/ 0,
-                offset as i32,
-            );
-            self.context.vertex_attrib_divisor(1, 1);
-            self.context.enable_vertex_attrib_array(1);
+                // position
+                self.context.vertex_attrib_pointer_with_i32(
+                    /*indx=*/ 1,
+                    /*size=*/ 2,
+                    /*type_=*/ gl::FLOAT,
+                    /*normalized=*/ false,
+                    /*stride=*/ stride,
+                    (offset as usize + offset_of!(ShipAttribs, position)) as i32,
+                );
+                self.context.vertex_attrib_divisor(1, 1);
+                self.context.enable_vertex_attrib_array(1);
 
-            // heading
+                // heading
+                self.context.vertex_attrib_pointer_with_i32(
+                    /*indx=*/ 2,
+                    /*size=*/ 1,
+                    /*type_=*/ gl::FLOAT,
+                    /*normalized=*/ false,
+                    /*stride=*/ stride,
+                    (offset as usize + offset_of!(ShipAttribs, heading)) as i32,
+                );
+                self.context.vertex_attrib_divisor(2, 1);
+                self.context.enable_vertex_attrib_array(2);
 
-            let mut heading_data: Vec<f32> = vec![];
-            heading_data.reserve(ships.len());
-            for ship in ships.iter() {
-                heading_data.push(ship.heading as f32);
+                // color
+                self.context.vertex_attrib_pointer_with_i32(
+                    /*indx=*/ 3,
+                    /*size=*/ 4,
+                    /*type_=*/ gl::FLOAT,
+                    /*normalized=*/ false,
+                    /*stride=*/ stride,
+                    (offset as usize + offset_of!(ShipAttribs, color)) as i32,
+                );
+                self.context.vertex_attrib_divisor(3, 1);
+                self.context.enable_vertex_attrib_array(3);
             }
-
-            let (buffer, offset) = self.buffer_arena.write(&heading_data);
-            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-            self.context.vertex_attrib_pointer_with_i32(
-                /*indx=*/ 2,
-                /*size=*/ 1,
-                /*type_=*/ gl::FLOAT,
-                /*normalized=*/ false,
-                /*stride=*/ 0,
-                offset as i32,
-            );
-            self.context.vertex_attrib_divisor(2, 1);
-            self.context.enable_vertex_attrib_array(2);
-
-            // color
-
-            let mut color_data: Vec<f32> = vec![];
-            color_data.reserve(ships.len());
-            for ship in ships.iter() {
-                let color = Self::team_color(ship.team);
-                color_data.push(color.x);
-                color_data.push(color.y);
-                color_data.push(color.z);
-                color_data.push(color.w);
-            }
-
-            let (buffer, offset) = self.buffer_arena.write(&color_data);
-            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-            self.context.vertex_attrib_pointer_with_i32(
-                /*indx=*/ 3,
-                /*size=*/ 4,
-                /*type_=*/ gl::FLOAT,
-                /*normalized=*/ false,
-                /*stride=*/ 0,
-                offset as i32,
-            );
-            self.context.vertex_attrib_divisor(3, 1);
-            self.context.enable_vertex_attrib_array(3);
 
             // projection
 
