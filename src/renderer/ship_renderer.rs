@@ -116,25 +116,12 @@ void main() {
 
             let model_vertices = model::load(*class);
             let num_vertices = model_vertices.len();
-            let mut vertex_data: Vec<f32> = vec![];
-            vertex_data.reserve(model_vertices.len() * 2);
-            for v in model_vertices {
-                vertex_data.push(v[0]);
-                vertex_data.push(v[1]);
-            }
 
-            let (buffer, offset) = self.buffer_arena.write(&vertex_data);
-            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-            self.context.vertex_attrib_pointer_with_i32(
-                /*indx=*/ 0,
-                /*size=*/ 2,
-                /*type_=*/ gl::FLOAT,
-                /*normalized=*/ false,
-                /*stride=*/ 0,
-                offset as i32,
-            );
-            self.context.enable_vertex_attrib_array(0);
+            VertexAttribBuilder::new(&self.context)
+                .data(&mut self.buffer_arena, &model_vertices)
+                .index(0)
+                .size(2)
+                .build();
 
             let mut attribs: Vec<ShipAttribs> = vec![];
             attribs.reserve(ships.len());
@@ -146,31 +133,27 @@ void main() {
                 });
             }
 
-            {
-                let (buffer, offset) = self.buffer_arena.write(&attribs);
+            let vab = VertexAttribBuilder::new(&self.context)
+                .data(&mut self.buffer_arena, &attribs)
+                .divisor(1);
 
-                let vab = VertexAttribBuilder::new(&self.context, &buffer, offset)
-                    .stride(std::mem::size_of::<ShipAttribs>() as i32)
-                    .divisor(1);
+            // position
+            vab.index(1)
+                .size(2)
+                .offset(offset_of!(ShipAttribs, position))
+                .build();
 
-                // position
-                vab.index(1)
-                    .size(2)
-                    .offset(offset_of!(ShipAttribs, position))
-                    .build();
+            // heading
+            vab.index(2)
+                .size(1)
+                .offset(offset_of!(ShipAttribs, heading))
+                .build();
 
-                // heading
-                vab.index(2)
-                    .size(1)
-                    .offset(offset_of!(ShipAttribs, heading))
-                    .build();
-
-                // color
-                vab.index(3)
-                    .size(4)
-                    .offset(offset_of!(ShipAttribs, color))
-                    .build();
-            }
+            // color
+            vab.index(3)
+                .size(4)
+                .offset(offset_of!(ShipAttribs, color))
+                .build();
 
             // projection
 

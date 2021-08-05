@@ -1,3 +1,4 @@
+use super::buffer_arena::BufferArena;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlShader};
 use WebGl2RenderingContext as gl;
 
@@ -54,7 +55,7 @@ pub fn link_program(
 #[derive(Clone)]
 pub struct VertexAttribBuilder {
     context: WebGl2RenderingContext,
-    buffer: WebGlBuffer,
+    buffer: Option<WebGlBuffer>,
     base: u32,
     indx: u32,
     size: i32,
@@ -66,11 +67,11 @@ pub struct VertexAttribBuilder {
 }
 
 impl VertexAttribBuilder {
-    pub fn new(context: &WebGl2RenderingContext, buffer: &WebGlBuffer, base: u32) -> Self {
+    pub fn new(context: &WebGl2RenderingContext) -> Self {
         Self {
             context: context.clone(),
-            buffer: buffer.clone(),
-            base,
+            buffer: None,
+            base: 0,
             indx: 0,
             size: 1,
             type_: gl::FLOAT,
@@ -130,9 +131,20 @@ impl VertexAttribBuilder {
         }
     }
 
+    pub fn data<T>(&self, arena: &mut BufferArena, data: &[T]) -> Self {
+        let (buffer, base) = arena.write(data);
+        VertexAttribBuilder {
+            buffer: Some(buffer),
+            base,
+            stride: std::mem::size_of::<T>() as i32,
+            ..self.clone()
+        }
+    }
+
     pub fn build(&self) {
+        assert!(self.buffer.is_some());
         self.context
-            .bind_buffer(gl::ARRAY_BUFFER, Some(&self.buffer));
+            .bind_buffer(gl::ARRAY_BUFFER, Some(self.buffer.as_ref().unwrap()));
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ self.indx,
             /*size=*/ self.size,
