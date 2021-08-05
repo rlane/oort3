@@ -1,8 +1,8 @@
-use super::{buffer_arena, glutil};
+use super::{buffer_arena, geometry, glutil};
 use crate::simulation::snapshot::Snapshot;
 use crate::simulation::PHYSICS_TICK_LENGTH;
 use glutil::VertexAttribBuilder;
-use nalgebra::{point, storage::ContiguousStorage, vector, Matrix4, Point2, Unit, Vector2};
+use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Unit, Vector2};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -74,8 +74,7 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot) {
-        let thickness = 1.0;
+    pub fn draw(&mut self, snapshot: &Snapshot, zoom: f32) {
         let color = vector![1.00, 0.63, 0.00, 1.00];
         let num_instances = snapshot.bullets.len();
 
@@ -84,7 +83,6 @@ void main() {
         }
 
         self.context.use_program(Some(&self.program));
-        self.context.line_width(thickness);
 
         self.context.uniform4f(
             Some(&self.color_loc),
@@ -95,7 +93,7 @@ void main() {
         );
 
         // vertex
-        let vertices: Vec<Point2<f32>> = vec![point![-0.5, 0.0], point![0.5, 0.0]];
+        let vertices = geometry::quad();
         VertexAttribBuilder::new(&self.context)
             .data(&mut self.buffer_arena, &vertices)
             .index(0)
@@ -115,7 +113,7 @@ void main() {
             let axis = Unit::new_normalize(vector![0.0, 0.0, 1.0]);
             let angle = v.y.atan2(v.x);
             let transform = Matrix4::from_axis_angle(&axis, angle)
-                .prepend_nonuniform_scaling(&vector![v.magnitude() * dt, 1.0, 1.0])
+                .prepend_nonuniform_scaling(&vector![v.magnitude() * dt, 2e-3 / zoom, 1.0])
                 .append_translation(&vector![p.x, p.y, 0.0]);
             attribs.push(BulletAttribs { transform });
         }
@@ -145,7 +143,7 @@ void main() {
         );
 
         self.context.draw_arrays_instanced(
-            gl::LINES,
+            gl::TRIANGLE_STRIP,
             0,
             vertices.len() as i32,
             num_instances as i32,

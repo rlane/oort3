@@ -1,5 +1,6 @@
 pub mod buffer_arena;
 pub mod bullet_renderer;
+pub mod geometry;
 pub mod glutil;
 pub mod grid_renderer;
 pub mod line_renderer;
@@ -118,7 +119,7 @@ impl Renderer {
             self.line_renderer.draw(&snapshot.debug_lines);
         }
         self.line_renderer.draw(&snapshot.scenario_lines);
-        self.bullet_renderer.draw(snapshot);
+        self.bullet_renderer.draw(snapshot, zoom);
         self.ship_renderer.draw(snapshot);
         self.particle_renderer.draw(snapshot);
     }
