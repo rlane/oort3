@@ -52,7 +52,7 @@ pub fn link_program(
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VertexAttribBuilder {
     context: WebGl2RenderingContext,
     buffer: Option<WebGlBuffer>,
@@ -155,5 +155,10 @@ impl VertexAttribBuilder {
         );
         self.context.vertex_attrib_divisor(self.indx, self.divisor);
         self.context.enable_vertex_attrib_array(self.indx);
+    }
+
+    pub fn log(&self, name: &str) -> Self {
+        log::info!("VAB {} {:?}", name, &self);
+        self.clone()
     }
 }

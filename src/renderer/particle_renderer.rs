@@ -1,5 +1,6 @@
 use super::{buffer_arena, glutil};
 use crate::simulation::snapshot::Snapshot;
+use glutil::VertexAttribBuilder;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector2};
 use rand::Rng;
 use wasm_bindgen::prelude::*;
@@ -17,6 +18,8 @@ pub struct ParticleRenderer {
     next_particle_index: usize,
 }
 
+#[repr(C, packed)]
+#[derive(Copy, Clone)]
 pub struct Particle {
     position: Vector2<f32>,
     velocity: Vector2<f32>,
@@ -140,64 +143,30 @@ void main() {
         self.context
             .uniform1f(Some(&self.current_time_loc), current_time);
 
-        let mut num_instances = 0;
-        let stride = 5 * 4;
-        let mut data: Vec<f32> = vec![];
-        data.reserve(self.particles.len() * 5);
-        for particle in self.particles.iter() {
-            if particle.creation_time < current_time - 10.0 {
-                continue;
-            }
-            num_instances += 1;
-            data.push(particle.position.x);
-            data.push(particle.position.y);
-            data.push(particle.velocity.x);
-            data.push(particle.velocity.y);
-            data.push(particle.creation_time);
-        }
+        let data: Vec<Particle> = self
+            .particles
+            .iter()
+            .filter(|x| x.creation_time >= current_time - 10.0)
+            .cloned()
+            .collect();
 
-        if num_instances == 0 {
+        if data.is_empty() {
             return;
         }
 
-        let (buffer, offset) = self.buffer_arena.write(&data);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-        // position
-        let position_index = 0;
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ position_index,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ stride,
-            offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(position_index);
-
-        // velocity
-        let velocity_index = 1;
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ velocity_index,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ stride,
-            8 + offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(velocity_index);
-
-        // creation_time
-        let creation_time_index = 2;
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ creation_time_index,
-            /*size=*/ 1,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ stride,
-            16 + offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(creation_time_index);
+        let vab = VertexAttribBuilder::new(&self.context).data(&mut self.buffer_arena, &data);
+        vab.index(0)
+            .size(2)
+            .offset(offset_of!(Particle, position))
+            .build();
+        vab.index(1)
+            .size(2)
+            .offset(offset_of!(Particle, velocity))
+            .build();
+        vab.index(2)
+            .size(1)
+            .offset(offset_of!(Particle, creation_time))
+            .build();
 
         // projection
         self.context.uniform_matrix4fv_with_f32_array(
@@ -206,12 +175,10 @@ void main() {
             self.projection_matrix.data.as_slice(),
         );
 
-        self.context
-            .draw_arrays(gl::POINTS, 0, num_instances as i32);
+        self.context.draw_arrays(gl::POINTS, 0, data.len() as i32);
 
-        self.context.disable_vertex_attrib_array(position_index);
-        self.context.disable_vertex_attrib_array(velocity_index);
-        self.context
-            .disable_vertex_attrib_array(creation_time_index);
+        self.context.disable_vertex_attrib_array(0);
+        self.context.disable_vertex_attrib_array(1);
+        self.context.disable_vertex_attrib_array(2);
     }
 }
