@@ -1,6 +1,7 @@
 use super::{buffer_arena, glutil, model};
 use crate::simulation::ship::ShipClass;
 use crate::simulation::snapshot::{ShipSnapshot, Snapshot};
+use glutil::VertexAttribBuilder;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Vector4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
@@ -147,44 +148,28 @@ void main() {
 
             {
                 let (buffer, offset) = self.buffer_arena.write(&attribs);
-                self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-                let stride = std::mem::size_of::<ShipAttribs>() as i32;
+
+                let vab = VertexAttribBuilder::new(&self.context, &buffer, offset)
+                    .stride(std::mem::size_of::<ShipAttribs>() as i32)
+                    .divisor(1);
 
                 // position
-                self.context.vertex_attrib_pointer_with_i32(
-                    /*indx=*/ 1,
-                    /*size=*/ 2,
-                    /*type_=*/ gl::FLOAT,
-                    /*normalized=*/ false,
-                    /*stride=*/ stride,
-                    (offset as usize + offset_of!(ShipAttribs, position)) as i32,
-                );
-                self.context.vertex_attrib_divisor(1, 1);
-                self.context.enable_vertex_attrib_array(1);
+                vab.index(1)
+                    .size(2)
+                    .offset(offset_of!(ShipAttribs, position))
+                    .build();
 
                 // heading
-                self.context.vertex_attrib_pointer_with_i32(
-                    /*indx=*/ 2,
-                    /*size=*/ 1,
-                    /*type_=*/ gl::FLOAT,
-                    /*normalized=*/ false,
-                    /*stride=*/ stride,
-                    (offset as usize + offset_of!(ShipAttribs, heading)) as i32,
-                );
-                self.context.vertex_attrib_divisor(2, 1);
-                self.context.enable_vertex_attrib_array(2);
+                vab.index(2)
+                    .size(1)
+                    .offset(offset_of!(ShipAttribs, heading))
+                    .build();
 
                 // color
-                self.context.vertex_attrib_pointer_with_i32(
-                    /*indx=*/ 3,
-                    /*size=*/ 4,
-                    /*type_=*/ gl::FLOAT,
-                    /*normalized=*/ false,
-                    /*stride=*/ stride,
-                    (offset as usize + offset_of!(ShipAttribs, color)) as i32,
-                );
-                self.context.vertex_attrib_divisor(3, 1);
-                self.context.enable_vertex_attrib_array(3);
+                vab.index(3)
+                    .size(4)
+                    .offset(offset_of!(ShipAttribs, color))
+                    .build();
             }
 
             // projection

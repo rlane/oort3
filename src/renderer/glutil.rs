@@ -1,4 +1,4 @@
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
+use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlShader};
 use WebGl2RenderingContext as gl;
 
 pub fn compile_shader(
@@ -48,5 +48,100 @@ pub fn link_program(
         Err(context
             .get_program_info_log(&program)
             .unwrap_or_else(|| String::from("Unknown error creating program object")))
+    }
+}
+
+#[derive(Clone)]
+pub struct VertexAttribBuilder {
+    context: WebGl2RenderingContext,
+    buffer: WebGlBuffer,
+    base: u32,
+    indx: u32,
+    size: i32,
+    type_: u32,
+    normalized: bool,
+    stride: i32,
+    offset: i32,
+    divisor: u32,
+}
+
+impl VertexAttribBuilder {
+    pub fn new(context: &WebGl2RenderingContext, buffer: &WebGlBuffer, base: u32) -> Self {
+        Self {
+            context: context.clone(),
+            buffer: buffer.clone(),
+            base,
+            indx: 0,
+            size: 1,
+            type_: gl::FLOAT,
+            normalized: false,
+            stride: 0,
+            offset: 0,
+            divisor: 0,
+        }
+    }
+
+    pub fn index(&self, indx: u32) -> Self {
+        VertexAttribBuilder {
+            indx,
+            ..self.clone()
+        }
+    }
+
+    pub fn size(&self, size: i32) -> Self {
+        VertexAttribBuilder {
+            size,
+            ..self.clone()
+        }
+    }
+
+    pub fn datatype(&self, type_: u32) -> Self {
+        VertexAttribBuilder {
+            type_,
+            ..self.clone()
+        }
+    }
+
+    pub fn normalized(&self, normalized: bool) -> Self {
+        VertexAttribBuilder {
+            normalized,
+            ..self.clone()
+        }
+    }
+
+    pub fn stride(&self, stride: i32) -> Self {
+        VertexAttribBuilder {
+            stride,
+            ..self.clone()
+        }
+    }
+
+    pub fn offset(&self, offset: usize) -> Self {
+        VertexAttribBuilder {
+            offset: offset as i32,
+            ..self.clone()
+        }
+    }
+
+    pub fn divisor(&self, divisor: u32) -> Self {
+        VertexAttribBuilder {
+            divisor,
+            ..self.clone()
+        }
+    }
+
+    pub fn build(&self) {
+        self.context
+            .bind_buffer(gl::ARRAY_BUFFER, Some(&self.buffer));
+        self.context.vertex_attrib_pointer_with_i32(
+            /*indx=*/ self.indx,
+            /*size=*/ self.size,
+            /*type_=*/ self.type_,
+            /*normalized=*/ self.normalized,
+            /*stride=*/ self.stride,
+            self.base as i32 + self.offset as i32,
+        );
+        self.context.vertex_attrib_divisor(self.indx, self.divisor);
+        self.context.enable_vertex_attrib_array(self.indx);
     }
 }
