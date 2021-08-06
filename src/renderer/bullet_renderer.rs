@@ -2,7 +2,7 @@ use super::{buffer_arena, geometry, glutil};
 use crate::simulation::snapshot::Snapshot;
 use crate::simulation::PHYSICS_TICK_LENGTH;
 use glutil::VertexAttribBuilder;
-use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Unit, Vector2};
+use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Vector2};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -110,12 +110,9 @@ void main() {
             let p: Point2<f32> = bullet.position.cast();
             let v: Vector2<f32> = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
-            let axis = Unit::new_normalize(vector![0.0, 0.0, 1.0]);
-            let angle = v.y.atan2(v.x);
-            let transform = Matrix4::from_axis_angle(&axis, angle)
-                .prepend_nonuniform_scaling(&vector![v.magnitude() * 2.0 * dt, line_scale, 1.0])
-                .append_translation(&vector![p.x, p.y, 0.0]);
-            attribs.push(BulletAttribs { transform });
+            attribs.push(BulletAttribs {
+                transform: geometry::line_transform(p - v * dt, p + v * dt, line_scale),
+            });
         }
 
         let vab = VertexAttribBuilder::new(&self.context)
