@@ -89,7 +89,7 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot, line_scale: f32) {
+    pub fn draw(&mut self, snapshot: &Snapshot, base_line_width: f32) {
         self.context.use_program(Some(&self.program));
 
         let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipSnapshot>>::new();
@@ -111,7 +111,7 @@ void main() {
         for (class, ships) in ships_by_class.iter() {
             // vertex
 
-            let model_vertices = geometry::line_loop_mesh(&model::load(*class), line_scale);
+            let model_vertices = geometry::line_loop_mesh(&model::load(*class), base_line_width);
             let num_vertices = model_vertices.len();
 
             VertexAttribBuilder::new(&self.context)

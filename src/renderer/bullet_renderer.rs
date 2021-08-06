@@ -74,7 +74,7 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot, line_scale: f32) {
+    pub fn draw(&mut self, snapshot: &Snapshot, base_line_width: f32) {
         let color = vector![1.00, 0.63, 0.00, 1.00];
         let num_instances = snapshot.bullets.len();
 
@@ -111,7 +111,7 @@ void main() {
             let v: Vector2<f32> = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
             attribs.push(BulletAttribs {
-                transform: geometry::line_transform(p - v * dt, p + v * dt, line_scale * 0.8),
+                transform: geometry::line_transform(p - v * dt, p + v * dt, base_line_width * 0.8),
             });
         }
 

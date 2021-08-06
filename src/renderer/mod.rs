@@ -31,6 +31,7 @@ pub struct Renderer {
     particle_renderer: ParticleRenderer,
     trail_renderer: TrailRenderer,
     projection_matrix: Matrix4<f32>,
+    base_line_width: f32,
     debug: bool,
 }
 
@@ -57,6 +58,7 @@ impl Renderer {
             particle_renderer: ParticleRenderer::new(context.clone())?,
             trail_renderer: TrailRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
+            base_line_width: 1.0,
             debug: false,
         })
     }
@@ -73,6 +75,7 @@ impl Renderer {
         let znear = -1.0;
         let zfar = 1.0;
         self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
+        self.base_line_width = ((self.unproject(3, 0) - self.unproject(0, 0)).x as f32).min(5.0);
     }
 
     pub fn set_debug(&mut self, debug: bool) {
@@ -99,7 +102,6 @@ impl Renderer {
         let screen_height = self.context.drawing_buffer_height();
         self.context.viewport(0, 0, screen_width, screen_height);
         self.set_view(zoom, point![camera_target.x, camera_target.y]);
-        let line_scale = 2e-3 / zoom;
 
         self.grid_renderer
             .update_projection_matrix(&self.projection_matrix);
@@ -120,8 +122,8 @@ impl Renderer {
             self.line_renderer.draw(&snapshot.debug_lines);
         }
         self.line_renderer.draw(&snapshot.scenario_lines);
-        self.bullet_renderer.draw(snapshot, line_scale);
-        self.ship_renderer.draw(snapshot, line_scale);
+        self.bullet_renderer.draw(snapshot, self.base_line_width);
+        self.ship_renderer.draw(snapshot, self.base_line_width);
         self.particle_renderer.draw(snapshot);
     }
 
