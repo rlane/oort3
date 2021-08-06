@@ -99,6 +99,7 @@ impl Renderer {
         let screen_height = self.context.drawing_buffer_height();
         self.context.viewport(0, 0, screen_width, screen_height);
         self.set_view(zoom, point![camera_target.x, camera_target.y]);
+        let line_scale = 2e-3 / zoom;
 
         self.grid_renderer
             .update_projection_matrix(&self.projection_matrix);
@@ -119,7 +120,7 @@ impl Renderer {
             self.line_renderer.draw(&snapshot.debug_lines);
         }
         self.line_renderer.draw(&snapshot.scenario_lines);
-        self.bullet_renderer.draw(snapshot, zoom);
+        self.bullet_renderer.draw(snapshot, line_scale);
         self.ship_renderer.draw(snapshot);
         self.particle_renderer.draw(snapshot);
     }

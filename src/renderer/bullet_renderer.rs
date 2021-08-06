@@ -74,7 +74,7 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot, zoom: f32) {
+    pub fn draw(&mut self, snapshot: &Snapshot, line_scale: f32) {
         let color = vector![1.00, 0.63, 0.00, 1.00];
         let num_instances = snapshot.bullets.len();
 
@@ -113,7 +113,7 @@ void main() {
             let axis = Unit::new_normalize(vector![0.0, 0.0, 1.0]);
             let angle = v.y.atan2(v.x);
             let transform = Matrix4::from_axis_angle(&axis, angle)
-                .prepend_nonuniform_scaling(&vector![v.magnitude() * dt, 2e-3 / zoom, 1.0])
+                .prepend_nonuniform_scaling(&vector![v.magnitude() * dt, line_scale, 1.0])
                 .append_translation(&vector![p.x, p.y, 0.0]);
             attribs.push(BulletAttribs { transform });
         }
