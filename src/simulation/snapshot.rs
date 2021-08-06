@@ -24,7 +24,9 @@ pub struct Snapshot {
 pub struct ShipSnapshot {
     pub id: u64,
     pub position: Point2<f64>,
+    pub velocity: Vector2<f64>,
     pub heading: f64,
+    pub angular_velocity: f64,
     pub team: i32,
     pub class: ShipClass,
 }
@@ -33,4 +35,17 @@ pub struct ShipSnapshot {
 pub struct BulletSnapshot {
     pub position: Point2<f64>,
     pub velocity: Vector2<f64>,
+}
+
+pub fn interpolate(snapshot: &mut Snapshot, dt: f64) {
+    snapshot.time += dt;
+
+    for ship in snapshot.ships.iter_mut() {
+        ship.position += ship.velocity * dt;
+        ship.heading += ship.angular_velocity * dt;
+    }
+
+    for bullet in snapshot.bullets.iter_mut() {
+        bullet.position += bullet.velocity * dt;
+    }
 }

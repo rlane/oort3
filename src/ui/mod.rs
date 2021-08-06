@@ -111,7 +111,6 @@ impl UI {
         if now - self.last_render_time > 20.0 {
             debug!("Late render: {:.1} ms", now - self.last_render_time);
         }
-        self.last_render_time = now;
         self.fps.start_frame(now);
         self.frame_timer.start(now);
 
@@ -166,6 +165,11 @@ impl UI {
             if self.single_steps > 0 || self.physics_time + dt < now {
                 self.physics_time += dt;
                 self.update_snapshot();
+            } else if self.snapshot.is_some() {
+                simulation::snapshot::interpolate(
+                    self.snapshot.as_mut().unwrap(),
+                    (now - self.last_render_time) / 1e3,
+                );
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
@@ -221,6 +225,7 @@ impl UI {
         self.frame += 1;
 
         self.frame_timer.end(instant::now());
+        self.last_render_time = now;
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {

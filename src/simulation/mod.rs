@@ -272,7 +272,9 @@ impl Simulation {
             snapshot.ships.push(ShipSnapshot {
                 id,
                 position,
+                velocity: ship.velocity(),
                 heading: ship.heading(),
+                angular_velocity: ship.angular_velocity(),
                 team,
                 class,
             });
