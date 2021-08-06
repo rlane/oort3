@@ -111,7 +111,7 @@ void main() {
             let v: Vector2<f32> = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
             attribs.push(BulletAttribs {
-                transform: geometry::line_transform(p - v * dt, p + v * dt, line_scale),
+                transform: geometry::line_transform(p - v * dt, p + v * dt, line_scale * 0.8),
             });
         }
 
