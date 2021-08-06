@@ -113,7 +113,7 @@ void main() {
             let axis = Unit::new_normalize(vector![0.0, 0.0, 1.0]);
             let angle = v.y.atan2(v.x);
             let transform = Matrix4::from_axis_angle(&axis, angle)
-                .prepend_nonuniform_scaling(&vector![v.magnitude() * dt, line_scale, 1.0])
+                .prepend_nonuniform_scaling(&vector![v.magnitude() * 2.0 * dt, line_scale, 1.0])
                 .append_translation(&vector![p.x, p.y, 0.0]);
             attribs.push(BulletAttribs { transform });
         }
