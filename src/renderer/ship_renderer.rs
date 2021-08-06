@@ -1,4 +1,4 @@
-use super::{buffer_arena, glutil, model};
+use super::{buffer_arena, geometry, glutil, model};
 use crate::simulation::ship::ShipClass;
 use crate::simulation::snapshot::{ShipSnapshot, Snapshot};
 use glutil::VertexAttribBuilder;
@@ -89,11 +89,8 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot) {
-        let thickness = 2.0;
-
+    pub fn draw(&mut self, snapshot: &Snapshot, line_scale: f32) {
         self.context.use_program(Some(&self.program));
-        self.context.line_width(thickness);
 
         let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipSnapshot>>::new();
 
@@ -114,7 +111,7 @@ void main() {
         for (class, ships) in ships_by_class.iter() {
             // vertex
 
-            let model_vertices = model::load(*class);
+            let model_vertices = geometry::line_loop_mesh(&model::load(*class), line_scale);
             let num_vertices = model_vertices.len();
 
             VertexAttribBuilder::new(&self.context)
@@ -165,7 +162,7 @@ void main() {
 
             let num_instances = ships.len();
             self.context.draw_arrays_instanced(
-                gl::LINE_LOOP,
+                gl::TRIANGLES,
                 0,
                 num_vertices as i32,
                 num_instances as i32,
