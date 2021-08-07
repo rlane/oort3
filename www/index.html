@@ -56,7 +56,9 @@
 
       <h2>Radar</h2>
       <ul>
-        <li><code>radar.scan() &rarr; ScanResult</code>: Find the closest enemy ship</li>
+        <li><code>radar.set_heading(x)</code>: Point the radar at the given heading.</li>
+        <li><code>radar.set_width(x)</code>: Adjust the width of the radar beam (in radians).</li>
+        <li><code>radar.scan() &rarr; ScanResult</code>: Find the closest enemy ship illuminated by the radar.</li>
         <li><code>ScanResult { position: vec2, velocity: vec2, found: bool }</code></li>
       </ul>
 
