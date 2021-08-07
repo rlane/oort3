@@ -1,6 +1,6 @@
 use super::vec2::Vec2;
 use crate::simulation::ship::{ShipAccessor, ShipHandle};
-use crate::simulation::Simulation;
+use crate::simulation::{Line, Simulation};
 use nalgebra::{vector, Point2};
 use rhai::plugin::*;
 
@@ -53,6 +53,7 @@ pub mod plugin {
                 best_distance = distance;
             }
         }
+        draw_beam(sim, obj.handle);
         result
     }
 
@@ -77,4 +78,23 @@ pub mod plugin {
     pub fn get_velocity(obj: &mut ScanResult) -> Vec2 {
         obj.velocity
     }
+}
+
+fn draw_beam(sim: &mut Simulation, handle: ShipHandle) {
+    let color = vector![1.0, 1.0, 1.0, 1.0];
+    let mut lines = vec![];
+    let center: Point2<f64> = sim.ship(handle).position().vector.into();
+    let n = 20;
+    let r = MAX_RADAR_DISTANCE;
+    for i in 0..n {
+        let frac = (i as f64) / (n as f64);
+        let angle_a = std::f64::consts::TAU * frac;
+        let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
+        lines.push(Line {
+            a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
+            b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+            color,
+        });
+    }
+    sim.emit_debug_lines(&lines);
 }
