@@ -366,15 +366,7 @@ assert_eq(contact.velocity, vec2(3, 4));
             std::f64::consts::PI,
             ship::fighter(1),
         );
-        ship::create(
-            &mut sim,
-            1.0,
-            2.0,
-            3.0,
-            4.0,
-            std::f64::consts::PI,
-            ship::fighter(0),
-        );
+        ship::create(&mut sim, 1.0, 2.0, 3.0, 4.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
     }
 

@@ -1026,6 +1026,11 @@ fn turn_to(target_heading) {
 
 fn tick() {
     let contact = radar.scan();
+    if !contact.found {
+        radar.set_heading(rng.next(0.0, PI() * 2));
+    } else {
+        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
+    }
     turn_to((contact.position - ship.position()).angle());
     ship.accelerate((contact.position - ship.position() - ship.velocity())
         .normalize().rotate(-ship.heading()) * 200.0);
@@ -1130,6 +1135,11 @@ fn turn_to(target_heading) {
 
 fn tick() {
     let contact = radar.scan();
+    if !contact.found {
+        radar.set_heading(rng.next(0.0, PI() * 2));
+    } else {
+        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
+    }
     turn_to((contact.position - ship.position()).angle());
     ship.accelerate((contact.position - ship.position() - ship.velocity())
         .normalize().rotate(-ship.heading()) * 100.0);
@@ -1178,6 +1188,11 @@ fn tick() {
     }
     ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
     let contact = radar.scan();
+    if !contact.found {
+        radar.set_heading(rng.next(0.0, PI() * 2));
+    } else {
+        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
+    }
     if (contact.position.distance(ship.position()) < 1000.0) {
         turn_to((contact.position - ship.position()).angle());
         ship.fire_weapon();
@@ -1267,9 +1282,11 @@ fn turn_to(target_heading, target_angular_velocity) {
 fn tick() {
     let contact = radar.scan();
     if (contact.found) {
+        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
     } else {
+        radar.set_heading(rng.next(0.0, PI() * 2));
         if (target_position - ship.position()).magnitude() < 100 {
             target_position = vec2(rng.next(3500.0, 4500.0), 0).rotate(rng.next(0.0, 2*PI()));
             target_velocity = vec2(0.0, 0.0);
@@ -1335,6 +1352,11 @@ fn tick() {
     }
     ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
     let contact = radar.scan();
+    if !contact.found {
+        radar.set_heading(rng.next(0.0, PI() * 2));
+    } else {
+        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
+    }
     if (contact.position.distance(ship.position()) < 1000.0 && contact.velocity.magnitude() > 100) {
         turn_to((contact.position - ship.position()).angle());
         ship.fire_weapon();
@@ -1424,8 +1446,11 @@ fn missile_tick() {
     let acc = 400;
 
     let contact = radar.scan();
-    if (!contact.found) {
+    if !contact.found {
+        radar.set_heading(rng.next(0.0, PI() * 2));
         return;
+    } else {
+        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
     }
 
     let dp = contact.position - ship.position();

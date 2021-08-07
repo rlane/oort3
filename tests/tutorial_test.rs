@@ -14,11 +14,20 @@ fn check_solution(scenario_name: &str) {
             i += 1;
         }
 
-        assert_eq!(sim.status(), scenario::Status::Finished);
+        assert_eq!(
+            sim.status(),
+            scenario::Status::Finished,
+            "tutorial {} did not finish",
+            scenario_name
+        );
         sim.hash()
     };
     let hashes: Vec<u64> = (0..2usize).into_par_iter().map(|_| check_once()).collect();
-    assert_eq!(hashes[0], hashes[1]);
+    assert_eq!(
+        hashes[0], hashes[1],
+        "tutorial {} was not deterministic",
+        scenario_name
+    );
 }
 
 #[test]

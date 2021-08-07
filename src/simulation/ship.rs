@@ -32,6 +32,13 @@ pub struct Weapon {
     pub damage: f64,
 }
 
+#[derive(Clone)]
+pub struct Radar {
+    pub heading: f64,
+    pub width: f64,
+    pub power: f64,
+}
+
 pub struct ShipData {
     pub class: ShipClass,
     pub weapons: Vec<Weapon>,
@@ -43,6 +50,7 @@ pub struct ShipData {
     pub max_acceleration: Vector2<f64>,
     pub max_angular_acceleration: f64,
     pub destroyed: bool,
+    pub radar: Option<Radar>,
 }
 
 impl Default for ShipData {
@@ -58,6 +66,7 @@ impl Default for ShipData {
             max_acceleration: vector![0.0, 0.0],
             max_angular_acceleration: 0.0,
             destroyed: false,
+            radar: None,
         }
     }
 }
@@ -79,6 +88,11 @@ pub fn fighter(team: i32) -> ShipData {
         team,
         max_acceleration: vector![200.0, 100.0],
         max_angular_acceleration: std::f64::consts::TAU,
+        radar: Some(Radar {
+            heading: 0.0,
+            width: std::f64::consts::TAU / 6.0,
+            power: 500.0,
+        }),
         ..Default::default()
     }
 }
@@ -109,6 +123,11 @@ pub fn missile(team: i32) -> ShipData {
         max_acceleration: vector![400.0, 100.0],
         max_angular_acceleration: 2.0 * std::f64::consts::TAU,
         team,
+        radar: Some(Radar {
+            heading: 0.0,
+            width: std::f64::consts::TAU / 6.0,
+            power: 300.0,
+        }),
         ..Default::default()
     }
 }
