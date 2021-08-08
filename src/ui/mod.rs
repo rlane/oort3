@@ -229,17 +229,13 @@ impl UI {
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
-        if snapshot.nonce != self.nonce && self.nonce != 0 {
+        if snapshot.nonce != self.nonce && snapshot.nonce != 0 {
             return;
         }
 
-        if self.snapshot.is_none() {
-            self.snapshot = Some(snapshot);
-        } else {
-            self.pending_snapshots.push_back(snapshot);
-            if self.snapshot_requests_in_flight > 0 {
-                self.snapshot_requests_in_flight -= 1;
-            }
+        self.pending_snapshots.push_back(snapshot);
+        if self.snapshot_requests_in_flight > 0 {
+            self.snapshot_requests_in_flight -= 1;
         }
     }
 
