@@ -353,8 +353,8 @@ assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
             "
 let contact = ship.scan();
 assert_eq(contact.found, true);
-assert_eq(contact.position, vec2(100, 2));
-assert_eq(contact.velocity, vec2(3, 4));
+assert_eq(contact.position, vec2(99.92973678447754, 2.0365299801588037));
+assert_eq(contact.velocity, vec2(2.973623350260442, 4.083414434547096));
         ",
         );
         ship::create(

@@ -37,6 +37,8 @@ pub struct Radar {
     pub heading: f64,
     pub width: f64,
     pub power: f64,
+    pub rx_cross_section: f64,
+    pub min_rssi: f64,
 }
 
 pub struct ShipData {
@@ -51,6 +53,7 @@ pub struct ShipData {
     pub max_angular_acceleration: f64,
     pub destroyed: bool,
     pub radar: Option<Radar>,
+    pub radar_cross_section: f64,
 }
 
 impl Default for ShipData {
@@ -67,6 +70,7 @@ impl Default for ShipData {
             max_angular_acceleration: 0.0,
             destroyed: false,
             radar: None,
+            radar_cross_section: 10.0,
         }
     }
 }
@@ -91,7 +95,9 @@ pub fn fighter(team: i32) -> ShipData {
         radar: Some(Radar {
             heading: 0.0,
             width: std::f64::consts::TAU / 6.0,
-            power: 500.0,
+            power: 20e3,
+            rx_cross_section: 5.0,
+            min_rssi: 1e-2,
         }),
         ..Default::default()
     }
@@ -126,8 +132,11 @@ pub fn missile(team: i32) -> ShipData {
         radar: Some(Radar {
             heading: 0.0,
             width: std::f64::consts::TAU / 6.0,
-            power: 300.0,
+            power: 10e3,
+            rx_cross_section: 3.0,
+            min_rssi: 1e-2,
         }),
+        radar_cross_section: 4.0,
         ..Default::default()
     }
 }
