@@ -229,7 +229,12 @@ fn tick() {
         if vec2(predicted_dp.magnitude(), 0).rotate(ship.heading()).distance(predicted_dp) <= 5 {
             ship.fire_weapon();
         }
+        radar.set_heading(dp.angle() - ship.heading());
+        radar.set_width(2 * PI() / 120);
         last_target_heading = target_heading;
+    } else {
+        radar.set_heading(rng.next(0.0, 2*PI()));
+        radar.set_width(2 * PI() / 6);
     }
 }
     "#
@@ -499,12 +504,12 @@ fn tick() {
 }
 
 struct Tutorial02 {
-    on_target_ticks: i32,
+    hit_target: bool,
 }
 
 impl Tutorial02 {
     fn new() -> Self {
-        Self { on_target_ticks: 0 }
+        Self { hit_target: false }
     }
 }
 
@@ -526,12 +531,8 @@ impl Scenario for Tutorial02 {
     fn tick(&mut self, sim: &mut Simulation) {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
-            if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0
-                && ship.velocity().magnitude() < 5.0
-            {
-                self.on_target_ticks += 1;
-            } else {
-                self.on_target_ticks = 0;
+            if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0 {
+                self.hit_target = true;
             }
         }
     }
@@ -541,16 +542,15 @@ impl Scenario for Tutorial02 {
         let center: Point2<f64> = point![200.0, 0.0];
         let n = 20;
         let r = 50.0;
-        let on_target_frac = self.on_target_ticks as f64 / 120.0;
+        let color = if self.hit_target {
+            vector![0.0, 1.0, 0.0, 1.0]
+        } else {
+            vector![1.0, 0.0, 0.0, 1.0]
+        };
         for i in 0..n {
             let frac = (i as f64) / (n as f64);
             let angle_a = std::f64::consts::TAU * frac;
             let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
-            let color = if on_target_frac > frac {
-                vector![0.0, 1.0, 0.0, 1.0]
-            } else {
-                vector![1.0, 0.0, 0.0, 1.0]
-            };
             lines.push(Line {
                 a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
                 b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
@@ -561,7 +561,7 @@ impl Scenario for Tutorial02 {
     }
 
     fn status(&self, _: &Simulation) -> Status {
-        if self.on_target_ticks > 120 {
+        if self.hit_target {
             Status::Finished
         } else {
             Status::Running
@@ -571,11 +571,11 @@ impl Scenario for Tutorial02 {
     fn initial_code(&self) -> String {
         r#"
 // Tutorial 02
-// Fly to the target circle and stop. The target is in a location
-// given by the "target" variable.
+// Fly through the target circle.
 
 fn tick() {
-    ship.accelerate(vec2(100.0, 0.0));
+    // Hint: uncomment me
+    //ship.accelerate(vec2(100.0, 0.0));
 }"#
         .trim()
         .to_string()
@@ -584,24 +584,10 @@ fn tick() {
     fn solution(&self) -> String {
         r#"
 // Tutorial 02
-// Fly to the target circle and stop. The target is in a location
-// given by the "target" variable.
+// Fly through the target circle.
 
 fn tick() {
-    let acc = 100.0;
-    let x = ship.position().x;
-    let dx = target.x - x;
-    let vx = ship.velocity().x;
-    let margin = 10.0;
-    let t = abs(vx / acc);
-    let pdx = (x + vx * t + 0.5 * -acc * t*t) - target.x;
-    if pdx > -margin && pdx < margin {
-        ship.accelerate(vec2(-vx * 10, 0.0));
-    } else if pdx < -margin {
-        ship.accelerate(vec2(acc, 0.0));
-    } else if pdx > margin {
-        ship.accelerate(vec2(-acc, 0.0));
-    }
+    ship.accelerate(vec2(100.0, 0.0));
 }
 "#
         .trim()
@@ -614,14 +600,14 @@ fn tick() {
 }
 
 struct Tutorial03 {
-    on_target_ticks: i32,
+    hit_target: bool,
     target: Option<Point2<f64>>,
 }
 
 impl Tutorial03 {
     fn new() -> Self {
         Self {
-            on_target_ticks: 0,
+            hit_target: false,
             target: None,
         }
     }
@@ -649,12 +635,8 @@ impl Scenario for Tutorial03 {
     fn tick(&mut self, sim: &mut Simulation) {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
-            if (ship.position().vector - self.target.unwrap().coords).magnitude() < 50.0
-                && ship.velocity().magnitude() < 5.0
-            {
-                self.on_target_ticks += 1;
-            } else {
-                self.on_target_ticks = 0;
+            if (ship.position().vector - self.target.unwrap().coords).magnitude() < 50.0 {
+                self.hit_target = true;
             }
         }
     }
@@ -664,16 +646,15 @@ impl Scenario for Tutorial03 {
         let center: Point2<f64> = self.target.unwrap();
         let n = 20;
         let r = 50.0;
-        let on_target_frac = self.on_target_ticks as f64 / 120.0;
+        let color = if self.hit_target {
+            vector![0.0, 1.0, 0.0, 1.0]
+        } else {
+            vector![1.0, 0.0, 0.0, 1.0]
+        };
         for i in 0..n {
             let frac = (i as f64) / (n as f64);
             let angle_a = std::f64::consts::TAU * frac;
             let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
-            let color = if on_target_frac > frac {
-                vector![0.0, 1.0, 0.0, 1.0]
-            } else {
-                vector![1.0, 0.0, 0.0, 1.0]
-            };
             lines.push(Line {
                 a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
                 b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
@@ -684,7 +665,7 @@ impl Scenario for Tutorial03 {
     }
 
     fn status(&self, _: &Simulation) -> Status {
-        if self.on_target_ticks > 120 {
+        if self.hit_target {
             Status::Finished
         } else {
             Status::Running
@@ -694,11 +675,13 @@ impl Scenario for Tutorial03 {
     fn initial_code(&self) -> String {
         r#"
 // Tutorial 03
-// Fly to the target circle and stop. The target is in a random
+// Fly through the target circle. The target is in a random
 // location given by the "target" variable.
+// Hint: Look for a "position" method in the documenation, linked at
+// the top of the screen.
 
 fn tick() {
-    ship.accelerate(0.1 * (target - ship.position()));
+    ship.accelerate(vec2(100, 0));
 }
 "#
         .trim()
@@ -708,18 +691,13 @@ fn tick() {
     fn solution(&self) -> String {
         r#"
 // Tutorial 03
-// Fly to the target circle and stop. The target is in a random
+// Fly through the target circle. The target is in a random
 // location given by the "target" variable.
+// Hint: Look for a "position" method in the documenation, linked at
+// the top of the screen.
 
 fn tick() {
-    let dp = target - ship.position();
-    if dp.magnitude() < 50.0 {
-        ship.accelerate(ship.velocity() * -10.0);
-    } else {
-        if ship.velocity().magnitude() < 100.0 {
-            ship.accelerate(dp.normalize() * 100.0);
-        }
-    }
+    ship.accelerate((target - ship.position()).normalize() * 100);
 }
 "#
         .trim()
@@ -770,7 +748,7 @@ impl Scenario for Tutorial04 {
 // location given by the "target" variable.
 
 fn tick() {
-    ship.accelerate(0.1 * (target - ship.position()));
+    ship.torque(1.0);
     ship.fire_weapon();
 }
 "#
@@ -784,42 +762,10 @@ fn tick() {
 // Destroy the asteroid. The target is in a random
 // location given by the "target" variable.
 
-fn turn(speed) {
-    let acc = 10.0;
-    let margin = 0.01;
-    let av = ship.angular_velocity();
-    if av < speed - margin {
-        ship.torque(acc);
-    } else if av > speed + margin {
-        ship.torque(-acc);
-    }
-}
-
-fn normalize_heading(h) {
-    while h < 0.0 {
-        h += 2 * PI();
-    }
-    while h > 2 * PI() {
-        h -= 2 * PI();
-    }
-    h
-}
-
-fn turn_to(target_heading) {
-    let speed = 1.0;
-    let margin = 0.1;
-    let dh = (ship.heading() - target_heading) % (2 * PI());
-    if dh - margin > 0.0 {
-        turn(-speed);
-    } else if dh + margin < 0.0 {
-        turn(speed);
-    } else {
-         turn(-dh);
-    }
-}
-
 fn tick() {
-    turn_to((target - ship.position()).angle());
+    let target_heading = (target - ship.position()).angle();
+    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
+        - 0.33 * ship.angular_velocity()));
     ship.fire_weapon();
 }
 "#
@@ -869,6 +815,10 @@ impl Scenario for Tutorial05 {
             fighter(1),
         ));
 
+        if let Some(c) = sim.ship_controllers.get_mut(&self.ship_handle.unwrap()) {
+            c.write_target(target.coords);
+        }
+
         sim.upload_code(
             1,
             r#"
@@ -876,7 +826,7 @@ let target = ship.position();
 
 fn turn_to(target_heading) {
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.1 * ship.angular_velocity()));
+        - 0.33 * ship.angular_velocity()));
 }
 
 fn tick() {
@@ -929,7 +879,7 @@ fn tick() {
 
 fn turn_to(target_heading) {
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.1*ship.angular_velocity()));
+        - 0.33*ship.angular_velocity()));
 }
 
 fn tick() {
@@ -988,7 +938,7 @@ let target = ship.position();
 
 fn turn_to(target_heading) {
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.5 * ship.angular_velocity()));
+        - 0.33 * ship.angular_velocity()));
 }
 
 fn tick() {
@@ -1010,8 +960,10 @@ fn tick() {
         r#"
 // Tutorial 06
 // Destroy the enemy ships. Use your radar to find them.
+// Hint: Press 'g' in-game to show where your radar is looking.
 
 fn tick() {
+    radar.set_heading(rng.next(0.0, 2 * PI()));
     let contact = radar.scan();
     ship.accelerate(0.1 * (contact.position - ship.position()));
     ship.fire_weapon();
@@ -1025,10 +977,11 @@ fn tick() {
         r#"
 // Tutorial 06
 // Destroy the enemy ships. Use your radar to find them.
+// Hint: Press 'g' in-game to show where your radar is looking.
 
 fn turn_to(target_heading) {
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.1*ship.angular_velocity()));
+        - 0.33*ship.angular_velocity()));
 }
 
 fn tick() {
@@ -1402,10 +1355,11 @@ fn tick() {
     if contact.found {
         if ship.class() == "missile" {
             let dp = contact.position - ship.position();
+            let dv = contact.velocity - ship.velocity();
             ship.torque(20 * (angle_diff(ship.heading(), dp.angle())
                 - 0.1 * ship.angular_velocity()));
-            ship.accelerate(dp.rotate(-ship.heading()));
-            if dp.magnitude() < 100 {
+            ship.accelerate((dp+dv).rotate(-ship.heading()));
+            if dp.magnitude() < 20 {
                 ship.explode();
             }
         } else {
