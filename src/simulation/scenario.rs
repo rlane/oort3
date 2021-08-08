@@ -517,8 +517,9 @@ impl Scenario for Tutorial02 {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
-            let c = sim.ship_controllers.get_mut(&handle);
-            c.unwrap().write_target(vector![200.0, 0.0]);
+            if let Some(c) = sim.ship_controllers.get_mut(&handle) {
+                c.write_target(vector![200.0, 0.0]);
+            }
         }
     }
 
@@ -639,8 +640,9 @@ impl Scenario for Tutorial03 {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
-            let c = sim.ship_controllers.get_mut(&handle);
-            c.unwrap().write_target(self.target.unwrap().coords);
+            if let Some(c) = sim.ship_controllers.get_mut(&handle) {
+                c.write_target(self.target.unwrap().coords);
+            }
         }
     }
 
@@ -750,8 +752,9 @@ impl Scenario for Tutorial04 {
         let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
-            let c = sim.ship_controllers.get_mut(&handle);
-            c.unwrap().write_target(target.coords);
+            if let Some(c) = sim.ship_controllers.get_mut(&handle) {
+                c.write_target(target.coords);
+            }
         }
         ship::create(sim, target.x, target.y, 0.0, 0.0, 0.0, asteroid(1));
     }
@@ -893,8 +896,9 @@ fn tick() {
         }
         {
             let target_position = sim.ship(self.target_handle.unwrap()).position();
-            let c = sim.ship_controllers.get_mut(&self.ship_handle.unwrap());
-            c.unwrap().write_target(target_position.vector);
+            if let Some(c) = sim.ship_controllers.get_mut(&self.ship_handle.unwrap()) {
+                c.write_target(target_position.vector);
+            }
         }
     }
 
