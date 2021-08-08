@@ -91,6 +91,22 @@ pub fn get_initial_code(scenario_name: &str) -> String {
     if has_panicked() {
         return "".to_string();
     }
+    scenario::load(scenario_name).initial_code()
+}
+
+#[wasm_bindgen]
+pub fn get_solution_code(scenario_name: &str) -> String {
+    if has_panicked() {
+        return "".to_string();
+    }
+    scenario::load(scenario_name).solution()
+}
+
+#[wasm_bindgen]
+pub fn get_saved_code(scenario_name: &str) -> String {
+    if has_panicked() {
+        return "".to_string();
+    }
     let window = web_sys::window().expect("no global `window` exists");
     let storage = window
         .local_storage()

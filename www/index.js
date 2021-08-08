@@ -86,8 +86,6 @@ editor.addAction({
   id: "oort-execute",
   label: "Execute",
   keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-  precondition: null,
-  keybindingContext: null,
   contextMenuGroupId: "navigation",
   contextMenuOrder: 1.5,
   run: function (ed) {
@@ -100,9 +98,31 @@ editor.addAction({
   },
 });
 
+editor.addAction({
+  id: "oort-restore-initial-code",
+  label: "Restore initial code",
+  contextMenuGroupId: "navigation",
+  contextMenuOrder: 1.6,
+  run: function (ed) {
+    let scenario_name = scenario_select.value;
+    editor.setValue(rust_module.get_initial_code(scenario_name));
+    return null;
+  },
+});
+
+editor.addAction({
+  id: "oort-load-solution",
+  label: "Load solution",
+  run: function (ed) {
+    let scenario_name = scenario_select.value;
+    editor.setValue(rust_module.get_solution_code(scenario_name));
+    return null;
+  },
+});
+
 window.start_scenario = function (name) {
   scenario_select.value = name;
-  editor.setValue(rust_module.get_initial_code(name));
+  editor.setValue(rust_module.get_saved_code(name));
   start_simulation(name, random_seed(), "");
   hide_overlay();
   window.setTimeout(() => canvas.focus(), 0);
