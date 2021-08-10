@@ -80,6 +80,9 @@ lto = true
 debug = true
 lto = false
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [[bench]]
 name = "bullets"
 harness = false
