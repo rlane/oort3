@@ -4,4 +4,5 @@ if which fnm >/dev/null; then
   eval "$(fnm env)"
 fi
 set +x
-npx webpack serve --mode=development "$@"
+npx webpack build --mode=development
+npx firebase emulators:start "$@"
