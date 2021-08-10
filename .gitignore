@@ -3,3 +3,4 @@
 /pkg
 /flamegraph.svg
 perf.data*
+/scratch
