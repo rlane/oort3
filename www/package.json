@@ -5,6 +5,7 @@
   },
   "devDependencies": {
     "@wasm-tool/wasm-pack-plugin": "^1.5.0",
+    "console-stamp": "^3.0.3",
     "css-loader": "^6.2.0",
     "file-loader": "^6.2.0",
     "firebase-admin": "^9.11.0",
