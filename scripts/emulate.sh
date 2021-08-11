@@ -1,8 +1,12 @@
 #!/bin/bash -eu
+eval "$(fnm env)"
+set -x
+
 cd $(realpath $(dirname $0))/../www
-if which fnm >/dev/null; then
-  eval "$(fnm env)"
-fi
-set +x
+fnm use
 npx webpack build --mode=development --watch &
+trap "kill $! || true" exit
+
+cd ../backend
+fnm use
 npx firebase emulators:start "$@"

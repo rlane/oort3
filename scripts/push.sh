@@ -1,10 +1,12 @@
 #!/bin/bash -eu
-BUCKET=oort-bin
+eval "$(fnm env)"
+set -x
+
 cd $(realpath $(dirname $0))/../www
-if which fnm >/dev/null; then
-  eval "$(fnm env)"
-fi
-set +x
+fnm use
 rm -rf dist/ ../target/wasm32-unknown-unknown/release/build/oort-* ../target/wasm32-unknown-unknown/release/*oort.*
-npx webpack build
+npx webpack build --mode=production
+
+cd ../backend
+fnm use
 npx firebase deploy "$@"
