@@ -103,7 +103,7 @@ editor.addAction({
   label: "Restore initial code",
   contextMenuGroupId: "navigation",
   contextMenuOrder: 1.6,
-  run: function (ed) {
+  run: function (_) {
     let scenario_name = scenario_select.value;
     editor.setValue(rust_module.get_initial_code(scenario_name));
     return null;
@@ -113,7 +113,7 @@ editor.addAction({
 editor.addAction({
   id: "oort-load-solution",
   label: "Load solution",
-  run: function (ed) {
+  run: function (_) {
     let scenario_name = scenario_select.value;
     editor.setValue(rust_module.get_solution_code(scenario_name));
     return null;
@@ -172,7 +172,7 @@ function hide_overlay() {
 
 overlay.onclick = hide_overlay;
 
-doc_link.onclick = (e) => show_overlay(doc_overlay);
+doc_link.onclick = (_) => show_overlay(doc_overlay);
 
 window.display_splash = function (contents) {
   splash_overlay.innerHTML = contents;
