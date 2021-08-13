@@ -43,8 +43,7 @@ export const leaderboard = functions.https.onRequest(
     }
 
     const leaderboard = await makeLeaderboard(firestore, scenarioName);
-    response.setHeader("Content-Type", "application/json");
-    response.send(JSON.stringify(leaderboard));
+    response.json(leaderboard);
   }
 );
 
