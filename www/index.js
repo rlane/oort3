@@ -1,5 +1,5 @@
 const rust = import("../pkg");
-import * as monaco from "monaco-editor";
+import * as editor from "./editor.js";
 import "./main.css";
 import "./attribution.txt";
 
@@ -25,6 +25,23 @@ var rust_module = null;
 function initialize(m) {
   rust_module = m;
   window.dbg.rust = m;
+
+  editor.initialize(editor_div, {
+    onExecute: (code) => {
+      let scenario_name = scenario_select.value;
+      rust_module.save_code(scenario_name, code);
+      start_simulation(scenario_name, random_seed(), code);
+      window.setTimeout(() => canvas.focus(), 0);
+    },
+    getInitialCode: () => {
+      let scenario_name = scenario_select.value;
+      return rust_module.get_initial_code(scenario_name);
+    },
+    getSolutionCode: () => {
+      let scenario_name = scenario_select.value;
+      return rust_module.get_solution_code(scenario_name);
+    },
+  });
 
   m.initialize();
   initialize_scenario_list(m.get_scenarios());
@@ -69,60 +86,9 @@ window.request_snapshot = function (nonce) {
   worker.postMessage({ type: "request_snapshot", nonce: nonce });
 };
 
-var editor = monaco.editor.create(editor_div, {
-  value: `\
-// Welcome to Oort.
-// Select a scenario from the list in the top-right of the page.
-// If you're new, start with 'tutorial01'.`,
-  language: "rust",
-  theme: "vs-dark",
-  automaticLayout: true,
-  largeFileOptimizations: false,
-  minimap: { enabled: false },
-});
-window.dbg.editor = editor;
-
-editor.addAction({
-  id: "oort-execute",
-  label: "Execute",
-  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-  contextMenuGroupId: "navigation",
-  contextMenuOrder: 1.5,
-  run: function (ed) {
-    let scenario_name = scenario_select.value;
-    let code = ed.getValue();
-    rust_module.save_code(scenario_name, code);
-    start_simulation(scenario_name, random_seed(), code);
-    window.setTimeout(() => canvas.focus(), 0);
-    return null;
-  },
-});
-
-editor.addAction({
-  id: "oort-restore-initial-code",
-  label: "Restore initial code",
-  contextMenuGroupId: "navigation",
-  contextMenuOrder: 1.6,
-  run: function (_) {
-    let scenario_name = scenario_select.value;
-    editor.setValue(rust_module.get_initial_code(scenario_name));
-    return null;
-  },
-});
-
-editor.addAction({
-  id: "oort-load-solution",
-  label: "Load solution",
-  run: function (_) {
-    let scenario_name = scenario_select.value;
-    editor.setValue(rust_module.get_solution_code(scenario_name));
-    return null;
-  },
-});
-
 window.start_scenario = function (name) {
   scenario_select.value = name;
-  editor.setValue(rust_module.get_saved_code(name));
+  editor.setText(rust_module.get_saved_code(name));
   start_simulation(name, random_seed(), "");
   hide_overlay();
   window.setTimeout(() => canvas.focus(), 0);
@@ -245,21 +211,4 @@ window.display_mission_complete_overlay = function (
   xhr.send();
 };
 
-let current_decorations = [];
-window.display_errors = function (errors) {
-  let new_decorations = [];
-  for (let error of errors) {
-    new_decorations.push({
-      range: new monaco.Range(error.line, 1, error.line, 1),
-      options: {
-        isWholeLine: true,
-        className: "errorDecoration",
-        hoverMessage: { value: error.msg },
-      },
-    });
-  }
-  current_decorations = editor.deltaDecorations(
-    current_decorations,
-    new_decorations
-  );
-};
+window.display_errors = editor.displayErrors;
