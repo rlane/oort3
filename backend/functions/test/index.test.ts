@@ -1,4 +1,4 @@
-process.env.FIRESTORE_EMULATOR_HOST = "localhost:8080";
+process.env.FIRESTORE_EMULATOR_HOST = "localhost:8084";
 
 import * as admin from "firebase-admin";
 import { upload, leaderboard } from "../lib/index.js";
