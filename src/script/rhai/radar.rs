@@ -58,6 +58,12 @@ pub mod plugin {
             position: vector![0.0, 0.0],
             velocity: vector![0.0, 0.0],
         };
+        if let Some(radar) = obj.ship_mut().data_mut().radar.as_mut() {
+            if radar.scanned {
+                return result;
+            }
+            radar.scanned = true;
+        }
         if let Some(radar) = obj.ship_mut().data_mut().radar.clone() {
             let sim = obj.sim();
             let own_team = obj.ship().data().team;

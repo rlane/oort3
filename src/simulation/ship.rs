@@ -39,6 +39,7 @@ pub struct Radar {
     pub power: f64,
     pub rx_cross_section: f64,
     pub min_rssi: f64,
+    pub scanned: bool,
 }
 
 pub struct ShipData {
@@ -98,6 +99,7 @@ pub fn fighter(team: i32) -> ShipData {
             power: 20e3,
             rx_cross_section: 5.0,
             min_rssi: 1e-2,
+            scanned: false,
         }),
         ..Default::default()
     }
@@ -135,6 +137,7 @@ pub fn missile(team: i32) -> ShipData {
             power: 10e3,
             rx_cross_section: 3.0,
             min_rssi: 1e-2,
+            scanned: false,
         }),
         radar_cross_section: 4.0,
         ..Default::default()
@@ -370,6 +373,15 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                     (missile.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
             }
         }
+
+        // Radar.
+        {
+            let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+            if let Some(radar) = ship_data.radar.as_mut() {
+                radar.scanned = false;
+            }
+        }
+
         // Acceleration.
         {
             let acceleration = self.data().acceleration;
