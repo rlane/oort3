@@ -27,7 +27,9 @@ pub fn emit_ship(sim: &mut Simulation, handle: ShipHandle) {
     });
     lines.push(Line {
         a: p,
-        b: p + sim.ship(handle).data().acceleration,
+        b: p + body
+            .rotation()
+            .transform_vector(&sim.ship(handle).data().acceleration),
         color: vector![0.0, 1.0, 0.2, 1.0],
     });
     sim.emit_debug_lines(&lines);
