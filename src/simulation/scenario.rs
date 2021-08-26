@@ -193,53 +193,7 @@ impl Scenario for GunneryScenario {
     }
 
     fn solution(&self) -> String {
-        r#"
-fn turn_to(target_heading, target_angular_velocity) {
-    let acc = 2 * PI();
-    let dh = angle_diff(ship.heading(), target_heading);
-    let vh = ship.angular_velocity() - target_angular_velocity;
-    let margin = 0.001;
-    let t = abs(vh / acc);
-    let pdh = vh * t + 0.5 * -acc * t*t - dh;
-    if pdh < 0 {
-        ship.torque(acc);
-    } else if pdh > 0 {
-        ship.torque(-acc);
-    }
-}
-
-let last_target_heading = 0.0;
-
-fn tick() {
-    let contact = radar.scan();
-    if (contact.found) {
-        let dp = contact.position - ship.position();
-        let dv = contact.velocity - ship.velocity();
-        let bullet_speed = 1000.0;
-        let bullet_offset = 20.0;
-        let predicted_dp = dp;
-        for i in range(0, 4) {
-            let dist = predicted_dp.magnitude() - bullet_offset;
-            let t = dist / bullet_speed;
-            predicted_dp = dp + t * dv;
-        }
-        let target_heading = predicted_dp.angle();
-        let target_angular_velocity = (target_heading - last_target_heading) * 60.0;
-        turn_to(target_heading, target_angular_velocity);
-        if vec2(predicted_dp.magnitude(), 0).rotate(ship.heading()).distance(predicted_dp) <= 5 {
-            ship.fire_weapon();
-        }
-        radar.set_heading(dp.angle() - ship.heading());
-        radar.set_width(2 * PI() / 120);
-        last_target_heading = target_heading;
-    } else {
-        radar.set_heading(rng.next(0.0, 2*PI()));
-        radar.set_width(2 * PI() / 6);
-    }
-}
-    "#
-        .trim()
-        .to_string()
+        include_str!("../../ai/gunnery.rhai").to_string()
     }
 }
 
@@ -336,97 +290,7 @@ impl Scenario for WelcomeScenario {
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
         self.rng = Some(new_rng(seed));
         add_walls(sim);
-        sim.upload_code(
-            0,
-            r#"
-fn tick() {
-    if ship.class() == "missile" {
-        missile_tick();
-    } else {
-        ship_tick();
-    }
-}
-
-let initial_position = ship.position();
-let target_position = initial_position;
-let target_velocity = vec2(0.0, 0.0);
-
-fn ship_tick() {
-    let contact = radar.scan();
-    if (contact.found) {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
-        target_position = contact.position;
-        target_velocity = contact.velocity;
-        ship.fire_weapon();
-        ship.launch_missile();
-    } else {
-        radar.set_heading(rng.next(0.0, PI() * 2));
-        if (target_position - ship.position()).magnitude() < 100 {
-            target_position = vec2(rng.next(3500.0, 4500.0), 0).rotate(rng.next(0.0, 2*PI()));
-            target_velocity = vec2(0.0, 0.0);
-        }
-    }
-    let dp = target_position - ship.position();
-    let dist = dp.magnitude();
-    let bullet_speed = 1000.0;
-    let t = dist / bullet_speed;
-    let predicted_dp = dp + t * (target_velocity - ship.velocity());
-    turn_to(predicted_dp.angle(), 0.0);
-
-    if contact.found && dist < 1000 {
-        ship.accelerate(-ship.velocity().rotate(-ship.heading()));
-    } else {
-        ship.accelerate((dp - ship.velocity()).rotate(-ship.heading()));
-    }
-}
-
-fn turn_to(target_heading, target_angular_velocity) {
-    let acc = 2 * PI();
-    let dh = angle_diff(ship.heading(), target_heading);
-    let vh = ship.angular_velocity() - target_angular_velocity;
-    let margin = 0.001;
-    let t = abs(vh / acc);
-    let pdh = vh * t + 0.5 * -acc * t*t - dh;
-    if pdh < 0 {
-        ship.torque(acc);
-    } else if pdh > 0 {
-        ship.torque(-acc);
-    }
-}
-
-fn missile_tick() {
-    let acc = 400;
-
-    let contact = radar.scan();
-    if (!contact.found) {
-        radar.set_heading(rng.next(0.0, PI() * 2));
-        return;
-    }
-    radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
-
-    let dp = contact.position - ship.position();
-    let dv = contact.velocity - ship.velocity();
-
-    let dist = dp.magnitude();
-    let next_dist = (dp + dv / 60).magnitude();
-    if next_dist < 30 || dist < 100 && next_dist > dist {
-        ship.explode();
-        return;
-    }
-
-    let badv = -(dv - dot(dv, dp) * dp.normalize() / dp.magnitude());
-    let a = (dp - badv * 10).rotate(-ship.heading()).normalize() * acc;
-    ship.accelerate(a);
-    turn_to(a.rotate(ship.heading()).angle(), 0);
-
-    dbg.draw_diamond(contact.position, 20.0, 0xffff00);
-    dbg.draw_diamond(ship.position() + dp, 5.0, 0xffffff);
-    dbg.draw_line(ship.position(), ship.position() + dp, 0x222222);
-    dbg.draw_line(ship.position(), ship.position() - dv, 0xffffff);
-    dbg.draw_line(ship.position(), ship.position() + badv, 0x222299);
-}
-            "#,
-        );
+        sim.upload_code(0, include_str!("../../ai/welcome.rhai"));
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     }
 
@@ -475,27 +339,11 @@ impl Scenario for Tutorial01 {
     }
 
     fn initial_code(&self) -> String {
-        "\
-// Tutorial 01
-// Destroy the asteroid.
-
-fn tick() {
-    // Uncomment me, then press ctrl-Enter to upload the code.
-    // ship.fire_weapon();
-}"
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial01.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        "\
-// Tutorial 01
-// Destroy the asteroid.
-
-fn tick() {
-    // Uncomment me, then press ctrl-Enter to upload the code.
-    ship.fire_weapon();
-}"
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial01.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -569,29 +417,11 @@ impl Scenario for Tutorial02 {
     }
 
     fn initial_code(&self) -> String {
-        r#"
-// Tutorial 02
-// Fly through the target circle.
-
-fn tick() {
-    // Hint: uncomment me
-    //ship.accelerate(vec2(100.0, 0.0));
-}"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial02.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        r#"
-// Tutorial 02
-// Fly through the target circle.
-
-fn tick() {
-    ship.accelerate(vec2(100.0, 0.0));
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial02.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -673,35 +503,11 @@ impl Scenario for Tutorial03 {
     }
 
     fn initial_code(&self) -> String {
-        r#"
-// Tutorial 03
-// Fly through the target circle. The target is in a random
-// location given by the "target" variable.
-// Hint: Look for a "position" method in the documenation, linked at
-// the top of the screen.
-
-fn tick() {
-    ship.accelerate(vec2(100, 0));
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial03.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        r#"
-// Tutorial 03
-// Fly through the target circle. The target is in a random
-// location given by the "target" variable.
-// Hint: Look for a "position" method in the documenation, linked at
-// the top of the screen.
-
-fn tick() {
-    ship.accelerate((target - ship.position()).normalize() * 100);
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial03.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -742,35 +548,11 @@ impl Scenario for Tutorial04 {
     }
 
     fn initial_code(&self) -> String {
-        r#"
-// Tutorial 04
-// Destroy the asteroid. The target is in a random
-// location given by the "target" variable.
-
-fn tick() {
-    ship.torque(1.0);
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial04.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        r#"
-// Tutorial 04
-// Destroy the asteroid. The target is in a random
-// location given by the "target" variable.
-
-fn tick() {
-    let target_heading = (target - ship.position()).angle();
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.33 * ship.angular_velocity()));
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial04.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -819,25 +601,7 @@ impl Scenario for Tutorial05 {
             c.write_target(target.coords);
         }
 
-        sim.upload_code(
-            1,
-            r#"
-let target = ship.position();
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.33 * ship.angular_velocity()));
-}
-
-fn tick() {
-    if (target - ship.position()).magnitude() < 50 {
-        target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
-    }
-    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
-    turn_to((target - ship.position()).angle());
-}
-        "#,
-        );
+        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial05.enemy.rhai"));
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -857,40 +621,11 @@ fn tick() {
     }
 
     fn initial_code(&self) -> String {
-        r#"
-// Tutorial 05
-// Destroy the enemy ship. Its location is given by the
-// "target" variable.
-
-fn tick() {
-    ship.accelerate(0.1 * (target - ship.position()));
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial05.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        r#"
-// Tutorial 05
-// Destroy the enemy ship. Its location is given by the
-// "target" variable.
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.33*ship.angular_velocity()));
-}
-
-fn tick() {
-    turn_to((target - ship.position()).angle());
-    ship.accelerate((target - ship.position() - ship.velocity())
-        .normalize().rotate(-ship.heading()) * 200.0);
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial05.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -931,25 +666,7 @@ impl Scenario for Tutorial06 {
             );
         }
 
-        sim.upload_code(
-            1,
-            r#"
-let target = ship.position();
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.33 * ship.angular_velocity()));
-}
-
-fn tick() {
-    if (target - ship.position()).magnitude() < 50 {
-        target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
-    }
-    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
-    turn_to((target - ship.position()).angle());
-}
-        "#,
-        );
+        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial06.enemy.rhai"));
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -957,48 +674,11 @@ fn tick() {
     }
 
     fn initial_code(&self) -> String {
-        r#"
-// Tutorial 06
-// Destroy the enemy ships. Use your radar to find them.
-// Hint: Press 'g' in-game to show where your radar is looking.
-
-fn tick() {
-    radar.set_heading(rng.next(0.0, 2 * PI()));
-    let contact = radar.scan();
-    ship.accelerate(0.1 * (contact.position - ship.position()));
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial06.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        r#"
-// Tutorial 06
-// Destroy the enemy ships. Use your radar to find them.
-// Hint: Press 'g' in-game to show where your radar is looking.
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.33*ship.angular_velocity()));
-}
-
-fn tick() {
-    let contact = radar.scan();
-    if !contact.found {
-        radar.set_heading(rng.next(0.0, PI() * 2));
-    } else {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
-    }
-    turn_to((contact.position - ship.position()).angle());
-    ship.accelerate((contact.position - ship.position() - ship.velocity())
-        .normalize().rotate(-ship.heading()) * 200.0);
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial06.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -1022,26 +702,7 @@ impl Scenario for Tutorial07 {
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            r#"
-let target = ship.position();
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.5 * ship.angular_velocity()));
-}
-
-fn tick() {
-    if (target - ship.position()).magnitude() < 50 {
-        target = vec2(rng.next(200.0, 500.0), 0).rotate(rng.next(0.0, 2*PI()));
-    }
-    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
-    turn_to((target - ship.position()).angle());
-    ship.fire_weapon();
-}
-        "#,
-        );
+        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial07.enemy.rhai"));
 
         let mut rng = new_rng(seed);
         for team in 0..2 {
@@ -1069,45 +730,11 @@ fn tick() {
     }
 
     fn initial_code(&self) -> String {
-        r#"
-// tutorial07
-// Destroy the enemy ships.
-
-fn tick() {
-    let contact = ship.scan();
-    ship.accelerate(0.1 * (contact.position - ship.position()));
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial07.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        r#"
-// tutorial07
-// Destroy the enemy ships.
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.1*ship.angular_velocity()));
-}
-
-fn tick() {
-    let contact = radar.scan();
-    if !contact.found {
-        radar.set_heading(rng.next(0.0, PI() * 2));
-    } else {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
-    }
-    turn_to((contact.position - ship.position()).angle());
-    ship.accelerate((contact.position - ship.position() - ship.velocity())
-        .normalize().rotate(-ship.heading()) * 100.0);
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial07.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -1131,37 +758,7 @@ impl Scenario for Tutorial08 {
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            r#"
-let initial_position = ship.position();
-let target = initial_position;
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.5 * ship.angular_velocity()));
-}
-
-fn tick() {
-    if (target - ship.position()).magnitude() < 50 {
-        target = initial_position + vec2(rng.next(0.0, 200.0), 0).rotate(rng.next(0.0, 2*PI()));
-    }
-    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
-    let contact = radar.scan();
-    if !contact.found {
-        radar.set_heading(rng.next(0.0, PI() * 2));
-    } else {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
-    }
-    if (contact.position.distance(ship.position()) < 1000.0) {
-        turn_to((contact.position - ship.position()).angle());
-        ship.fire_weapon();
-    } else {
-        turn_to((target - ship.position()).angle());
-    }
-}
-        "#,
-        );
+        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial08.enemy.rhai"));
 
         let mut rng = new_rng(seed);
         {
@@ -1201,81 +798,11 @@ fn tick() {
     }
 
     fn initial_code(&self) -> String {
-        r#"
-// tutorial08
-// Destroy the enemy ships. They are initially outside of your radar range.
-
-fn tick() {
-    let contact = ship.scan();
-    ship.accelerate(0.1 * (contact.position - ship.position()));
-    ship.fire_weapon();
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial08.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        r#"
-// tutorial08
-// Destroy the enemy ships. They are initially outside of your radar range.
-
-let initial_position = ship.position();
-let target_position = initial_position;
-let target_velocity = vec2(0.0, 0.0);
-let last_target_heading = 0.0;
-
-fn turn_to(target_heading, target_angular_velocity) {
-    let acc = 2 * PI();
-    let dh = angle_diff(ship.heading(), target_heading);
-    let vh = ship.angular_velocity() - target_angular_velocity;
-    let margin = 0.001;
-    let t = abs(vh / acc);
-    let pdh = vh * t + 0.5 * -acc * t*t - dh;
-    if pdh < 0 {
-        ship.torque(acc);
-    } else if pdh > 0 {
-        ship.torque(-acc);
-    }
-}
-
-fn tick() {
-    let contact = radar.scan();
-    if (contact.found) {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
-        target_position = contact.position;
-        target_velocity = contact.velocity;
-    } else {
-        radar.set_heading(rng.next(0.0, PI() * 2));
-        if (target_position - ship.position()).magnitude() < 100 {
-            target_position = vec2(rng.next(3500.0, 4500.0), 0).rotate(rng.next(0.0, 2*PI()));
-            target_velocity = vec2(0.0, 0.0);
-        }
-    }
-
-    let dp = target_position - ship.position();
-    let dv = target_velocity - ship.velocity();
-    let bullet_speed = 1000.0;
-    let bullet_offset = 20.0;
-    let predicted_dp = dp;
-    for i in range(0, 4) {
-        let dist = predicted_dp.magnitude() - bullet_offset;
-        let t = dist / bullet_speed;
-        predicted_dp = dp + t * dv;
-    }
-    let target_heading = predicted_dp.angle();
-    let target_angular_velocity = (target_heading - last_target_heading) * 60.0;
-    turn_to(target_heading, target_angular_velocity);
-    if contact.found && vec2(predicted_dp.magnitude(), 0).rotate(ship.heading()).distance(predicted_dp) <= 10 {
-        ship.fire_weapon();
-    }
-    last_target_heading = target_heading;
-    ship.accelerate((target_position - ship.position() - ship.velocity())
-        .normalize().rotate(-ship.heading()) * 100.0);
-}
-"#
-        .trim()
-        .to_string()
+        include_str!("../../ai/tutorial/tutorial08.solution.rhai").to_string()
     }
 }
 
@@ -1295,37 +822,7 @@ impl Scenario for Tutorial09 {
     fn init(&mut self, sim: &mut Simulation, seed: u64) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            r#"
-let initial_position = ship.position();
-let target = initial_position;
-
-fn turn_to(target_heading) {
-    ship.torque(20 * (angle_diff(ship.heading(), target_heading)
-        - 0.5 * ship.angular_velocity()));
-}
-
-fn tick() {
-    if (target - ship.position()).magnitude() < 50 {
-        target = initial_position + vec2(rng.next(0.0, 1000.0), 0).rotate(rng.next(0.0, 2*PI()));
-    }
-    ship.accelerate((target - ship.position() - ship.velocity()).rotate(-ship.heading()));
-    let contact = radar.scan();
-    if !contact.found {
-        radar.set_heading(rng.next(0.0, PI() * 2));
-    } else {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
-    }
-    if (contact.position.distance(ship.position()) < 1000.0 && contact.velocity.magnitude() > 100) {
-        turn_to((contact.position - ship.position()).angle());
-        ship.fire_weapon();
-    } else {
-        turn_to((target - ship.position()).angle());
-    }
-}
-        "#,
-        );
+        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial09.enemy.rhai"));
 
         let mut shipdata = fighter(0);
         shipdata.weapons.clear();
