@@ -18,7 +18,9 @@ pub use debug::Line;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 use snapshot::*;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 pub const WORLD_SIZE: f64 = 10000.0;
 pub(crate) const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
@@ -27,7 +29,7 @@ pub struct Simulation {
     scenario: Option<Box<dyn Scenario>>,
     pub ships: IndexSet<ShipHandle>,
     ship_data: HashMap<ShipHandle, ShipData>,
-    team_controllers: HashMap<i32, Box<dyn TeamController>>,
+    team_controllers: HashMap<i32, Rc<RefCell<Box<dyn TeamController>>>>,
     ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
     pub bullets: IndexSet<BulletHandle>,
     bullet_data: HashMap<BulletHandle, BulletData>,
@@ -219,7 +221,8 @@ impl Simulation {
     pub fn upload_code(&mut self, team: i32, code: &str) {
         match script::new_team_controller(code) {
             Ok(team_ctrl) => {
-                self.team_controllers.insert(team, team_ctrl);
+                self.team_controllers
+                    .insert(team, Rc::new(RefCell::new(team_ctrl)));
             }
             Err(e) => {
                 self.events.errors.push(e);
@@ -295,6 +298,13 @@ impl Simulation {
         }
 
         snapshot
+    }
+
+    pub fn get_team_controller(
+        &mut self,
+        team: i32,
+    ) -> Option<Rc<RefCell<Box<dyn TeamController>>>> {
+        self.team_controllers.get_mut(&team).map(|x| x.clone())
     }
 }
 

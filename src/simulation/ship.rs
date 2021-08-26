@@ -183,9 +183,8 @@ pub fn create(
     sim.ships.insert(handle);
     sim.ship_data.insert(handle, data);
 
-    let sim_ptr: *mut Simulation = sim;
-    if let Some(team_ctrl) = sim.team_controllers.get_mut(&team) {
-        match team_ctrl.create_ship_controller(handle, unsafe { &mut *sim_ptr }) {
+    if let Some(team_ctrl) = sim.get_team_controller(team) {
+        match team_ctrl.borrow_mut().create_ship_controller(handle, sim) {
             Ok(ship_ctrl) => {
                 sim.ship_controllers.insert(handle, ship_ctrl);
             }
