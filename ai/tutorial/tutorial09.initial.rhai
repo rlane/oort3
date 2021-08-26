@@ -1,0 +1,20 @@
+// tutorial09
+// Destroy the enemy ships with your missiles.
+
+fn tick() {
+    let contact = ship.scan();
+    if contact.found {
+        if ship.class() == "missile" {
+            let dp = contact.position - ship.position();
+            let dv = contact.velocity - ship.velocity();
+            ship.torque(20 * (angle_diff(ship.heading(), dp.angle())
+                - 0.1 * ship.angular_velocity()));
+            ship.accelerate((dp+dv).rotate(-ship.heading()));
+            if dp.magnitude() < 20 {
+                ship.explode();
+            }
+        } else {
+            ship.launch_missile();
+        }
+    }
+}
