@@ -16,7 +16,7 @@ pub trait TeamController {
     fn create_ship_controller(
         &mut self,
         handle: ShipHandle,
-        sim: *mut Simulation,
+        sim: &mut Simulation,
     ) -> Result<Box<dyn ShipController>, Error>;
 }
 

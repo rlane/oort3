@@ -185,7 +185,7 @@ pub fn create(
 
     let sim_ptr: *mut Simulation = sim;
     if let Some(team_ctrl) = sim.team_controllers.get_mut(&team) {
-        match team_ctrl.create_ship_controller(handle, sim_ptr) {
+        match team_ctrl.create_ship_controller(handle, unsafe { &mut *sim_ptr }) {
             Ok(ship_ctrl) => {
                 sim.ship_controllers.insert(handle, ship_ctrl);
             }

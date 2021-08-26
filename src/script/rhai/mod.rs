@@ -75,13 +75,13 @@ impl TeamController for RhaiTeamController {
     fn create_ship_controller(
         &mut self,
         handle: ShipHandle,
-        sim: *mut Simulation,
+        sim: &mut Simulation,
     ) -> Result<Box<dyn ShipController>, super::Error> {
         let mut engine = new_engine();
 
         let (i, j) = handle.0.into_raw_parts();
-        let seed = ((i as i64) << 32) | j as i64;
-        let rng = self::random::plugin::new_rng(seed);
+        let seed = sim.seed() ^ (((i as u64) << 32) | j as u64);
+        let rng = self::random::plugin::new_rng(seed as i64);
 
         let ship = ship::plugin::ShipApi { handle, sim };
         let radar = radar::plugin::RadarApi { handle, sim };

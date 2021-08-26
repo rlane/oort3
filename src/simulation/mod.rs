@@ -45,6 +45,7 @@ pub struct Simulation {
     events: SimEvents,
     tick: u32,
     pub cheats: bool,
+    seed: u64,
 }
 
 impl Simulation {
@@ -79,6 +80,7 @@ impl Simulation {
             events: SimEvents::new(),
             tick: 0,
             cheats: false,
+            seed,
         });
 
         sim.upload_code(/*team=*/ 0, code);
@@ -96,6 +98,10 @@ impl Simulation {
 
     pub fn time(&self) -> f64 {
         self.tick as f64 * PHYSICS_TICK_LENGTH
+    }
+
+    pub fn seed(&self) -> u64 {
+        self.seed
     }
 
     pub fn status(&self) -> scenario::Status {
