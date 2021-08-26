@@ -20,8 +20,11 @@ fn check_tutorial_victory(sim: &Simulation) -> Status {
     let mut player_alive = false;
     let mut enemy_alive = false;
     for &handle in sim.ships.iter() {
-        let team = sim.ship(handle).data().team;
-        if team == 0 {
+        let ship = sim.ship(handle);
+        if ship.data().class == ship::ShipClass::Missile {
+            continue;
+        }
+        if ship.data().team == 0 {
             player_alive = true;
         } else {
             enemy_alive = true;
@@ -88,12 +91,14 @@ pub fn add_walls(sim: &mut Simulation) {
 
 pub fn load(name: &str) -> Box<dyn Scenario> {
     let scenario: Box<dyn Scenario> = match name {
+        // Testing
         "test" => Box::new(TestScenario {}),
         "basic" => Box::new(BasicScenario {}),
         "gunnery" => Box::new(GunneryScenario {}),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario::new()),
+        // Tutorials
         "tutorial01" => Box::new(Tutorial01 {}),
         "tutorial02" => Box::new(Tutorial02::new()),
         "tutorial03" => Box::new(Tutorial03::new()),
@@ -103,6 +108,8 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial07" => Box::new(Tutorial07::new()),
         "tutorial08" => Box::new(Tutorial08::new()),
         "tutorial09" => Box::new(Tutorial09::new()),
+        // Tournament
+        "duel" => Box::new(Duel::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -122,6 +129,7 @@ pub fn list() -> Vec<String> {
         "tutorial08",
         "tutorial09",
         "gunnery",
+        "duel",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -848,5 +856,38 @@ impl Scenario for Tutorial09 {
 
     fn solution(&self) -> String {
         include_str!("../../ai/tutorial/tutorial09.solution.rhai").to_string()
+    }
+}
+
+struct Duel {}
+
+impl Duel {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Duel {
+    fn name(&self) -> String {
+        "duel".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
+        add_walls(sim);
+        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        ship::create(sim, -1000.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, 1000.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(1));
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tutorial_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        include_str!("../../ai/duel.initial.rhai").to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/duel.reference.rhai").to_string()
     }
 }
