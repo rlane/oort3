@@ -7,35 +7,41 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use Status::Running;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Status {
     Running,
-    Finished,
+    Victory { team: i32 },
     Failed,
 }
 
-fn check_tutorial_victory(sim: &Simulation) -> Status {
-    let mut player_alive = false;
-    let mut enemy_alive = false;
+fn check_victory(sim: &Simulation) -> Status {
+    let mut alive_teams: HashSet<i32> = HashSet::new();
     for &handle in sim.ships.iter() {
         let ship = sim.ship(handle);
         if ship.data().class == ship::ShipClass::Missile {
             continue;
         }
-        if ship.data().team == 0 {
-            player_alive = true;
-        } else {
-            enemy_alive = true;
-        }
+        alive_teams.insert(ship.data().team);
     }
-    if !player_alive {
-        Status::Failed
-    } else if !enemy_alive {
-        Status::Finished
+    if alive_teams.is_empty() {
+        Status::Victory { team: 0 }
+    } else if alive_teams.len() == 1 {
+        Status::Victory {
+            team: *alive_teams.iter().next().unwrap(),
+        }
     } else {
         Status::Running
+    }
+}
+
+fn check_tutorial_victory(sim: &Simulation) -> Status {
+    match check_victory(sim) {
+        x @ Status::Victory { team: 0 } => x,
+        Status::Victory { .. } => Status::Failed,
+        x => x,
     }
 }
 
@@ -160,11 +166,7 @@ impl Scenario for BasicScenario {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.iter().len() > 1 {
-            Running
-        } else {
-            Status::Finished
-        }
+        check_victory(sim)
     }
 }
 
@@ -193,11 +195,7 @@ impl Scenario for GunneryScenario {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.iter().len() > 1 {
-            Running
-        } else {
-            Status::Finished
-        }
+        check_tutorial_victory(sim)
     }
 
     fn solution(&self) -> String {
@@ -232,11 +230,7 @@ impl Scenario for AsteroidStressScenario {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.iter().len() > 1 {
-            Running
-        } else {
-            Status::Finished
-        }
+        check_tutorial_victory(sim)
     }
 }
 
@@ -271,7 +265,7 @@ impl Scenario for BulletStressScenario {
 
     fn status(&self, sim: &Simulation) -> Status {
         if sim.bullets.is_empty() {
-            Status::Finished
+            Status::Victory { team: 0 }
         } else {
             Status::Running
         }
@@ -418,7 +412,7 @@ impl Scenario for Tutorial02 {
 
     fn status(&self, _: &Simulation) -> Status {
         if self.hit_target {
-            Status::Finished
+            Status::Victory { team: 0 }
         } else {
             Status::Running
         }
@@ -504,7 +498,7 @@ impl Scenario for Tutorial03 {
 
     fn status(&self, _: &Simulation) -> Status {
         if self.hit_target {
-            Status::Finished
+            Status::Victory { team: 0 }
         } else {
             Status::Running
         }
@@ -880,7 +874,7 @@ impl Scenario for Duel {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_victory(sim)
     }
 
     fn initial_code(&self) -> String {

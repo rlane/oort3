@@ -16,8 +16,8 @@ fn check_solution(scenario_name: &str) {
 
         assert_eq!(
             sim.status(),
-            scenario::Status::Finished,
-            "tutorial {} did not finish",
+            scenario::Status::Victory { team: 0 },
+            "tutorial {} did not succeed",
             scenario_name
         );
         sim.hash()

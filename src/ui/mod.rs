@@ -188,12 +188,17 @@ impl UI {
             }
         }
 
-        if self.paused {
-            status_msgs.push("PAUSED".to_string());
-        } else if self.status == Status::Finished {
-            status_msgs.push("FINISHED".to_string());
-        } else if self.status == Status::Failed {
-            status_msgs.push("FAILED".to_string());
+        match self.status {
+            Status::Victory { team: 0 } => {
+                status_msgs.push("VICTORY".to_string());
+            }
+            Status::Victory { .. } | Status::Failed => {
+                status_msgs.push("DEFEAT".to_string());
+            }
+            _ if self.paused => {
+                status_msgs.push("PAUSED".to_string());
+            }
+            _ => {}
         }
 
         if self.pending_snapshots.len() <= 1 {
@@ -262,7 +267,7 @@ impl UI {
 
         if self.status == Status::Running {
             self.status = snapshot.status;
-            if self.status == Status::Finished {
+            if let Status::Victory { team: 0 } = self.status {
                 if !snapshot.cheats {
                     telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario_name.clone(),
