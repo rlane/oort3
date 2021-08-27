@@ -86,6 +86,33 @@ window.request_snapshot = function (nonce) {
   worker.postMessage({ type: "request_snapshot", nonce: nonce });
 };
 
+function run_background_simulation(scenario_name, seed, code) {
+  return new Promise((resolve, _) => {
+    var worker = new Worker(new URL("./worker.js", import.meta.url));
+    worker.postMessage({
+      type: "run",
+      scenario_name: scenario_name,
+      seed: seed,
+      code: code,
+      nonce: 0,
+    });
+    worker.onmessage = function (e) {
+      resolve(e.data);
+      worker.terminate();
+    };
+  });
+}
+
+window.start_background_simulations = function (scenario_name, code, n) {
+  let promises = [];
+  for (let i = 0; i < n; i++) {
+    promises.push(run_background_simulation(scenario_name, i, code));
+  }
+  Promise.all(promises).then((r) =>
+    rust_module.finished_background_simulations(r)
+  );
+};
+
 window.start_scenario = function (name) {
   scenario_select.value = name;
   editor.setText(rust_module.get_saved_code(name));

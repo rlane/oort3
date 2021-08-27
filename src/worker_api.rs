@@ -20,6 +20,14 @@ impl Worker {
         }
         bincode::serialize(&self.sim.as_ref().unwrap().snapshot(nonce)).unwrap()
     }
+
+    pub fn run_scenario(&mut self, scenario_name: &str, seed: u64, code: &str) -> Vec<u8> {
+        let mut sim = Simulation::new(scenario_name, seed, code);
+        while sim.status() == Status::Running && sim.tick() < 10000 {
+            sim.step();
+        }
+        bincode::serialize(&sim.snapshot(0)).unwrap()
+    }
 }
 
 #[wasm_bindgen]

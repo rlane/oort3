@@ -159,6 +159,24 @@ pub fn get_scenarios() -> JsValue {
 }
 
 #[wasm_bindgen]
+pub fn finished_background_simulations(results: js_sys::Array) {
+    if has_panicked() {
+        return;
+    }
+    let mut snapshots = vec![];
+    for x in results.iter() {
+        let x = js_sys::Uint8Array::from(x);
+        snapshots.push(bincode::deserialize(&x.to_vec()).unwrap())
+    }
+    let mut ui = OORT_UI.lock().unwrap();
+    if ui.is_some() {
+        ui.as_mut()
+            .unwrap()
+            .finished_background_simulations(&snapshots);
+    }
+}
+
+#[wasm_bindgen]
 extern "C" {
     pub fn send_telemetry(data: &str);
 
@@ -174,4 +192,6 @@ extern "C" {
     pub fn display_errors(errors: JsValue);
 
     pub fn request_snapshot(nonce: u64);
+
+    pub fn start_background_simulations(scenario_name: &str, code: &str, n: i64);
 }

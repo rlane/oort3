@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use Status::Running;
 
-#[derive(PartialEq, Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Status {
     Running,
     Victory { team: i32 },

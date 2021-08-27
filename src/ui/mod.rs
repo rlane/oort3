@@ -310,6 +310,8 @@ impl UI {
     }
 
     pub fn display_finished_screen(&self) {
+        api::start_background_simulations(&self.scenario_name, &self.latest_code, 10);
+
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         api::display_mission_complete_overlay(
             &self.scenario_name,
@@ -317,6 +319,19 @@ impl UI {
             code_size::calculate(&self.latest_code),
             &next_scenario.unwrap_or_else(|| "".to_string()),
         );
+    }
+
+    pub fn finished_background_simulations(&self, snapshots: &[Snapshot]) {
+        use std::collections::HashMap;
+        let mut status_counters: HashMap<Status, i32> = HashMap::new();
+        for snapshot in snapshots.iter() {
+            *status_counters.entry(snapshot.status).or_default() += 1;
+        }
+        let mut vec: Vec<(Status, i32)> = status_counters.iter().map(|(&k, &v)| (k, v)).collect();
+        vec.sort_by_key(|(_, v)| -v);
+        for (k, v) in vec {
+            log::info!("{:?}: {}", k, v);
+        }
     }
 
     pub fn display_errors(&self, errors: &[script::Error]) {
