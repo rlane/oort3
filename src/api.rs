@@ -193,5 +193,7 @@ extern "C" {
 
     pub fn request_snapshot(nonce: u64);
 
-    pub fn start_background_simulations(scenario_name: &str, code: &str, n: i64);
+    pub fn start_background_simulations(scenario_name: &str, code: &str, n: i32);
+
+    pub fn display_background_simulation_results(wins: i32, total: i32);
 }

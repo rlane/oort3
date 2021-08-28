@@ -181,6 +181,8 @@ window.display_mission_complete_overlay = function (
   document.getElementById("mission-complete-time").textContent =
     time.toPrecision(2);
   document.getElementById("mission-complete-code-size").textContent = code_size;
+  document.getElementById("mission-complete-win-ratio").textContent =
+    "Simulations in progress...";
   if (next_scenario) {
     document.getElementById("mission-complete-next").style.display = "inline";
     document.getElementById("mission-complete-next").onclick = () =>
@@ -236,6 +238,12 @@ window.display_mission_complete_overlay = function (
     }
   };
   xhr.send();
+};
+
+window.display_background_simulation_results = function (wins, total) {
+  document.getElementById(
+    "mission-complete-win-ratio"
+  ).textContent = `Win ratio: ${wins}/${total}`;
 };
 
 window.display_errors = editor.displayErrors;
