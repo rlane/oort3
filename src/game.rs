@@ -1,7 +1,9 @@
+use crate::api;
 use crate::simulation::scenario;
 use crate::ui::telemetry;
 use crate::ui::userid;
 use crate::ui::UI;
+use crate::worker_api::WorkerRequest;
 use log::{error, info};
 use std::sync::atomic::{AtomicBool, Ordering};
 use wasm_bindgen::prelude::*;
@@ -19,11 +21,16 @@ pub struct Game {
 
 #[wasm_bindgen]
 impl Game {
-    pub fn start(&mut self, scenario_name: &str, code: &str) {
+    pub fn start(&mut self, scenario_name: &str, seed: u32, code: &str) {
         if has_panicked() {
             return;
         }
         self.ui = Some(Box::new(UI::new(scenario_name, code)));
+        api::send_worker_request(&WorkerRequest::StartScenario {
+            scenario_name: scenario_name.to_owned(),
+            seed,
+            code: code.to_owned(),
+        });
     }
 
     pub fn render(&mut self) {

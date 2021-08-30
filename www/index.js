@@ -33,7 +33,7 @@ function initialize(m) {
     onExecute: (code) => {
       let scenario_name = scenario_select.value;
       game.save_code(scenario_name, code);
-      start_simulation(scenario_name, random_seed(), code);
+      game.start(scenario_name, random_seed(), code);
       window.setTimeout(() => canvas.focus(), 0);
     },
     getInitialCode: () => {
@@ -47,7 +47,7 @@ function initialize(m) {
   });
 
   initialize_scenario_list(game.get_scenarios());
-  start_simulation("welcome", random_seed(), "");
+  game.start("welcome", random_seed(), "");
   window.setTimeout(() => canvas.focus(), 0);
 
   username_div.textContent = game.get_username(game.get_userid());
@@ -73,19 +73,8 @@ worker.onmessage = function (e) {
   game.on_snapshot(e.data.snapshot);
 };
 
-function start_simulation(scenario_name, seed, code) {
-  game.start(scenario_name, code);
-  worker.postMessage({
-    type: "StartScenario",
-    scenario_name: scenario_name,
-    seed: seed,
-    code: code,
-    nonce: 0,
-  });
-}
-
-window.request_snapshot = function (nonce) {
-  worker.postMessage({ type: "Snapshot", nonce: nonce });
+window.send_worker_request = function (msg) {
+  worker.postMessage(msg);
 };
 
 function run_background_simulation(scenario_name, seed, code) {
@@ -116,7 +105,7 @@ window.start_background_simulations = function (scenario_name, code, n) {
 window.start_scenario = function (name) {
   scenario_select.value = name;
   editor.setText(game.get_saved_code(name));
-  start_simulation(name, random_seed(), "");
+  game.start(name, random_seed(), "");
   hide_overlay();
   window.setTimeout(() => canvas.focus(), 0);
 };

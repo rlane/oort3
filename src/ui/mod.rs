@@ -4,6 +4,7 @@ pub mod frame_timer;
 pub mod telemetry;
 pub mod userid;
 
+use crate::worker_api::WorkerRequest;
 use crate::{api, renderer, script, simulation};
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
@@ -248,8 +249,8 @@ impl UI {
         if self.pending_snapshots.len() < SNAPSHOT_PRELOAD
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
-            api::request_snapshot(self.nonce);
-            api::request_snapshot(self.nonce);
+            api::send_worker_request(&WorkerRequest::Snapshot { nonce: self.nonce });
+            api::send_worker_request(&WorkerRequest::Snapshot { nonce: self.nonce });
             self.snapshot_requests_in_flight += 2;
         }
 
