@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Snapshot {
-    pub nonce: u64,
+    pub nonce: u32,
     pub time: f64,
     pub status: Status,
     pub ships: Vec<ShipSnapshot>,

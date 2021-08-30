@@ -15,7 +15,7 @@ extern "C" {
 
     pub fn display_errors(errors: JsValue);
 
-    pub fn request_snapshot(nonce: u64);
+    pub fn request_snapshot(nonce: u32);
 
     pub fn start_background_simulations(scenario_name: &str, code: &str, n: i32);
 

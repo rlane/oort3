@@ -256,7 +256,7 @@ impl Simulation {
         s.finish()
     }
 
-    pub fn snapshot(&self, nonce: u64) -> Snapshot {
+    pub fn snapshot(&self, nonce: u32) -> Snapshot {
         let mut snapshot = Snapshot {
             nonce,
             time: self.time(),

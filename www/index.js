@@ -70,13 +70,13 @@ rust.then((m) => initialize(m)).catch(console.error);
 
 var worker = new Worker(new URL("./worker.js", import.meta.url));
 worker.onmessage = function (e) {
-  game.on_snapshot(e.data);
+  game.on_snapshot(e.data.snapshot);
 };
 
 function start_simulation(scenario_name, seed, code) {
   game.start(scenario_name, code);
   worker.postMessage({
-    type: "start",
+    type: "StartScenario",
     scenario_name: scenario_name,
     seed: seed,
     code: code,
@@ -85,21 +85,21 @@ function start_simulation(scenario_name, seed, code) {
 }
 
 window.request_snapshot = function (nonce) {
-  worker.postMessage({ type: "request_snapshot", nonce: nonce });
+  worker.postMessage({ type: "Snapshot", nonce: nonce });
 };
 
 function run_background_simulation(scenario_name, seed, code) {
   return new Promise((resolve, _) => {
     var worker = new Worker(new URL("./worker.js", import.meta.url));
     worker.postMessage({
-      type: "run",
+      type: "RunScenario",
       scenario_name: scenario_name,
       seed: seed,
       code: code,
       nonce: 0,
     });
     worker.onmessage = function (e) {
-      resolve(e.data);
+      resolve(e.data.snapshot);
       worker.terminate();
     };
   });

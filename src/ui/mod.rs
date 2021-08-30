@@ -44,7 +44,7 @@ pub struct UI {
     scenario_name: String,
     last_status_msg: String,
     snapshot_requests_in_flight: usize,
-    nonce: u64,
+    nonce: u32,
 }
 
 unsafe impl Send for UI {}
