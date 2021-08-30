@@ -1,4 +1,5 @@
 pub mod api;
+pub mod game;
 pub mod renderer;
 pub mod script;
 pub mod simulation;

@@ -22,42 +22,44 @@ function random_seed() {
 }
 
 var rust_module = null;
+var game = null;
 function initialize(m) {
   rust_module = m;
   window.dbg.rust = m;
+  game = rust_module.create_game();
+  window.dbg.game = game;
 
   editor.initialize(editor_div, {
     onExecute: (code) => {
       let scenario_name = scenario_select.value;
-      rust_module.save_code(scenario_name, code);
+      game.save_code(scenario_name, code);
       start_simulation(scenario_name, random_seed(), code);
       window.setTimeout(() => canvas.focus(), 0);
     },
     getInitialCode: () => {
       let scenario_name = scenario_select.value;
-      return rust_module.get_initial_code(scenario_name);
+      return game.get_initial_code(scenario_name);
     },
     getSolutionCode: () => {
       let scenario_name = scenario_select.value;
-      return rust_module.get_solution_code(scenario_name);
+      return game.get_solution_code(scenario_name);
     },
   });
 
-  m.initialize();
-  initialize_scenario_list(m.get_scenarios());
+  initialize_scenario_list(game.get_scenarios());
   start_simulation("welcome", random_seed(), "");
   window.setTimeout(() => canvas.focus(), 0);
 
-  username_div.textContent = m.get_username(m.get_userid());
+  username_div.textContent = game.get_username(game.get_userid());
 
-  canvas.addEventListener("keydown", m.on_key_event);
-  canvas.addEventListener("keyup", m.on_key_event);
-  canvas.addEventListener("wheel", m.on_wheel_event);
+  canvas.addEventListener("keydown", (e) => game.on_key_event(e));
+  canvas.addEventListener("keyup", (e) => game.on_key_event(e));
+  canvas.addEventListener("wheel", (e) => game.on_wheel_event(e));
 
   function render() {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    m.render();
+    game.render();
     window.requestAnimationFrame(render);
   }
   render();
@@ -68,11 +70,11 @@ rust.then((m) => initialize(m)).catch(console.error);
 
 var worker = new Worker(new URL("./worker.js", import.meta.url));
 worker.onmessage = function (e) {
-  rust_module.on_snapshot(e.data);
+  game.on_snapshot(e.data);
 };
 
 function start_simulation(scenario_name, seed, code) {
-  rust_module.start(scenario_name, code);
+  game.start(scenario_name, code);
   worker.postMessage({
     type: "start",
     scenario_name: scenario_name,
@@ -108,14 +110,12 @@ window.start_background_simulations = function (scenario_name, code, n) {
   for (let i = 0; i < n; i++) {
     promises.push(run_background_simulation(scenario_name, i, code));
   }
-  Promise.all(promises).then((r) =>
-    rust_module.finished_background_simulations(r)
-  );
+  Promise.all(promises).then((r) => game.finished_background_simulations(r));
 };
 
 window.start_scenario = function (name) {
   scenario_select.value = name;
-  editor.setText(rust_module.get_saved_code(name));
+  editor.setText(game.get_saved_code(name));
   start_simulation(name, random_seed(), "");
   hide_overlay();
   window.setTimeout(() => canvas.focus(), 0);
@@ -216,7 +216,7 @@ window.display_mission_complete_overlay = function (
             td.textContent = content;
             tr.appendChild(td);
           };
-          add_td(rust_module.get_username(row.userid));
+          add_td(game.get_username(row.userid));
           add_td(row[colname]);
           tbody.appendChild(tr);
         }
