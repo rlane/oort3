@@ -5,6 +5,7 @@ use crate::ui::userid;
 use crate::ui::UI;
 use crate::worker_api::WorkerRequest;
 use log::{error, info};
+use rand::Rng;
 use std::sync::atomic::{AtomicBool, Ordering};
 use wasm_bindgen::prelude::*;
 
@@ -21,14 +22,14 @@ pub struct Game {
 
 #[wasm_bindgen]
 impl Game {
-    pub fn start(&mut self, scenario_name: &str, seed: u32, code: &str) {
+    pub fn start(&mut self, scenario_name: &str, code: &str) {
         if has_panicked() {
             return;
         }
         self.ui = Some(Box::new(UI::new(scenario_name, code)));
         api::send_worker_request(&WorkerRequest::StartScenario {
             scenario_name: scenario_name.to_owned(),
-            seed,
+            seed: rand::thread_rng().gen(),
             code: code.to_owned(),
         });
     }
