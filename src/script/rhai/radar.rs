@@ -71,7 +71,7 @@ pub mod plugin {
             let own_heading = obj.ship().heading();
             let beam = compute_beam(&radar, own_position, own_heading);
             let mut best_rssi = 0.0;
-            let mut rng = rng::new_rng(sim.tick() as u64);
+            let mut rng = rng::new_rng(sim.tick());
             for &other in sim.ships.iter() {
                 if sim.ship(other).data().team == own_team {
                     continue;

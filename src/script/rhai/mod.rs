@@ -71,6 +71,17 @@ impl RhaiTeamController {
     }
 }
 
+fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+    let mut s = DefaultHasher::new();
+    let (i, j) = handle.0.into_raw_parts();
+    s.write_u32(sim_seed);
+    s.write_u32(i);
+    s.write_u32(j);
+    s.finish() as i64
+}
+
 impl TeamController for RhaiTeamController {
     fn create_ship_controller(
         &mut self,
@@ -79,10 +90,7 @@ impl TeamController for RhaiTeamController {
     ) -> Result<Box<dyn ShipController>, super::Error> {
         let mut engine = new_engine();
 
-        let (i, j) = handle.0.into_raw_parts();
-        let seed = sim.seed() ^ (((i as u64) << 32) | j as u64);
-        let rng = self::random::plugin::new_rng(seed as i64);
-
+        let rng = self::random::plugin::new_rng(make_seed(sim.seed(), handle));
         let ship = ship::plugin::ShipApi { handle, sim };
         let radar = radar::plugin::RadarApi { handle, sim };
         let dbg = debug::plugin::DebugApi { handle, sim };
@@ -353,8 +361,8 @@ assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
             "
 let contact = ship.scan();
 assert_eq(contact.found, true);
-assert_eq(contact.position, vec2(99.92973678447754, 2.0365299801588037));
-assert_eq(contact.velocity, vec2(2.973623350260442, 4.083414434547096));
+assert_eq(contact.position, vec2(100.0372559606343, 2.0873777882830655));
+assert_eq(contact.velocity, vec2(3.075282845362119, 4.03504268798271));
         ",
         );
         ship::create(

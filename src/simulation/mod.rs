@@ -47,11 +47,11 @@ pub struct Simulation {
     events: SimEvents,
     tick: u32,
     pub cheats: bool,
-    seed: u64,
+    seed: u32,
 }
 
 impl Simulation {
-    pub fn new(scenario_name: &str, seed: u64, mut code: &str) -> Box<Simulation> {
+    pub fn new(scenario_name: &str, seed: u32, mut code: &str) -> Box<Simulation> {
         if code.is_empty() {
             code = "fn tick(){}";
         }
@@ -102,7 +102,7 @@ impl Simulation {
         self.tick as f64 * PHYSICS_TICK_LENGTH
     }
 
-    pub fn seed(&self) -> u64 {
+    pub fn seed(&self) -> u32 {
         self.seed
     }
 

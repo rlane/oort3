@@ -46,7 +46,7 @@ impl Worker {
                 seed,
                 code,
             } => {
-                self.sim = Some(Simulation::new(&scenario_name, seed as u64, &code));
+                self.sim = Some(Simulation::new(&scenario_name, seed, &code));
                 Worker::make_snapshot_response(self.sim(), 0)
             }
             WorkerRequest::RunScenario {
@@ -54,7 +54,7 @@ impl Worker {
                 seed,
                 code,
             } => {
-                let mut sim = Simulation::new(&scenario_name, seed as u64, &code);
+                let mut sim = Simulation::new(&scenario_name, seed, &code);
                 while sim.status() == Status::Running && sim.tick() < 10000 {
                     sim.step();
                 }

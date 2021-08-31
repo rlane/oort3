@@ -48,7 +48,7 @@ fn check_tutorial_victory(sim: &Simulation) -> Status {
 pub trait Scenario {
     fn name(&self) -> String;
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64);
+    fn init(&mut self, sim: &mut Simulation, seed: u32);
 
     fn tick(&mut self, _: &mut Simulation) {}
 
@@ -149,7 +149,7 @@ impl Scenario for TestScenario {
         "test".into()
     }
 
-    fn init(&mut self, _sim: &mut Simulation, _seed: u64) {}
+    fn init(&mut self, _sim: &mut Simulation, _seed: u32) {}
 }
 
 struct BasicScenario {}
@@ -159,7 +159,7 @@ impl Scenario for BasicScenario {
         "basic".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
         ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(1));
@@ -177,7 +177,7 @@ impl Scenario for GunneryScenario {
         "gunnery".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         let mut rng = new_rng(seed);
@@ -210,7 +210,7 @@ impl Scenario for AsteroidStressScenario {
         "asteroid-stress".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
@@ -241,7 +241,7 @@ impl Scenario for BulletStressScenario {
         "bullet-stress".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
@@ -289,7 +289,7 @@ impl Scenario for WelcomeScenario {
         "welcome".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         self.rng = Some(new_rng(seed));
         add_walls(sim);
         sim.upload_code(0, include_str!("../../ai/welcome.rhai"));
@@ -330,7 +330,7 @@ impl Scenario for Tutorial01 {
         "tutorial01".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid(1));
@@ -368,7 +368,7 @@ impl Scenario for Tutorial02 {
         "tutorial02".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         if let Some(&handle) = sim.ships.iter().next() {
@@ -450,7 +450,7 @@ impl Scenario for Tutorial03 {
         "tutorial03".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
         let size = 500.0;
         let range = -size..size;
@@ -530,7 +530,7 @@ impl Scenario for Tutorial04 {
         "tutorial04".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         let mut rng = new_rng(seed);
         let size = 500.0;
@@ -581,7 +581,7 @@ impl Scenario for Tutorial05 {
         "tutorial05".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         self.ship_handle = Some(ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0)));
 
@@ -648,7 +648,7 @@ impl Scenario for Tutorial06 {
         "tutorial06".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
 
@@ -701,7 +701,7 @@ impl Scenario for Tutorial07 {
         "tutorial07".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
         sim.upload_code(1, include_str!("../../ai/tutorial/tutorial07.enemy.rhai"));
@@ -757,7 +757,7 @@ impl Scenario for Tutorial08 {
         "tutorial08".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
         sim.upload_code(1, include_str!("../../ai/tutorial/tutorial08.enemy.rhai"));
@@ -821,7 +821,7 @@ impl Scenario for Tutorial09 {
         "tutorial09".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
         sim.upload_code(1, include_str!("../../ai/tutorial/tutorial09.enemy.rhai"));
@@ -866,7 +866,7 @@ impl Scenario for Duel {
         "duel".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u64) {
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
         sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
         ship::create(sim, -1000.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
