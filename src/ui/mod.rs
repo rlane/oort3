@@ -4,23 +4,24 @@ pub mod frame_timer;
 pub mod telemetry;
 pub mod userid;
 
-use crate::worker_api::WorkerRequest;
+//use crate::worker_api::WorkerRequest;
 use crate::{api, renderer, script, simulation};
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use rand::Rng;
-use simulation::scenario;
+//use simulation::scenario;
 use simulation::scenario::Status;
 use simulation::snapshot::Snapshot;
+use simulation::Simulation;
 use std::collections::VecDeque;
 use telemetry::Telemetry;
-use wasm_bindgen::JsValue;
+//use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
 const INITIAL_ZOOM: f32 = 4e-4;
-const SNAPSHOT_PRELOAD: usize = 5;
-const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
+//const SNAPSHOT_PRELOAD: usize = 5;
+//const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
 
 pub struct UI {
     snapshot: Option<Snapshot>,
@@ -46,12 +47,13 @@ pub struct UI {
     last_status_msg: String,
     snapshot_requests_in_flight: usize,
     nonce: u32,
+    sim: Box<Simulation>,
 }
 
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(scenario_name: &str, code: &str) -> Self {
+    pub fn new(scenario_name: &str, seed: u32, code: &str) -> Self {
         info!("Loading scenario {}", scenario_name);
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -100,6 +102,7 @@ impl UI {
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
             nonce: rand::thread_rng().gen(),
+            sim: Simulation::new(scenario_name, seed, code),
         }
     }
 
@@ -246,6 +249,7 @@ impl UI {
     }
 
     pub fn update_snapshot(&mut self) {
+        /*
         if self.pending_snapshots.len() < SNAPSHOT_PRELOAD
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
@@ -253,6 +257,10 @@ impl UI {
             api::send_worker_request(&WorkerRequest::Snapshot { nonce: self.nonce });
             self.snapshot_requests_in_flight += 2;
         }
+        */
+
+        self.sim.step();
+        self.on_snapshot(self.sim.snapshot(0));
 
         if self.pending_snapshots.is_empty() || self.pending_snapshots[0].time > self.physics_time {
             return;
@@ -311,6 +319,7 @@ impl UI {
     }
 
     pub fn display_finished_screen(&self) {
+        /*
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         api::display_mission_complete_overlay(
             &self.scenario_name,
@@ -320,6 +329,7 @@ impl UI {
         );
 
         api::start_background_simulations(&self.scenario_name, &self.latest_code, 10);
+        */
     }
 
     pub fn finished_background_simulations(&self, snapshots: &[Snapshot]) {
@@ -336,13 +346,9 @@ impl UI {
         )
     }
 
-    pub fn display_errors(&self, errors: &[script::Error]) {
+    pub fn display_errors(&self, _errors: &[script::Error]) {
+        /*
         api::display_errors(JsValue::from_serde(errors).unwrap());
-    }
-}
-
-impl Default for UI {
-    fn default() -> Self {
-        Self::new("asteroid", "fn tick() {}")
+        */
     }
 }

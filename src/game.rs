@@ -1,9 +1,9 @@
-use crate::api;
+//use crate::api;
 use crate::simulation::scenario;
 use crate::ui::telemetry;
 use crate::ui::userid;
 use crate::ui::UI;
-use crate::worker_api::WorkerRequest;
+//use crate::worker_api::WorkerRequest;
 use log::{error, info};
 use rand::Rng;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -26,12 +26,15 @@ impl Game {
         if has_panicked() {
             return;
         }
-        self.ui = Some(Box::new(UI::new(scenario_name, code)));
+        let seed = rand::thread_rng().gen();
+        self.ui = Some(Box::new(UI::new(scenario_name, seed, code)));
+        /*
         api::send_worker_request(&WorkerRequest::StartScenario {
             scenario_name: scenario_name.to_owned(),
             seed: rand::thread_rng().gen(),
             code: code.to_owned(),
         });
+        */
     }
 
     pub fn render(&mut self) {
@@ -168,6 +171,12 @@ pub fn create_game() -> Game {
         });
         PANICKED.store(true, Ordering::SeqCst);
     }));
+    console_log::init_with_level(log::Level::Info).expect("initializing logging");
+    log::info!("Version {}", &crate::version());
+    Game { ui: None }
+}
+
+pub fn create() -> Game {
     console_log::init_with_level(log::Level::Info).expect("initializing logging");
     log::info!("Version {}", &crate::version());
     Game { ui: None }

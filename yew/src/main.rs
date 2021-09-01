@@ -1,4 +1,6 @@
+use oort::game::Game;
 use yew::prelude::*;
+use yew::services::render::{RenderService, RenderTask};
 
 enum Msg {
     AddOne,
@@ -9,6 +11,8 @@ struct Model {
     // It can be used to send messages to the component
     link: ComponentLink<Self>,
     value: i64,
+    render_task: RenderTask,
+    game: Game,
 }
 
 impl Component for Model {
@@ -16,12 +20,31 @@ impl Component for Model {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        Self { link, value: 0 }
+        let link2 = link.clone();
+        let render_task = RenderService::request_animation_frame(Callback::from(move |_| {
+            link2.send_message(Msg::AddOne)
+        }));
+        let game = oort::game::create();
+        Self {
+            link,
+            value: 0,
+            render_task,
+            game,
+        }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::AddOne => {
+                if self.value == 0 {
+                    self.game.start("welcome", "");
+                }
+                self.game.render();
+                let link2 = self.link.clone();
+                self.render_task =
+                    RenderService::request_animation_frame(Callback::from(move |_| {
+                        link2.send_message(Msg::AddOne)
+                    }));
                 self.value += 1;
                 // the value has changed so we need to
                 // re-render for it to appear on the page
@@ -40,6 +63,8 @@ impl Component for Model {
     fn view(&self) -> Html {
         html! {
             <div>
+                <canvas id="glcanvas" tabindex="1" width="800" height="600"></canvas>
+                <div id="status"></div>
                 <button onclick=self.link.callback(|_| Msg::AddOne)>{ "+1" }</button>
                 <p>{ self.value }</p>
             </div>
