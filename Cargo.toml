@@ -24,7 +24,7 @@ instant = { version = "0.1", features = ["wasm-bindgen"] }
 lazy_static = "*"
 console_log = "0.2.0"
 log = "0.4"
-rhai = { version = "1.0", features = ["internals"] }
+rhai = { version = "1.0.0", features = ["internals"] }
 smartstring = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

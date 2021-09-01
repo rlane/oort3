@@ -7,3 +7,5 @@ edition = "2018"
 
 [dependencies]
 yew = "0.18"
+rhai = { version = "1.0.0", features = ["internals"] }
+oort = { path = ".." }
