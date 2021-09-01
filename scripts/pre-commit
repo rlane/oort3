@@ -1,0 +1,28 @@
+#!/bin/bash -eux
+if ! git diff --cached --quiet --diff-filter=ACM -- src; then
+  (
+    cargo check -q
+    cargo clippy -q -- -Dwarnings
+    cargo check -q --benches
+    cargo build -q --target wasm32-unknown-unknown
+    cargo test -q
+  )
+fi
+
+if ! git diff --cached --quiet --diff-filter=ACM -- yew; then
+  (
+    cd yew
+    cargo check -q
+    cargo clippy -q -- -Dwarnings
+    cargo build -q --target wasm32-unknown-unknown
+  )
+fi
+
+if ! git diff --cached --quiet --diff-filter=ACM -- backend/functions; then
+  (
+    cd backend/functions
+    set +x; eval "$(fnm env)"; set -x
+    fnm use
+    npm test
+  )
+fi
