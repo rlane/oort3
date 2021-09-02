@@ -758,6 +758,7 @@ dependencies = [
  "memoffset",
  "nalgebra",
  "no-comment",
+ "oort_renderer",
  "oort_simulator",
  "petname",
  "rand",
@@ -773,6 +774,28 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "yew",
+]
+
+[[package]]
+name = "oort_renderer"
+version = "0.1.0"
+dependencies = [
+ "getrandom",
+ "instant",
+ "js-sys",
+ "log",
+ "memoffset",
+ "nalgebra",
+ "oort_simulator",
+ "rand",
+ "rand_chacha",
+ "rand_seeder",
+ "regex",
+ "rhai",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

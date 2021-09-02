@@ -1,15 +1,11 @@
 pub mod api;
 pub mod game;
-pub mod renderer;
 pub mod ui;
 pub mod worker_api;
 
 use game::Game;
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
-
-#[macro_use]
-extern crate memoffset;
 
 use chrono::NaiveDateTime;
 use rbtag::{BuildDateTime, BuildInfo};

@@ -3,6 +3,7 @@
 members = [
     "simulator",
     "yew",
+    "renderer",
 ]
 
 [profile.dev.package.'*']

@@ -8,11 +8,14 @@ pub mod particle_renderer;
 pub mod ship_renderer;
 pub mod trail_renderer;
 
-use oort_simulator::simulation::snapshot::Snapshot;
+#[macro_use]
+extern crate memoffset;
+
 use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
+use oort_simulator::simulation::snapshot::Snapshot;
 use particle_renderer::ParticleRenderer;
 use ship_renderer::ShipRenderer;
 use trail_renderer::TrailRenderer;

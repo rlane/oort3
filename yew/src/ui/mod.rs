@@ -5,12 +5,13 @@ pub mod telemetry;
 pub mod userid;
 
 //use crate::worker_api::WorkerRequest;
-use crate::{api, renderer};
+use crate::api;
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use oort_simulator::{script, simulation};
 use rand::Rng;
 //use simulation::scenario;
+use oort_renderer::Renderer;
 use oort_simulator::simulation::scenario::Status;
 use oort_simulator::simulation::snapshot::Snapshot;
 use oort_simulator::simulation::Simulation;
@@ -27,7 +28,7 @@ const INITIAL_ZOOM: f32 = 4e-4;
 pub struct UI {
     snapshot: Option<Snapshot>,
     pending_snapshots: VecDeque<Snapshot>,
-    renderer: renderer::Renderer,
+    renderer: Renderer,
     zoom: f32,
     camera_target: Point2<f32>,
     frame_timer: frame_timer::FrameTimer,
@@ -63,7 +64,7 @@ impl UI {
             .expect("should have a status div");
         status_div.set_inner_html("LOADING...");
 
-        let renderer = renderer::Renderer::new().expect("Failed to create renderer");
+        let renderer = Renderer::new().expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
         let frame_timer: frame_timer::FrameTimer = Default::default();
