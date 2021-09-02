@@ -25,6 +25,7 @@ use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 use WebGl2RenderingContext as gl;
 
 pub struct Renderer {
+    canvas: HtmlCanvasElement,
     context: WebGl2RenderingContext,
     grid_renderer: GridRenderer,
     line_renderer: LineRenderer,
@@ -52,6 +53,7 @@ impl Renderer {
         context.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
         Ok(Renderer {
+            canvas,
             context: context.clone(),
             grid_renderer: GridRenderer::new(context.clone())?,
             line_renderer: LineRenderer::new(context.clone())?,
@@ -101,6 +103,8 @@ impl Renderer {
     }
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, snapshot: &Snapshot) {
+        self.canvas.set_width(self.canvas.client_width() as u32);
+        self.canvas.set_height(self.canvas.client_height() as u32);
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(gl::COLOR_BUFFER_BIT);
 
