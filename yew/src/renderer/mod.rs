@@ -4,12 +4,11 @@ pub mod geometry;
 pub mod glutil;
 pub mod grid_renderer;
 pub mod line_renderer;
-pub mod model;
 pub mod particle_renderer;
 pub mod ship_renderer;
 pub mod trail_renderer;
 
-use crate::simulation::snapshot::Snapshot;
+use oort_simulator::simulation::snapshot::Snapshot;
 use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;

@@ -85,7 +85,7 @@ void main() {
     }
 
     fn generate_vertices(grid_size: f32) -> Vec<f32> {
-        use crate::simulation::WORLD_SIZE;
+        use oort_simulator::simulation::WORLD_SIZE;
 
         let mut vertices = vec![];
         let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;

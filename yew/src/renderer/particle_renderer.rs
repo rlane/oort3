@@ -1,5 +1,5 @@
 use super::{buffer_arena, glutil};
-use crate::simulation::snapshot::Snapshot;
+use oort_simulator::simulation::snapshot::Snapshot;
 use glutil::VertexAttribBuilder;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector2};
 use rand::Rng;

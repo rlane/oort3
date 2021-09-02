@@ -1,6 +1,6 @@
 use super::{buffer_arena, geometry, glutil};
-use crate::simulation::snapshot::Snapshot;
-use crate::simulation::PHYSICS_TICK_LENGTH;
+use oort_simulator::simulation::snapshot::Snapshot;
+use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use glutil::VertexAttribBuilder;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Vector2};
 use wasm_bindgen::prelude::*;

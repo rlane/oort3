@@ -1,5 +1,5 @@
 use super::{buffer_arena, glutil};
-use crate::simulation::Line;
+use oort_simulator::simulation::Line;
 use nalgebra::{storage::ContiguousStorage, Matrix4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};

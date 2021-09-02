@@ -1,8 +1,9 @@
-use super::{buffer_arena, geometry, glutil, model};
-use crate::simulation::ship::ShipClass;
-use crate::simulation::snapshot::{ShipSnapshot, Snapshot};
+use super::{buffer_arena, geometry, glutil};
+use oort_simulator::simulation::ship::ShipClass;
+use oort_simulator::simulation::snapshot::{ShipSnapshot, Snapshot};
 use glutil::VertexAttribBuilder;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Vector4};
+use oort_simulator::model;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;

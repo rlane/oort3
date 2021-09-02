@@ -1,6 +1,6 @@
 use super::index_set::{HasIndex, Index};
 use super::rng::new_rng;
-use crate::renderer::model;
+use crate::model;
 use crate::simulation;
 use crate::simulation::{bullet, collision, Simulation};
 use bullet::BulletData;

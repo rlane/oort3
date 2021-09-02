@@ -393,9 +393,9 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "1.0.20"
+version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd3aec53de10fe96d7d8c565eb17f2c687bb5518a2ec453b5b1252964526abe0"
+checksum = "80edafed416a46fb378521624fab1cfa2eb514784fd8921adbe8a8d8321da811"
 dependencies = [
  "cfg-if 1.0.0",
  "crc32fast",
@@ -746,8 +746,32 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 name = "oort-app"
 version = "0.1.0"
 dependencies = [
+ "bincode",
+ "chrono",
+ "console_error_panic_hook",
+ "console_log",
+ "flate2",
+ "getrandom",
+ "instant",
+ "js-sys",
+ "log",
+ "memoffset",
+ "nalgebra",
+ "no-comment",
  "oort_simulator",
+ "petname",
+ "rand",
+ "rand_chacha",
+ "rand_seeder",
+ "rbtag",
+ "regex",
  "rhai",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_bytes",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
  "yew",
 ]
 
@@ -756,40 +780,29 @@ name = "oort_simulator"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "chrono",
- "console_error_panic_hook",
- "console_log",
  "criterion",
  "crossbeam",
  "env_logger",
- "flate2",
  "getrandom",
  "instant",
  "js-sys",
  "lazy_static",
  "log",
- "memoffset",
  "nalgebra",
- "no-comment",
  "oorandom",
- "petname",
  "rand",
  "rand_chacha",
  "rand_distr",
  "rand_seeder",
  "rapier2d-f64",
  "rayon",
- "rbtag",
  "regex",
  "rhai",
  "serde",
- "serde-wasm-bindgen",
- "serde_bytes",
  "serde_json",
  "smartstring",
  "test-env-log",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -829,9 +842,9 @@ dependencies = [
 
 [[package]]
 name = "petname"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9ed8e1c7b7cdd47819f76bbec141b4d4b59bb8ffd26c372cc236c90cd90becc"
+checksum = "8246874e06a7673d8e47247a790626616a6b193ce3a61f236be72ae500edb5a3"
 dependencies = [
  "clap",
  "itertools 0.9.0",

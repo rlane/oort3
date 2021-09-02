@@ -23,7 +23,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 pub const WORLD_SIZE: f64 = 10000.0;
-pub(crate) const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
+pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
 pub struct Simulation {
     scenario: Option<Box<dyn Scenario>>,

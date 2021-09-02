@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use oort::simulation;
-use oort::simulation::scenario;
+use oort_simulator::simulation;
+use oort_simulator::simulation::scenario;
 
 fn many_bullets() {
     let mut sim = simulation::Simulation::new("bullet-stress", 0, "");

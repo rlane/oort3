@@ -6,6 +6,49 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-yew = "0.18"
-rhai = { version = "1.0.0", features = ["internals"] }
+bincode = "1.3"
+chrono = "0.4"
+console_error_panic_hook = "0.1.6"
+console_log = "0.2.0"
+flate2 = "1.0.20"
+getrandom = { version = "0.2", features = ["js"] }
+instant = { version = "0.1", features = ["wasm-bindgen"] }
+js-sys = "0.3.51"
+log = "0.4"
+memoffset = "0.6"
+nalgebra = { version = "0.28", features = ["serde-serialize"] }
+no-comment = "0.0.3"
 oort_simulator = { path = "../simulator" }
+petname = "1.1.0"
+rand = "*"
+rand_chacha = "0.3.1"
+rand_seeder = "0.2.2"
+rbtag = "0.3.0"
+regex = "1.5"
+rhai = { version = "1.0.0", features = ["internals"] }
+serde_bytes = "0.11"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.3"
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+yew = "0.18"
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'Document',
+  'Element',
+  'HtmlElement',
+  'HtmlCanvasElement',
+  'Node',
+  'Window',
+  'WebGlBuffer',
+  'WebGlProgram',
+  'WebGl2RenderingContext',
+  'WebGlShader',
+  'WebGlUniformLocation',
+  'KeyboardEvent',
+  'console',
+  'Storage',
+  'WheelEvent',
+]

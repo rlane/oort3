@@ -1,6 +1,6 @@
-use oort::simulation;
-use oort::simulation::ship;
-use oort::simulation::ship::fighter;
+use oort_simulator::simulation;
+use oort_simulator::simulation::ship;
+use oort_simulator::simulation::ship::fighter;
 use test_env_log::test;
 
 #[test]

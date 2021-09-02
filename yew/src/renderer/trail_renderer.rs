@@ -1,7 +1,7 @@
 use super::glutil;
-use crate::simulation::ship::ShipClass;
-use crate::simulation::snapshot::Snapshot;
-use crate::simulation::PHYSICS_TICK_LENGTH;
+use oort_simulator::simulation::ship::ShipClass;
+use oort_simulator::simulation::snapshot::Snapshot;
+use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use log::warn;
 use nalgebra::{storage::ContiguousStorage, Matrix4, Point2};
 use std::collections::HashMap;

@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use oort::simulation;
-use oort::simulation::scenario;
-use oort::simulation::snapshot::Snapshot;
+use oort_simulator::simulation;
+use oort_simulator::simulation::scenario;
+use oort_simulator::simulation::snapshot::Snapshot;
 
 fn make_snapshot() -> Snapshot {
     let scenario_name = "tutorial07";
