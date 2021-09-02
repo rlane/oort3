@@ -2,9 +2,8 @@
 eval "$(fnm env)"
 set -x
 
-cd $(realpath $(dirname $0))/../www
-fnm use
-npx webpack build --mode=development --watch &
+cd $(realpath $(dirname $0))/../yew
+trunk serve &
 trap "kill $! || true" exit
 
 cd ../backend

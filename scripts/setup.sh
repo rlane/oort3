@@ -1,9 +1,7 @@
 #!/bin/bash -eu
 eval "$(fnm env)"
 
-cd $(realpath $(dirname $0))/../www
-fnm use
-npm install
+which trunk || echo "Missing trunk, run 'cargo install trunk'"
 
 cd ../backend
 fnm use
