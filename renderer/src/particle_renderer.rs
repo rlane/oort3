@@ -1,7 +1,7 @@
 use super::{buffer_arena, glutil};
-use oort_simulator::simulation::snapshot::Snapshot;
 use glutil::VertexAttribBuilder;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector2};
+use oort_simulator::snapshot::Snapshot;
 use rand::Rng;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};

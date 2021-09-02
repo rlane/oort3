@@ -1,5 +1,5 @@
-use super::ship::ShipHandle;
-use super::Simulation;
+use crate::ship::ShipHandle;
+use crate::simulation::Simulation;
 use nalgebra::{vector, Point2, Vector4};
 use serde::{Deserialize, Serialize};
 

@@ -1,6 +1,6 @@
+use crate::scenario::Status;
 use crate::script;
-use crate::simulation::scenario::Status;
-use crate::simulation::ship::ShipClass;
+use crate::ship::ShipClass;
 use crate::simulation::Line;
 use nalgebra::{Point2, Vector2};
 use serde::{Deserialize, Serialize};

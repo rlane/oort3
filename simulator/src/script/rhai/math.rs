@@ -46,7 +46,7 @@ pub mod plugin {
 #[cfg(test)]
 mod test {
     use crate::script::rhai::check_errors;
-    use crate::simulation::ship;
+    use crate::ship;
     use crate::simulation::Simulation;
     use test_env_log::test;
 

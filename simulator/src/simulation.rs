@@ -1,23 +1,16 @@
-pub mod bullet;
-pub mod collision;
-pub mod debug;
-pub mod index_set;
-pub mod rng;
-pub mod scenario;
-pub mod ship;
-pub mod snapshot;
-
-use self::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
-use self::index_set::IndexSet;
-use self::scenario::Scenario;
-use self::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
+use crate::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
+use crate::debug;
+pub use crate::debug::Line;
+use crate::index_set::IndexSet;
+use crate::scenario;
+use crate::scenario::Scenario;
 use crate::script;
 use crate::script::{ShipController, TeamController};
+use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
+use crate::snapshot::*;
 use crossbeam::channel::Sender;
-pub use debug::Line;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
-use snapshot::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -28,23 +21,23 @@ pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 pub struct Simulation {
     scenario: Option<Box<dyn Scenario>>,
     pub ships: IndexSet<ShipHandle>,
-    ship_data: HashMap<ShipHandle, ShipData>,
+    pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
     team_controllers: HashMap<i32, Rc<RefCell<Box<dyn TeamController>>>>,
-    ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
+    pub(crate) ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
     pub bullets: IndexSet<BulletHandle>,
-    bullet_data: HashMap<BulletHandle, BulletData>,
-    bodies: RigidBodySet,
-    colliders: ColliderSet,
-    joints: JointSet,
+    pub(crate) bullet_data: HashMap<BulletHandle, BulletData>,
+    pub(crate) bodies: RigidBodySet,
+    pub(crate) colliders: ColliderSet,
+    pub(crate) joints: JointSet,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
-    island_manager: IslandManager,
+    pub(crate) island_manager: IslandManager,
     broad_phase: BroadPhase,
     narrow_phase: NarrowPhase,
     ccd_solver: CCDSolver,
     event_collector: CollisionEventHandler,
     contact_recv: crossbeam::channel::Receiver<ContactEvent>,
-    events: SimEvents,
+    pub(crate) events: SimEvents,
     tick: u32,
     pub cheats: bool,
     seed: u32,

@@ -1,8 +1,8 @@
 //use crate::api;
-use oort_simulator::simulation::scenario;
 use crate::ui::telemetry;
 use crate::ui::userid;
 use crate::ui::UI;
+use oort_simulator::scenario;
 //use crate::worker_api::WorkerRequest;
 use log::{error, info};
 use rand::Rng;

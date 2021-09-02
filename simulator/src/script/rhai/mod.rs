@@ -11,7 +11,7 @@ mod vec2;
 
 use self::vec2::Vec2;
 use super::{ShipController, TeamController};
-use crate::simulation::ship::ShipHandle;
+use crate::ship::ShipHandle;
 use crate::simulation::Simulation;
 use lazy_static::lazy_static;
 use log::{error, info};
@@ -178,7 +178,7 @@ pub fn check_errors(sim: &mut Simulation) {
 #[cfg(test)]
 mod test {
     use super::check_errors;
-    use crate::simulation::ship;
+    use crate::ship;
     use crate::simulation::Simulation;
     use test_env_log::test;
 

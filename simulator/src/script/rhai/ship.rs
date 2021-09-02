@@ -1,7 +1,7 @@
 use super::radar::plugin::ScanResult;
 use super::vec2::Vec2;
 use crate::script::rhai::radar;
-use crate::simulation::ship::{ShipAccessor, ShipAccessorMut, ShipClass, ShipHandle};
+use crate::ship::{ShipAccessor, ShipAccessorMut, ShipClass, ShipHandle};
 use crate::simulation::Simulation;
 use rhai::plugin::*;
 

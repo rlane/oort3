@@ -1,4 +1,4 @@
-use crate::simulation::ship::ShipClass;
+use crate::ship::ShipClass;
 use nalgebra::{vector, Rotation2, Vector2};
 use oorandom::Rand32;
 

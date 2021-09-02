@@ -12,9 +12,10 @@ use oort_simulator::{script, simulation};
 use rand::Rng;
 //use simulation::scenario;
 use oort_renderer::Renderer;
-use oort_simulator::simulation::scenario::Status;
-use oort_simulator::simulation::snapshot::Snapshot;
+use oort_simulator::scenario::Status;
 use oort_simulator::simulation::Simulation;
+use oort_simulator::snapshot;
+use oort_simulator::snapshot::Snapshot;
 use std::collections::VecDeque;
 use telemetry::Telemetry;
 //use wasm_bindgen::JsValue;
@@ -172,7 +173,7 @@ impl UI {
                 self.physics_time += dt;
                 self.update_snapshot();
             } else if self.snapshot.is_some() {
-                simulation::snapshot::interpolate(
+                snapshot::interpolate(
                     self.snapshot.as_mut().unwrap(),
                     (now - self.last_render_time) / 1e3,
                 );

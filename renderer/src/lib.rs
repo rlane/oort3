@@ -15,7 +15,7 @@ use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
-use oort_simulator::simulation::snapshot::Snapshot;
+use oort_simulator::snapshot::Snapshot;
 use particle_renderer::ParticleRenderer;
 use ship_renderer::ShipRenderer;
 use trail_renderer::TrailRenderer;

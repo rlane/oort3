@@ -1,7 +1,7 @@
 pub mod rhai;
 
 use self::rhai::RhaiTeamController;
-use crate::simulation::ship::ShipHandle;
+use crate::ship::ShipHandle;
 use crate::simulation::Simulation;
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};

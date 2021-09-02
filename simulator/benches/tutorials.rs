@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
+use oort_simulator::scenario;
 use oort_simulator::simulation;
-use oort_simulator::simulation::scenario;
 
 fn check_solution(scenario_name: &str) {
     let scenario = scenario::load(scenario_name);

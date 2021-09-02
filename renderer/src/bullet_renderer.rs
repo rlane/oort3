@@ -1,8 +1,8 @@
 use super::{buffer_arena, geometry, glutil};
-use oort_simulator::simulation::snapshot::Snapshot;
-use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use glutil::VertexAttribBuilder;
 use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Vector2};
+use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
+use oort_simulator::snapshot::Snapshot;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;

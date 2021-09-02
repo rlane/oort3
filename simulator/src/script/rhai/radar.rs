@@ -1,6 +1,7 @@
 use super::vec2::Vec2;
-use crate::simulation::ship::{Radar, ShipAccessor, ShipAccessorMut, ShipHandle};
-use crate::simulation::{rng, Line, Simulation};
+use crate::rng;
+use crate::ship::{Radar, ShipAccessor, ShipAccessorMut, ShipHandle};
+use crate::simulation::{Line, Simulation};
 use nalgebra::{vector, Point2, UnitComplex, Vector2};
 use rand::Rng;
 use rand_distr::StandardNormal;

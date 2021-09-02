@@ -1,4 +1,4 @@
-use oort_simulator::simulation::scenario::Status;
+use oort_simulator::scenario::Status;
 use oort_simulator::simulation::Simulation;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;

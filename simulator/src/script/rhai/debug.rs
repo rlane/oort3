@@ -1,5 +1,5 @@
 use super::vec2::Vec2;
-use crate::simulation::ship::ShipHandle;
+use crate::ship::ShipHandle;
 use crate::simulation::{Line, Simulation};
 use nalgebra::{vector, Point2, Vector4};
 use rhai::plugin::*;

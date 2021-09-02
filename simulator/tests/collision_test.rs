@@ -1,6 +1,7 @@
+use oort_simulator::ship::{fighter, missile};
 use oort_simulator::simulation;
-use oort_simulator::simulation::ship::{fighter, missile};
-use oort_simulator::simulation::{bullet, scenario, ship, WORLD_SIZE};
+use oort_simulator::simulation::WORLD_SIZE;
+use oort_simulator::{bullet, scenario, ship};
 use rand::Rng;
 use test_env_log::test;
 
