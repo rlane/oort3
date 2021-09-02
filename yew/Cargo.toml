@@ -8,18 +8,4 @@ edition = "2018"
 [dependencies]
 yew = "0.18"
 rhai = { version = "1.0.0", features = ["internals"] }
-oort = { path = ".." }
-
-[profile.dev.package.'*']
-opt-level = 3
-
-[profile.dev]
-opt-level = 0
-
-[profile.release]
-debug = true
-lto = true
-
-[profile.bench]
-debug = true
-lto = false
+oort_simulator = { path = "../simulator" }

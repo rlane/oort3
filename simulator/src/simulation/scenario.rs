@@ -199,7 +199,7 @@ impl Scenario for GunneryScenario {
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/gunnery.rhai").to_string()
+        include_str!("../../../ai/gunnery.rhai").to_string()
     }
 }
 
@@ -292,7 +292,7 @@ impl Scenario for WelcomeScenario {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         self.rng = Some(new_rng(seed));
         add_walls(sim);
-        sim.upload_code(0, include_str!("../../ai/welcome.rhai"));
+        sim.upload_code(0, include_str!("../../../ai/welcome.rhai"));
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     }
 
@@ -341,11 +341,11 @@ impl Scenario for Tutorial01 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial01.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial01.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial01.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial01.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -419,11 +419,11 @@ impl Scenario for Tutorial02 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial02.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial02.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial02.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial02.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -505,11 +505,11 @@ impl Scenario for Tutorial03 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial03.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial03.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial03.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial03.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -550,11 +550,11 @@ impl Scenario for Tutorial04 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial04.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial04.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial04.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial04.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -603,7 +603,10 @@ impl Scenario for Tutorial05 {
             c.write_target(target.coords);
         }
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial05.enemy.rhai"));
+        sim.upload_code(
+            1,
+            include_str!("../../../ai/tutorial/tutorial05.enemy.rhai"),
+        );
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -623,11 +626,11 @@ impl Scenario for Tutorial05 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial05.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial05.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial05.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial05.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -668,7 +671,10 @@ impl Scenario for Tutorial06 {
             );
         }
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial06.enemy.rhai"));
+        sim.upload_code(
+            1,
+            include_str!("../../../ai/tutorial/tutorial06.enemy.rhai"),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -676,11 +682,11 @@ impl Scenario for Tutorial06 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial06.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial06.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial06.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial06.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -704,7 +710,10 @@ impl Scenario for Tutorial07 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial07.enemy.rhai"));
+        sim.upload_code(
+            1,
+            include_str!("../../../ai/tutorial/tutorial07.enemy.rhai"),
+        );
 
         let mut rng = new_rng(seed);
         for team in 0..2 {
@@ -732,11 +741,11 @@ impl Scenario for Tutorial07 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial07.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial07.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial07.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial07.solution.rhai").to_string()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -760,7 +769,10 @@ impl Scenario for Tutorial08 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial08.enemy.rhai"));
+        sim.upload_code(
+            1,
+            include_str!("../../../ai/tutorial/tutorial08.enemy.rhai"),
+        );
 
         let mut rng = new_rng(seed);
         {
@@ -800,11 +812,11 @@ impl Scenario for Tutorial08 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial08.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial08.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial08.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial08.solution.rhai").to_string()
     }
 }
 
@@ -824,7 +836,10 @@ impl Scenario for Tutorial09 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial09.enemy.rhai"));
+        sim.upload_code(
+            1,
+            include_str!("../../../ai/tutorial/tutorial09.enemy.rhai"),
+        );
 
         let mut shipdata = fighter(0);
         shipdata.weapons.clear();
@@ -845,11 +860,11 @@ impl Scenario for Tutorial09 {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial09.initial.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial09.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial09.solution.rhai").to_string()
+        include_str!("../../../ai/tutorial/tutorial09.solution.rhai").to_string()
     }
 }
 
@@ -868,7 +883,7 @@ impl Scenario for Duel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        sim.upload_code(1, include_str!("../../../ai/duel.reference.rhai"));
         ship::create(sim, -1000.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(sim, 1000.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(1));
     }
@@ -878,10 +893,10 @@ impl Scenario for Duel {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/duel.initial.rhai").to_string()
+        include_str!("../../../ai/duel.initial.rhai").to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/duel.reference.rhai").to_string()
+        include_str!("../../../ai/duel.reference.rhai").to_string()
     }
 }

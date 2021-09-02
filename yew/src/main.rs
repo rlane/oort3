@@ -1,4 +1,4 @@
-use oort::game::Game;
+use oort_simulator::game::Game;
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
 
@@ -24,7 +24,7 @@ impl Component for Model {
         let render_task = RenderService::request_animation_frame(Callback::from(move |_| {
             link2.send_message(Msg::AddOne)
         }));
-        let game = oort::game::create();
+        let game = oort_simulator::game::create();
         Self {
             link,
             value: 0,
