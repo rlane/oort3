@@ -16,6 +16,7 @@ instant = { version = "0.1", features = ["wasm-bindgen"] }
 js-sys = "0.3.51"
 log = "0.4"
 memoffset = "0.6"
+monaco = { version = "0.2.0", features = ["yew-components"], path = "../../rust-monaco" }
 nalgebra = { version = "0.28", features = ["serde-serialize"] }
 no-comment = "0.0.3"
 oort_renderer = { path = "../renderer" }

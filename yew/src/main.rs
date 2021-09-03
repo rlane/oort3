@@ -3,13 +3,18 @@ pub mod game;
 pub mod ui;
 pub mod worker_api;
 
+use chrono::NaiveDateTime;
 use game::Game;
+use monaco::sys::editor::{IEditorMinimapOptions, IStandaloneEditorConstructionOptions};
+use monaco::{
+    api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
+};
 use oort_simulator::scenario;
+use rbtag::{BuildDateTime, BuildInfo};
+use std::rc::Rc;
+use wasm_bindgen::JsCast;
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
-
-use chrono::NaiveDateTime;
-use rbtag::{BuildDateTime, BuildInfo};
 
 #[derive(BuildDateTime, BuildInfo)]
 struct BuildTag;
@@ -32,9 +37,30 @@ pub fn version() -> String {
     }
 }
 
+fn make_editor_options() -> CodeEditorOptions {
+    let initial_text = "\
+// Welcome to Oort.
+// Select a scenario from the list in the top-right of the page.
+// If you're new, start with 'tutorial01'.";
+    CodeEditorOptions::default()
+        .with_language("rust".to_owned())
+        .with_value(initial_text.to_owned())
+        .with_builtin_theme(BuiltinTheme::VsDark)
+}
+
+fn make_real_editor_options() -> IStandaloneEditorConstructionOptions {
+    let options = make_editor_options().to_sys_options();
+    options.set_automatic_layout(Some(true));
+    let minimap: IEditorMinimapOptions = js_sys::Object::new().unchecked_into();
+    minimap.set_enabled(Some(false));
+    options.set_minimap(Some(&minimap));
+    options
+}
+
 enum Msg {
     Render,
     SelectScenario(String),
+    EditorCreated(CodeEditorLink),
 }
 
 struct Model {
@@ -78,6 +104,12 @@ impl Component for Model {
                 self.game.start(&scenario_name, "");
                 false
             }
+            Msg::EditorCreated(link) => {
+                link.with_editor(|editor| {
+                    editor.as_ref().update_options(&make_real_editor_options());
+                });
+                false
+            }
         }
     }
 
@@ -98,10 +130,15 @@ impl Component for Model {
             _ => unreachable!(),
         });
 
+        let editor_options = Rc::new(make_editor_options());
+        let editor_created_cb = self.link.callback(Msg::EditorCreated);
+
         html! {
         <>
             <canvas id="glcanvas" tabindex="1"></canvas>
-            <div id="editor"></div>
+            <div id="editor">
+                <CodeEditor options=editor_options on_editor_created=editor_created_cb />
+            </div>
             <div id="status"></div>
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>

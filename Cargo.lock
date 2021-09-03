@@ -632,6 +632,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "monaco"
+version = "0.2.0"
+dependencies = [
+ "js-sys",
+ "paste",
+ "wasm-bindgen",
+ "web-sys",
+ "yew",
+]
+
+[[package]]
 name = "nalgebra"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -756,6 +767,7 @@ dependencies = [
  "js-sys",
  "log",
  "memoffset",
+ "monaco",
  "nalgebra",
  "no-comment",
  "oort_renderer",
