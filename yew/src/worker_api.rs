@@ -31,12 +31,12 @@ pub enum WorkerResponse {
 }
 
 #[wasm_bindgen]
-pub struct Worker {
+pub struct OortWorker {
     sim: Option<Box<Simulation>>,
 }
 
 #[wasm_bindgen]
-impl Worker {
+impl OortWorker {
     pub fn on_message(&mut self, request: JsValue) -> JsValue {
         let request: WorkerRequest =
             serde_wasm_bindgen::from_value(request).expect("deserializing worker request");
@@ -47,7 +47,7 @@ impl Worker {
                 code,
             } => {
                 self.sim = Some(Simulation::new(&scenario_name, seed, &code));
-                Worker::make_snapshot_response(self.sim(), 0)
+                OortWorker::make_snapshot_response(self.sim(), 0)
             }
             WorkerRequest::RunScenario {
                 scenario_name,
@@ -58,13 +58,13 @@ impl Worker {
                 while sim.status() == Status::Running && sim.tick() < 10000 {
                     sim.step();
                 }
-                Worker::make_snapshot_response(&sim, 0)
+                OortWorker::make_snapshot_response(&sim, 0)
             }
             WorkerRequest::Snapshot { nonce } => {
                 if self.sim().status() == Status::Running {
                     self.sim().step();
                 }
-                Worker::make_snapshot_response(self.sim(), nonce)
+                OortWorker::make_snapshot_response(self.sim(), nonce)
             }
         };
         serde_wasm_bindgen::to_value(&response).expect("serializing worker reply")
@@ -82,7 +82,7 @@ impl Worker {
 }
 
 #[wasm_bindgen]
-pub fn create_worker() -> Worker {
+pub fn create_worker() -> OortWorker {
     console_log::init_with_level(log::Level::Info).expect("initializing logging");
-    Worker { sim: None }
+    OortWorker { sim: None }
 }
