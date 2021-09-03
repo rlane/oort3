@@ -137,10 +137,6 @@ impl Game {
         userid::get_username(userid)
     }
 
-    pub fn get_scenarios(&self) -> JsValue {
-        JsValue::from_serde(&scenario::list()).unwrap()
-    }
-
     pub fn finished_background_simulations(&mut self, results: js_sys::Array) {
         if has_panicked() {
             return;

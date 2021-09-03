@@ -4,6 +4,7 @@ pub mod ui;
 pub mod worker_api;
 
 use game::Game;
+use oort_simulator::scenario;
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
 
@@ -33,13 +34,13 @@ pub fn version() -> String {
 
 enum Msg {
     Render,
+    SelectScenario(String),
 }
 
 struct Model {
     // `ComponentLink` is like a reference to a component.
     // It can be used to send messages to the component
     link: ComponentLink<Self>,
-    value: i64,
     render_task: RenderTask,
     game: Game,
 }
@@ -49,6 +50,7 @@ impl Component for Model {
     type Properties = ();
 
     fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        link.send_message(Msg::SelectScenario("welcome".to_string()));
         let link2 = link.clone();
         let render_task = RenderService::request_animation_frame(Callback::from(move |_| {
             link2.send_message(Msg::Render)
@@ -56,7 +58,6 @@ impl Component for Model {
         let game = game::create();
         Self {
             link,
-            value: 0,
             render_task,
             game,
         }
@@ -65,16 +66,16 @@ impl Component for Model {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Render => {
-                if self.value == 0 {
-                    self.game.start("welcome", "");
-                }
                 self.game.render();
                 let link2 = self.link.clone();
                 self.render_task =
                     RenderService::request_animation_frame(Callback::from(move |_| {
                         link2.send_message(Msg::Render)
                     }));
-                self.value += 1;
+                false
+            }
+            Msg::SelectScenario(scenario_name) => {
+                self.game.start(&scenario_name, "");
                 false
             }
         }
@@ -88,6 +89,15 @@ impl Component for Model {
     }
 
     fn view(&self) -> Html {
+        fn render_option(name: String) -> Html {
+            html! { <option name={name.clone()}>{name}</option> }
+        }
+
+        let select_scenario_cb = self.link.callback(|data: ChangeData| match data {
+            ChangeData::Select(elem) => Msg::SelectScenario(elem.value()),
+            _ => unreachable!(),
+        });
+
         html! {
         <>
             <canvas id="glcanvas" tabindex="1"></canvas>
@@ -95,7 +105,11 @@ impl Component for Model {
             <div id="status"></div>
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
-                <div class="toolbar-elem right"><select name="scenario" id="scenario"></select></div>
+                <div class="toolbar-elem right">
+                    <select name="scenario" id="scenario" onchange=select_scenario_cb>
+                        { for scenario::list().iter().cloned().map(render_option) }
+                    </select>
+                </div>
                 <div class="toolbar-elem right"><a id="doc_link" href="#">{ "Documentation" }</a></div>
                 <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
                 <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
