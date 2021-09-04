@@ -100,6 +100,7 @@ struct Model {
     game: Game,
     scenario_name: String,
     code: String,
+    editor_link: CodeEditorLink,
 }
 
 impl Component for Model {
@@ -119,6 +120,7 @@ impl Component for Model {
             game,
             scenario_name: String::new(),
             code: String::new(),
+            editor_link: CodeEditorLink::default(),
         }
     }
 
@@ -134,8 +136,12 @@ impl Component for Model {
                 false
             }
             Msg::SelectScenario(scenario_name) => {
-                self.game.start(&scenario_name, "");
                 self.scenario_name = scenario_name;
+                self.code = self.game.get_saved_code(&self.scenario_name);
+                self.editor_link.with_editor(|editor| {
+                    editor.get_model().unwrap().set_value(&self.code);
+                });
+                self.game.start(&self.scenario_name, "");
                 false
             }
             Msg::EditorCreated(link) => {
@@ -147,6 +153,7 @@ impl Component for Model {
             }
             Msg::Execute(ed) => {
                 self.code = ed.get_value(None);
+                self.game.save_code(&self.scenario_name, &self.code);
                 self.game.start(&self.scenario_name, &self.code);
                 false
             }
@@ -177,7 +184,9 @@ impl Component for Model {
         <>
             <canvas id="glcanvas" tabindex="1"></canvas>
             <div id="editor">
-                <CodeEditor options=editor_options on_editor_created=editor_created_cb />
+                <CodeEditor link=self.editor_link.clone()
+                    options=editor_options
+                    on_editor_created=editor_created_cb />
             </div>
             <div id="status"></div>
             <div id="toolbar">
