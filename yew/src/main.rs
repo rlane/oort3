@@ -193,6 +193,8 @@ impl Component for Model {
         let key_event_cb = self.link.callback(Msg::KeyEvent);
         let wheel_event_cb = self.link.callback(Msg::WheelEvent);
 
+        let username = self.game.get_username(&self.game.get_userid());
+
         html! {
         <>
             <canvas id="glcanvas"
@@ -217,7 +219,7 @@ impl Component for Model {
                 <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
                 <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
                 <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a></div>
-                <div id="username" class="toolbar-elem right" title="Your username"></div>
+                <div id="username" class="toolbar-elem right" title="Your username">{ username }</div>
             </div>
             <div id="overlay">
                 <div id="splash-overlay" class="inner-overlay"></div>
