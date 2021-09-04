@@ -5,14 +5,18 @@ pub mod worker_api;
 
 use chrono::NaiveDateTime;
 use game::Game;
-use monaco::sys::editor::{IEditorMinimapOptions, IStandaloneEditorConstructionOptions};
+use monaco::sys::editor::{
+    IActionDescriptor, IEditorMinimapOptions, IStandaloneCodeEditor,
+    IStandaloneEditorConstructionOptions,
+};
 use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
 use oort_simulator::scenario;
 use rbtag::{BuildDateTime, BuildInfo};
 use std::rc::Rc;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::{JsCast, JsValue};
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
 
@@ -57,10 +61,35 @@ fn make_real_editor_options() -> IStandaloneEditorConstructionOptions {
     options
 }
 
+fn js_callback(cb: yew::Callback<IStandaloneCodeEditor>) -> JsValue {
+    Closure::wrap(Box::new(move |v: JsValue| cb.emit(v.into())) as Box<dyn FnMut(_)>)
+        .into_js_value()
+}
+
+fn add_actions(js_editor: &IStandaloneCodeEditor, link: &ComponentLink<Model>) {
+    let action: IActionDescriptor = js_sys::Object::new().unchecked_into();
+    action.set_id("oort-execute");
+    action.set_label("Execute");
+    let array = js_sys::Array::new();
+    array.push(&JsValue::from_f64((2048 | 3) as f64));
+    js_sys::Reflect::set(&action, &JsValue::from_str("keybindings"), &array)
+        .expect("setting keybindings property");
+    action.set_context_menu_group_id(Some("navigation"));
+    action.set_context_menu_order(Some(1.5));
+    js_sys::Reflect::set(
+        &action,
+        &JsValue::from_str("run"),
+        &js_callback(link.callback(Msg::Execute)),
+    )
+    .expect("setting run property");
+    js_editor.add_action(&action);
+}
+
 enum Msg {
     Render,
     SelectScenario(String),
     EditorCreated(CodeEditorLink),
+    Execute(IStandaloneCodeEditor),
 }
 
 struct Model {
@@ -69,6 +98,8 @@ struct Model {
     link: ComponentLink<Self>,
     render_task: RenderTask,
     game: Game,
+    scenario_name: String,
+    code: String,
 }
 
 impl Component for Model {
@@ -86,6 +117,8 @@ impl Component for Model {
             link,
             render_task,
             game,
+            scenario_name: String::new(),
+            code: String::new(),
         }
     }
 
@@ -102,12 +135,19 @@ impl Component for Model {
             }
             Msg::SelectScenario(scenario_name) => {
                 self.game.start(&scenario_name, "");
+                self.scenario_name = scenario_name;
                 false
             }
             Msg::EditorCreated(link) => {
                 link.with_editor(|editor| {
                     editor.as_ref().update_options(&make_real_editor_options());
+                    add_actions(editor.as_ref(), &self.link);
                 });
+                false
+            }
+            Msg::Execute(ed) => {
+                self.code = ed.get_value(None);
+                self.game.start(&self.scenario_name, &self.code);
                 false
             }
         }
