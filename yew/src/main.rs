@@ -90,6 +90,8 @@ enum Msg {
     SelectScenario(String),
     EditorCreated(CodeEditorLink),
     Execute(IStandaloneCodeEditor),
+    KeyEvent(web_sys::KeyboardEvent),
+    WheelEvent(web_sys::WheelEvent),
 }
 
 struct Model {
@@ -157,6 +159,14 @@ impl Component for Model {
                 self.game.start(&self.scenario_name, &self.code);
                 false
             }
+            Msg::KeyEvent(e) => {
+                self.game.on_key_event(e);
+                false
+            }
+            Msg::WheelEvent(e) => {
+                self.game.on_wheel_event(e);
+                false
+            }
         }
     }
 
@@ -180,9 +190,16 @@ impl Component for Model {
         let editor_options = Rc::new(make_editor_options());
         let editor_created_cb = self.link.callback(Msg::EditorCreated);
 
+        let key_event_cb = self.link.callback(Msg::KeyEvent);
+        let wheel_event_cb = self.link.callback(Msg::WheelEvent);
+
         html! {
         <>
-            <canvas id="glcanvas" tabindex="1"></canvas>
+            <canvas id="glcanvas"
+                tabindex="1"
+                onkeydown=key_event_cb.clone()
+                onkeyup=key_event_cb
+                onwheel=wheel_event_cb />
             <div id="editor">
                 <CodeEditor link=self.editor_link.clone()
                     options=editor_options
