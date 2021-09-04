@@ -2,7 +2,7 @@ use oort_simulator::scenario::Status;
 use oort_simulator::simulation::Simulation;
 use oort_simulator::snapshot::Snapshot;
 use serde::{Deserialize, Serialize};
-use yew::agent::{Agent, AgentLink, HandlerId, Job};
+use yew::agent::{Agent, AgentLink, HandlerId, Public};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
@@ -33,7 +33,7 @@ pub struct SimAgent {
 }
 
 impl Agent for SimAgent {
-    type Reach = Job<Self>;
+    type Reach = Public<Self>;
     type Message = ();
     type Input = Request;
     type Output = Response;
@@ -84,6 +84,10 @@ impl Agent for SimAgent {
                 self.link.respond(who, Response::Snapshot { snapshot });
             }
         };
+    }
+
+    fn name_of_resource() -> &'static str {
+        "sim_worker.js"
     }
 }
 
