@@ -19,7 +19,7 @@ impl HasIndex for ShipHandle {
     }
 }
 
-#[derive(Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize, Debug)]
 pub enum ShipClass {
     Fighter,
     Asteroid { variant: i32 },

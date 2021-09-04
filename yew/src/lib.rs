@@ -1,7 +1,7 @@
 pub mod api;
 pub mod game;
+pub mod sim_agent;
 pub mod ui;
-pub mod worker_api;
 
 use chrono::NaiveDateTime;
 use game::Game;
@@ -13,10 +13,12 @@ use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
 use oort_simulator::scenario;
+use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{JsCast, JsValue};
+use yew::agent::{Bridge, Bridged};
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
 
@@ -92,6 +94,8 @@ pub enum Msg {
     Execute(IStandaloneCodeEditor),
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
+    ReceivedSimAgentResponse(sim_agent::Response),
+    RequestSnapshot,
 }
 
 pub struct Model {
@@ -103,6 +107,7 @@ pub struct Model {
     scenario_name: String,
     code: String,
     editor_link: CodeEditorLink,
+    sim_agent: Box<dyn Bridge<sim_agent::SimAgent>>,
 }
 
 impl Component for Model {
@@ -115,7 +120,8 @@ impl Component for Model {
         let render_task = RenderService::request_animation_frame(Callback::from(move |_| {
             link2.send_message(Msg::Render)
         }));
-        let game = game::create();
+        let game = game::create(link.callback(|_| Msg::RequestSnapshot));
+        let sim_agent = sim_agent::SimAgent::bridge(link.callback(Msg::ReceivedSimAgentResponse));
         Self {
             link,
             render_task,
@@ -123,6 +129,7 @@ impl Component for Model {
             scenario_name: String::new(),
             code: String::new(),
             editor_link: CodeEditorLink::default(),
+            sim_agent,
         }
     }
 
@@ -143,7 +150,13 @@ impl Component for Model {
                 self.editor_link.with_editor(|editor| {
                     editor.get_model().unwrap().set_value(&self.code);
                 });
+                let seed = rand::thread_rng().gen();
                 self.game.start(&self.scenario_name, "");
+                self.sim_agent.send(sim_agent::Request::StartScenario {
+                    scenario_name: self.scenario_name.to_owned(),
+                    seed,
+                    code: self.code.to_owned(),
+                });
                 false
             }
             Msg::EditorCreated(link) => {
@@ -156,7 +169,13 @@ impl Component for Model {
             Msg::Execute(ed) => {
                 self.code = ed.get_value(None);
                 self.game.save_code(&self.scenario_name, &self.code);
+                let seed = rand::thread_rng().gen();
                 self.game.start(&self.scenario_name, &self.code);
+                self.sim_agent.send(sim_agent::Request::StartScenario {
+                    scenario_name: self.scenario_name.to_owned(),
+                    seed,
+                    code: self.code.to_owned(),
+                });
                 false
             }
             Msg::KeyEvent(e) => {
@@ -165,6 +184,15 @@ impl Component for Model {
             }
             Msg::WheelEvent(e) => {
                 self.game.on_wheel_event(e);
+                false
+            }
+            Msg::ReceivedSimAgentResponse(sim_agent::Response::Snapshot { snapshot }) => {
+                self.game.on_snapshot(snapshot);
+                false
+            }
+            Msg::RequestSnapshot => {
+                self.sim_agent
+                    .send(sim_agent::Request::Snapshot { nonce: 0 });
                 false
             }
         }

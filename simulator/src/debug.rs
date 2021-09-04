@@ -3,7 +3,7 @@ use crate::simulation::Simulation;
 use nalgebra::{vector, Point2, Vector4};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Line {
     pub a: Point2<f64>,
     pub b: Point2<f64>,

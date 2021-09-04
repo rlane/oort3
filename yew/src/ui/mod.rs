@@ -4,27 +4,23 @@ pub mod frame_timer;
 pub mod telemetry;
 pub mod userid;
 
-//use crate::worker_api::WorkerRequest;
 use crate::api;
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
-use oort_simulator::{script, simulation};
-use rand::Rng;
-//use simulation::scenario;
 use oort_renderer::Renderer;
 use oort_simulator::scenario::Status;
-use oort_simulator::simulation::Simulation;
 use oort_simulator::snapshot;
 use oort_simulator::snapshot::Snapshot;
+use oort_simulator::{script, simulation};
+use rand::Rng;
 use std::collections::VecDeque;
 use telemetry::Telemetry;
-//use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
 const INITIAL_ZOOM: f32 = 4e-4;
-//const SNAPSHOT_PRELOAD: usize = 5;
-//const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
+const SNAPSHOT_PRELOAD: usize = 5;
+const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
 
 pub struct UI {
     snapshot: Option<Snapshot>,
@@ -50,13 +46,13 @@ pub struct UI {
     last_status_msg: String,
     snapshot_requests_in_flight: usize,
     nonce: u32,
-    sim: Box<Simulation>,
+    request_snapshot: yew::Callback<()>,
 }
 
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(scenario_name: &str, seed: u32, code: &str) -> Self {
+    pub fn new(scenario_name: &str, code: &str, request_snapshot: yew::Callback<()>) -> Self {
         info!("Loading scenario {}", scenario_name);
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
@@ -105,7 +101,7 @@ impl UI {
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
             nonce: rand::thread_rng().gen(),
-            sim: Simulation::new(scenario_name, seed, code),
+            request_snapshot,
         }
     }
 
@@ -252,18 +248,13 @@ impl UI {
     }
 
     pub fn update_snapshot(&mut self) {
-        /*
         if self.pending_snapshots.len() < SNAPSHOT_PRELOAD
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
-            api::send_worker_request(&WorkerRequest::Snapshot { nonce: self.nonce });
-            api::send_worker_request(&WorkerRequest::Snapshot { nonce: self.nonce });
+            self.request_snapshot.emit(());
+            self.request_snapshot.emit(());
             self.snapshot_requests_in_flight += 2;
         }
-        */
-
-        self.sim.step();
-        self.on_snapshot(self.sim.snapshot(0));
 
         if self.pending_snapshots.is_empty() || self.pending_snapshots[0].time > self.physics_time {
             return;

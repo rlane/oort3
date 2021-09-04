@@ -1,13 +1,8 @@
-//use crate::api;
-use crate::ui::telemetry;
 use crate::ui::userid;
 use crate::ui::UI;
-use oort_simulator::scenario;
-//use crate::worker_api::WorkerRequest;
 use log::{error, info};
-use rand::Rng;
+use oort_simulator::scenario;
 use std::sync::atomic::{AtomicBool, Ordering};
-use wasm_bindgen::prelude::*;
 
 static PANICKED: AtomicBool = AtomicBool::new(false);
 
@@ -15,26 +10,21 @@ fn has_panicked() -> bool {
     PANICKED.load(Ordering::SeqCst)
 }
 
-#[wasm_bindgen]
 pub struct Game {
     ui: Option<Box<UI>>,
+    request_snapshot: yew::Callback<()>,
 }
 
-#[wasm_bindgen]
 impl Game {
     pub fn start(&mut self, scenario_name: &str, code: &str) {
         if has_panicked() {
             return;
         }
-        let seed = rand::thread_rng().gen();
-        self.ui = Some(Box::new(UI::new(scenario_name, seed, code)));
-        /*
-        api::send_worker_request(&WorkerRequest::StartScenario {
-            scenario_name: scenario_name.to_owned(),
-            seed: rand::thread_rng().gen(),
-            code: code.to_owned(),
-        });
-        */
+        self.ui = Some(Box::new(UI::new(
+            scenario_name,
+            code,
+            self.request_snapshot.clone(),
+        )));
     }
 
     pub fn render(&mut self) {
@@ -46,15 +36,12 @@ impl Game {
         }
     }
 
-    pub fn on_snapshot(&mut self, value: &[u8]) {
+    pub fn on_snapshot(&mut self, snapshot: oort_simulator::snapshot::Snapshot) {
         if has_panicked() {
             return;
         }
         if self.ui.is_some() {
-            self.ui
-                .as_mut()
-                .unwrap()
-                .on_snapshot(bincode::deserialize(value).unwrap());
+            self.ui.as_mut().unwrap().on_snapshot(snapshot);
         }
     }
 
@@ -155,25 +142,11 @@ impl Game {
     }
 }
 
-#[wasm_bindgen]
-pub fn create_game() -> Game {
-    std::panic::set_hook(Box::new(|panic_info| {
-        if has_panicked() {
-            return;
-        }
-        console_error_panic_hook::hook(panic_info);
-        telemetry::send(telemetry::Telemetry::Crash {
-            msg: panic_info.to_string(),
-        });
-        PANICKED.store(true, Ordering::SeqCst);
-    }));
+pub fn create(request_snapshot: yew::Callback<()>) -> Game {
     console_log::init_with_level(log::Level::Info).expect("initializing logging");
     log::info!("Version {}", &crate::version());
-    Game { ui: None }
-}
-
-pub fn create() -> Game {
-    console_log::init_with_level(log::Level::Info).expect("initializing logging");
-    log::info!("Version {}", &crate::version());
-    Game { ui: None }
+    Game {
+        ui: None,
+        request_snapshot,
+    }
 }
