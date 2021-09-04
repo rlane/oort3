@@ -85,7 +85,7 @@ fn add_actions(js_editor: &IStandaloneCodeEditor, link: &ComponentLink<Model>) {
     js_editor.add_action(&action);
 }
 
-enum Msg {
+pub enum Msg {
     Render,
     SelectScenario(String),
     EditorCreated(CodeEditorLink),
@@ -94,7 +94,7 @@ enum Msg {
     WheelEvent(web_sys::WheelEvent),
 }
 
-struct Model {
+pub struct Model {
     // `ComponentLink` is like a reference to a component.
     // It can be used to send messages to the component
     link: ComponentLink<Self>,
@@ -238,8 +238,4 @@ impl Component for Model {
         </>
         }
     }
-}
-
-fn main() {
-    yew::start_app::<Model>();
 }
