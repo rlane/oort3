@@ -118,11 +118,7 @@ a:hover {
   border: 1px solid rgba(191, 191, 191, 0.4);
 }
 
-#splash-overlay {
-  text-align: center;
-}
-
-#mission-complete-overlay {
+.centered {
   text-align: center;
 }
 

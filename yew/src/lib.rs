@@ -111,8 +111,7 @@ impl Component for Model {
                     RenderService::request_animation_frame(Callback::from(move |_| {
                         link2.send_message(Msg::Render)
                     }));
-                self.check_status();
-                false
+                self.check_status()
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
@@ -256,10 +255,10 @@ impl Component for Model {
 }
 
 impl Model {
-    fn check_status(&mut self) {
+    fn check_status(&mut self) -> bool {
         if let Some(ui) = self.ui.as_ref() {
             if self.last_status == ui.status() {
-                return;
+                return false;
             }
             self.last_status = ui.status();
 
@@ -274,8 +273,13 @@ impl Model {
                         code_size: code_size::calculate(code),
                     });
                 }
+
+                self.overlay = Some(Overlay::MissionComplete);
+                return true;
             }
         }
+
+        false
     }
 
     fn render_overlay(&self) -> Html {
@@ -329,10 +333,49 @@ impl Model {
     }
 
     fn render_mission_complete_overlay(&self) -> Html {
+        let time = self.ui.as_ref().unwrap().snapshot().unwrap().time;
+        let code_size = code_size::calculate(&self.running_code);
+
+        let next_scenario = scenario::load(&self.scenario_name).next_scenario();
+        let next_scenario_link = match next_scenario {
+            Some(scenario_name) => {
+                let next_scenario_cb = self.link.batch_callback(move |_| {
+                    vec![
+                        Msg::SelectScenario(scenario_name.clone()),
+                        Msg::DismissOverlay,
+                    ]
+                });
+                html! { <a href="#" onclick=next_scenario_cb>{ "Next mission" }</a> }
+            }
+            None => {
+                html! { <span>{ "Use the scenario list in the top-right of the page to choose your next mission." }</span> }
+            }
+        };
+
         html! {
-            <>
+            <div class="centered">
                 <h1>{ "Mission Complete" }</h1>
-            </>
+                { "Time: " }{ format!("{:.2}", time) }{ " seconds" }<br/><br/>
+                { "Code size: " }{ code_size }{ " bytes" }<br/><br/>
+                { next_scenario_link }
+                <br/><br/>
+                <div id="leaderboards">
+                    <div class="leaderboard" id="time-leaderboard">
+                        <table>
+                            <tr><th colspan=2>{ "Top By Time" }</th></tr>
+                            <tr><th>{ "User" }</th><th>{ "Time (seconds)" }</th></tr>
+                            <tbody id="time-leaderboard-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="leaderboard" id="code-size-leaderboard">
+                        <table>
+                            <tr><th colspan=2>{ "Top By Size" }</th></tr>
+                            <tr><th>{ "User" }</th><th>{ "Size (bytes)" }</th></tr>
+                            <tbody id="code-size-leaderboard-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         }
     }
 
