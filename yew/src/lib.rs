@@ -127,7 +127,7 @@ impl Component for Model {
                     seed,
                     code: String::new(),
                 });
-                false
+                true
             }
             Msg::EditorAction(ref action) if action == "execute" => {
                 let code = js::editor::get_text();
@@ -195,9 +195,10 @@ impl Component for Model {
     }
 
     fn view(&self) -> Html {
-        fn render_option(name: String) -> Html {
-            html! { <option name={name.clone()}>{name}</option> }
-        }
+        let render_option = |name: String| {
+            let selected = name == self.scenario_name;
+            html! { <option name={name.clone()} selected=selected>{name}</option> }
+        };
 
         let select_scenario_cb = self.link.callback(|data: ChangeData| match data {
             ChangeData::Select(elem) => Msg::SelectScenario(elem.value()),
@@ -222,7 +223,7 @@ impl Component for Model {
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
                 <div class="toolbar-elem right">
-                    <select name="scenario" id="scenario" onchange=select_scenario_cb>
+                    <select onchange=select_scenario_cb>
                         { for scenario::list().iter().cloned().map(render_option) }
                     </select>
                 </div>
