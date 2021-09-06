@@ -36,7 +36,7 @@ pub fn send(payload: Telemetry) {
         userid: get_userid(),
     };
     match serde_json::to_string(&msg) {
-        Ok(serialized) => api::send_telemetry(&serialized),
+        Ok(serialized) => api::telemetry::send_telemetry(&serialized),
         Err(msg) => warn!("Failed to serialize telemetry: {}", msg),
     };
 }
