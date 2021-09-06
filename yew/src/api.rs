@@ -19,7 +19,7 @@ extern "C" {
 pub mod telemetry {
     use wasm_bindgen::prelude::*;
 
-    #[wasm_bindgen(module = "/telemetry.js")]
+    #[wasm_bindgen(module = "/js/telemetry.js")]
     extern "C" {
         pub fn send_telemetry(data: &str);
     }
@@ -28,7 +28,7 @@ pub mod telemetry {
 pub mod editor {
     use wasm_bindgen::prelude::*;
 
-    #[wasm_bindgen(module = "/editor.js")]
+    #[wasm_bindgen(module = "/js/editor.js")]
     extern "C" {
         pub fn initialize(
             editor_div: web_sys::HtmlElement,
