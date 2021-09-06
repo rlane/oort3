@@ -8,7 +8,7 @@ pub mod userid;
 
 use chrono::NaiveDateTime;
 use oort_simulator::scenario::{self, Status};
-use oort_simulator::simulation;
+use oort_simulator::{script, simulation};
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
 use telemetry::Telemetry;
@@ -168,6 +168,7 @@ impl Component for Model {
                 false
             }
             Msg::ReceivedSimAgentResponse(sim_agent::Response::Snapshot { snapshot }) => {
+                self.display_errors(&snapshot.errors);
                 self.ui.as_mut().unwrap().on_snapshot(snapshot);
                 false
             }
@@ -333,6 +334,10 @@ impl Model {
                 <h1>{ "Mission Complete" }</h1>
             </>
         }
+    }
+
+    pub fn display_errors(&self, errors: &[script::Error]) {
+        js::editor::display_errors(JsValue::from_serde(errors).unwrap());
     }
 }
 

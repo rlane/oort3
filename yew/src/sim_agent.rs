@@ -29,6 +29,7 @@ pub enum Response {
 pub struct SimAgent {
     link: AgentLink<SimAgent>,
     sim: Option<Box<Simulation>>,
+    errored: bool,
 }
 
 impl Agent for SimAgent {
@@ -38,20 +39,26 @@ impl Agent for SimAgent {
     type Output = Response;
 
     fn create(link: AgentLink<Self>) -> Self {
-        Self { link, sim: None }
+        Self {
+            link,
+            sim: None,
+            errored: false,
+        }
     }
 
     fn update(&mut self, _msg: Self::Message) {}
 
     fn handle_input(&mut self, request: Self::Input, who: HandlerId) {
-        let response = match request {
+        match request {
             Request::StartScenario {
                 scenario_name,
                 seed,
                 code,
             } => {
                 self.sim = Some(Simulation::new(&scenario_name, seed, &code));
-                Self::make_snapshot_response(self.sim(), 0)
+                let snapshot = self.sim().snapshot(0);
+                self.errored = !snapshot.errors.is_empty();
+                self.link.respond(who, Response::Snapshot { snapshot });
             }
             Request::RunScenario {
                 scenario_name,
@@ -62,27 +69,26 @@ impl Agent for SimAgent {
                 while sim.status() == Status::Running && sim.tick() < 10000 {
                     sim.step();
                 }
-                Self::make_snapshot_response(&sim, 0)
+                let snapshot = sim.snapshot(0);
+                self.link.respond(who, Response::Snapshot { snapshot });
             }
             Request::Snapshot { nonce } => {
+                if self.errored {
+                    return;
+                }
                 if self.sim().status() == Status::Running {
                     self.sim().step();
                 }
-                Self::make_snapshot_response(self.sim(), nonce)
+                let snapshot = self.sim().snapshot(nonce);
+                self.errored = !snapshot.errors.is_empty();
+                self.link.respond(who, Response::Snapshot { snapshot });
             }
         };
-        self.link.respond(who, response);
     }
 }
 
 impl SimAgent {
     fn sim(&mut self) -> &mut Simulation {
         self.sim.as_mut().unwrap()
-    }
-
-    fn make_snapshot_response(sim: &Simulation, nonce: u32) -> Response {
-        Response::Snapshot {
-            snapshot: sim.snapshot(nonce),
-        }
     }
 }

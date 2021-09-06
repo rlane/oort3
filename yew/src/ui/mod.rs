@@ -1,17 +1,14 @@
 pub mod fps;
 pub mod frame_timer;
 
-use crate::js;
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
 use oort_simulator::scenario::Status;
-use oort_simulator::snapshot;
-use oort_simulator::snapshot::Snapshot;
-use oort_simulator::{script, simulation};
+use oort_simulator::simulation;
+use oort_simulator::snapshot::{self, Snapshot};
 use rand::Rng;
 use std::collections::VecDeque;
-use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
@@ -249,7 +246,6 @@ impl UI {
         self.snapshot = self.pending_snapshots.pop_front();
         let snapshot = self.snapshot.as_ref().unwrap();
 
-        self.display_errors(&snapshot.errors);
         if !snapshot.errors.is_empty() {
             self.paused = true;
         }
@@ -283,10 +279,6 @@ impl UI {
             .unproject(e.offset_x() as i32, e.offset_y() as i32);
         let diff = new_zoom_target - zoom_target;
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
-    }
-
-    pub fn display_errors(&self, errors: &[script::Error]) {
-        js::editor::display_errors(JsValue::from_serde(errors).unwrap());
     }
 
     pub fn status(&self) -> Status {
