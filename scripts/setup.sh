@@ -1,7 +1,9 @@
 #!/bin/bash -eu
 eval "$(fnm env)"
 
-which trunk || echo "Missing trunk, run 'cargo install trunk'"
+cd $(realpath $(dirname $0))/../yew
+fnm use
+npm install
 
 cd ../backend
 fnm use

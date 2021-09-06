@@ -267,3 +267,9 @@ impl Component for Model {
         }
     }
 }
+
+#[wasm_bindgen]
+pub fn run_app() -> Result<(), JsValue> {
+    yew::start_app::<Model>();
+    Ok(())
+}

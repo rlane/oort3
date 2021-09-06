@@ -1,2 +1,4 @@
-dist/
-target/
+*.wasm
+node_modules
+pkg
+dist
