@@ -1,8 +1,7 @@
 pub mod fps;
 pub mod frame_timer;
 
-use crate::telemetry::{self, Telemetry};
-use crate::{code_size, js};
+use crate::js;
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
@@ -38,9 +37,7 @@ pub struct UI {
     last_render_time: f64,
     physics_time: f64,
     fps: fps::FPS,
-    latest_code: String,
     debug: bool,
-    scenario_name: String,
     last_status_msg: String,
     snapshot_requests_in_flight: usize,
     nonce: u32,
@@ -50,8 +47,7 @@ pub struct UI {
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(scenario_name: &str, code: &str, request_snapshot: yew::Callback<()>) -> Self {
-        info!("Loading scenario {}", scenario_name);
+    pub fn new(request_snapshot: yew::Callback<()>) -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let status_div = document
@@ -68,8 +64,6 @@ impl UI {
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();
-
-        let latest_code = code.to_string();
 
         UI {
             snapshot: None,
@@ -89,9 +83,7 @@ impl UI {
             last_render_time: instant::now(),
             physics_time: instant::now(),
             fps: fps::FPS::new(),
-            latest_code,
             debug: false,
-            scenario_name: scenario_name.to_owned(),
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
             nonce: rand::thread_rng().gen(),
@@ -262,20 +254,7 @@ impl UI {
             self.paused = true;
         }
 
-        if self.status == Status::Running {
-            self.status = snapshot.status;
-            if let Status::Victory { team: 0 } = self.status {
-                if !snapshot.cheats {
-                    telemetry::send(Telemetry::FinishScenario {
-                        scenario_name: self.scenario_name.clone(),
-                        code: self.latest_code.to_string(),
-                        ticks: (snapshot.time / simulation::PHYSICS_TICK_LENGTH) as u32,
-                        code_size: code_size::calculate(&self.latest_code),
-                    });
-                }
-                self.display_finished_screen();
-            }
-        }
+        self.status = snapshot.status;
 
         self.renderer.update(snapshot);
     }
@@ -306,35 +285,15 @@ impl UI {
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
     }
 
-    pub fn display_finished_screen(&self) {
-        /*
-        let next_scenario = scenario::load(&self.scenario_name).next_scenario();
-        api::display_mission_complete_overlay(
-            &self.scenario_name,
-            self.snapshot.as_ref().unwrap().time,
-            code_size::calculate(&self.latest_code),
-            &next_scenario.unwrap_or_else(|| "".to_string()),
-        );
-
-        api::start_background_simulations(&self.scenario_name, &self.latest_code, 10);
-        */
-    }
-
-    pub fn finished_background_simulations(&self, snapshots: &[Snapshot]) {
-        use std::collections::HashMap;
-        let mut status_counters: HashMap<Status, i32> = HashMap::new();
-        for snapshot in snapshots.iter() {
-            *status_counters.entry(snapshot.status).or_default() += 1;
-        }
-        js::display_background_simulation_results(
-            *status_counters
-                .get(&Status::Victory { team: 0 })
-                .unwrap_or(&0) as i32,
-            snapshots.len() as i32,
-        )
-    }
-
     pub fn display_errors(&self, errors: &[script::Error]) {
         js::editor::display_errors(JsValue::from_serde(errors).unwrap());
+    }
+
+    pub fn status(&self) -> Status {
+        self.status
+    }
+
+    pub fn snapshot(&self) -> Option<Snapshot> {
+        self.snapshot.clone()
     }
 }

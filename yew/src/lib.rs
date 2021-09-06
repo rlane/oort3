@@ -7,9 +7,11 @@ pub mod ui;
 pub mod userid;
 
 use chrono::NaiveDateTime;
-use oort_simulator::scenario;
+use oort_simulator::scenario::{self, Status};
+use oort_simulator::simulation;
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
+use telemetry::Telemetry;
 use ui::UI;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
@@ -68,6 +70,8 @@ pub struct Model {
     overlay_ref: NodeRef,
     ui: Option<Box<UI>>,
     status_ref: NodeRef,
+    last_status: Status,
+    running_code: String,
 }
 
 impl Component for Model {
@@ -91,6 +95,8 @@ impl Component for Model {
             overlay_ref: NodeRef::default(),
             ui: None,
             status_ref: NodeRef::default(),
+            last_status: Status::Running,
+            running_code: String::new(),
         }
     }
 
@@ -105,16 +111,16 @@ impl Component for Model {
                     RenderService::request_animation_frame(Callback::from(move |_| {
                         link2.send_message(Msg::Render)
                     }));
+                self.check_status();
                 false
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
                 let code = codestorage::load(&self.scenario_name);
                 js::editor::set_text(&code);
+                self.running_code = String::new();
                 let seed = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
-                    &self.scenario_name,
-                    &code,
                     self.link.callback(|_| Msg::RequestSnapshot),
                 )));
                 self.sim_agent.send(sim_agent::Request::StartScenario {
@@ -127,10 +133,9 @@ impl Component for Model {
             Msg::EditorAction(ref action) if action == "execute" => {
                 let code = js::editor::get_text();
                 codestorage::save(&self.scenario_name, &code);
+                self.running_code = code.clone();
                 let seed = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
-                    &self.scenario_name,
-                    &code,
                     self.link.callback(|_| Msg::RequestSnapshot),
                 )));
                 self.sim_agent.send(sim_agent::Request::StartScenario {
@@ -250,6 +255,28 @@ impl Component for Model {
 }
 
 impl Model {
+    fn check_status(&mut self) {
+        if let Some(ui) = self.ui.as_ref() {
+            if self.last_status == ui.status() {
+                return;
+            }
+            self.last_status = ui.status();
+
+            if let Status::Victory { team: 0 } = ui.status() {
+                let snapshot = ui.snapshot().unwrap();
+                let code = &self.running_code;
+                if !snapshot.cheats {
+                    telemetry::send(Telemetry::FinishScenario {
+                        scenario_name: self.scenario_name.clone(),
+                        code: code.to_string(),
+                        ticks: (snapshot.time / simulation::PHYSICS_TICK_LENGTH) as u32,
+                        code_size: code_size::calculate(code),
+                    });
+                }
+            }
+        }
+    }
+
     fn render_overlay(&self) -> Html {
         let outer_click_cb = self.link.callback(|_| Msg::DismissOverlay);
         let inner_click_cb = self.link.batch_callback(|e: web_sys::MouseEvent| {

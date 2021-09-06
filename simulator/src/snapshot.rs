@@ -5,7 +5,7 @@ use crate::simulation::Line;
 use nalgebra::{Point2, Vector2};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Snapshot {
     pub nonce: u32,
     pub time: f64,
@@ -31,7 +31,7 @@ pub struct ShipSnapshot {
     pub class: ShipClass,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct BulletSnapshot {
     pub position: Point2<f64>,
     pub velocity: Vector2<f64>,
