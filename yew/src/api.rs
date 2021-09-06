@@ -13,8 +13,6 @@ extern "C" {
         next_scenario: &str,
     );
 
-    pub fn display_errors(errors: JsValue);
-
     pub fn start_background_simulations(scenario_name: &str, code: &str, n: i32);
 
     pub fn display_background_simulation_results(wins: i32, total: i32);

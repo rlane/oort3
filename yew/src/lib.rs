@@ -1,23 +1,16 @@
 pub mod api;
+pub mod editor_api;
 pub mod game;
 pub mod sim_agent;
 pub mod ui;
 
 use chrono::NaiveDateTime;
 use game::Game;
-use monaco::sys::editor::{
-    IActionDescriptor, IEditorMinimapOptions, IStandaloneCodeEditor,
-    IStandaloneEditorConstructionOptions,
-};
-use monaco::{
-    api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
-};
 use oort_simulator::scenario;
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
-use std::rc::Rc;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsValue;
 use yew::agent::{Bridge, Bridged};
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
@@ -43,59 +36,14 @@ pub fn version() -> String {
     }
 }
 
-fn make_editor_options() -> CodeEditorOptions {
-    let initial_text = "\
-// Welcome to Oort.
-// Select a scenario from the list in the top-right of the page.
-// If you're new, start with 'tutorial01'.";
-    CodeEditorOptions::default()
-        .with_language("rust".to_owned())
-        .with_value(initial_text.to_owned())
-        .with_builtin_theme(BuiltinTheme::VsDark)
-}
-
-fn make_real_editor_options() -> IStandaloneEditorConstructionOptions {
-    let options = make_editor_options().to_sys_options();
-    options.set_automatic_layout(Some(true));
-    let minimap: IEditorMinimapOptions = js_sys::Object::new().unchecked_into();
-    minimap.set_enabled(Some(false));
-    options.set_minimap(Some(&minimap));
-    options
-}
-
-fn js_callback(cb: yew::Callback<IStandaloneCodeEditor>) -> JsValue {
-    Closure::wrap(Box::new(move |v: JsValue| cb.emit(v.into())) as Box<dyn FnMut(_)>)
-        .into_js_value()
-}
-
-fn add_actions(js_editor: &IStandaloneCodeEditor, link: &ComponentLink<Model>) {
-    let action: IActionDescriptor = js_sys::Object::new().unchecked_into();
-    action.set_id("oort-execute");
-    action.set_label("Execute");
-    let array = js_sys::Array::new();
-    array.push(&JsValue::from_f64((2048 | 3) as f64));
-    js_sys::Reflect::set(&action, &JsValue::from_str("keybindings"), &array)
-        .expect("setting keybindings property");
-    action.set_context_menu_group_id(Some("navigation"));
-    action.set_context_menu_order(Some(1.5));
-    js_sys::Reflect::set(
-        &action,
-        &JsValue::from_str("run"),
-        &js_callback(link.callback(Msg::Execute)),
-    )
-    .expect("setting run property");
-    js_editor.add_action(&action);
-}
-
 pub enum Msg {
     Render,
     SelectScenario(String),
-    EditorCreated(CodeEditorLink),
-    Execute(IStandaloneCodeEditor),
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
     ReceivedSimAgentResponse(sim_agent::Response),
     RequestSnapshot,
+    EditorAction(String),
 }
 
 pub struct Model {
@@ -105,9 +53,8 @@ pub struct Model {
     render_task: RenderTask,
     game: Game,
     scenario_name: String,
-    code: String,
-    editor_link: CodeEditorLink,
     sim_agent: Box<dyn Bridge<sim_agent::SimAgent>>,
+    editor_ref: NodeRef,
 }
 
 impl Component for Model {
@@ -127,9 +74,8 @@ impl Component for Model {
             render_task,
             game,
             scenario_name: String::new(),
-            code: String::new(),
-            editor_link: CodeEditorLink::default(),
             sim_agent,
+            editor_ref: NodeRef::default(),
         }
     }
 
@@ -146,36 +92,41 @@ impl Component for Model {
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
-                self.code = self.game.get_saved_code(&self.scenario_name);
-                self.editor_link.with_editor(|editor| {
-                    editor.get_model().unwrap().set_value(&self.code);
-                });
+                let code = self.game.get_saved_code(&self.scenario_name);
+                editor_api::set_text(&code);
                 let seed = rand::thread_rng().gen();
                 self.game.start(&self.scenario_name, "");
                 self.sim_agent.send(sim_agent::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
-                    code: self.code.to_owned(),
+                    code: String::new(),
                 });
                 false
             }
-            Msg::EditorCreated(link) => {
-                link.with_editor(|editor| {
-                    editor.as_ref().update_options(&make_real_editor_options());
-                    add_actions(editor.as_ref(), &self.link);
-                });
-                false
-            }
-            Msg::Execute(ed) => {
-                self.code = ed.get_value(None);
-                self.game.save_code(&self.scenario_name, &self.code);
+            Msg::EditorAction(ref action) if action == "execute" => {
+                let code = editor_api::get_text();
+                self.game.save_code(&self.scenario_name, &code);
                 let seed = rand::thread_rng().gen();
-                self.game.start(&self.scenario_name, &self.code);
+                self.game.start(&self.scenario_name, &code);
                 self.sim_agent.send(sim_agent::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
-                    code: self.code.to_owned(),
+                    code: code.to_owned(),
                 });
+                false
+            }
+            Msg::EditorAction(ref action) if action == "load-initial-code" => {
+                let code = self.game.get_initial_code(&self.scenario_name);
+                editor_api::set_text(&code);
+                false
+            }
+            Msg::EditorAction(ref action) if action == "load-solution-code" => {
+                let code = self.game.get_solution_code(&self.scenario_name);
+                editor_api::set_text(&code);
+                false
+            }
+            Msg::EditorAction(action) => {
+                log::info!("Got unexpected editor action {}", action);
                 false
             }
             Msg::KeyEvent(e) => {
@@ -215,9 +166,6 @@ impl Component for Model {
             _ => unreachable!(),
         });
 
-        let editor_options = Rc::new(make_editor_options());
-        let editor_created_cb = self.link.callback(Msg::EditorCreated);
-
         let key_event_cb = self.link.callback(Msg::KeyEvent);
         let wheel_event_cb = self.link.callback(Msg::WheelEvent);
 
@@ -230,11 +178,7 @@ impl Component for Model {
                 onkeydown=key_event_cb.clone()
                 onkeyup=key_event_cb
                 onwheel=wheel_event_cb />
-            <div id="editor">
-                <CodeEditor link=self.editor_link.clone()
-                    options=editor_options
-                    on_editor_created=editor_created_cb />
-            </div>
+            <div id="editor" ref=self.editor_ref.clone() />
             <div id="status"></div>
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
@@ -264,6 +208,18 @@ impl Component for Model {
                 </div>
             </div>
         </>
+        }
+    }
+
+    fn rendered(&mut self, first_render: bool) {
+        if first_render {
+            if let Some(editor_div) = self.editor_ref.cast::<web_sys::HtmlElement>() {
+                let cb = self.link.callback(Msg::EditorAction);
+                let closure =
+                    Closure::wrap(Box::new(move |action| cb.emit(action)) as Box<dyn FnMut(_)>);
+                editor_api::initialize(editor_div, &closure);
+                closure.forget();
+            }
         }
     }
 }
