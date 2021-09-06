@@ -807,6 +807,10 @@ impl Scenario for Tutorial08 {
     fn solution(&self) -> String {
         include_str!("../../ai/tutorial/tutorial08.solution.rhai").to_string()
     }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial09".to_string())
+    }
 }
 
 struct Tutorial09 {}
