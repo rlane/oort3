@@ -1,15 +1,14 @@
 pub mod codestorage;
-pub mod game;
 pub mod js;
 pub mod sim_agent;
 pub mod ui;
 
 use chrono::NaiveDateTime;
-use game::Game;
 use oort_simulator::scenario;
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
 use ui::userid;
+use ui::UI;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yew::agent::{Bridge, Bridged};
@@ -60,12 +59,13 @@ pub struct Model {
     // It can be used to send messages to the component
     link: ComponentLink<Self>,
     render_task: RenderTask,
-    game: Game,
     scenario_name: String,
     sim_agent: Box<dyn Bridge<sim_agent::SimAgent>>,
     editor_ref: NodeRef,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
+    ui: Option<Box<UI>>,
+    status_ref: NodeRef,
 }
 
 impl Component for Model {
@@ -78,24 +78,26 @@ impl Component for Model {
         let render_task = RenderService::request_animation_frame(Callback::from(move |_| {
             link2.send_message(Msg::Render)
         }));
-        let game = game::create(link.callback(|_| Msg::RequestSnapshot));
         let sim_agent = sim_agent::SimAgent::bridge(link.callback(Msg::ReceivedSimAgentResponse));
         Self {
             link,
             render_task,
-            game,
             scenario_name: String::new(),
             sim_agent,
             editor_ref: NodeRef::default(),
             overlay: None,
             overlay_ref: NodeRef::default(),
+            ui: None,
+            status_ref: NodeRef::default(),
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Render => {
-                self.game.render();
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.render();
+                }
                 let link2 = self.link.clone();
                 self.render_task =
                     RenderService::request_animation_frame(Callback::from(move |_| {
@@ -108,7 +110,11 @@ impl Component for Model {
                 let code = codestorage::load(&self.scenario_name);
                 js::editor::set_text(&code);
                 let seed = rand::thread_rng().gen();
-                self.game.start(&self.scenario_name, "");
+                self.ui = Some(Box::new(UI::new(
+                    &self.scenario_name,
+                    &code,
+                    self.link.callback(|_| Msg::RequestSnapshot),
+                )));
                 self.sim_agent.send(sim_agent::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
@@ -120,11 +126,15 @@ impl Component for Model {
                 let code = js::editor::get_text();
                 codestorage::save(&self.scenario_name, &code);
                 let seed = rand::thread_rng().gen();
-                self.game.start(&self.scenario_name, &code);
+                self.ui = Some(Box::new(UI::new(
+                    &self.scenario_name,
+                    &code,
+                    self.link.callback(|_| Msg::RequestSnapshot),
+                )));
                 self.sim_agent.send(sim_agent::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
-                    code: code.to_owned(),
+                    code,
                 });
                 false
             }
@@ -143,15 +153,15 @@ impl Component for Model {
                 false
             }
             Msg::KeyEvent(e) => {
-                self.game.on_key_event(e);
+                self.ui.as_mut().unwrap().on_key_event(e);
                 false
             }
             Msg::WheelEvent(e) => {
-                self.game.on_wheel_event(e);
+                self.ui.as_mut().unwrap().on_wheel_event(e);
                 false
             }
             Msg::ReceivedSimAgentResponse(sim_agent::Response::Snapshot { snapshot }) => {
-                self.game.on_snapshot(snapshot);
+                self.ui.as_mut().unwrap().on_snapshot(snapshot);
                 false
             }
             Msg::RequestSnapshot => {
@@ -201,7 +211,7 @@ impl Component for Model {
                 onkeyup=key_event_cb
                 onwheel=wheel_event_cb />
             <div id="editor" ref=self.editor_ref.clone() />
-            <div id="status"></div>
+            <div id="status" ref=self.status_ref.clone() />
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
                 <div class="toolbar-elem right">
@@ -299,7 +309,8 @@ impl Model {
 
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {
-    yew::start_app::<Model>();
+    console_log::init_with_level(log::Level::Info).expect("initializing logging");
     log::info!("Version {}", &version());
+    yew::start_app::<Model>();
     Ok(())
 }
