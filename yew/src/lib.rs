@@ -1,5 +1,5 @@
-pub mod api;
 pub mod game;
+pub mod js;
 pub mod sim_agent;
 pub mod ui;
 
@@ -92,7 +92,7 @@ impl Component for Model {
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
                 let code = self.game.get_saved_code(&self.scenario_name);
-                api::editor::set_text(&code);
+                js::editor::set_text(&code);
                 let seed = rand::thread_rng().gen();
                 self.game.start(&self.scenario_name, "");
                 self.sim_agent.send(sim_agent::Request::StartScenario {
@@ -103,7 +103,7 @@ impl Component for Model {
                 false
             }
             Msg::EditorAction(ref action) if action == "execute" => {
-                let code = api::editor::get_text();
+                let code = js::editor::get_text();
                 self.game.save_code(&self.scenario_name, &code);
                 let seed = rand::thread_rng().gen();
                 self.game.start(&self.scenario_name, &code);
@@ -116,12 +116,12 @@ impl Component for Model {
             }
             Msg::EditorAction(ref action) if action == "load-initial-code" => {
                 let code = self.game.get_initial_code(&self.scenario_name);
-                api::editor::set_text(&code);
+                js::editor::set_text(&code);
                 false
             }
             Msg::EditorAction(ref action) if action == "load-solution-code" => {
                 let code = self.game.get_solution_code(&self.scenario_name);
-                api::editor::set_text(&code);
+                js::editor::set_text(&code);
                 false
             }
             Msg::EditorAction(action) => {
@@ -216,7 +216,7 @@ impl Component for Model {
                 let cb = self.link.callback(Msg::EditorAction);
                 let closure =
                     Closure::wrap(Box::new(move |action| cb.emit(action)) as Box<dyn FnMut(_)>);
-                api::editor::initialize(editor_div, &closure);
+                js::editor::initialize(editor_div, &closure);
                 closure.forget();
             }
         }

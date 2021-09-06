@@ -1,5 +1,5 @@
 use super::userid::get_userid;
-use crate::api;
+use crate::js;
 use log::warn;
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +36,7 @@ pub fn send(payload: Telemetry) {
         userid: get_userid(),
     };
     match serde_json::to_string(&msg) {
-        Ok(serialized) => api::telemetry::send_telemetry(&serialized),
+        Ok(serialized) => js::telemetry::send_telemetry(&serialized),
         Err(msg) => warn!("Failed to serialize telemetry: {}", msg),
     };
 }

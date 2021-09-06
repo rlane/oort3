@@ -4,7 +4,7 @@ pub mod frame_timer;
 pub mod telemetry;
 pub mod userid;
 
-use crate::api;
+use crate::js;
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
@@ -332,7 +332,7 @@ impl UI {
         for snapshot in snapshots.iter() {
             *status_counters.entry(snapshot.status).or_default() += 1;
         }
-        api::display_background_simulation_results(
+        js::display_background_simulation_results(
             *status_counters
                 .get(&Status::Victory { team: 0 })
                 .unwrap_or(&0) as i32,
@@ -342,7 +342,7 @@ impl UI {
 
     pub fn display_errors(&self, _errors: &[script::Error]) {
         /*
-        api::display_errors(JsValue::from_serde(errors).unwrap());
+        js::editor::display_errors(JsValue::from_serde(errors).unwrap());
         */
     }
 }
