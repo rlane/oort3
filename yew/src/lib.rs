@@ -1,12 +1,14 @@
 pub mod code_size;
 pub mod codestorage;
 pub mod js;
+pub mod leaderboard;
 pub mod sim_agent;
 pub mod telemetry;
 pub mod ui;
 pub mod userid;
 
 use chrono::NaiveDateTime;
+use leaderboard::Leaderboard;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::{script, simulation};
 use rand::Rng;
@@ -360,22 +362,7 @@ impl Model {
                 { "Code size: " }{ code_size }{ " bytes" }<br/><br/>
                 { next_scenario_link }
                 <br/><br/>
-                <div id="leaderboards">
-                    <div class="leaderboard" id="time-leaderboard">
-                        <table>
-                            <tr><th colspan=2>{ "Top By Time" }</th></tr>
-                            <tr><th>{ "User" }</th><th>{ "Time (seconds)" }</th></tr>
-                            <tbody id="time-leaderboard-tbody"></tbody>
-                        </table>
-                    </div>
-                    <div class="leaderboard" id="code-size-leaderboard">
-                        <table>
-                            <tr><th colspan=2>{ "Top By Size" }</th></tr>
-                            <tr><th>{ "User" }</th><th>{ "Size (bytes)" }</th></tr>
-                            <tbody id="code-size-leaderboard-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <Leaderboard scenario_name={ self.scenario_name.clone() }/>
             </div>
         }
     }
