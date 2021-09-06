@@ -1,3 +1,4 @@
+pub mod codestorage;
 pub mod game;
 pub mod js;
 pub mod sim_agent;
@@ -103,7 +104,7 @@ impl Component for Model {
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
-                let code = self.game.get_saved_code(&self.scenario_name);
+                let code = codestorage::load(&self.scenario_name);
                 js::editor::set_text(&code);
                 let seed = rand::thread_rng().gen();
                 self.game.start(&self.scenario_name, "");
@@ -116,7 +117,7 @@ impl Component for Model {
             }
             Msg::EditorAction(ref action) if action == "execute" => {
                 let code = js::editor::get_text();
-                self.game.save_code(&self.scenario_name, &code);
+                codestorage::save(&self.scenario_name, &code);
                 let seed = rand::thread_rng().gen();
                 self.game.start(&self.scenario_name, &code);
                 self.sim_agent.send(sim_agent::Request::StartScenario {
