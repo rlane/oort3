@@ -1,10 +1,8 @@
-pub mod code_size;
 pub mod fps;
 pub mod frame_timer;
-pub mod telemetry;
-pub mod userid;
 
-use crate::js;
+use crate::telemetry::{self, Telemetry};
+use crate::{code_size, js};
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
@@ -14,7 +12,6 @@ use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{script, simulation};
 use rand::Rng;
 use std::collections::VecDeque;
-use telemetry::Telemetry;
 use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;

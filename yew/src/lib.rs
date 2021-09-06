@@ -1,13 +1,15 @@
+pub mod code_size;
 pub mod codestorage;
 pub mod js;
 pub mod sim_agent;
+pub mod telemetry;
 pub mod ui;
+pub mod userid;
 
 use chrono::NaiveDateTime;
 use oort_simulator::scenario;
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
-use ui::userid;
 use ui::UI;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
