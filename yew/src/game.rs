@@ -1,6 +1,4 @@
-use crate::ui::userid;
 use crate::ui::UI;
-use oort_simulator::scenario;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static PANICKED: AtomicBool = AtomicBool::new(false);
@@ -62,28 +60,6 @@ impl Game {
         }
     }
 
-    pub fn get_initial_code(&self, scenario_name: &str) -> String {
-        if has_panicked() {
-            return "".to_string();
-        }
-        scenario::load(scenario_name).initial_code()
-    }
-
-    pub fn get_solution_code(&mut self, scenario_name: &str) -> String {
-        if has_panicked() {
-            return "".to_string();
-        }
-        scenario::load(scenario_name).solution()
-    }
-
-    pub fn get_userid(&self) -> String {
-        userid::get_userid()
-    }
-
-    pub fn get_username(&self, userid: &str) -> String {
-        userid::get_username(userid)
-    }
-
     pub fn finished_background_simulations(&mut self, results: js_sys::Array) {
         if has_panicked() {
             return;
@@ -104,7 +80,6 @@ impl Game {
 
 pub fn create(request_snapshot: yew::Callback<()>) -> Game {
     console_log::init_with_level(log::Level::Info).expect("initializing logging");
-    log::info!("Version {}", &crate::version());
     Game {
         ui: None,
         request_snapshot,

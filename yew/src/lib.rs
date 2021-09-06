@@ -9,6 +9,7 @@ use game::Game;
 use oort_simulator::scenario;
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
+use ui::userid;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yew::agent::{Bridge, Bridged};
@@ -128,12 +129,12 @@ impl Component for Model {
                 false
             }
             Msg::EditorAction(ref action) if action == "load-initial-code" => {
-                let code = self.game.get_initial_code(&self.scenario_name);
+                let code = scenario::load(&self.scenario_name).initial_code();
                 js::editor::set_text(&code);
                 false
             }
             Msg::EditorAction(ref action) if action == "load-solution-code" => {
-                let code = self.game.get_solution_code(&self.scenario_name);
+                let code = scenario::load(&self.scenario_name).solution();
                 js::editor::set_text(&code);
                 false
             }
@@ -190,7 +191,7 @@ impl Component for Model {
         let wheel_event_cb = self.link.callback(Msg::WheelEvent);
         let show_documentation_cb = self.link.callback(|_| Msg::ShowDocumentation);
 
-        let username = self.game.get_username(&self.game.get_userid());
+        let username = userid::get_username(&userid::get_userid());
 
         html! {
         <>
@@ -299,5 +300,6 @@ impl Model {
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {
     yew::start_app::<Model>();
+    log::info!("Version {}", &version());
     Ok(())
 }
