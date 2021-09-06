@@ -126,7 +126,7 @@ export function get_text() {
 }
 
 let current_decorations = [];
-export function displayErrors(errors) {
+export function display_errors(errors) {
   let new_decorations = [];
   for (let error of errors) {
     new_decorations.push({

@@ -15,6 +15,7 @@ use oort_simulator::{script, simulation};
 use rand::Rng;
 use std::collections::VecDeque;
 use telemetry::Telemetry;
+use wasm_bindgen::JsValue;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
@@ -340,9 +341,7 @@ impl UI {
         )
     }
 
-    pub fn display_errors(&self, _errors: &[script::Error]) {
-        /*
+    pub fn display_errors(&self, errors: &[script::Error]) {
         js::editor::display_errors(JsValue::from_serde(errors).unwrap());
-        */
     }
 }
