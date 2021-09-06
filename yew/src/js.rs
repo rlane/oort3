@@ -2,8 +2,6 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    pub fn display_splash(contents: &str);
-
     pub fn display_mission_complete_overlay(
         scenario_name: &str,
         time: f64,

@@ -43,6 +43,14 @@ pub enum Msg {
     ReceivedSimAgentResponse(sim_agent::Response),
     RequestSnapshot,
     EditorAction(String),
+    ShowDocumentation,
+    DismissOverlay,
+}
+
+enum Overlay {
+    Documentation,
+    #[allow(dead_code)]
+    MissionComplete,
 }
 
 pub struct Model {
@@ -54,6 +62,8 @@ pub struct Model {
     scenario_name: String,
     sim_agent: Box<dyn Bridge<sim_agent::SimAgent>>,
     editor_ref: NodeRef,
+    overlay: Option<Overlay>,
+    overlay_ref: NodeRef,
 }
 
 impl Component for Model {
@@ -75,6 +85,8 @@ impl Component for Model {
             scenario_name: String::new(),
             sim_agent,
             editor_ref: NodeRef::default(),
+            overlay: None,
+            overlay_ref: NodeRef::default(),
         }
     }
 
@@ -145,6 +157,14 @@ impl Component for Model {
                     .send(sim_agent::Request::Snapshot { nonce: 0 });
                 false
             }
+            Msg::ShowDocumentation => {
+                self.overlay = Some(Overlay::Documentation);
+                true
+            }
+            Msg::DismissOverlay => {
+                self.overlay = None;
+                true
+            }
         }
     }
 
@@ -167,6 +187,7 @@ impl Component for Model {
 
         let key_event_cb = self.link.callback(Msg::KeyEvent);
         let wheel_event_cb = self.link.callback(Msg::WheelEvent);
+        let show_documentation_cb = self.link.callback(|_| Msg::ShowDocumentation);
 
         let username = self.game.get_username(&self.game.get_userid());
 
@@ -186,26 +207,13 @@ impl Component for Model {
                         { for scenario::list().iter().cloned().map(render_option) }
                     </select>
                 </div>
-                <div class="toolbar-elem right"><a id="doc_link" href="#">{ "Documentation" }</a></div>
+                <div class="toolbar-elem right"><a href="#" onclick=show_documentation_cb>{ "Documentation" }</a></div>
                 <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
                 <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
                 <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a></div>
                 <div id="username" class="toolbar-elem right" title="Your username">{ username }</div>
             </div>
-            <div id="overlay">
-                <div id="splash-overlay" class="inner-overlay"></div>
-                <div id="doc-overlay" class="inner-overlay">
-                    <h1>{ "Quick Reference" }</h1>
-                    { "Press Escape to close. File bugs on " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>{ "." }<br />
-
-                    <h2>{ "Basics" }</h2>
-                    { "Select a scenario from the list in the top-right of the page." }<br/>
-                    { "Press Ctrl-Enter in the editor to run the scenario with a new version of your code." }<br/>
-                    { "The game calls your <code>tick()</code> function 60 times per second." }
-                </div>
-                <div id="mission-complete-overlay" class="inner-overlay">
-                </div>
-            </div>
+            { self.render_overlay() }
         </>
         }
     }
@@ -219,6 +227,70 @@ impl Component for Model {
                 js::editor::initialize(editor_div, &closure);
                 closure.forget();
             }
+        }
+
+        if self.overlay.is_some() {
+            self.focus_overlay();
+        }
+    }
+}
+
+impl Model {
+    fn render_overlay(&self) -> Html {
+        let outer_click_cb = self.link.callback(|_| Msg::DismissOverlay);
+        let inner_click_cb = self.link.batch_callback(|e: web_sys::MouseEvent| {
+            e.stop_propagation();
+            None
+        });
+        let key_cb = self.link.batch_callback(|e: web_sys::KeyboardEvent| {
+            if e.key() == "Escape" {
+                Some(Msg::DismissOverlay)
+            } else {
+                None
+            }
+        });
+        if self.overlay.is_none() {
+            return html! {};
+        }
+        html! {
+            <div ref=self.overlay_ref.clone() id="overlay"
+                onkeydown=key_cb onclick=outer_click_cb tabindex="-1">
+                <div class="inner-overlay" onclick=inner_click_cb>{
+                    match self.overlay {
+                        Some(Overlay::Documentation) => self.render_documentation_overlay(),
+                        Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(),
+                        None => unreachable!(),
+                    }
+                }</div>
+            </div>
+        }
+    }
+
+    fn focus_overlay(&self) {
+        if let Some(element) = self.overlay_ref.cast::<web_sys::HtmlElement>() {
+            element.focus().expect("focusing overlay");
+        }
+    }
+
+    fn render_documentation_overlay(&self) -> Html {
+        html! {
+            <>
+                <h1>{ "Quick Reference" }</h1>
+                { "Press Escape to close. File bugs on " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>{ "." }<br />
+
+                <h2>{ "Basics" }</h2>
+                { "Select a scenario from the list in the top-right of the page." }<br/>
+                { "Press Ctrl-Enter in the editor to run the scenario with a new version of your code." }<br/>
+                { "The game calls your " }<code>{ "tick()" }</code>{ " function 60 times per second." }
+            </>
+        }
+    }
+
+    fn render_mission_complete_overlay(&self) -> Html {
+        html! {
+            <>
+                <h1>{ "Mission Complete" }</h1>
+            </>
         }
     }
 }
