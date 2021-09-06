@@ -311,6 +311,9 @@ impl Model {
 pub fn run_app() -> Result<(), JsValue> {
     console_log::init_with_level(log::Level::Info).expect("initializing logging");
     log::info!("Version {}", &version());
+    let userid = userid::get_userid();
+    log::info!("userid {}", &userid);
+    log::info!("username {}", &userid::get_username(&userid));
     yew::start_app::<Model>();
     Ok(())
 }

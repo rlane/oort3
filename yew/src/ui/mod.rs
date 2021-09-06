@@ -72,10 +72,6 @@ impl UI {
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();
 
-        let userid = userid::get_userid();
-        log::info!("userid {}", &userid);
-        log::info!("username {}", &userid::get_username(&userid));
-
         let latest_code = code.to_string();
 
         UI {
