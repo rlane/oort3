@@ -2,7 +2,7 @@ use oort_simulator::scenario::Status;
 use oort_simulator::simulation::Simulation;
 use oort_simulator::snapshot::Snapshot;
 use serde::{Deserialize, Serialize};
-use yew::agent::{Agent, AgentLink, HandlerId, Public};
+use yew_agent::{Agent, AgentLink, HandlerId, Public};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
@@ -87,7 +87,7 @@ impl Agent for SimAgent {
     }
 
     fn name_of_resource() -> &'static str {
-        "sim_worker.js"
+        "worker.js"
     }
 }
 

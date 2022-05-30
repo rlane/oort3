@@ -2,24 +2,29 @@ pub mod code_size;
 pub mod codestorage;
 pub mod js;
 pub mod leaderboard;
-pub mod sim_agent;
 pub mod telemetry;
 pub mod ui;
 pub mod userid;
 
 use chrono::NaiveDateTime;
+use gloo_render::{request_animation_frame, AnimationFrame};
 use leaderboard::Leaderboard;
+use monaco::{api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor};
+use oort_sim_agent::SimAgent;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::{script, simulation};
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
+use std::rc::Rc;
 use telemetry::Telemetry;
 use ui::UI;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use yew::agent::{Bridge, Bridged};
+use web_sys::{EventTarget, HtmlInputElement};
+use yew::events::Event;
 use yew::prelude::*;
-use yew::services::render::{RenderService, RenderTask};
+use yew_agent::{Bridge, Bridged};
 
 #[derive(BuildDateTime, BuildInfo)]
 struct BuildTag;
@@ -42,12 +47,19 @@ pub fn version() -> String {
     }
 }
 
+fn make_monaco_options() -> CodeEditorOptions {
+    CodeEditorOptions::default()
+        .with_language("rust".to_owned())
+        .with_value("foo".to_owned())
+        .with_builtin_theme(BuiltinTheme::VsDark)
+}
+
 pub enum Msg {
     Render,
     SelectScenario(String),
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
-    ReceivedSimAgentResponse(sim_agent::Response),
+    ReceivedSimAgentResponse(oort_sim_agent::Response),
     RequestSnapshot,
     EditorAction(String),
     ShowDocumentation,
@@ -63,10 +75,9 @@ enum Overlay {
 pub struct Model {
     // `ComponentLink` is like a reference to a component.
     // It can be used to send messages to the component
-    link: ComponentLink<Self>,
-    render_task: RenderTask,
+    render_handle: Option<AnimationFrame>,
     scenario_name: String,
-    sim_agent: Box<dyn Bridge<sim_agent::SimAgent>>,
+    sim_agent: Box<dyn Bridge<SimAgent>>,
     editor_ref: NodeRef,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
@@ -80,16 +91,17 @@ impl Component for Model {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        link.send_message(Msg::SelectScenario("welcome".to_string()));
-        let link2 = link.clone();
-        let render_task = RenderService::request_animation_frame(Callback::from(move |_| {
+    fn create(context: &yew::Context<Self>) -> Self {
+        context
+            .link()
+            .send_message(Msg::SelectScenario("welcome".to_string()));
+        let link2 = context.link().clone();
+        let render_handle = Some(request_animation_frame(move |_ts| {
             link2.send_message(Msg::Render)
         }));
-        let sim_agent = sim_agent::SimAgent::bridge(link.callback(Msg::ReceivedSimAgentResponse));
+        let sim_agent = SimAgent::bridge(context.link().callback(Msg::ReceivedSimAgentResponse));
         Self {
-            link,
-            render_task,
+            render_handle,
             scenario_name: String::new(),
             sim_agent,
             editor_ref: NodeRef::default(),
@@ -102,17 +114,16 @@ impl Component for Model {
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Render => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
                 }
-                let link2 = self.link.clone();
-                self.render_task =
-                    RenderService::request_animation_frame(Callback::from(move |_| {
-                        link2.send_message(Msg::Render)
-                    }));
+                let link2 = context.link().clone();
+                self.render_handle = Some(request_animation_frame(move |_ts| {
+                    link2.send_message(Msg::Render)
+                }));
                 self.check_status()
             }
             Msg::SelectScenario(scenario_name) => {
@@ -122,9 +133,9 @@ impl Component for Model {
                 self.running_code = String::new();
                 let seed = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
-                    self.link.callback(|_| Msg::RequestSnapshot),
+                    context.link().callback(|_| Msg::RequestSnapshot),
                 )));
-                self.sim_agent.send(sim_agent::Request::StartScenario {
+                self.sim_agent.send(oort_sim_agent::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
                     code: String::new(),
@@ -137,9 +148,9 @@ impl Component for Model {
                 self.running_code = code.clone();
                 let seed = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
-                    self.link.callback(|_| Msg::RequestSnapshot),
+                    context.link().callback(|_| Msg::RequestSnapshot),
                 )));
-                self.sim_agent.send(sim_agent::Request::StartScenario {
+                self.sim_agent.send(oort_sim_agent::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
                     code,
@@ -168,14 +179,14 @@ impl Component for Model {
                 self.ui.as_mut().unwrap().on_wheel_event(e);
                 false
             }
-            Msg::ReceivedSimAgentResponse(sim_agent::Response::Snapshot { snapshot }) => {
+            Msg::ReceivedSimAgentResponse(oort_sim_agent::Response::Snapshot { snapshot }) => {
                 self.display_errors(&snapshot.errors);
                 self.ui.as_mut().unwrap().on_snapshot(snapshot);
                 false
             }
             Msg::RequestSnapshot => {
                 self.sim_agent
-                    .send(sim_agent::Request::Snapshot { nonce: 0 });
+                    .send(oort_sim_agent::Request::Snapshot { nonce: 0 });
                 false
             }
             Msg::ShowDocumentation => {
@@ -189,61 +200,61 @@ impl Component for Model {
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        // Should only return "true" if new properties are different to
-        // previously received properties.
-        // This component has no properties so we will always return "false".
-        false
-    }
-
-    fn view(&self) -> Html {
+    fn view(&self, context: &yew::Context<Self>) -> Html {
         let render_option = |name: String| {
             let selected = name == self.scenario_name;
-            html! { <option name={name.clone()} selected=selected>{name}</option> }
+            html! { <option name={name.clone()} selected={selected}>{name}</option> }
         };
 
-        let select_scenario_cb = self.link.callback(|data: ChangeData| match data {
-            ChangeData::Select(elem) => Msg::SelectScenario(elem.value()),
-            _ => unreachable!(),
+        let select_scenario_cb = context.link().callback(|e: Event| {
+            let target: EventTarget = e
+                .target()
+                .expect("Event should have a target when dispatched");
+            let data = target.unchecked_into::<HtmlInputElement>().value();
+            Msg::SelectScenario(data)
         });
 
-        let key_event_cb = self.link.callback(Msg::KeyEvent);
-        let wheel_event_cb = self.link.callback(Msg::WheelEvent);
-        let show_documentation_cb = self.link.callback(|_| Msg::ShowDocumentation);
+        let key_event_cb = context.link().callback(Msg::KeyEvent);
+        let wheel_event_cb = context.link().callback(Msg::WheelEvent);
+        let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
 
         let username = userid::get_username(&userid::get_userid());
+
+        let monaco_options: Rc<CodeEditorOptions> = Rc::new(make_monaco_options());
 
         html! {
         <>
             <canvas id="glcanvas"
                 tabindex="1"
-                onkeydown=key_event_cb.clone()
-                onkeyup=key_event_cb
-                onwheel=wheel_event_cb />
-            <div id="editor" ref=self.editor_ref.clone() />
-            <div id="status" ref=self.status_ref.clone() />
+                onkeydown={key_event_cb.clone()}
+                onkeyup={key_event_cb}
+                onwheel={wheel_event_cb} />
+            <div id="editor" ref={self.editor_ref.clone()}>
+                <CodeEditor options={monaco_options} />
+            </div>
+            <div id="status" ref={self.status_ref.clone()} />
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
                 <div class="toolbar-elem right">
-                    <select onchange=select_scenario_cb>
+                    <select onchange={select_scenario_cb}>
                         { for scenario::list().iter().cloned().map(render_option) }
                     </select>
                 </div>
-                <div class="toolbar-elem right"><a href="#" onclick=show_documentation_cb>{ "Documentation" }</a></div>
+                <div class="toolbar-elem right"><a href="#" onclick={show_documentation_cb}>{ "Documentation" }</a></div>
                 <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
                 <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
                 <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a></div>
                 <div id="username" class="toolbar-elem right" title="Your username">{ username }</div>
             </div>
-            { self.render_overlay() }
+            { self.render_overlay(context) }
         </>
         }
     }
 
-    fn rendered(&mut self, first_render: bool) {
+    fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
         if first_render {
             if let Some(editor_div) = self.editor_ref.cast::<web_sys::HtmlElement>() {
-                let cb = self.link.callback(Msg::EditorAction);
+                let cb = context.link().callback(Msg::EditorAction);
                 let closure =
                     Closure::wrap(Box::new(move |action| cb.emit(action)) as Box<dyn FnMut(_)>);
                 js::editor::initialize(editor_div, &closure);
@@ -285,13 +296,13 @@ impl Model {
         false
     }
 
-    fn render_overlay(&self) -> Html {
-        let outer_click_cb = self.link.callback(|_| Msg::DismissOverlay);
-        let inner_click_cb = self.link.batch_callback(|e: web_sys::MouseEvent| {
+    fn render_overlay(&self, context: &yew::Context<Self>) -> Html {
+        let outer_click_cb = context.link().callback(|_| Msg::DismissOverlay);
+        let inner_click_cb = context.link().batch_callback(|e: web_sys::MouseEvent| {
             e.stop_propagation();
             None
         });
-        let key_cb = self.link.batch_callback(|e: web_sys::KeyboardEvent| {
+        let key_cb = context.link().batch_callback(|e: web_sys::KeyboardEvent| {
             if e.key() == "Escape" {
                 Some(Msg::DismissOverlay)
             } else {
@@ -302,12 +313,12 @@ impl Model {
             return html! {};
         }
         html! {
-            <div ref=self.overlay_ref.clone() id="overlay"
-                onkeydown=key_cb onclick=outer_click_cb tabindex="-1">
-                <div class="inner-overlay" onclick=inner_click_cb>{
+            <div ref={self.overlay_ref.clone()} id="overlay"
+                onkeydown={key_cb} onclick={outer_click_cb} tabindex="-1">
+                <div class="inner-overlay" onclick={inner_click_cb}>{
                     match self.overlay {
                         Some(Overlay::Documentation) => self.render_documentation_overlay(),
-                        Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(),
+                        Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(context),
                         None => unreachable!(),
                     }
                 }</div>
@@ -335,20 +346,20 @@ impl Model {
         }
     }
 
-    fn render_mission_complete_overlay(&self) -> Html {
+    fn render_mission_complete_overlay(&self, context: &yew::Context<Self>) -> Html {
         let time = self.ui.as_ref().unwrap().snapshot().unwrap().time;
         let code_size = code_size::calculate(&self.running_code);
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         let next_scenario_link = match next_scenario {
             Some(scenario_name) => {
-                let next_scenario_cb = self.link.batch_callback(move |_| {
+                let next_scenario_cb = context.link().batch_callback(move |_| {
                     vec![
                         Msg::SelectScenario(scenario_name.clone()),
                         Msg::DismissOverlay,
                     ]
                 });
-                html! { <a href="#" onclick=next_scenario_cb>{ "Next mission" }</a> }
+                html! { <a href="#" onclick={next_scenario_cb}>{ "Next mission" }</a> }
             }
             None => {
                 html! { <span>{ "Use the scenario list in the top-right of the page to choose your next mission." }</span> }
@@ -374,7 +385,6 @@ impl Model {
 
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {
-    console_log::init_with_level(log::Level::Info).expect("initializing logging");
     log::info!("Version {}", &version());
     let userid = userid::get_userid();
     log::info!("userid {}", &userid);

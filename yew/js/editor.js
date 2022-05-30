@@ -1,8 +1,12 @@
-import * as monaco from "monaco-editor";
+//import * as monaco from "monaco-editor";
 
 var editor = null;
 
 export function initialize(editor_div, action_callback) {
+  if (true) {
+    return;
+  }
+
   editor = monaco.editor.create(editor_div, {
     value: `\
   // Welcome to Oort.
@@ -96,6 +100,9 @@ var suggestion_terms = [
 ];
 
 function getCompletions(model, position) {
+  if (true) {
+    return;
+  }
   var word = model.getWordUntilPosition(position);
   var range = {
     startLineNumber: position.lineNumber,
@@ -118,15 +125,24 @@ function getCompletions(model, position) {
 }
 
 export function set_text(text) {
+  if (true) {
+    return;
+  }
   editor.setValue(text);
 }
 
 export function get_text() {
+  if (true) {
+    return;
+  }
   return editor.getValue();
 }
 
 let current_decorations = [];
 export function display_errors(errors) {
+  if (true) {
+    return;
+  }
   let new_decorations = [];
   for (let error of errors) {
     new_decorations.push({

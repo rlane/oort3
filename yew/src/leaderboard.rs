@@ -1,10 +1,7 @@
 use crate::userid;
+use reqwasm::http::Request;
 use serde::Deserialize;
-use yew::{
-    format::{Json, Nothing},
-    prelude::*,
-    services::fetch::{FetchService, FetchTask, Request, Response},
-};
+use yew::prelude::*;
 
 #[derive(Deserialize, Debug)]
 pub struct LeaderboardData {
@@ -27,7 +24,7 @@ pub struct CodeSizeLeaderboardRow {
 #[derive(Debug)]
 pub enum Msg {
     SendRequest,
-    ReceiveResponse(Result<LeaderboardData, anyhow::Error>),
+    ReceiveResponse(Result<LeaderboardData, reqwasm::Error>),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -36,53 +33,41 @@ pub struct LeaderboardProps {
 }
 
 pub struct Leaderboard {
-    fetch_task: Option<FetchTask>,
     data: Option<LeaderboardData>,
-    link: ComponentLink<Self>,
     error: Option<String>,
-    props: LeaderboardProps,
+    fetching: bool,
 }
 
 impl Component for Leaderboard {
     type Message = Msg;
     type Properties = LeaderboardProps;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        link.send_message(Msg::SendRequest);
+    fn create(context: &yew::Context<Self>) -> Self {
+        context.link().send_message(Msg::SendRequest);
         Self {
-            fetch_task: None,
             data: None,
-            link,
             error: None,
-            props,
+            fetching: false,
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> bool {
-        props != self.props
-    }
-
-    fn update(&mut self, msg: Self::Message) -> bool {
+    fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         use Msg::*;
 
         match msg {
             SendRequest => {
-                let url = &format!("https://us-central1-oort-319301.cloudfunctions.net/leaderboard?scenario_name={}", &self.props.scenario_name);
-                // 1. build the request
-                let request = Request::get(url)
-                    .body(Nothing)
-                    .expect("Could not build request.");
-                // 2. construct a callback
-                let callback = self.link.callback(
-                    |response: Response<Json<Result<LeaderboardData, anyhow::Error>>>| {
-                        let Json(data) = response.into_body();
-                        Msg::ReceiveResponse(data)
-                    },
-                );
-                // 3. pass the request and callback to the fetch service
-                let task = FetchService::fetch(request, callback).expect("failed to start request");
-                // 4. store the task so it isn't canceled immediately
-                self.fetch_task = Some(task);
+                let url = format!("https://us-central1-oort-319301.cloudfunctions.net/leaderboard?scenario_name={}", &context.props().scenario_name);
+                let callback =
+                    context
+                        .link()
+                        .callback(|response: Result<LeaderboardData, reqwasm::Error>| {
+                            Msg::ReceiveResponse(response)
+                        });
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = Request::get(&url).send().await.unwrap().json().await;
+                    callback.emit(result);
+                });
+                self.fetching = true;
                 true
             }
             ReceiveResponse(response) => {
@@ -92,16 +77,16 @@ impl Component for Leaderboard {
                     }
                     Err(error) => self.error = Some(error.to_string()),
                 }
-                self.fetch_task = None;
+                self.fetching = false;
                 true
             }
         }
     }
 
-    fn view(&self) -> Html {
+    fn view(&self, _context: &yew::Context<Self>) -> Html {
         if let Some(ref error) = self.error {
             html! { <p>{ error.clone() }</p> }
-        } else if self.fetch_task.is_some() {
+        } else if self.fetching {
             html! { <p>{ "Fetching leaderboard..." }</p> }
         } else if let Some(ref data) = self.data {
             fn render_time_row(row: &TimeLeaderboardRow) -> Html {
