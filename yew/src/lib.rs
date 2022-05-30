@@ -56,6 +56,10 @@ fn make_monaco_options() -> CodeEditorOptions {
         .with_builtin_theme(BuiltinTheme::VsDark)
 }
 
+fn empty() -> JsValue {
+    js_sys::Object::new().into()
+}
+
 pub enum Msg {
     Render,
     SelectScenario(String),
@@ -260,7 +264,27 @@ impl Component for Model {
         }
     }
 
-    fn rendered(&mut self, _context: &yew::Context<Self>, _first_render: bool) {
+    fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
+        if first_render {
+            self.editor_link.with_editor(|editor| {
+                let cb = context.link().callback(Msg::EditorAction);
+                let closure =
+                    Closure::wrap(Box::new(move |_: JsValue| cb.emit("execute".to_string()))
+                        as Box<dyn FnMut(_)>);
+
+                let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                use monaco::sys::editor::IActionDescriptor;
+                let action = IActionDescriptor::from(empty());
+                action.set_id("oort-execute");
+                action.set_label("Execute");
+                action.set_context_menu_group_id(Some("navigation"));
+                action.set_context_menu_order(Some(1.5));
+                js_sys::Reflect::set(&action, &JsValue::from_str("run"), &closure.into_js_value())
+                    .unwrap();
+                ed.add_action(&action);
+            });
+        }
+
         if self.overlay.is_some() {
             self.focus_overlay();
         }
