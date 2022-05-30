@@ -277,10 +277,18 @@ impl Component for Model {
                 let action = IActionDescriptor::from(empty());
                 action.set_id("oort-execute");
                 action.set_label("Execute");
+                let key =
+                    monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::Enter as u32;
                 action.set_context_menu_group_id(Some("navigation"));
                 action.set_context_menu_order(Some(1.5));
                 js_sys::Reflect::set(&action, &JsValue::from_str("run"), &closure.into_js_value())
                     .unwrap();
+                js_sys::Reflect::set(
+                    &action,
+                    &JsValue::from_str("keybindings"),
+                    &js_sys::JSON::parse(&format!("[{}]", key)).unwrap(),
+                )
+                .unwrap();
                 ed.add_action(&action);
             });
         }
