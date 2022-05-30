@@ -11,7 +11,7 @@ fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
     let mut globals = std::collections::HashSet::new();
     globals.insert("rng".into());
     for stmt in ast.statements() {
-        if let Stmt::Let(_, ident, _, _) = stmt {
+        if let Stmt::Var(_, ident, _, _) = stmt {
             globals.insert(ident.name.clone());
         }
     }
@@ -29,7 +29,7 @@ fn parse_expr(code: &str) -> Expr {
 }
 
 fn global_variable(name: &str, pos: Position) -> Expr {
-    if let Expr::Dot(bx, _) = parse_expr(&format!("globals.{}", name)) {
+    if let Expr::Dot(bx, dummy, _) = parse_expr(&format!("globals.{}", name)) {
         let BinaryExpr { lhs, rhs } = &*bx;
         if let Expr::Variable(_, _, bx) = lhs {
             Expr::Dot(
@@ -37,6 +37,7 @@ fn global_variable(name: &str, pos: Position) -> Expr {
                     lhs: Expr::Variable(None, pos, Box::new((None, None, bx.2.clone()))),
                     rhs: rhs.clone(),
                 }),
+                dummy,
                 pos,
             )
         } else {
@@ -109,8 +110,12 @@ fn rewrite_expr(expr: &Expr, globals: &std::collections::HashSet<Identifier>) ->
             *pos,
         ),
         Expr::FnCall(bx, pos) => Expr::FnCall(Box::new(rewrite_fn_call_expr(&*bx, globals)), *pos),
-        Expr::Dot(bx, pos) => Expr::Dot(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
-        Expr::Index(bx, pos) => Expr::Index(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
+        Expr::Dot(bx, dummy, pos) => {
+            Expr::Dot(Box::new(rewrite_binary_expr(&*bx, globals)), *dummy, *pos)
+        }
+        Expr::Index(bx, stop, pos) => {
+            Expr::Index(Box::new(rewrite_binary_expr(&*bx, globals)), *stop, *pos)
+        }
         Expr::And(bx, pos) => Expr::And(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
         Expr::Or(bx, pos) => Expr::Or(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
         Expr::Stmt(bx) => Expr::Stmt(Box::new(rewrite_stmt_block(bx, globals))),
@@ -127,7 +132,7 @@ fn rewrite_stmt_block(
         block
             .iter()
             .map(|stmt| rewrite_stmt(stmt, globals))
-            .collect(),
+            .collect::<Vec<Stmt>>(),
         block.position(),
     )
 }
@@ -135,7 +140,7 @@ fn rewrite_stmt_block(
 #[allow(deprecated)]
 fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) -> Stmt {
     match stmt {
-        Stmt::Let(expr, ident, b, pos) => {
+        Stmt::Var(expr, ident, option_flags, pos) => {
             if globals.contains(&ident.name) {
                 Stmt::Assignment(
                     Box::new((
@@ -146,7 +151,12 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
                     *pos,
                 )
             } else {
-                Stmt::Let(rewrite_expr(expr, globals), ident.clone(), *b, *pos)
+                Stmt::Var(
+                    rewrite_expr(expr, globals),
+                    ident.clone(),
+                    *option_flags,
+                    *pos,
+                )
             }
         }
         Stmt::If(expr, bx, pos) => Stmt::If(

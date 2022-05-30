@@ -117,7 +117,7 @@ impl TeamController for RhaiTeamController {
 
         let result = ship_ctrl
             .engine
-            .consume_ast_with_scope(&mut ship_ctrl.scope, &self.ast);
+            .run_ast_with_scope(&mut ship_ctrl.scope, &self.ast);
         if let Err(e) = result {
             error!("Script error: {}", e);
             return Err(super::Error {
