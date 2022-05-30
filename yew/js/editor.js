@@ -1,60 +1,8 @@
-//import * as monaco from "monaco-editor";
-
-var editor = null;
-
-export function initialize(editor_div, action_callback) {
-  if (true) {
-    return;
-  }
-
-  editor = monaco.editor.create(editor_div, {
-    value: `\
-  // Welcome to Oort.
-  // Select a scenario from the list in the top-right of the page.
-  // If you're new, start with 'tutorial01'.`,
-    language: "rust",
-    theme: "vs-dark",
-    automaticLayout: true,
-    largeFileOptimizations: false,
-    minimap: { enabled: false },
-  });
-
-  editor.addAction({
-    id: "oort-execute",
-    label: "Execute",
-    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-    contextMenuGroupId: "navigation",
-    contextMenuOrder: 1.5,
-    run: function (_) {
-      action_callback("execute");
-      return null;
-    },
-  });
-
-  editor.addAction({
-    id: "oort-restore-initial-code",
-    label: "Restore initial code",
-    contextMenuGroupId: "navigation",
-    contextMenuOrder: 1.6,
-    run: function (_) {
-      action_callback("load-initial-code");
-      return null;
-    },
-  });
-
-  editor.addAction({
-    id: "oort-load-solution",
-    label: "Load solution",
-    run: function (_) {
-      action_callback("load-solution-code");
-      return null;
-    },
-  });
-
+/* TODO
   monaco.languages.registerCompletionItemProvider("rust", {
     provideCompletionItems: getCompletions,
   });
-}
+*/
 
 var suggestion_terms = [
   // Ship
@@ -100,9 +48,6 @@ var suggestion_terms = [
 ];
 
 function getCompletions(model, position) {
-  if (true) {
-    return;
-  }
   var word = model.getWordUntilPosition(position);
   var range = {
     startLineNumber: position.lineNumber,
@@ -122,20 +67,6 @@ function getCompletions(model, position) {
   return {
     suggestions: suggestions,
   };
-}
-
-export function set_text(text) {
-  if (true) {
-    return;
-  }
-  editor.setValue(text);
-}
-
-export function get_text() {
-  if (true) {
-    return;
-  }
-  return editor.getValue();
 }
 
 let current_decorations = [];
