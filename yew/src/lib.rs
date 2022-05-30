@@ -9,7 +9,9 @@ pub mod userid;
 use chrono::NaiveDateTime;
 use gloo_render::{request_animation_frame, AnimationFrame};
 use leaderboard::Leaderboard;
-use monaco::{api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor};
+use monaco::{
+    api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
+};
 use oort_sim_agent::SimAgent;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::{script, simulation};
@@ -73,12 +75,10 @@ enum Overlay {
 }
 
 pub struct Model {
-    // `ComponentLink` is like a reference to a component.
-    // It can be used to send messages to the component
     render_handle: Option<AnimationFrame>,
     scenario_name: String,
     sim_agent: Box<dyn Bridge<SimAgent>>,
-    editor_ref: NodeRef,
+    editor_link: CodeEditorLink,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
     ui: Option<Box<UI>>,
@@ -104,7 +104,7 @@ impl Component for Model {
             render_handle,
             scenario_name: String::new(),
             sim_agent,
-            editor_ref: NodeRef::default(),
+            editor_link: CodeEditorLink::default(),
             overlay: None,
             overlay_ref: NodeRef::default(),
             ui: None,
@@ -129,7 +129,9 @@ impl Component for Model {
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
                 let code = codestorage::load(&self.scenario_name);
-                js::editor::set_text(&code);
+                self.editor_link.with_editor(|editor| {
+                    editor.get_model().unwrap().set_value(&code);
+                });
                 self.running_code = String::new();
                 let seed = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
@@ -143,7 +145,10 @@ impl Component for Model {
                 true
             }
             Msg::EditorAction(ref action) if action == "execute" => {
-                let code = js::editor::get_text();
+                let code = self
+                    .editor_link
+                    .with_editor(|editor| editor.get_model().unwrap().get_value())
+                    .unwrap();
                 codestorage::save(&self.scenario_name, &code);
                 self.running_code = code.clone();
                 let seed = rand::thread_rng().gen();
@@ -159,12 +164,16 @@ impl Component for Model {
             }
             Msg::EditorAction(ref action) if action == "load-initial-code" => {
                 let code = scenario::load(&self.scenario_name).initial_code();
-                js::editor::set_text(&code);
+                self.editor_link.with_editor(|editor| {
+                    editor.get_model().unwrap().set_value(&code);
+                });
                 false
             }
             Msg::EditorAction(ref action) if action == "load-solution-code" => {
                 let code = scenario::load(&self.scenario_name).solution();
-                js::editor::set_text(&code);
+                self.editor_link.with_editor(|editor| {
+                    editor.get_model().unwrap().set_value(&code);
+                });
                 false
             }
             Msg::EditorAction(action) => {
@@ -229,8 +238,8 @@ impl Component for Model {
                 onkeydown={key_event_cb.clone()}
                 onkeyup={key_event_cb}
                 onwheel={wheel_event_cb} />
-            <div id="editor" ref={self.editor_ref.clone()}>
-                <CodeEditor options={monaco_options} />
+            <div id="editor">
+                <CodeEditor options={monaco_options} link={self.editor_link.clone()} />
             </div>
             <div id="status" ref={self.status_ref.clone()} />
             <div id="toolbar">
@@ -251,17 +260,7 @@ impl Component for Model {
         }
     }
 
-    fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
-        if first_render {
-            if let Some(editor_div) = self.editor_ref.cast::<web_sys::HtmlElement>() {
-                let cb = context.link().callback(Msg::EditorAction);
-                let closure =
-                    Closure::wrap(Box::new(move |action| cb.emit(action)) as Box<dyn FnMut(_)>);
-                js::editor::initialize(editor_div, &closure);
-                closure.forget();
-            }
-        }
-
+    fn rendered(&mut self, _context: &yew::Context<Self>, _first_render: bool) {
         if self.overlay.is_some() {
             self.focus_overlay();
         }
