@@ -148,7 +148,7 @@ impl Component for Model {
                 });
                 true
             }
-            Msg::EditorAction(ref action) if action == "execute" => {
+            Msg::EditorAction(ref action) if action == "oort-execute" => {
                 let code = self
                     .editor_link
                     .with_editor(|editor| editor.get_model().unwrap().get_value())
@@ -166,14 +166,14 @@ impl Component for Model {
                 });
                 false
             }
-            Msg::EditorAction(ref action) if action == "load-initial-code" => {
+            Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
                 let code = scenario::load(&self.scenario_name).initial_code();
                 self.editor_link.with_editor(|editor| {
                     editor.get_model().unwrap().set_value(&code);
                 });
                 false
             }
-            Msg::EditorAction(ref action) if action == "load-solution-code" => {
+            Msg::EditorAction(ref action) if action == "oort-load-solution" => {
                 let code = scenario::load(&self.scenario_name).solution();
                 self.editor_link.with_editor(|editor| {
                     editor.get_model().unwrap().set_value(&code);
@@ -267,29 +267,46 @@ impl Component for Model {
     fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
         if first_render {
             self.editor_link.with_editor(|editor| {
-                let cb = context.link().callback(Msg::EditorAction);
-                let closure =
-                    Closure::wrap(Box::new(move |_: JsValue| cb.emit("execute".to_string()))
-                        as Box<dyn FnMut(_)>);
+                let add_action = |id: &'static str, label, key: Option<u32>| {
+                    let cb = context.link().callback(Msg::EditorAction);
+                    let closure =
+                        Closure::wrap(Box::new(move |_: JsValue| cb.emit(id.to_string()))
+                            as Box<dyn FnMut(_)>);
 
-                let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                use monaco::sys::editor::IActionDescriptor;
-                let action = IActionDescriptor::from(empty());
-                action.set_id("oort-execute");
-                action.set_label("Execute");
-                let key =
-                    monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::Enter as u32;
-                action.set_context_menu_group_id(Some("navigation"));
-                action.set_context_menu_order(Some(1.5));
-                js_sys::Reflect::set(&action, &JsValue::from_str("run"), &closure.into_js_value())
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    let action = monaco::sys::editor::IActionDescriptor::from(empty());
+                    action.set_id(id);
+                    action.set_label(label);
+                    action.set_context_menu_group_id(Some("navigation"));
+                    action.set_context_menu_order(Some(1.5));
+                    js_sys::Reflect::set(
+                        &action,
+                        &JsValue::from_str("run"),
+                        &closure.into_js_value(),
+                    )
                     .unwrap();
-                js_sys::Reflect::set(
-                    &action,
-                    &JsValue::from_str("keybindings"),
-                    &js_sys::JSON::parse(&format!("[{}]", key)).unwrap(),
-                )
-                .unwrap();
-                ed.add_action(&action);
+                    if let Some(key) = key {
+                        js_sys::Reflect::set(
+                            &action,
+                            &JsValue::from_str("keybindings"),
+                            &js_sys::JSON::parse(&format!("[{}]", key)).unwrap(),
+                        )
+                        .unwrap();
+                    }
+                    ed.add_action(&action);
+                };
+
+                add_action(
+                    "oort-execute",
+                    "Execute",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::Enter as u32,
+                    ),
+                );
+
+                add_action("oort-restore-initial-code", "Restore initial code", None);
+
+                add_action("oort-load-solution", "Load solution", None);
             });
         }
 
