@@ -135,7 +135,7 @@ impl TeamController for RhaiTeamController {
 pub struct RhaiShipController {
     engine: Engine,
     scope: Scope<'static>,
-    #[allow(unused)]
+    #[allow(unused, clippy::box_collection)]
     globals_map: Box<std::collections::HashMap<CompactString, Dynamic>>,
     ast: Rc<AST>,
 }

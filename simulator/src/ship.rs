@@ -298,7 +298,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let p = body.position().translation.vector + rot.transform_vector(&offset);
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
         bullet::create(
-            &mut self.simulation,
+            self.simulation,
             p.x,
             p.y,
             v.x,
@@ -325,7 +325,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
         let team = self.data().team;
         create(
-            &mut self.simulation,
+            self.simulation,
             p.x,
             p.y,
             v.x,
@@ -349,7 +349,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             let rot = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU));
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             bullet::create(
-                &mut self.simulation,
+                self.simulation,
                 p.x,
                 p.y,
                 v.x,
