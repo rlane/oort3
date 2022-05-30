@@ -89,6 +89,7 @@ pub struct Model {
     status_ref: NodeRef,
     last_status: Status,
     running_code: String,
+    current_decorations: js_sys::Array,
 }
 
 impl Component for Model {
@@ -115,6 +116,7 @@ impl Component for Model {
             status_ref: NodeRef::default(),
             last_status: Status::Running,
             running_code: String::new(),
+            current_decorations: js_sys::Array::new(),
         }
     }
 
@@ -426,8 +428,44 @@ impl Model {
         }
     }
 
-    pub fn display_errors(&self, errors: &[script::Error]) {
-        js::editor::display_errors(JsValue::from_serde(errors).unwrap());
+    pub fn display_errors(&mut self, errors: &[script::Error]) {
+        use monaco::sys::{
+            editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
+        };
+        let decorations: Vec<IModelDeltaDecoration> = errors
+            .iter()
+            .map(|error| {
+                let decoration: IModelDeltaDecoration = empty().into();
+                decoration.set_range(
+                    &Range::new(error.line as f64, 1.0, error.line as f64, 1.0).unchecked_into(),
+                );
+                let options: IModelDecorationOptions = empty().into();
+                options.set_is_whole_line(Some(true));
+                options.set_class_name("errorDecoration".into());
+                let hover_message: IMarkdownString = empty().into();
+                js_sys::Reflect::set(
+                    &hover_message,
+                    &JsValue::from_str("value"),
+                    &JsValue::from_str(&error.msg),
+                )
+                .unwrap();
+                options.set_hover_message(&hover_message);
+                decoration.set_options(&options);
+                decoration
+            })
+            .collect();
+        let decorations_jsarray = js_sys::Array::new();
+        for decoration in decorations {
+            decorations_jsarray.push(&decoration);
+        }
+        self.current_decorations = self
+            .editor_link
+            .with_editor(|editor| {
+                editor
+                    .as_ref()
+                    .delta_decorations(&self.current_decorations, &decorations_jsarray)
+            })
+            .unwrap();
     }
 }
 

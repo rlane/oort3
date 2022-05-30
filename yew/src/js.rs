@@ -15,12 +15,3 @@ pub mod telemetry {
         pub fn send_telemetry(data: &str);
     }
 }
-
-pub mod editor {
-    use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen(module = "/js/editor.js")]
-    extern "C" {
-        pub fn display_errors(errors: JsValue);
-    }
-}
