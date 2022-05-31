@@ -10,9 +10,9 @@ if ! git diff --cached --quiet --diff-filter=ACM -- simulator; then
   )
 fi
 
-if ! git diff --cached --quiet --diff-filter=ACM -- yew; then
+if ! git diff --cached --quiet --diff-filter=ACM -- app; then
   (
-    cd yew
+    cd app
     cargo check -q
     cargo clippy -q -- -Dwarnings
     cargo build -q --target wasm32-unknown-unknown

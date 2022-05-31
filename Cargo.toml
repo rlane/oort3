@@ -3,7 +3,7 @@
 members = [
     "simulator",
     "sim_agent",
-    "yew",
+    "app",
     "renderer",
 ]
 
