@@ -1,5 +1,6 @@
 pub mod code_size;
 pub mod codestorage;
+pub mod documentation;
 pub mod js;
 pub mod leaderboard;
 pub mod telemetry;
@@ -400,7 +401,7 @@ impl Model {
                 onkeydown={key_cb} onclick={outer_click_cb} tabindex="-1">
                 <div class="inner-overlay" onclick={inner_click_cb}>{
                     match self.overlay {
-                        Some(Overlay::Documentation) => self.render_documentation_overlay(),
+                        Some(Overlay::Documentation) => html! { <documentation::Documentation /> },
                         Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(context),
                         None => unreachable!(),
                     }
@@ -412,20 +413,6 @@ impl Model {
     fn focus_overlay(&self) {
         if let Some(element) = self.overlay_ref.cast::<web_sys::HtmlElement>() {
             element.focus().expect("focusing overlay");
-        }
-    }
-
-    fn render_documentation_overlay(&self) -> Html {
-        html! {
-            <>
-                <h1>{ "Quick Reference" }</h1>
-                { "Press Escape to close. File bugs on " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>{ "." }<br />
-
-                <h2>{ "Basics" }</h2>
-                { "Select a scenario from the list in the top-right of the page." }<br/>
-                { "Press Ctrl-Enter in the editor to run the scenario with a new version of your code." }<br/>
-                { "The game calls your " }<code>{ "tick()" }</code>{ " function 60 times per second." }
-            </>
         }
     }
 
