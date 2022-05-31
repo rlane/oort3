@@ -3,9 +3,8 @@ eval "$(fnm env)"
 set -x
 
 cd $(realpath $(dirname $0))/../yew
-fnm use
 rm -rf dist/ ../target/wasm32-unknown-unknown/release/build/oort-* ../target/wasm32-unknown-unknown/release/*oort.*
-npx webpack build --mode=production
+trunk build --release
 
 cd ../backend
 fnm use
