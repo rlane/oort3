@@ -66,6 +66,7 @@ pub enum Msg {
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
     ReceivedSimAgentResponse(oort_sim_agent::Response),
+    ReceivedBackgroundSimAgentResponse(oort_sim_agent::Response),
     RequestSnapshot,
     EditorAction(String),
     ShowDocumentation,
@@ -82,6 +83,8 @@ pub struct Model {
     render_handle: Option<AnimationFrame>,
     scenario_name: String,
     sim_agent: Box<dyn Bridge<SimAgent>>,
+    background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
+    background_statuses: Vec<Status>,
     editor_link: CodeEditorLink,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
@@ -109,6 +112,8 @@ impl Component for Model {
             render_handle,
             scenario_name: String::new(),
             sim_agent,
+            background_agents: Vec::new(),
+            background_statuses: Vec::new(),
             editor_link: CodeEditorLink::default(),
             overlay: None,
             overlay_ref: NodeRef::default(),
@@ -130,7 +135,7 @@ impl Component for Model {
                 self.render_handle = Some(request_animation_frame(move |_ts| {
                     link2.send_message(Msg::Render)
                 }));
-                self.check_status()
+                self.check_status(context)
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
@@ -148,6 +153,7 @@ impl Component for Model {
                     seed,
                     code: String::new(),
                 });
+                self.background_agents.clear();
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
@@ -166,6 +172,7 @@ impl Component for Model {
                     seed,
                     code,
                 });
+                self.background_agents.clear();
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
@@ -199,6 +206,12 @@ impl Component for Model {
                 self.ui.as_mut().unwrap().on_snapshot(snapshot);
                 false
             }
+            Msg::ReceivedBackgroundSimAgentResponse(oort_sim_agent::Response::Snapshot {
+                snapshot,
+            }) => {
+                self.background_statuses.push(snapshot.status);
+                true
+            }
             Msg::RequestSnapshot => {
                 self.sim_agent
                     .send(oort_sim_agent::Request::Snapshot { nonce: 0 });
@@ -210,6 +223,7 @@ impl Component for Model {
             }
             Msg::DismissOverlay => {
                 self.overlay = None;
+                self.background_agents.clear();
                 true
             }
         }
@@ -319,7 +333,7 @@ impl Component for Model {
 }
 
 impl Model {
-    fn check_status(&mut self) -> bool {
+    fn check_status(&mut self, context: &Context<Self>) -> bool {
         if let Some(ui) = self.ui.as_ref() {
             if self.last_status == ui.status() {
                 return false;
@@ -336,6 +350,21 @@ impl Model {
                         ticks: (snapshot.time / simulation::PHYSICS_TICK_LENGTH) as u32,
                         code_size: code_size::calculate(code),
                     });
+                }
+
+                self.background_agents.clear();
+                for i in 0..10 {
+                    let mut sim_agent = SimAgent::bridge(
+                        context
+                            .link()
+                            .callback(Msg::ReceivedBackgroundSimAgentResponse),
+                    );
+                    sim_agent.send(oort_sim_agent::Request::RunScenario {
+                        scenario_name: self.scenario_name.to_owned(),
+                        seed: i,
+                        code: self.running_code.clone(),
+                    });
+                    self.background_agents.push(sim_agent);
                 }
 
                 self.overlay = Some(Overlay::MissionComplete);
@@ -416,11 +445,23 @@ impl Model {
             }
         };
 
+        let background_status = if self.background_statuses.len() == self.background_agents.len() {
+            let victory_count = self
+                .background_statuses
+                .iter()
+                .filter(|s| matches!(s, Status::Victory { team: 0 }))
+                .count();
+            html! { <span>{ "Simulations complete: " }{ victory_count }{"/"}{ self.background_agents.len() }{ " successful" }</span> }
+        } else {
+            html! { <span>{ "Waiting for simulations (" }{ self.background_statuses.len() }{ "/" }{ self.background_agents.len() }{ " complete)" }</span> }
+        };
+
         html! {
             <div class="centered">
                 <h1>{ "Mission Complete" }</h1>
                 { "Time: " }{ format!("{:.2}", time) }{ " seconds" }<br/><br/>
                 { "Code size: " }{ code_size }{ " bytes" }<br/><br/>
+                { background_status }<br/><br/>
                 { next_scenario_link }
                 <br/><br/>
                 <Leaderboard scenario_name={ self.scenario_name.clone() }/>
