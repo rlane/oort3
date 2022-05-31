@@ -13,9 +13,9 @@ use leaderboard::Leaderboard;
 use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
-use oort_sim_agent::SimAgent;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::{script, simulation};
+use oort_worker::SimAgent;
 use rand::Rng;
 use rbtag::{BuildDateTime, BuildInfo};
 use std::rc::Rc;
@@ -66,8 +66,8 @@ pub enum Msg {
     SelectScenario(String),
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
-    ReceivedSimAgentResponse(oort_sim_agent::Response),
-    ReceivedBackgroundSimAgentResponse(oort_sim_agent::Response),
+    ReceivedSimAgentResponse(oort_worker::Response),
+    ReceivedBackgroundSimAgentResponse(oort_worker::Response),
     RequestSnapshot,
     EditorAction(String),
     ShowDocumentation,
@@ -149,7 +149,7 @@ impl Component for Model {
                 self.ui = Some(Box::new(UI::new(
                     context.link().callback(|_| Msg::RequestSnapshot),
                 )));
-                self.sim_agent.send(oort_sim_agent::Request::StartScenario {
+                self.sim_agent.send(oort_worker::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
                     code: String::new(),
@@ -169,7 +169,7 @@ impl Component for Model {
                 self.ui = Some(Box::new(UI::new(
                     context.link().callback(|_| Msg::RequestSnapshot),
                 )));
-                self.sim_agent.send(oort_sim_agent::Request::StartScenario {
+                self.sim_agent.send(oort_worker::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
                     code,
@@ -204,12 +204,12 @@ impl Component for Model {
                 self.ui.as_mut().unwrap().on_wheel_event(e);
                 false
             }
-            Msg::ReceivedSimAgentResponse(oort_sim_agent::Response::Snapshot { snapshot }) => {
+            Msg::ReceivedSimAgentResponse(oort_worker::Response::Snapshot { snapshot }) => {
                 self.display_errors(&snapshot.errors);
                 self.ui.as_mut().unwrap().on_snapshot(snapshot);
                 false
             }
-            Msg::ReceivedBackgroundSimAgentResponse(oort_sim_agent::Response::Snapshot {
+            Msg::ReceivedBackgroundSimAgentResponse(oort_worker::Response::Snapshot {
                 snapshot,
             }) => {
                 self.background_statuses.push(snapshot.status);
@@ -217,7 +217,7 @@ impl Component for Model {
             }
             Msg::RequestSnapshot => {
                 self.sim_agent
-                    .send(oort_sim_agent::Request::Snapshot { nonce: 0 });
+                    .send(oort_worker::Request::Snapshot { nonce: 0 });
                 false
             }
             Msg::ShowDocumentation => {
@@ -364,7 +364,7 @@ impl Model {
                             .link()
                             .callback(Msg::ReceivedBackgroundSimAgentResponse),
                     );
-                    sim_agent.send(oort_sim_agent::Request::RunScenario {
+                    sim_agent.send(oort_worker::Request::RunScenario {
                         scenario_name: self.scenario_name.to_owned(),
                         seed: i,
                         code: self.running_code.clone(),

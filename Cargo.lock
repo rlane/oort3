@@ -872,8 +872,8 @@ dependencies = [
  "nalgebra",
  "no-comment",
  "oort_renderer",
- "oort_sim_agent",
  "oort_simulator",
+ "oort_worker",
  "petname",
  "rand",
  "rand_chacha",
@@ -916,16 +916,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_sim_agent"
-version = "0.1.0"
-dependencies = [
- "oort_simulator",
- "serde",
- "yew",
- "yew-agent",
-]
-
-[[package]]
 name = "oort_simulator"
 version = "0.1.0"
 dependencies = [
@@ -953,6 +943,16 @@ dependencies = [
  "smartstring",
  "test-env-log",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "oort_worker"
+version = "0.1.0"
+dependencies = [
+ "oort_simulator",
+ "serde",
+ "yew",
+ "yew-agent",
 ]
 
 [[package]]

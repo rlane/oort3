@@ -1,5 +1,5 @@
 [package]
-name = "oort_sim_agent"
+name = "oort_worker"
 version = "0.1.0"
 edition = "2018"
 

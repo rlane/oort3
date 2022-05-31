@@ -2,7 +2,7 @@
 
 members = [
     "simulator",
-    "sim_agent",
+    "worker",
     "app",
     "renderer",
 ]

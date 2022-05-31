@@ -1,4 +1,4 @@
-use oort_sim_agent::SimAgent;
+use oort_worker::SimAgent;
 use yew_agent::PrivateAgent;
 
 fn main() {

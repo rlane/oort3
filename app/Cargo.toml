@@ -21,7 +21,7 @@ nalgebra = { version = "0.28", features = ["serde-serialize"] }
 no-comment = "0.0.3"
 oort_renderer = { path = "../renderer" }
 oort_simulator = { path = "../simulator" }
-oort_sim_agent = { path = "../sim_agent" }
+oort_worker = { path = "../worker" }
 petname = "1.1.0"
 rand = "*"
 rand_chacha = "0.3.1"
