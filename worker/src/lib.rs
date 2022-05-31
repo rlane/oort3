@@ -87,7 +87,7 @@ impl Agent for SimAgent {
     }
 
     fn name_of_resource() -> &'static str {
-        "worker.js"
+        "oort_worker.js"
     }
 }
 
