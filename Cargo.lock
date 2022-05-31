@@ -1712,8 +1712,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "yew"
 version = "0.19.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a1ccb53e57d3f7d847338cf5758befa811cabe207df07f543c06f502f9998cd"
+source = "git+https://github.com/yewstack/yew?rev=6f6519dab4c5990029fe8d85c47daf439fdc3988#6f6519dab4c5990029fe8d85c47daf439fdc3988"
 dependencies = [
  "console_error_panic_hook",
  "gloo",
@@ -1731,8 +1730,7 @@ dependencies = [
 [[package]]
 name = "yew-agent"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "616700dc3851945658c44ba4477ede6b77c795462fbbb9b0ad9a8b6273a3ca77"
+source = "git+https://github.com/yewstack/yew?rev=6f6519dab4c5990029fe8d85c47daf439fdc3988#6f6519dab4c5990029fe8d85c47daf439fdc3988"
 dependencies = [
  "anymap2",
  "bincode",
@@ -1750,8 +1748,7 @@ dependencies = [
 [[package]]
 name = "yew-macro"
 version = "0.19.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fab79082b556d768d6e21811869c761893f0450e1d550a67892b9bce303b7bb"
+source = "git+https://github.com/yewstack/yew?rev=6f6519dab4c5990029fe8d85c47daf439fdc3988#6f6519dab4c5990029fe8d85c47daf439fdc3988"
 dependencies = [
  "boolinator",
  "lazy_static",

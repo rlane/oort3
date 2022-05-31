@@ -7,6 +7,10 @@ members = [
     "renderer",
 ]
 
+[patch.crates-io]
+yew = { git = "https://github.com/yewstack/yew", rev = "6f6519dab4c5990029fe8d85c47daf439fdc3988" }
+yew-agent = { git = "https://github.com/yewstack/yew", rev = "6f6519dab4c5990029fe8d85c47daf439fdc3988" }
+
 [profile.dev.package.'*']
 opt-level = 3
 
