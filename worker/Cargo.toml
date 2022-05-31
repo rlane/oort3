@@ -1,0 +1,10 @@
+[package]
+name = "oort_worker"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+oort_simulator = { path = "../simulator" }
+yew = "0.19"
+yew-agent = "0.1"
+serde = "1.0"

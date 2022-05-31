@@ -2,6 +2,5 @@
 eval "$(fnm env)"
 set -x
 
-cd $(realpath $(dirname $0))/../www
-fnm use
-npx webpack serve --mode=development "$@"
+cd $(realpath $(dirname $0))/../app
+trunk serve --watch .. "$@"

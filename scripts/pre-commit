@@ -1,0 +1,31 @@
+#!/bin/bash -eux
+if ! git diff --cached --quiet --diff-filter=ACM -- simulator; then
+  (
+    cd simulator
+    cargo check -q
+    cargo clippy -q -- -Dwarnings
+    cargo check -q --benches
+    cargo build -q --target wasm32-unknown-unknown
+    cargo test -q
+  )
+fi
+
+for PKG in app worker; do
+  if ! git diff --cached --quiet --diff-filter=ACM -- $PKG; then
+    (
+      cd $PKG
+      cargo check -q
+      cargo clippy -q -- -Dwarnings
+      cargo build -q --target wasm32-unknown-unknown
+    )
+  fi
+done
+
+if ! git diff --cached --quiet --diff-filter=ACM -- backend/functions; then
+  (
+    cd backend/functions
+    set +x; eval "$(fnm env)"; set -x
+    fnm use
+    npm test
+  )
+fi
