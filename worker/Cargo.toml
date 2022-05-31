@@ -7,4 +7,4 @@ edition = "2018"
 oort_simulator = { path = "../simulator" }
 yew = "0.19"
 yew-agent = "0.1"
-serde = "*"
+serde = "1.0"
