@@ -2,7 +2,7 @@ use oort_simulator::scenario::Status;
 use oort_simulator::simulation::Simulation;
 use oort_simulator::snapshot::Snapshot;
 use serde::{Deserialize, Serialize};
-use yew_agent::{Agent, AgentLink, HandlerId, Public};
+use yew_agent::{Agent, AgentLink, HandlerId, Private};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
@@ -33,7 +33,7 @@ pub struct SimAgent {
 }
 
 impl Agent for SimAgent {
-    type Reach = Public<Self>;
+    type Reach = Private<Self>;
     type Message = ();
     type Input = Request;
     type Output = Response;

@@ -1,5 +1,5 @@
 use oort_sim_agent::SimAgent;
-use yew_agent::PublicAgent;
+use yew_agent::PrivateAgent;
 
 fn main() {
     SimAgent::register();
