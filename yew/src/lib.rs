@@ -154,6 +154,7 @@ impl Component for Model {
                     code: String::new(),
                 });
                 self.background_agents.clear();
+                self.background_statuses.clear();
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
@@ -173,6 +174,7 @@ impl Component for Model {
                     code,
                 });
                 self.background_agents.clear();
+                self.background_statuses.clear();
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
@@ -224,6 +226,7 @@ impl Component for Model {
             Msg::DismissOverlay => {
                 self.overlay = None;
                 self.background_agents.clear();
+                self.background_statuses.clear();
                 true
             }
         }
@@ -353,6 +356,7 @@ impl Model {
                 }
 
                 self.background_agents.clear();
+                self.background_statuses.clear();
                 for i in 0..10 {
                     let mut sim_agent = SimAgent::bridge(
                         context
