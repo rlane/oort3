@@ -2,8 +2,8 @@ use rhai::plugin::Module;
 
 #[allow(deprecated)]
 use rhai::{
-    BinaryExpr, Engine, Expr, FnCallExpr, Identifier, Position, ScriptFnDef, StaticVec, Stmt,
-    StmtBlock, AST,
+    BinaryExpr, ConditionalStmtBlock, Engine, Expr, FnCallExpr, Identifier, Position, ScriptFnDef,
+    StaticVec, Stmt, StmtBlock, SwitchCases, TryCatchBlock, AST,
 };
 
 #[allow(deprecated)]
@@ -82,6 +82,7 @@ fn rewrite_fn_call_expr(
         constants: fn_call_expr.constants.clone(),
         name: fn_call_expr.name.clone(),
         capture_parent_scope: fn_call_expr.capture_parent_scope,
+        pos: fn_call_expr.pos,
     }
 }
 
@@ -134,7 +135,22 @@ fn rewrite_stmt_block(
             .map(|stmt| rewrite_stmt(stmt, globals))
             .collect::<Vec<Stmt>>(),
         block.position(),
+        block.end_position(),
     )
+}
+
+#[allow(deprecated)]
+fn rewrite_conditional_stmt_block(
+    block: &ConditionalStmtBlock,
+    globals: &std::collections::HashSet<Identifier>,
+) -> ConditionalStmtBlock {
+    ConditionalStmtBlock {
+        condition: block
+            .condition
+            .as_ref()
+            .map(|expr| rewrite_expr(expr, globals)),
+        statements: rewrite_stmt_block(&block.statements, globals),
+    }
 }
 
 #[allow(deprecated)]
@@ -144,9 +160,11 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             if globals.contains(&ident.name) {
                 Stmt::Assignment(
                     Box::new((
-                        global_variable(&ident.name, *pos),
                         None,
-                        rewrite_expr(expr, globals),
+                        BinaryExpr {
+                            lhs: global_variable(&ident.name, *pos),
+                            rhs: rewrite_expr(expr, globals),
+                        },
                     )),
                     *pos,
                 )
@@ -169,31 +187,15 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
         ),
         Stmt::Switch(expr, bx, pos) => Stmt::Switch(
             rewrite_expr(expr, globals),
-            Box::new((
-                bx.0.iter()
-                    .map(|(k, v)| {
-                        (
-                            *k,
-                            Box::new((
-                                v.0.as_ref().map(|expr| rewrite_expr(expr, globals)),
-                                rewrite_stmt_block(&v.1, globals),
-                            )),
-                        )
-                    })
+            Box::new(SwitchCases {
+                cases: bx
+                    .cases
+                    .iter()
+                    .map(|(k, v)| (*k, Box::new(rewrite_conditional_stmt_block(&*v, globals))))
                     .collect(),
-                rewrite_stmt_block(&bx.1, globals),
-                bx.2.iter()
-                    .map(|(a, b, c, expr, stmt)| {
-                        (
-                            *a,
-                            *b,
-                            *c,
-                            expr.as_ref().map(|e| rewrite_expr(e, globals)),
-                            rewrite_stmt_block(stmt, globals),
-                        )
-                    })
-                    .collect(),
-            )),
+                def_case: rewrite_stmt_block(&bx.def_case, globals),
+                ranges: bx.ranges.clone(),
+            }),
             *pos,
         ),
         Stmt::While(expr, bx, pos) => Stmt::While(
@@ -216,14 +218,9 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             )),
             *pos,
         ),
-        Stmt::Assignment(bx, pos) => Stmt::Assignment(
-            Box::new((
-                rewrite_expr(&bx.0, globals),
-                bx.1,
-                rewrite_expr(&bx.2, globals),
-            )),
-            *pos,
-        ),
+        Stmt::Assignment(bx, pos) => {
+            Stmt::Assignment(Box::new((bx.0, rewrite_binary_expr(&bx.1, globals))), *pos)
+        }
         Stmt::FnCall(bx, pos) => Stmt::FnCall(Box::new(rewrite_fn_call_expr(&*bx, globals)), *pos),
         Stmt::Expr(expr) => Stmt::Expr(rewrite_expr(expr, globals)),
         Stmt::Block(bx, pos) => Stmt::Block(
@@ -231,11 +228,11 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             *pos,
         ),
         Stmt::TryCatch(bx, pos) => Stmt::TryCatch(
-            Box::new((
-                rewrite_stmt_block(&bx.0, globals),
-                bx.1.clone(),
-                rewrite_stmt_block(&bx.2, globals),
-            )),
+            Box::new(TryCatchBlock {
+                try_block: rewrite_stmt_block(&bx.try_block, globals),
+                catch_var: bx.catch_var.clone(),
+                catch_block: rewrite_stmt_block(&bx.catch_block, globals),
+            }),
             *pos,
         ),
         Stmt::Return(t, expr_opt, pos) => Stmt::Return(
