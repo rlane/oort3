@@ -81,7 +81,7 @@ fn rewrite_fn_call_expr(
         args: rewrite_expr_vec(&fn_call_expr.args, globals),
         constants: fn_call_expr.constants.clone(),
         name: fn_call_expr.name.clone(),
-        capture: fn_call_expr.capture,
+        capture_parent_scope: fn_call_expr.capture_parent_scope,
     }
 }
 
