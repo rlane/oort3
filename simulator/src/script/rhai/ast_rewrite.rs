@@ -182,6 +182,17 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
                     })
                     .collect(),
                 rewrite_stmt_block(&bx.1, globals),
+                bx.2.iter()
+                    .map(|(a, b, c, expr, stmt)| {
+                        (
+                            *a,
+                            *b,
+                            *c,
+                            expr.as_ref().map(|e| rewrite_expr(e, globals)),
+                            rewrite_stmt_block(stmt, globals),
+                        )
+                    })
+                    .collect(),
             )),
             *pos,
         ),
