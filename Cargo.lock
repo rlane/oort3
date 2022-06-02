@@ -949,6 +949,8 @@ dependencies = [
 name = "oort_worker"
 version = "0.1.0"
 dependencies = [
+ "console_log",
+ "log",
  "oort_simulator",
  "serde",
  "yew",
