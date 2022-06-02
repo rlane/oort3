@@ -57,7 +57,7 @@ impl<T: HasIndex + Eq + std::hash::Hash + Copy> Default for IndexSet<T> {
 #[cfg(test)]
 mod test {
     use super::{HasIndex, Index, IndexSet};
-    use test_env_log::test;
+    use test_log::test;
 
     fn list<T: HasIndex + Eq + std::hash::Hash + Copy>(index_set: &IndexSet<T>) -> Vec<T> {
         index_set.iter().copied().collect::<Vec<T>>()

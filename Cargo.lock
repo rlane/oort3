@@ -940,8 +940,8 @@ dependencies = [
  "rhai",
  "serde",
  "serde_json",
- "smartstring 0.2.10",
- "test-env-log",
+ "smartstring",
+ "test-log",
  "wasm-bindgen",
 ]
 
@@ -1502,10 +1502,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "test-env-log"
-version = "0.2.8"
+name = "test-log"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "877189d680101869f65ef94168105d6c188b3a143c13a2d42cf8a09c4c704f8a"
+checksum = "4235dbf7ea878b3ef12dea20a59c134b405a66aafc4fc2c7b9935916e289e735"
 dependencies = [
  "proc-macro2 1.0.39",
  "quote 1.0.18",

@@ -1,7 +1,7 @@
 use oort_simulator::scenario;
 use oort_simulator::simulation;
 use rayon::prelude::*;
-use test_env_log::test;
+use test_log::test;
 
 fn check_solution(scenario_name: &str) {
     let check_once = || -> u64 {

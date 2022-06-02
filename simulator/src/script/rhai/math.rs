@@ -48,7 +48,7 @@ mod test {
     use crate::script::rhai::check_errors;
     use crate::ship;
     use crate::simulation::Simulation;
-    use test_env_log::test;
+    use test_log::test;
 
     #[test]
     fn test_min_max() {

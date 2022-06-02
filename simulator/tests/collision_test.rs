@@ -3,7 +3,7 @@ use oort_simulator::simulation;
 use oort_simulator::simulation::WORLD_SIZE;
 use oort_simulator::{bullet, scenario, ship};
 use rand::Rng;
-use test_env_log::test;
+use test_log::test;
 
 #[test]
 fn test_world_edge() {
