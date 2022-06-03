@@ -13,6 +13,7 @@ fn turn_to(target_heading, target_angular_velocity) {
 }
 
 let last_target_heading = 0.0;
+let radar_width_divisor = 16;
 
 fn tick() {
     let contact = radar.scan();
@@ -33,11 +34,19 @@ fn tick() {
         if vec2(predicted_dp.magnitude(), 0).rotate(ship.heading()).distance(predicted_dp) <= 5 {
             ship.fire_weapon();
         }
-        radar.set_heading(dp.angle() - ship.heading());
-        radar.set_width(2 * PI() / 120);
+        let next_tick_dp = dp + dv / 60;
+        radar.set_heading(next_tick_dp.angle() - ship.heading());
+        dbg.draw_diamond(dp, 10.0, 0xffffff);
         last_target_heading = target_heading;
+        if radar_width_divisor < 360 {
+            radar_width_divisor += 1;
+        }
     } else {
-        radar.set_heading(rng.next(0.0, 2*PI()));
-        radar.set_width(2 * PI() / 6);
+        if radar_width_divisor > 16 {
+            radar_width_divisor *= 0.8;
+        } else {
+            radar.set_heading(rng.next(0.0, 2*PI()));
+        }
     }
+    radar.set_width(2 * PI() / radar_width_divisor);
 }
