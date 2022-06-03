@@ -11,8 +11,8 @@ fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
     let mut globals = std::collections::HashSet::new();
     globals.insert("rng".into());
     for stmt in ast.statements() {
-        if let Stmt::Var(_, ident, _, _) = stmt {
-            globals.insert(ident.name.clone());
+        if let Stmt::Var(bx, _, _) = stmt {
+            globals.insert(bx.0.name.clone());
         }
     }
     globals
@@ -22,7 +22,7 @@ fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
 fn parse_expr(code: &str) -> Expr {
     let ast = Engine::new_raw().compile(code).unwrap();
     if let Stmt::Expr(expr) = &ast.statements()[0] {
-        expr.clone()
+        (**expr).clone()
     } else {
         panic!("Failed to parse expression")
     }
@@ -31,10 +31,14 @@ fn parse_expr(code: &str) -> Expr {
 fn global_variable(name: &str, pos: Position) -> Expr {
     if let Expr::Dot(bx, dummy, _) = parse_expr(&format!("globals.{}", name)) {
         let BinaryExpr { lhs, rhs } = &*bx;
-        if let Expr::Variable(_, _, bx) = lhs {
+        if let Expr::Variable(bx, _, _) = lhs {
             Expr::Dot(
                 Box::new(BinaryExpr {
-                    lhs: Expr::Variable(None, pos, Box::new((None, None, bx.2.clone()))),
+                    lhs: Expr::Variable(
+                        Box::new((None, bx.1.clone(), bx.2, bx.3.clone())),
+                        None,
+                        pos,
+                    ),
                     rhs: rhs.clone(),
                 }),
                 dummy,
@@ -79,7 +83,6 @@ fn rewrite_fn_call_expr(
         namespace: fn_call_expr.namespace.clone(),
         hashes: fn_call_expr.hashes,
         args: rewrite_expr_vec(&fn_call_expr.args, globals),
-        constants: fn_call_expr.constants.clone(),
         name: fn_call_expr.name.clone(),
         capture_parent_scope: fn_call_expr.capture_parent_scope,
         pos: fn_call_expr.pos,
@@ -89,8 +92,8 @@ fn rewrite_fn_call_expr(
 #[allow(deprecated)]
 fn rewrite_expr(expr: &Expr, globals: &std::collections::HashSet<Identifier>) -> Expr {
     match expr {
-        Expr::Variable(_, pos, bx) => {
-            let name = &bx.2;
+        Expr::Variable(bx, _, pos) => {
+            let name = &bx.3;
             if globals.contains(name) {
                 global_variable(name, *pos)
             } else {
@@ -120,6 +123,9 @@ fn rewrite_expr(expr: &Expr, globals: &std::collections::HashSet<Identifier>) ->
         Expr::And(bx, pos) => Expr::And(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
         Expr::Or(bx, pos) => Expr::Or(Box::new(rewrite_binary_expr(&*bx, globals)), *pos),
         Expr::Stmt(bx) => Expr::Stmt(Box::new(rewrite_stmt_block(bx, globals))),
+        Expr::MethodCall(bx, pos) => {
+            Expr::MethodCall(Box::new(rewrite_fn_call_expr(&*bx, globals)), *pos)
+        }
         _ => expr.clone(),
     }
 }
@@ -156,7 +162,8 @@ fn rewrite_conditional_stmt_block(
 #[allow(deprecated)]
 fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) -> Stmt {
     match stmt {
-        Stmt::Var(expr, ident, option_flags, pos) => {
+        Stmt::Var(bx, option_flags, pos) => {
+            let (ident, expr, _) = &**bx;
             if globals.contains(&ident.name) {
                 Stmt::Assignment(
                     Box::new((
@@ -170,51 +177,57 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
                 )
             } else {
                 Stmt::Var(
-                    rewrite_expr(expr, globals),
-                    ident.clone(),
+                    Box::new((ident.clone(), rewrite_expr(expr, globals), None)),
                     *option_flags,
                     *pos,
                 )
             }
         }
-        Stmt::If(expr, bx, pos) => Stmt::If(
-            rewrite_expr(expr, globals),
+        Stmt::If(bx, pos) => Stmt::If(
             Box::new((
-                rewrite_stmt_block(&bx.0, globals),
+                rewrite_expr(&bx.0, globals),
+                rewrite_stmt_block(&bx.1, globals),
+                rewrite_stmt_block(&bx.2, globals),
+            )),
+            *pos,
+        ),
+        Stmt::Switch(bx, pos) => Stmt::Switch(
+            Box::new((
+                rewrite_expr(&bx.0, globals),
+                SwitchCases {
+                    cases: bx
+                        .1
+                        .cases
+                        .iter()
+                        .map(|(k, v)| (*k, Box::new(rewrite_conditional_stmt_block(&*v, globals))))
+                        .collect(),
+                    def_case: Box::new(rewrite_stmt_block(&bx.1.def_case, globals)),
+                    ranges: bx.1.ranges.clone(),
+                },
+            )),
+            *pos,
+        ),
+        Stmt::While(bx, pos) => Stmt::While(
+            Box::new((
+                rewrite_expr(&bx.0, globals),
                 rewrite_stmt_block(&bx.1, globals),
             )),
             *pos,
         ),
-        Stmt::Switch(expr, bx, pos) => Stmt::Switch(
-            rewrite_expr(expr, globals),
-            Box::new(SwitchCases {
-                cases: bx
-                    .cases
-                    .iter()
-                    .map(|(k, v)| (*k, Box::new(rewrite_conditional_stmt_block(&*v, globals))))
-                    .collect(),
-                def_case: rewrite_stmt_block(&bx.def_case, globals),
-                ranges: bx.ranges.clone(),
-            }),
-            *pos,
-        ),
-        Stmt::While(expr, bx, pos) => Stmt::While(
-            rewrite_expr(expr, globals),
-            Box::new(rewrite_stmt_block(&*bx, globals)),
-            *pos,
-        ),
-        Stmt::Do(bx, expr, b, pos) => Stmt::Do(
-            Box::new(rewrite_stmt_block(&*bx, globals)),
-            rewrite_expr(expr, globals),
+        Stmt::Do(bx, b, pos) => Stmt::Do(
+            Box::new((
+                rewrite_expr(&bx.0, globals),
+                rewrite_stmt_block(&bx.1, globals),
+            )),
             *b,
             *pos,
         ),
-        Stmt::For(expr, bx, pos) => Stmt::For(
-            rewrite_expr(expr, globals),
+        Stmt::For(bx, pos) => Stmt::For(
             Box::new((
                 bx.0.clone(),
                 bx.1.clone(),
-                rewrite_stmt_block(&bx.2, globals),
+                rewrite_expr(&bx.2, globals),
+                rewrite_stmt_block(&bx.3, globals),
             )),
             *pos,
         ),
@@ -222,11 +235,8 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             Stmt::Assignment(Box::new((bx.0, rewrite_binary_expr(&bx.1, globals))), *pos)
         }
         Stmt::FnCall(bx, pos) => Stmt::FnCall(Box::new(rewrite_fn_call_expr(&*bx, globals)), *pos),
-        Stmt::Expr(expr) => Stmt::Expr(rewrite_expr(expr, globals)),
-        Stmt::Block(bx, pos) => Stmt::Block(
-            bx.iter().map(|stmt| rewrite_stmt(stmt, globals)).collect(),
-            *pos,
-        ),
+        Stmt::Expr(expr) => Stmt::Expr(Box::new(rewrite_expr(expr, globals))),
+        Stmt::Block(bx) => Stmt::Block(Box::new(rewrite_stmt_block(&*bx, globals))),
         Stmt::TryCatch(bx, pos) => Stmt::TryCatch(
             Box::new(TryCatchBlock {
                 try_block: rewrite_stmt_block(&bx.try_block, globals),
@@ -235,9 +245,11 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             }),
             *pos,
         ),
-        Stmt::Return(t, expr_opt, pos) => Stmt::Return(
-            *t,
-            expr_opt.as_ref().map(|expr| rewrite_expr(expr, globals)),
+        Stmt::Return(expr_opt, flags, pos) => Stmt::Return(
+            expr_opt
+                .as_ref()
+                .map(|expr| Box::new(rewrite_expr(expr, globals))),
+            *flags,
             *pos,
         ),
         _ => stmt.clone(),

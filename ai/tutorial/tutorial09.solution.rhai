@@ -59,7 +59,7 @@ fn missile_tick() {
         return;
     }
 
-    let dp = dp.rotate(dp.magnitude() / 1e4);  // Evade guns.
+    dp = dp.rotate(dp.magnitude() / 1e4);  // Evade guns.
     let badv = -(dv - dot(dv, dp) * dp.normalize() / dp.magnitude());
     let a = (dp - badv * 10).rotate(-ship.heading()).normalize() * acc;
     ship.accelerate(a);

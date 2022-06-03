@@ -940,7 +940,7 @@ dependencies = [
  "rhai",
  "serde",
  "serde_json",
- "smartstring",
+ "smartstring 0.2.10",
  "test-env-log",
  "wasm-bindgen",
 ]
@@ -1262,16 +1262,17 @@ dependencies = [
 
 [[package]]
 name = "rhai"
-version = "1.5.0"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49c94fda0280985896ed6d8bf0b43bbb5a7f0e39ccc8728ac907ddb4f06dae94"
+checksum = "8ef3d57e55ca044c53ced279d2d3ee9df229b247556b005a23713d5206a2ecfc"
 dependencies = [
  "ahash",
+ "bitflags",
  "instant",
  "num-traits",
  "rhai_codegen",
  "smallvec",
- "smartstring",
+ "smartstring 1.0.1",
 ]
 
 [[package]]
@@ -1426,6 +1427,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e714dff2b33f2321fdcd475b71cec79781a692d846f37f415fb395a1d2bcd48e"
 dependencies = [
  "static_assertions",
+]
+
+[[package]]
+name = "smartstring"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fb72c633efbaa2dd666986505016c32c3044395ceaf881518399d2f4127ee29"
+dependencies = [
+ "autocfg",
+ "static_assertions",
+ "version_check",
 ]
 
 [[package]]
