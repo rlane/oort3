@@ -25,7 +25,7 @@ rand_distr = "0.4.1"
 rand_seeder = "0.2.2"
 rapier2d-f64 = { version = "0.10", features = ["wasm-bindgen"] }
 regex = "1.5"
-rhai = { version = "1.0.0", features = ["internals"] }
+rhai = { version = "~1.7", features = ["internals"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 smartstring = "0.2"
