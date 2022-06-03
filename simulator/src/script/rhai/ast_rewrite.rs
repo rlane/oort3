@@ -151,10 +151,7 @@ fn rewrite_conditional_stmt_block(
     globals: &std::collections::HashSet<Identifier>,
 ) -> ConditionalStmtBlock {
     ConditionalStmtBlock {
-        condition: block
-            .condition
-            .as_ref()
-            .map(|expr| rewrite_expr(expr, globals)),
+        condition: rewrite_expr(&block.condition, globals),
         statements: rewrite_stmt_block(&block.statements, globals),
     }
 }
@@ -165,16 +162,13 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
         Stmt::Var(bx, option_flags, pos) => {
             let (ident, expr, _) = &**bx;
             if globals.contains(&ident.name) {
-                Stmt::Assignment(
-                    Box::new((
-                        None,
-                        BinaryExpr {
-                            lhs: global_variable(&ident.name, *pos),
-                            rhs: rewrite_expr(expr, globals),
-                        },
-                    )),
-                    *pos,
-                )
+                Stmt::Assignment(Box::new((
+                    rhai::OpAssignment::new_assignment(*pos),
+                    BinaryExpr {
+                        lhs: global_variable(&ident.name, *pos),
+                        rhs: rewrite_expr(expr, globals),
+                    },
+                )))
             } else {
                 Stmt::Var(
                     Box::new((ident.clone(), rewrite_expr(expr, globals), None)),
@@ -231,8 +225,8 @@ fn rewrite_stmt(stmt: &Stmt, globals: &std::collections::HashSet<Identifier>) ->
             )),
             *pos,
         ),
-        Stmt::Assignment(bx, pos) => {
-            Stmt::Assignment(Box::new((bx.0, rewrite_binary_expr(&bx.1, globals))), *pos)
+        Stmt::Assignment(bx) => {
+            Stmt::Assignment(Box::new((bx.0, rewrite_binary_expr(&bx.1, globals))))
         }
         Stmt::FnCall(bx, pos) => Stmt::FnCall(Box::new(rewrite_fn_call_expr(&*bx, globals)), *pos),
         Stmt::Expr(expr) => Stmt::Expr(Box::new(rewrite_expr(expr, globals))),

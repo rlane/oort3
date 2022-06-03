@@ -99,6 +99,7 @@ impl TeamController for RhaiTeamController {
             map: &mut *globals_map,
         };
         globals_map.insert("rng".into(), Dynamic::from(rng));
+        #[allow(deprecated)]
         engine.on_var(move |name, _index, _context| match name {
             "api" => Ok(Some(Dynamic::from(ship))),
             "ship" => Ok(Some(Dynamic::from(ship))),
