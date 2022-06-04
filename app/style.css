@@ -46,6 +46,16 @@ body {
   font-size: 24px;
 }
 
+#picked {
+  top: 45px;
+  left: 55ch;
+
+  position: absolute;
+  color: #dddddd;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 24px;
+}
+
 #toolbar {
   top: 0px;
   left: 0px;

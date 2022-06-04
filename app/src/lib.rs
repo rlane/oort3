@@ -66,6 +66,7 @@ pub enum Msg {
     SelectScenario(String),
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
+    MouseEvent(web_sys::MouseEvent),
     ReceivedSimAgentResponse(oort_worker::Response),
     ReceivedBackgroundSimAgentResponse(oort_worker::Response),
     RequestSnapshot,
@@ -204,6 +205,10 @@ impl Component for Model {
                 self.ui.as_mut().unwrap().on_wheel_event(e);
                 false
             }
+            Msg::MouseEvent(e) => {
+                self.ui.as_mut().unwrap().on_mouse_event(e);
+                false
+            }
             Msg::ReceivedSimAgentResponse(oort_worker::Response::Snapshot { snapshot }) => {
                 self.display_errors(&snapshot.errors);
                 self.ui.as_mut().unwrap().on_snapshot(snapshot);
@@ -249,6 +254,7 @@ impl Component for Model {
 
         let key_event_cb = context.link().callback(Msg::KeyEvent);
         let wheel_event_cb = context.link().callback(Msg::WheelEvent);
+        let mouse_event_cb = context.link().callback(Msg::MouseEvent);
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
 
         let username = userid::get_username(&userid::get_userid());
@@ -261,11 +267,13 @@ impl Component for Model {
                 tabindex="1"
                 onkeydown={key_event_cb.clone()}
                 onkeyup={key_event_cb}
-                onwheel={wheel_event_cb} />
+                onwheel={wheel_event_cb}
+                onclick={mouse_event_cb} />
             <div id="editor">
                 <CodeEditor options={monaco_options} link={self.editor_link.clone()} />
             </div>
             <div id="status" ref={self.status_ref.clone()} />
+            <div id="picked" />
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
                 <div class="toolbar-elem right">

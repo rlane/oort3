@@ -6,7 +6,7 @@ use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
 use oort_simulator::scenario::Status;
 use oort_simulator::simulation;
-use oort_simulator::snapshot::{self, Snapshot};
+use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
 use rand::Rng;
 use std::collections::VecDeque;
 
@@ -39,6 +39,8 @@ pub struct UI {
     snapshot_requests_in_flight: usize,
     nonce: u32,
     request_snapshot: yew::Callback<()>,
+    picked_ship_id: Option<u64>,
+    picked_div: web_sys::Element,
 }
 
 unsafe impl Send for UI {}
@@ -51,6 +53,9 @@ impl UI {
             .get_element_by_id("status")
             .expect("should have a status div");
         status_div.set_inner_html("LOADING...");
+        let picked_div = document
+            .get_element_by_id("picked")
+            .expect("should have a picked div");
 
         let renderer = Renderer::new().expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
@@ -85,6 +90,8 @@ impl UI {
             snapshot_requests_in_flight: 0,
             nonce: rand::thread_rng().gen(),
             request_snapshot,
+            picked_ship_id: None,
+            picked_div,
         }
     }
 
@@ -203,6 +210,8 @@ impl UI {
                 self.status_div.set_text_content(Some(&status_msg));
                 self.last_status_msg = status_msg;
             }
+
+            self.update_picked();
         }
 
         if self.frame == 600 {
@@ -281,11 +290,40 @@ impl UI {
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
     }
 
+    pub fn on_mouse_event(&mut self, e: web_sys::MouseEvent) {
+        let target = self
+            .renderer
+            .unproject(e.offset_x() as i32, e.offset_y() as i32)
+            + vector![self.camera_target.x as f64, self.camera_target.y as f64];
+        self.picked_ship_id = self.snapshot.as_ref().and_then(|snapshot| {
+            snapshot
+                .ships
+                .iter()
+                .find(|ship| nalgebra::distance(&ship.position, &target) < 30.0)
+                .map(|ship| ship.id)
+        });
+        self.update_picked();
+    }
+
     pub fn status(&self) -> Status {
         self.status
     }
 
     pub fn snapshot(&self) -> Option<Snapshot> {
         self.snapshot.clone()
+    }
+
+    pub fn update_picked(&self) {
+        if let Some(ship) = self.picked_ship_id.and_then(|id| {
+            self.snapshot
+                .as_ref()
+                .and_then(|s| s.ships.iter().find(|ship| ship.id == id))
+        }) {
+            let ShipSnapshot { class, team, .. } = ship;
+            self.picked_div
+                .set_inner_html(&format!("{class:?}<br/>Team: {team:?}"));
+        } else {
+            self.picked_div.set_inner_html("");
+        }
     }
 }
