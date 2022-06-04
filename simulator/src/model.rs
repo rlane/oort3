@@ -9,9 +9,16 @@ fn scale(scale: f32, vertices: &[Vector2<f32>]) -> Vec<Vector2<f32>> {
         .collect::<Vec<_>>()
 }
 
-pub fn ship() -> Vec<Vector2<f32>> {
+pub fn fighter() -> Vec<Vector2<f32>> {
     scale(
         10.0,
+        &[vector![-0.7, -0.71], vector![1.0, 0.0], vector![-0.7, 0.71]],
+    )
+}
+
+pub fn frigate() -> Vec<Vector2<f32>> {
+    scale(
+        30.0,
         &[vector![-0.7, -0.71], vector![1.0, 0.0], vector![-0.7, 0.71]],
     )
 }
@@ -54,7 +61,8 @@ pub fn missile() -> Vec<Vector2<f32>> {
 
 pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
     match class {
-        ShipClass::Fighter => ship(),
+        ShipClass::Fighter => fighter(),
+        ShipClass::Frigate => frigate(),
         ShipClass::Asteroid { variant } => asteroid(variant),
         ShipClass::Target => target(),
         ShipClass::Missile => missile(),

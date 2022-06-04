@@ -23,17 +23,22 @@ impl HasIndex for ShipHandle {
 #[derive(Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize, Debug)]
 pub enum ShipClass {
     Fighter,
+    Frigate,
     Asteroid { variant: i32 },
     Target,
     Missile,
 }
 
+#[derive(Debug)]
 pub struct Weapon {
     pub reload_time: f64,
     pub reload_time_remaining: f64,
     pub damage: f64,
+    pub speed: f64,
+    pub offset: Vector2<f64>,
 }
 
+#[derive(Debug)]
 pub struct ShipData {
     pub class: ShipClass,
     pub weapons: Vec<Weapon>,
@@ -75,11 +80,15 @@ pub fn fighter(team: i32) -> ShipData {
             reload_time: 0.2,
             reload_time_remaining: 0.0,
             damage: 20.0,
+            speed: 1000.0,
+            offset: vector![20.0, 0.0],
         }],
         missile: Some(Weapon {
             reload_time: 5.0,
             reload_time_remaining: 0.0,
             damage: 0.0,
+            speed: 0.0,
+            offset: vector![20.0, 0.0],
         }),
         health: 100.0,
         team,
@@ -90,6 +99,39 @@ pub fn fighter(team: i32) -> ShipData {
             width: std::f64::consts::TAU / 6.0,
             power: 20e3,
             rx_cross_section: 5.0,
+            min_rssi: 1e-2,
+            scanned: false,
+        }),
+        ..Default::default()
+    }
+}
+
+pub fn frigate(team: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::Frigate,
+        weapons: vec![Weapon {
+            reload_time: 0.2,
+            reload_time_remaining: 0.0,
+            damage: 200.0,
+            speed: 400.0,
+            offset: vector![40.0, 0.0],
+        }],
+        missile: Some(Weapon {
+            reload_time: 2.0,
+            reload_time_remaining: 0.0,
+            damage: 0.0,
+            speed: 0.0,
+            offset: vector![40.0, 0.0],
+        }),
+        health: 10000.0,
+        team,
+        max_acceleration: vector![20.0, 10.0],
+        max_angular_acceleration: std::f64::consts::TAU,
+        radar: Some(Radar {
+            heading: 0.0,
+            width: std::f64::consts::TAU / 6.0,
+            power: 100e3,
+            rx_cross_section: 50.0,
             min_rssi: 1e-2,
             scanned: false,
         }),
@@ -273,17 +315,19 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
         let team = ship_data.team;
         let damage;
+        let offset;
+        let speed;
         {
             let weapon = &mut ship_data.weapons[index as usize];
-            damage = weapon.damage;
             if weapon.reload_time_remaining > 0.0 {
                 return;
             }
+            damage = weapon.damage;
+            offset = weapon.offset;
+            speed = weapon.speed;
             weapon.reload_time_remaining += weapon.reload_time;
         }
 
-        let speed = 1000.0;
-        let offset = vector![20.0, 0.0];
         let body = self.body();
         let rot = body.position().rotation;
         let p = body.position().translation.vector + rot.transform_vector(&offset);

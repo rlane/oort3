@@ -7,7 +7,7 @@ use rand_distr::StandardNormal;
 use rng::SeededRng;
 use std::f64::consts::TAU;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Radar {
     pub heading: f64,
     pub width: f64,

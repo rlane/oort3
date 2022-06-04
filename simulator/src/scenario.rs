@@ -1,5 +1,5 @@
 use crate::rng::{new_rng, SeededRng};
-use crate::ship::{asteroid, fighter, target, ShipHandle};
+use crate::ship::{asteroid, fighter, frigate, target, ShipHandle};
 use crate::simulation::{Line, Simulation, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
@@ -115,6 +115,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial07" => Box::new(Tutorial07::new()),
         "tutorial08" => Box::new(Tutorial08::new()),
         "tutorial09" => Box::new(Tutorial09::new()),
+        "tutorial10" => Box::new(Tutorial10::new()),
         // Tournament
         "duel" => Box::new(Duel::new()),
         _ => panic!("Unknown scenario"),
@@ -135,6 +136,7 @@ pub fn list() -> Vec<String> {
         "tutorial07",
         "tutorial08",
         "tutorial09",
+        "tutorial10",
         "gunnery",
         "duel",
     ]
@@ -855,6 +857,49 @@ impl Scenario for Tutorial09 {
 
     fn solution(&self) -> String {
         include_str!("../../ai/tutorial/tutorial09.solution.rhai").to_string()
+    }
+}
+
+struct Tutorial10 {}
+
+impl Tutorial10 {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Tutorial10 {
+    fn name(&self) -> String {
+        "tutorial10".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        add_walls(sim);
+
+        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial10.enemy.rhai"));
+
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, frigate(0));
+
+        let mut rng = new_rng(seed);
+        for _ in 0..3 {
+            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
+            let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
+            ship::create(sim, p.x, p.y, v.x, v.y, std::f64::consts::PI, fighter(1));
+        }
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tutorial_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        include_str!("../../ai/tutorial/tutorial10.initial.rhai").to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/tutorial/tutorial10.solution.rhai").to_string()
     }
 }
 
