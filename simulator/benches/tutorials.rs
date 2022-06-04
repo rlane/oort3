@@ -16,16 +16,13 @@ fn check_solution(scenario_name: &str) {
 }
 
 fn tutorials() {
-    for scenario_name in &[
-        "tutorial01",
-        "tutorial02",
-        "tutorial03",
-        "tutorial04",
-        "tutorial05",
-        "tutorial06",
-        "tutorial07",
-    ] {
-        check_solution(scenario_name);
+    let scenario_names: Vec<String> = scenario::list()
+        .iter()
+        .filter(|x| x.starts_with("tutorial"))
+        .cloned()
+        .collect();
+    for scenario_name in scenario_names {
+        check_solution(&scenario_name);
     }
 }
 
