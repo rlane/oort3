@@ -1,6 +1,7 @@
 use super::index_set::{HasIndex, Index};
 use super::rng::new_rng;
 use crate::model;
+use crate::radar::Radar;
 use crate::simulation;
 use crate::simulation::Simulation;
 use crate::{bullet, collision};
@@ -31,16 +32,6 @@ pub struct Weapon {
     pub reload_time: f64,
     pub reload_time_remaining: f64,
     pub damage: f64,
-}
-
-#[derive(Clone)]
-pub struct Radar {
-    pub heading: f64,
-    pub width: f64,
-    pub power: f64,
-    pub rx_cross_section: f64,
-    pub min_rssi: f64,
-    pub scanned: bool,
 }
 
 pub struct ShipData {
