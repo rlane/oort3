@@ -19,7 +19,16 @@ pub fn fighter() -> Vec<Vector2<f32>> {
 pub fn frigate() -> Vec<Vector2<f32>> {
     scale(
         30.0,
-        &[vector![-0.7, -0.71], vector![1.0, 0.0], vector![-0.7, 0.71]],
+        &[
+            vector![-0.8, -0.4],
+            vector![-0.8, 0.4],
+            vector![0.0, 0.2],
+            vector![0.0, 0.4],
+            vector![0.95, 0.2],
+            vector![0.95, -0.2],
+            vector![0.0, -0.4],
+            vector![0.0, -0.2],
+        ],
     )
 }
 
