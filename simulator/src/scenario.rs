@@ -118,6 +118,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial10" => Box::new(Tutorial10::new()),
         // Tournament
         "duel" => Box::new(Duel::new()),
+        "furball" => Box::new(Furball::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -139,6 +140,7 @@ pub fn list() -> Vec<String> {
         "tutorial10",
         "gunnery",
         "duel",
+        "furball",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -933,5 +935,56 @@ impl Scenario for Duel {
 
     fn solution(&self) -> String {
         include_str!("../../ai/duel.reference.rhai").to_string()
+    }
+}
+
+struct Furball {}
+
+impl Furball {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Furball {
+    fn name(&self) -> String {
+        "furball".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        add_walls(sim);
+        sim.upload_code(1, include_str!("../../ai/furball.reference.rhai"));
+        let mut rng = new_rng(seed);
+        for team in 0..2 {
+            let fleet_radius = 500.0;
+            let range = -fleet_radius..fleet_radius;
+            let center = point![(team as f64 - 0.5) * 2000.0 * 2.0, 0.0];
+            let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
+            for _ in 0..10 {
+                let offset = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+                ship::create(
+                    sim,
+                    center.x + offset.x,
+                    center.y + offset.y,
+                    0.0,
+                    0.0,
+                    heading,
+                    fighter(team),
+                );
+            }
+            ship::create(sim, center.x, center.y, 0.0, 0.0, heading, frigate(team));
+        }
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        include_str!("../../ai/furball.initial.rhai").to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/furball.reference.rhai").to_string()
     }
 }
