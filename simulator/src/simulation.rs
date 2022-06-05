@@ -131,6 +131,7 @@ impl Simulation {
         }
     }
 
+    #[allow(clippy::let_unit_value)]
     pub fn step(self: &mut Simulation) {
         self.events.clear();
         let gravity = vector![0.0, 0.0];

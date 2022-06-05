@@ -27,7 +27,7 @@ pub enum Msg {
     ReceiveResponse(Result<LeaderboardData, reqwasm::Error>),
 }
 
-#[derive(Properties, Clone, PartialEq)]
+#[derive(Properties, Clone, PartialEq, Eq)]
 pub struct LeaderboardProps {
     pub scenario_name: String,
 }
