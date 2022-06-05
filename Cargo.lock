@@ -29,12 +29,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.57"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08f9b8508dccb7687a1d6c4ce66b2b0ecef467c94667de27d8d7fe1f8d2a9cdc"
-
-[[package]]
 name = "anymap2"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -808,7 +802,6 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 name = "oort-app"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "bincode",
  "chrono",
  "console_error_panic_hook",
@@ -872,7 +865,6 @@ dependencies = [
  "crossbeam",
  "env_logger",
  "getrandom",
- "instant",
  "lazy_static",
  "log",
  "nalgebra",

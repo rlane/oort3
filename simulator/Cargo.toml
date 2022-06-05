@@ -13,7 +13,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 crossbeam = "0.8.1"
 getrandom = { version = "0.2.6", features = ["js"] }
-instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 lazy_static = "1.4.0"
 log = "0.4.17"
 nalgebra = { version = "0.31.0", features = ["serde-serialize"] }
