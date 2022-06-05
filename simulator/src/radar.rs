@@ -60,7 +60,7 @@ pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
                 best_rssi = rssi;
             }
         }
-        draw_beam(sim, &radar, &beam);
+        draw_beam(sim, own_ship, &radar, &beam);
     }
     result
 }
@@ -106,7 +106,7 @@ fn noise(rng: &mut SeededRng, rssi: f64) -> Vector2<f64> {
     vector![rng.sample(StandardNormal), rng.sample(StandardNormal)] * (1.0 / rssi)
 }
 
-fn draw_beam(sim: &mut Simulation, radar: &Radar, beam: &RadarBeam) {
+fn draw_beam(sim: &mut Simulation, ship: ShipHandle, radar: &Radar, beam: &RadarBeam) {
     let color = vector![0.1, 0.2, 0.3, 1.0];
     let mut lines = vec![];
     let n = 20;
@@ -133,5 +133,5 @@ fn draw_beam(sim: &mut Simulation, radar: &Radar, beam: &RadarBeam) {
         b: center + vector![r * beam.end_bearing.cos(), r * beam.end_bearing.sin()],
         color,
     });
-    sim.emit_debug_lines(&lines);
+    sim.emit_debug_lines(ship, &lines);
 }

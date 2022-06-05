@@ -15,6 +15,7 @@ use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
+use oort_simulator::simulation::Line;
 use oort_simulator::snapshot::Snapshot;
 use particle_renderer::ParticleRenderer;
 use ship_renderer::ShipRenderer;
@@ -36,6 +37,7 @@ pub struct Renderer {
     projection_matrix: Matrix4<f32>,
     base_line_width: f32,
     debug: bool,
+    picked_ship: Option<u64>,
 }
 
 impl Renderer {
@@ -64,6 +66,7 @@ impl Renderer {
             projection_matrix: Matrix4::identity(),
             base_line_width: 1.0,
             debug: false,
+            picked_ship: None,
         })
     }
 
@@ -88,6 +91,10 @@ impl Renderer {
 
     pub fn set_debug(&mut self, debug: bool) {
         self.debug = debug;
+    }
+
+    pub fn set_picked_ship(&mut self, id: Option<u64>) {
+        self.picked_ship = id;
     }
 
     pub fn unproject(&self, x: i32, y: i32) -> Point2<f64> {
@@ -128,10 +135,18 @@ impl Renderer {
 
         self.grid_renderer.draw(zoom);
         self.trail_renderer.draw(snapshot.time as f32);
+        let mut lines: Vec<Line> = Vec::new();
         if self.debug {
-            self.line_renderer.draw(&snapshot.debug_lines);
+            for (_, debug_lines) in snapshot.debug_lines.iter() {
+                lines.extend(debug_lines.iter().cloned());
+            }
+        } else if let Some(ship) = self.picked_ship {
+            if let Some(debug_lines) = snapshot.debug_lines.get(&ship) {
+                lines.extend(debug_lines.iter().cloned());
+            }
         }
-        self.line_renderer.draw(&snapshot.scenario_lines);
+        lines.extend(snapshot.scenario_lines.iter().cloned());
+        self.line_renderer.draw(&lines);
         self.bullet_renderer.draw(snapshot, self.base_line_width);
         self.ship_renderer.draw(snapshot, self.base_line_width);
         self.particle_renderer.draw(snapshot);

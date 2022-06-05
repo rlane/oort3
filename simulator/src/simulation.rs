@@ -12,7 +12,7 @@ use crossbeam::channel::Sender;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
 pub const WORLD_SIZE: f64 = 10000.0;
@@ -227,8 +227,12 @@ impl Simulation {
         &self.events
     }
 
-    pub fn emit_debug_lines(&mut self, lines: &[Line]) {
-        self.events.debug_lines.extend(lines.iter().cloned());
+    pub fn emit_debug_lines(&mut self, ship: ShipHandle, lines: &[Line]) {
+        self.events
+            .debug_lines
+            .entry(ship.into())
+            .or_default()
+            .extend(lines.iter().cloned());
     }
 
     pub fn hash(&self) -> u64 {
@@ -266,8 +270,7 @@ impl Simulation {
 
         for &handle in self.ships.iter() {
             let ship = self.ship(handle);
-            let (gen, idx) = handle.0.into_raw_parts();
-            let id = ((gen as u64) << 32) | idx as u64;
+            let id = handle.into();
             let position = ship.position().vector.into();
             let team = ship.data().team;
             let class = ship.data().class;
@@ -327,7 +330,7 @@ pub struct SimEvents {
     pub errors: Vec<script::Error>,
     pub hits: Vec<Vector2<f64>>,
     pub ships_destroyed: Vec<Vector2<f64>>,
-    pub debug_lines: Vec<Line>,
+    pub debug_lines: BTreeMap<u64, Vec<Line>>,
 }
 
 impl SimEvents {
@@ -336,7 +339,7 @@ impl SimEvents {
             errors: vec![],
             hits: vec![],
             ships_destroyed: vec![],
-            debug_lines: vec![],
+            debug_lines: BTreeMap::new(),
         }
     }
 

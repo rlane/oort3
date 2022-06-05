@@ -25,6 +25,8 @@ fn ship_tick() {
         ship.aim_weapon(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
         ship.fire_weapon_with_index(2);
         ship.launch_missile();
+        dbg.draw_diamond(contact.position, 20.0, 0xffff00);
+        dbg.draw_diamond(ship.position() + predicted_dp, 5.0, 0xffffff);
     } else {
         radar.set_heading(rng.next(0.0, PI() * 2));
         if (target_position - ship.position()).magnitude() < 100 {

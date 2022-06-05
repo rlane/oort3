@@ -4,6 +4,7 @@ use crate::ship::ShipClass;
 use crate::simulation::Line;
 use nalgebra::{Point2, Vector2};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Snapshot {
@@ -12,12 +13,12 @@ pub struct Snapshot {
     pub status: Status,
     pub ships: Vec<ShipSnapshot>,
     pub bullets: Vec<BulletSnapshot>,
-    pub debug_lines: Vec<Line>,
     pub scenario_lines: Vec<Line>,
     pub hits: Vec<Vector2<f64>>,
     pub ships_destroyed: Vec<Vector2<f64>>,
     pub errors: Vec<script::Error>,
     pub cheats: bool,
+    pub debug_lines: BTreeMap<u64, Vec<Line>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -38,16 +38,19 @@ pub mod plugin {
                 color,
             });
         }
-        obj.sim().emit_debug_lines(&lines);
+        obj.sim().emit_debug_lines(obj.handle, &lines);
     }
 
     #[rhai_fn(pure)]
     pub fn draw_line(obj: &mut DebugApi, a: Vec2, b: Vec2, color: i64) {
-        obj.sim().emit_debug_lines(&[Line {
-            a: a.into(),
-            b: b.into(),
-            color: make_color(color),
-        }]);
+        obj.sim().emit_debug_lines(
+            obj.handle,
+            &[Line {
+                a: a.into(),
+                b: b.into(),
+                color: make_color(color),
+            }],
+        );
     }
 
     #[rhai_fn(pure)]

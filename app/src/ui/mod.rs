@@ -313,7 +313,7 @@ impl UI {
         self.snapshot.clone()
     }
 
-    pub fn update_picked(&self) {
+    pub fn update_picked(&mut self) {
         if let Some(ship) = self.picked_ship_id.and_then(|id| {
             self.snapshot
                 .as_ref()
@@ -331,5 +331,6 @@ impl UI {
         } else {
             self.picked_div.set_inner_html("");
         }
+        self.renderer.set_picked_ship(self.picked_ship_id);
     }
 }
