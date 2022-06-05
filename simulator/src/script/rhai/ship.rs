@@ -60,6 +60,10 @@ pub mod plugin {
         obj.ship_mut().fire_weapon(index);
     }
 
+    pub fn aim_weapon(obj: ShipApi, index: i64, angle: f64) {
+        obj.ship_mut().aim_weapon(index, angle);
+    }
+
     pub fn launch_missile(obj: ShipApi) {
         obj.ship_mut().launch_missile();
     }

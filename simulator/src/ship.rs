@@ -6,7 +6,7 @@ use crate::simulation;
 use crate::simulation::Simulation;
 use crate::{bullet, collision};
 use bullet::BulletData;
-use nalgebra::{vector, Rotation2, Vector2};
+use nalgebra::{vector, Rotation2, UnitComplex, Vector2};
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -36,6 +36,7 @@ pub struct Weapon {
     pub damage: f64,
     pub speed: f64,
     pub offset: Vector2<f64>,
+    pub angle: f64,
 }
 
 #[derive(Debug)]
@@ -82,6 +83,7 @@ pub fn fighter(team: i32) -> ShipData {
             damage: 20.0,
             speed: 1000.0,
             offset: vector![20.0, 0.0],
+            angle: 0.0,
         }],
         missile: Some(Weapon {
             reload_time: 5.0,
@@ -89,6 +91,7 @@ pub fn fighter(team: i32) -> ShipData {
             damage: 0.0,
             speed: 0.0,
             offset: vector![20.0, 0.0],
+            angle: 0.0,
         }),
         health: 100.0,
         team,
@@ -109,19 +112,39 @@ pub fn fighter(team: i32) -> ShipData {
 pub fn frigate(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Frigate,
-        weapons: vec![Weapon {
-            reload_time: 1.0,
-            reload_time_remaining: 0.0,
-            damage: 1000.0,
-            speed: 4000.0,
-            offset: vector![40.0, 0.0],
-        }],
+        weapons: vec![
+            Weapon {
+                reload_time: 1.0,
+                reload_time_remaining: 0.0,
+                damage: 1000.0,
+                speed: 4000.0,
+                offset: vector![40.0, 0.0],
+                angle: 0.0,
+            },
+            Weapon {
+                reload_time: 0.2,
+                reload_time_remaining: 0.0,
+                damage: 20.0,
+                speed: 1000.0,
+                offset: vector![0.0, 15.0],
+                angle: 0.0,
+            },
+            Weapon {
+                reload_time: 0.2,
+                reload_time_remaining: 0.0,
+                damage: 20.0,
+                speed: 1000.0,
+                offset: vector![0.0, -15.0],
+                angle: 0.0,
+            },
+        ],
         missile: Some(Weapon {
             reload_time: 2.0,
             reload_time_remaining: 0.0,
             damage: 0.0,
             speed: 0.0,
             offset: vector![40.0, 0.0],
+            angle: 0.0,
         }),
         health: 10000.0,
         team,
@@ -317,6 +340,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let damage;
         let offset;
         let speed;
+        let angle;
         {
             let weapon = &mut ship_data.weapons[index as usize];
             if weapon.reload_time_remaining > 0.0 {
@@ -325,11 +349,12 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             damage = weapon.damage;
             offset = weapon.offset;
             speed = weapon.speed;
+            angle = weapon.angle;
             weapon.reload_time_remaining += weapon.reload_time;
         }
 
         let body = self.body();
-        let rot = body.position().rotation;
+        let rot = body.position().rotation * UnitComplex::new(angle);
         let p = body.position().translation.vector + rot.transform_vector(&offset);
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
         bullet::create(
@@ -368,6 +393,15 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             rot.angle(),
             missile(team),
         );
+    }
+
+    pub fn aim_weapon(&mut self, index: i64, angle: f64) {
+        let ship_data = self.data_mut();
+        if index as usize >= ship_data.weapons.len() {
+            return;
+        }
+        let weapon = &mut ship_data.weapons[index as usize];
+        weapon.angle = angle;
     }
 
     pub fn explode(&mut self) {

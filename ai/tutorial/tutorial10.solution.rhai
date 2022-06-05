@@ -13,10 +13,17 @@ let target_velocity = vec2(0.0, 0.0);
 fn ship_tick() {
     let contact = radar.scan();
     if (contact.found) {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
+        let dp = contact.position - ship.position();
+        let dv = contact.velocity - ship.velocity();
+        let predicted_dp = dp + dv * dp.magnitude() / 1000.0;
+        radar.set_heading(dp.angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
         ship.fire_weapon();
+        ship.aim_weapon(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
+        ship.fire_weapon_with_index(1);
+        ship.aim_weapon(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
+        ship.fire_weapon_with_index(2);
         ship.launch_missile();
     } else {
         radar.set_heading(rng.next(0.0, PI() * 2));
