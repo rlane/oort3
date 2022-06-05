@@ -1,4 +1,3 @@
-use super::ship::ShipClass;
 use rapier2d_f64::prelude::*;
 
 const WALL_COLLISION_GROUP: u32 = 0;
@@ -31,11 +30,8 @@ pub fn wall_interaction_groups() -> InteractionGroups {
     )
 }
 
-pub fn ship_interaction_groups(team: i32, class: ShipClass) -> InteractionGroups {
-    let bullet_groups = match class {
-        ShipClass::Missile => all_bullet_groups() & !bullet_group(team),
-        _ => all_bullet_groups(),
-    };
+pub fn ship_interaction_groups(team: i32) -> InteractionGroups {
+    let bullet_groups = !bullet_group(team);
     InteractionGroups::new(
         1 << SHIP_COLLISION_GROUP,
         1 << WALL_COLLISION_GROUP | 1 << SHIP_COLLISION_GROUP | bullet_groups,
