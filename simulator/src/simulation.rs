@@ -271,6 +271,7 @@ impl Simulation {
             let position = ship.position().vector.into();
             let team = ship.data().team;
             let class = ship.data().class;
+            let health = ship.data().health;
             snapshot.ships.push(ShipSnapshot {
                 id,
                 position,
@@ -279,6 +280,7 @@ impl Simulation {
                 angular_velocity: ship.angular_velocity(),
                 team,
                 class,
+                health,
             });
         }
 

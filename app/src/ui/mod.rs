@@ -319,9 +319,15 @@ impl UI {
                 .as_ref()
                 .and_then(|s| s.ships.iter().find(|ship| ship.id == id))
         }) {
-            let ShipSnapshot { class, team, .. } = ship;
-            self.picked_div
-                .set_inner_html(&format!("{class:?}<br/>Team: {team:?}"));
+            let ShipSnapshot {
+                class,
+                team,
+                health,
+                ..
+            } = ship;
+            self.picked_div.set_inner_html(&format!(
+                "{class:?}<br/>Team: {team:?}<br/>Health: {health:.0}"
+            ));
         } else {
             self.picked_div.set_inner_html("");
         }

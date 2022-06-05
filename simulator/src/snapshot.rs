@@ -29,6 +29,7 @@ pub struct ShipSnapshot {
     pub angular_velocity: f64,
     pub team: i32,
     pub class: ShipClass,
+    pub health: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
