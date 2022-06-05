@@ -27,8 +27,9 @@ pub struct Simulation {
     pub bullets: IndexSet<BulletHandle>,
     pub(crate) bullet_data: HashMap<BulletHandle, BulletData>,
     pub(crate) bodies: RigidBodySet,
+    pub(crate) impulse_joints: ImpulseJointSet,
+    pub(crate) multibody_joints: MultibodyJointSet,
     pub(crate) colliders: ColliderSet,
-    pub(crate) joints: JointSet,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
     pub(crate) island_manager: IslandManager,
@@ -36,7 +37,7 @@ pub struct Simulation {
     narrow_phase: NarrowPhase,
     ccd_solver: CCDSolver,
     event_collector: CollisionEventHandler,
-    contact_recv: crossbeam::channel::Receiver<ContactEvent>,
+    contact_recv: crossbeam::channel::Receiver<CollisionEvent>,
     pub(crate) events: SimEvents,
     tick: u32,
     pub cheats: bool,
@@ -58,8 +59,9 @@ impl Simulation {
             bullets: IndexSet::new(),
             bullet_data: HashMap::new(),
             bodies: RigidBodySet::new(),
+            impulse_joints: ImpulseJointSet::new(),
+            multibody_joints: MultibodyJointSet::new(),
             colliders: ColliderSet::new(),
-            joints: JointSet::new(),
             integration_parameters: IntegrationParameters {
                 dt: PHYSICS_TICK_LENGTH,
                 max_ccd_substeps: 2,
@@ -145,14 +147,15 @@ impl Simulation {
             &mut self.narrow_phase,
             &mut self.bodies,
             &mut self.colliders,
-            &mut self.joints,
+            &mut self.impulse_joints,
+            &mut self.multibody_joints,
             &mut self.ccd_solver,
             &physics_hooks,
             &self.event_collector,
         );
 
         while let Ok(event) = self.contact_recv.try_recv() {
-            if let ContactEvent::Started(h1, h2) = event {
+            if let CollisionEvent::Started(h1, h2, _flags) = event {
                 let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
                 let handle_hit = |sim: &mut Simulation, ship, bullet| {
                     if sim.bullet(bullet).data().team == sim.ship(ship).data().team {
@@ -308,22 +311,27 @@ impl Simulation {
 }
 
 pub struct CollisionEventHandler {
-    contact_event_sender: Sender<ContactEvent>,
+    collision_event_sender: Sender<CollisionEvent>,
 }
 
 impl CollisionEventHandler {
-    pub fn new(contact_event_sender: Sender<ContactEvent>) -> CollisionEventHandler {
+    pub fn new(collision_event_sender: Sender<CollisionEvent>) -> CollisionEventHandler {
         CollisionEventHandler {
-            contact_event_sender,
+            collision_event_sender,
         }
     }
 }
 
 impl EventHandler for CollisionEventHandler {
-    fn handle_intersection_event(&self, _event: IntersectionEvent) {}
-
-    fn handle_contact_event(&self, event: ContactEvent, _contact_pair: &ContactPair) {
-        let _ = self.contact_event_sender.send(event);
+    fn handle_collision_event(
+        &self,
+        _bodies: &RigidBodySet,
+        _colliders: &ColliderSet,
+        event: CollisionEvent,
+        _contact_pair: Option<&rapier2d_f64::geometry::ContactPair>,
+    ) {
+        log::info!("Collision event: {:?}", event);
+        let _ = self.collision_event_sender.send(event);
     }
 }
 

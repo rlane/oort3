@@ -217,7 +217,7 @@ pub fn create(
     h: f64,
     data: ShipData,
 ) -> ShipHandle {
-    let rigid_body = RigidBodyBuilder::new_dynamic()
+    let rigid_body = RigidBodyBuilder::dynamic()
         .translation(vector![x, y])
         .linvel(vector![vx, vy])
         .rotation(h)
@@ -238,7 +238,6 @@ pub fn create(
     let collider = ColliderBuilder::convex_hull(&vertices)
         .unwrap()
         .restitution(restitution)
-        .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
         .collision_groups(collision::ship_interaction_groups(team))
         .build();
     sim.colliders
@@ -463,8 +462,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             let acceleration = self.data().acceleration;
             let mass = self.body().mass();
             let rotation_matrix = self.body().position().rotation.to_rotation_matrix();
+            self.body().reset_forces(false);
             self.body()
-                .apply_force(rotation_matrix * acceleration * mass, true);
+                .add_force(rotation_matrix * acceleration * mass, true);
             self.data_mut().acceleration = vector![0.0, 0.0];
         }
 
@@ -472,7 +472,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         {
             let inertia_sqrt = 1.0 / self.body().mass_properties().inv_principal_inertia_sqrt;
             let torque = self.data().angular_acceleration * inertia_sqrt * inertia_sqrt;
-            self.body().apply_torque(torque, true);
+            self.body().reset_torques(false);
+            self.body().add_torque(torque, true);
             self.data_mut().angular_acceleration = 0.0;
         }
 
@@ -483,7 +484,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 RigidBodyHandle(self.handle.index()),
                 &mut self.simulation.island_manager,
                 &mut self.simulation.colliders,
-                &mut self.simulation.joints,
+                &mut self.simulation.impulse_joints,
+                &mut self.simulation.multibody_joints,
+                /*remove_attached_colliders=*/ true,
             );
         }
     }

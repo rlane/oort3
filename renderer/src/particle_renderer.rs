@@ -1,6 +1,6 @@
 use super::{buffer_arena, glutil};
 use glutil::VertexAttribBuilder;
-use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Vector2};
+use nalgebra::{vector, Matrix4, Vector2};
 use oort_simulator::snapshot::Snapshot;
 use rand::Rng;
 use wasm_bindgen::prelude::*;

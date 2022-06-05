@@ -1,6 +1,6 @@
 use super::{buffer_arena, geometry, glutil};
 use glutil::VertexAttribBuilder;
-use nalgebra::{storage::ContiguousStorage, vector, Matrix4, Point2, Vector4};
+use nalgebra::{vector, Matrix4, Point2, Vector4};
 use oort_simulator::model;
 use oort_simulator::ship::ShipClass;
 use oort_simulator::snapshot::{ShipSnapshot, Snapshot};

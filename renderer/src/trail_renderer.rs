@@ -1,6 +1,6 @@
 use super::glutil;
 use log::warn;
-use nalgebra::{storage::ContiguousStorage, Matrix4, Point2};
+use nalgebra::{Matrix4, Point2};
 use oort_simulator::ship::ShipClass;
 use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use oort_simulator::snapshot::Snapshot;

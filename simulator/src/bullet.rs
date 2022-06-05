@@ -25,7 +25,7 @@ pub fn create(
     vy: f64,
     data: BulletData,
 ) -> BulletHandle {
-    let rigid_body = RigidBodyBuilder::new_dynamic()
+    let rigid_body = RigidBodyBuilder::dynamic()
         .translation(vector![x, y])
         .linvel(vector![vx, vy])
         .ccd_enabled(true)
@@ -33,8 +33,8 @@ pub fn create(
     let body_handle = sim.bodies.insert(rigid_body);
     let collider = ColliderBuilder::ball(1.0)
         .restitution(1.0)
-        .active_events(ActiveEvents::CONTACT_EVENTS | ActiveEvents::INTERSECTION_EVENTS)
         .collision_groups(collision::bullet_interaction_groups(data.team))
+        .active_events(ActiveEvents::COLLISION_EVENTS)
         .build();
     sim.colliders
         .insert_with_parent(collider, body_handle, &mut sim.bodies);
@@ -74,7 +74,9 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
             RigidBodyHandle(self.handle.index()),
             &mut self.simulation.island_manager,
             &mut self.simulation.colliders,
-            &mut self.simulation.joints,
+            &mut self.simulation.impulse_joints,
+            &mut self.simulation.multibody_joints,
+            /*remove_attached_colliders=*/ true,
         );
     }
 }

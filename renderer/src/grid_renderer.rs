@@ -1,5 +1,5 @@
 use super::{buffer_arena, glutil};
-use nalgebra::{storage::ContiguousStorage, vector, Matrix4};
+use nalgebra::{vector, Matrix4};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
