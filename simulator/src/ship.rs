@@ -110,10 +110,10 @@ pub fn frigate(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Frigate,
         weapons: vec![Weapon {
-            reload_time: 0.2,
+            reload_time: 1.0,
             reload_time_remaining: 0.0,
-            damage: 200.0,
-            speed: 400.0,
+            damage: 1000.0,
+            speed: 4000.0,
             offset: vector![40.0, 0.0],
         }],
         missile: Some(Weapon {
