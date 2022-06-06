@@ -31,6 +31,7 @@ impl From<ShipHandle> for u64 {
 pub enum ShipClass {
     Fighter,
     Frigate,
+    Cruiser,
     Asteroid { variant: i32 },
     Target,
     Missile,
@@ -169,6 +170,40 @@ pub fn frigate(team: i32) -> ShipData {
     }
 }
 
+pub fn cruiser(team: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::Cruiser,
+        weapons: vec![Weapon {
+            reload_time: 0.1,
+            reload_time_remaining: 0.0,
+            damage: 20.0,
+            speed: 1000.0,
+            offset: vector![0.0, 0.0],
+            angle: 0.0,
+        }],
+        missile: Some(Weapon {
+            reload_time: 0.2,
+            reload_time_remaining: 0.0,
+            damage: 0.0,
+            speed: 0.0,
+            offset: vector![0.0, 0.0],  // HACK
+            angle: 0.0,
+        }),
+        health: 30000.0,
+        team,
+        max_acceleration: vector![10.0, 50.0],
+        max_angular_acceleration: std::f64::consts::TAU / 2.0,
+        radar: Some(Radar {
+            heading: 0.0,
+            width: std::f64::consts::TAU / 6.0,
+            power: 200e3,
+            rx_cross_section: 100.0,
+            min_rssi: 1e-2,
+            scanned: false,
+        }),
+        ..Default::default()
+    }
+}
 pub fn asteroid(variant: i32) -> ShipData {
     ShipData {
         class: ShipClass::Asteroid { variant },

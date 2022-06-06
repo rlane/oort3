@@ -32,6 +32,35 @@ pub fn frigate() -> Vec<Vector2<f32>> {
     )
 }
 
+pub fn cruiser() -> Vec<Vector2<f32>> {
+    scale(
+        40.0,
+        &[
+            // back left
+            vector![-0.8, -0.4],
+            // back right
+            vector![-0.8, 0.4],
+            // right missile battery
+            vector![-0.5, 0.4],
+            vector![-0.5, 0.5],
+            vector![0.5, 0.5],
+            vector![0.5, 0.4],
+            // front right
+            vector![0.8, 0.4],
+            // front
+            vector![1.1, 0.2],
+            vector![1.1, -0.2],
+            // front left
+            vector![0.8, -0.4],
+            // left missile battery
+            vector![0.5, -0.4],
+            vector![0.5, -0.5],
+            vector![-0.5, -0.5],
+            vector![-0.5, -0.4],
+        ],
+    )
+}
+
 pub fn asteroid(variant: i32) -> Vec<Vector2<f32>> {
     let n = 7;
     let mut rng = Rand32::new(variant as u64);
@@ -72,6 +101,7 @@ pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
     match class {
         ShipClass::Fighter => fighter(),
         ShipClass::Frigate => frigate(),
+        ShipClass::Cruiser => cruiser(),
         ShipClass::Asteroid { variant } => asteroid(variant),
         ShipClass::Target => target(),
         ShipClass::Missile => missile(),

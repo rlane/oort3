@@ -76,6 +76,7 @@ pub mod plugin {
         match obj.ship().data().class {
             ShipClass::Fighter => "fighter".to_string(),
             ShipClass::Frigate => "frigate".to_string(),
+            ShipClass::Cruiser => "cruiser".to_string(),
             ShipClass::Asteroid { .. } => "asteroid".to_string(),
             ShipClass::Target => "target".to_string(),
             ShipClass::Missile => "missile".to_string(),
