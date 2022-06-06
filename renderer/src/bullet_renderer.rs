@@ -75,7 +75,7 @@ void main() {
     }
 
     pub fn draw(&mut self, snapshot: &Snapshot, base_line_width: f32) {
-        let color = vector![1.00, 0.63, 0.00, 1.00];
+        let color = vector![1.00, 0.63, 0.00, 0.30];
         let num_instances = snapshot.bullets.len();
 
         if num_instances == 0 {
