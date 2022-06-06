@@ -1,9 +1,12 @@
+use nalgebra::{vector, Vector4};
 use oort_simulator::ship::{fighter, missile};
 use oort_simulator::simulation;
 use oort_simulator::simulation::WORLD_SIZE;
 use oort_simulator::{bullet, scenario, ship};
 use rand::Rng;
 use test_log::test;
+
+const BULLET_COLOR: Vector4<f32> = vector![1.00, 0.63, 0.00, 0.30];
 
 #[test]
 fn test_world_edge() {
@@ -75,6 +78,7 @@ fn test_fighter_bullet_no_collision_same_team() {
         bullet::BulletData {
             team: 0,
             damage: 10.0,
+            color: BULLET_COLOR,
         },
     );
 
@@ -100,6 +104,7 @@ fn test_fighter_bullet_collision_different_team() {
         bullet::BulletData {
             team: 1,
             damage: 10.0,
+            color: BULLET_COLOR,
         },
     );
 
@@ -125,6 +130,7 @@ fn test_missile_bullet_collision_same_team() {
         bullet::BulletData {
             team: 0,
             damage: 10.0,
+            color: BULLET_COLOR,
         },
     );
 
@@ -150,6 +156,7 @@ fn test_missile_bullet_collision_different_team() {
         bullet::BulletData {
             team: 1,
             damage: 10.0,
+            color: BULLET_COLOR,
         },
     );
 

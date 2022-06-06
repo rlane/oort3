@@ -296,6 +296,7 @@ impl Simulation {
             snapshot.bullets.push(BulletSnapshot {
                 position: bullet.body().position().translation.vector.into(),
                 velocity: *bullet.body().linvel(),
+                color: bullet.data().color,
             });
         }
 

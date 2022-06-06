@@ -1,6 +1,7 @@
 use super::index_set::{HasIndex, Index};
 use crate::collision;
 use crate::simulation::Simulation;
+use nalgebra::Vector4;
 use rapier2d_f64::prelude::*;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone)]
@@ -15,6 +16,7 @@ impl HasIndex for BulletHandle {
 pub struct BulletData {
     pub damage: f64,
     pub team: i32,
+    pub color: Vector4<f32>,
 }
 
 pub fn create(

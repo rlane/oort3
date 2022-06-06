@@ -1,6 +1,6 @@
 use super::{buffer_arena, geometry, glutil};
 use glutil::VertexAttribBuilder;
-use nalgebra::{vector, Matrix4, Point2, Vector2};
+use nalgebra::{Matrix4, Point2, Vector2, Vector4};
 use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use oort_simulator::snapshot::Snapshot;
 use wasm_bindgen::prelude::*;
@@ -11,7 +11,6 @@ pub struct BulletRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     projection_loc: WebGlUniformLocation,
-    color_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
 }
@@ -24,10 +23,13 @@ impl BulletRenderer {
             r#"#version 300 es
 uniform mat4 projection;
 layout(location = 0) in vec4 vertex;
-layout(location = 1) in mat4 transform;
+layout(location = 1) in vec4 color;
+layout(location = 2) in mat4 transform;
+out vec4 varying_color;
 
 void main() {
     gl_Position = projection * (transform * vertex);
+    varying_color = color;
 }
     "#,
         )?;
@@ -36,10 +38,10 @@ void main() {
             gl::FRAGMENT_SHADER,
             r#"#version 300 es
 precision mediump float;
-uniform vec4 color;
+in vec4 varying_color;
 out vec4 fragmentColor;
 void main() {
-    fragmentColor = color;
+    fragmentColor = varying_color;
 }
     "#,
         )?;
@@ -49,17 +51,12 @@ void main() {
             .get_uniform_location(&program, "projection")
             .ok_or("did not find uniform")?;
 
-        let color_loc = context
-            .get_uniform_location(&program, "color")
-            .ok_or("did not find uniform")?;
-
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
             context: context.clone(),
             program,
             projection_loc,
-            color_loc,
             projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "bullet_renderer",
@@ -75,7 +72,6 @@ void main() {
     }
 
     pub fn draw(&mut self, snapshot: &Snapshot, base_line_width: f32) {
-        let color = vector![1.00, 0.63, 0.00, 0.30];
         let num_instances = snapshot.bullets.len();
 
         if num_instances == 0 {
@@ -83,14 +79,6 @@ void main() {
         }
 
         self.context.use_program(Some(&self.program));
-
-        self.context.uniform4f(
-            Some(&self.color_loc),
-            color[0],
-            color[1],
-            color[2],
-            color[3],
-        );
 
         // vertex
         let vertices = geometry::quad();
@@ -101,6 +89,7 @@ void main() {
             .build();
 
         struct BulletAttribs {
+            color: Vector4<f32>,
             transform: Matrix4<f32>,
         }
 
@@ -111,6 +100,7 @@ void main() {
             let v: Vector2<f32> = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
             attribs.push(BulletAttribs {
+                color: bullet.color,
                 transform: geometry::line_transform(p - v * dt, p + v * dt, base_line_width * 0.8),
             });
         }
@@ -120,15 +110,18 @@ void main() {
             .size(4)
             .divisor(1);
         vab.index(1)
-            .offset(offset_of!(BulletAttribs, transform))
+            .offset(offset_of!(BulletAttribs, color))
             .build();
         vab.index(2)
-            .offset(offset_of!(BulletAttribs, transform) + 16)
+            .offset(offset_of!(BulletAttribs, transform))
             .build();
         vab.index(3)
-            .offset(offset_of!(BulletAttribs, transform) + 32)
+            .offset(offset_of!(BulletAttribs, transform) + 16)
             .build();
         vab.index(4)
+            .offset(offset_of!(BulletAttribs, transform) + 32)
+            .build();
+        vab.index(5)
             .offset(offset_of!(BulletAttribs, transform) + 48)
             .build();
 
@@ -150,11 +143,13 @@ void main() {
         self.context.vertex_attrib_divisor(2, 0);
         self.context.vertex_attrib_divisor(3, 0);
         self.context.vertex_attrib_divisor(4, 0);
+        self.context.vertex_attrib_divisor(5, 0);
 
         self.context.disable_vertex_attrib_array(0);
         self.context.disable_vertex_attrib_array(1);
         self.context.disable_vertex_attrib_array(2);
         self.context.disable_vertex_attrib_array(3);
         self.context.disable_vertex_attrib_array(4);
+        self.context.disable_vertex_attrib_array(5);
     }
 }

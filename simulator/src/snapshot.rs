@@ -2,7 +2,7 @@ use crate::scenario::Status;
 use crate::script;
 use crate::ship::ShipClass;
 use crate::simulation::Line;
-use nalgebra::{Point2, Vector2};
+use nalgebra::{Point2, Vector2, Vector4};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -37,6 +37,7 @@ pub struct ShipSnapshot {
 pub struct BulletSnapshot {
     pub position: Point2<f64>,
     pub velocity: Vector2<f64>,
+    pub color: Vector4<f32>,
 }
 
 pub fn interpolate(snapshot: &mut Snapshot, dt: f64) {

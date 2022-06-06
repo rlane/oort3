@@ -265,6 +265,7 @@ impl Scenario for BulletStressScenario {
                 BulletData {
                     damage: 10.0,
                     team: 0,
+                    color: vector![1.00, 0.63, 0.00, 0.30],
                 },
             );
         }
@@ -928,7 +929,7 @@ impl Scenario for Tutorial11 {
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, cruiser(0));
 
         let mut rng = new_rng(seed);
-        for _ in 0..15 {
+        for _ in 0..10 {
             let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
             let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))

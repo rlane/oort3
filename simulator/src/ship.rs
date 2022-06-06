@@ -186,7 +186,7 @@ pub fn cruiser(team: i32) -> ShipData {
             reload_time_remaining: 0.0,
             damage: 0.0,
             speed: 0.0,
-            offset: vector![0.0, 0.0],  // HACK
+            offset: vector![0.0, 0.0], // HACK
             angle: 0.0,
         }),
         health: 30000.0,
@@ -398,13 +398,18 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let rot = body.position().rotation * UnitComplex::new(angle);
         let p = body.position().translation.vector + rot.transform_vector(&offset);
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
+        let color = vector![1.00, 0.63, 0.00, 0.30];
         bullet::create(
             self.simulation,
             p.x,
             p.y,
             v.x,
             v.y,
-            BulletData { damage, team },
+            BulletData {
+                damage,
+                team,
+                color,
+            },
         );
     }
 
@@ -454,6 +459,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let team = self.data().team;
         let speed = 1000.0;
         let p = self.body().position().translation;
+        let color = vector![0.5, 0.5, 0.5, 0.30];
         let mut rng = new_rng(0);
         for _ in 0..25 {
             let rot = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU));
@@ -464,7 +470,11 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 p.y,
                 v.x,
                 v.y,
-                BulletData { damage: 20.0, team },
+                BulletData {
+                    damage: 20.0,
+                    team,
+                    color,
+                },
             );
         }
     }
