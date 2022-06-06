@@ -38,6 +38,7 @@ pub struct BulletSnapshot {
     pub position: Point2<f64>,
     pub velocity: Vector2<f64>,
     pub color: Vector4<f32>,
+    pub ttl: f32,
 }
 
 pub fn interpolate(snapshot: &mut Snapshot, dt: f64) {

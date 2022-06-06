@@ -99,8 +99,12 @@ void main() {
             let p: Point2<f32> = bullet.position.cast();
             let v: Vector2<f32> = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
+            let mut color = bullet.color;
+            if bullet.ttl < 1.0 {
+                color.w *= bullet.ttl;
+            }
             attribs.push(BulletAttribs {
-                color: bullet.color,
+                color: color,
                 transform: geometry::line_transform(p - v * dt, p + v * dt, base_line_width * 0.8),
             });
         }

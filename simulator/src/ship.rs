@@ -400,6 +400,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
         let alpha = ((damage as f32).log(10.0) / 3.0).clamp(0.3, 1.0);
         let color = vector![1.00, 0.63, 0.00, alpha];
+        let ttl = 5.0;
         bullet::create(
             self.simulation,
             p.x,
@@ -410,6 +411,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 damage,
                 team,
                 color,
+                ttl,
             },
         );
     }
@@ -461,6 +463,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let speed = 1000.0;
         let p = self.body().position().translation;
         let color = vector![0.5, 0.5, 0.5, 0.30];
+        let ttl = 1.0;
         let mut rng = new_rng(0);
         for _ in 0..25 {
             let rot = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU));
@@ -475,6 +478,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                     damage: 20.0,
                     team,
                     color,
+                    ttl,
                 },
             );
         }

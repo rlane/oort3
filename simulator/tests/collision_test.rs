@@ -79,6 +79,7 @@ fn test_fighter_bullet_no_collision_same_team() {
             team: 0,
             damage: 10.0,
             color: BULLET_COLOR,
+            ttl: 5.0,
         },
     );
 
@@ -105,6 +106,7 @@ fn test_fighter_bullet_collision_different_team() {
             team: 1,
             damage: 10.0,
             color: BULLET_COLOR,
+            ttl: 5.0,
         },
     );
 
@@ -131,6 +133,7 @@ fn test_missile_bullet_collision_same_team() {
             team: 0,
             damage: 10.0,
             color: BULLET_COLOR,
+            ttl: 5.0,
         },
     );
 
@@ -157,6 +160,7 @@ fn test_missile_bullet_collision_different_team() {
             team: 1,
             damage: 10.0,
             color: BULLET_COLOR,
+            ttl: 5.0,
         },
     );
 

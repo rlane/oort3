@@ -16,6 +16,7 @@ impl HasIndex for BulletHandle {
 pub struct BulletData {
     pub damage: f64,
     pub team: i32,
+    pub ttl: f32,
     pub color: Vector4<f32>,
 }
 
@@ -70,6 +71,18 @@ pub struct BulletAccessorMut<'a> {
 }
 
 impl<'a: 'b, 'b> BulletAccessorMut<'a> {
+    pub fn data_mut(&mut self) -> &mut BulletData {
+        self.simulation.bullet_data.get_mut(&self.handle).unwrap()
+    }
+
+    pub fn tick(&mut self, dt: f64) {
+        let data = self.data_mut();
+        data.ttl -= dt as f32;
+        if data.ttl <= 0.0 {
+            self.destroy();
+        }
+    }
+
     pub fn destroy(&mut self) {
         self.simulation.bullets.remove(self.handle);
         self.simulation.bodies.remove(

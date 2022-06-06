@@ -266,6 +266,7 @@ impl Scenario for BulletStressScenario {
                     damage: 10.0,
                     team: 0,
                     color: vector![1.00, 0.63, 0.00, 0.30],
+                    ttl: 100.0,
                 },
             );
         }

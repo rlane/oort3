@@ -208,6 +208,11 @@ impl Simulation {
             self.ship_mut(handle).tick();
         }
 
+        let bullets: Vec<BulletHandle> = self.bullets.iter().cloned().collect();
+        for handle in bullets {
+            self.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
+        }
+
         let mut scenario = std::mem::take(&mut self.scenario);
         scenario.as_mut().unwrap().tick(self);
         self.scenario = scenario;
@@ -297,6 +302,7 @@ impl Simulation {
                 position: bullet.body().position().translation.vector.into(),
                 velocity: *bullet.body().linvel(),
                 color: bullet.data().color,
+                ttl: bullet.data().ttl,
             });
         }
 
