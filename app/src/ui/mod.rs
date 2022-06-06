@@ -7,7 +7,6 @@ use oort_renderer::Renderer;
 use oort_simulator::scenario::Status;
 use oort_simulator::simulation;
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
-use rand::Rng;
 use std::collections::VecDeque;
 
 const MIN_ZOOM: f32 = 5e-5;
@@ -46,7 +45,7 @@ pub struct UI {
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(request_snapshot: yew::Callback<()>) -> Self {
+    pub fn new(request_snapshot: yew::Callback<()>, nonce: u32) -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let status_div = document
@@ -88,7 +87,7 @@ impl UI {
             debug: false,
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
-            nonce: rand::thread_rng().gen(),
+            nonce,
             request_snapshot,
             picked_ship_id: None,
             picked_div,
@@ -229,7 +228,7 @@ impl UI {
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
-        if snapshot.nonce != self.nonce && snapshot.nonce != 0 {
+        if snapshot.nonce != self.nonce {
             return;
         }
 

@@ -91,6 +91,7 @@ pub struct Model {
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
     ui: Option<Box<UI>>,
+    nonce: u32,
     status_ref: NodeRef,
     last_status: Status,
     running_code: String,
@@ -120,6 +121,7 @@ impl Component for Model {
             overlay: None,
             overlay_ref: NodeRef::default(),
             ui: None,
+            nonce: 0,
             status_ref: NodeRef::default(),
             last_status: Status::Running,
             running_code: String::new(),
@@ -147,13 +149,16 @@ impl Component for Model {
                 });
                 self.running_code = String::new();
                 let seed = rand::thread_rng().gen();
+                self.nonce = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
                     context.link().callback(|_| Msg::RequestSnapshot),
+                    self.nonce,
                 )));
                 self.sim_agent.send(oort_worker::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
                     code: String::new(),
+                    nonce: self.nonce,
                 });
                 self.background_agents.clear();
                 self.background_statuses.clear();
@@ -167,13 +172,16 @@ impl Component for Model {
                 codestorage::save(&self.scenario_name, &code);
                 self.running_code = code.clone();
                 let seed = rand::thread_rng().gen();
+                self.nonce = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
                     context.link().callback(|_| Msg::RequestSnapshot),
+                    self.nonce,
                 )));
                 self.sim_agent.send(oort_worker::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
                     code,
+                    nonce: self.nonce,
                 });
                 self.background_agents.clear();
                 self.background_statuses.clear();
@@ -222,7 +230,7 @@ impl Component for Model {
             }
             Msg::RequestSnapshot => {
                 self.sim_agent
-                    .send(oort_worker::Request::Snapshot { nonce: 0 });
+                    .send(oort_worker::Request::Snapshot { nonce: self.nonce });
                 false
             }
             Msg::ShowDocumentation => {

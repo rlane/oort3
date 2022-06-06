@@ -10,6 +10,7 @@ pub enum Request {
         scenario_name: String,
         seed: u32,
         code: String,
+        nonce: u32,
     },
     RunScenario {
         scenario_name: String,
@@ -54,9 +55,10 @@ impl Agent for SimAgent {
                 scenario_name,
                 seed,
                 code,
+                nonce,
             } => {
                 self.sim = Some(Simulation::new(&scenario_name, seed, &code));
-                let snapshot = self.sim().snapshot(0);
+                let snapshot = self.sim().snapshot(nonce);
                 self.errored = !snapshot.errors.is_empty();
                 self.link.respond(who, Response::Snapshot { snapshot });
             }
