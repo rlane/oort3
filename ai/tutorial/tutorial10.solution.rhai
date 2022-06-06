@@ -36,7 +36,7 @@ fn ship_tick() {
     }
     let dp = target_position - ship.position();
     let dist = dp.magnitude();
-    let bullet_speed = 1000.0;
+    let bullet_speed = 4000.0;
     let t = dist / bullet_speed;
     let predicted_dp = dp + t * (target_velocity - ship.velocity());
     turn_to(predicted_dp.angle(), 0.0);
