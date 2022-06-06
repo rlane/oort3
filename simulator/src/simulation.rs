@@ -330,7 +330,6 @@ impl EventHandler for CollisionEventHandler {
         event: CollisionEvent,
         _contact_pair: Option<&rapier2d_f64::geometry::ContactPair>,
     ) {
-        log::info!("Collision event: {:?}", event);
         let _ = self.collision_event_sender.send(event);
     }
 }
