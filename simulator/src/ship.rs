@@ -47,10 +47,13 @@ pub struct Weapon {
     pub angle: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MissileLauncher {
     pub reload_time: f64,
     pub reload_time_remaining: f64,
+    pub initial_speed: f64,
+    pub offset: Vector2<f64>,
+    pub angle: f64,
 }
 
 #[derive(Debug)]
@@ -102,6 +105,9 @@ pub fn fighter(team: i32) -> ShipData {
         missile: Some(MissileLauncher {
             reload_time: 5.0,
             reload_time_remaining: 0.0,
+            initial_speed: 100.0,
+            offset: vector![20.0, 0.0],
+            angle: 0.0,
         }),
         health: 100.0,
         team,
@@ -151,6 +157,9 @@ pub fn frigate(team: i32) -> ShipData {
         missile: Some(MissileLauncher {
             reload_time: 2.0,
             reload_time_remaining: 0.0,
+            initial_speed: 100.0,
+            offset: vector![32.0, 0.0],
+            angle: 0.0,
         }),
         health: 10000.0,
         team,
@@ -182,6 +191,9 @@ pub fn cruiser(team: i32) -> ShipData {
         missile: Some(MissileLauncher {
             reload_time: 0.2,
             reload_time_remaining: 0.0,
+            initial_speed: 100.0,
+            offset: vector![0.0, 30.0],
+            angle: std::f64::consts::TAU / 4.0,
         }),
         health: 30000.0,
         team,
@@ -411,21 +423,23 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn launch_missile(&mut self) {
-        if let Some(missile) = self.data_mut().missile.as_mut() {
-            if missile.reload_time_remaining > 0.0 {
+        let missile_launcher = if let Some(missile_launcher) = self.data_mut().missile.as_mut() {
+            if missile_launcher.reload_time_remaining > 0.0 {
                 return;
             }
-            missile.reload_time_remaining += missile.reload_time;
+            missile_launcher.reload_time_remaining += missile_launcher.reload_time;
+            missile_launcher.clone()
         } else {
             return;
-        }
+        };
 
-        let speed = 100.0;
-        let offset = vector![20.0, 0.0];
+        let speed = missile_launcher.initial_speed;
+        let offset = missile_launcher.offset;
         let body = self.body();
         let rot = body.position().rotation;
         let p = body.position().translation.vector + rot.transform_vector(&offset);
-        let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
+        let rot2 = rot * UnitComplex::new(missile_launcher.angle);
+        let v = body.linvel() + rot2.transform_vector(&vector![speed, 0.0]);
         let team = self.data().team;
         create(
             self.simulation,
@@ -433,7 +447,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             p.y,
             v.x,
             v.y,
-            rot.angle(),
+            rot2.angle(),
             missile(team),
         );
     }
