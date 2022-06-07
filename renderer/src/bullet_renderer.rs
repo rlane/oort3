@@ -29,7 +29,7 @@ out vec4 varying_color;
 
 void main() {
     gl_Position = projection * (transform * vertex);
-    varying_color = color;
+    varying_color = color * clamp(float(gl_VertexID & 2), 0.1, 1.0);
 }
     "#,
         )?;
@@ -105,7 +105,7 @@ void main() {
             }
             attribs.push(BulletAttribs {
                 color: color,
-                transform: geometry::line_transform(p - v * dt, p + v * dt, base_line_width * 0.8),
+                transform: geometry::line_transform(p - v * dt, p + v * dt, base_line_width),
             });
         }
 

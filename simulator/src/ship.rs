@@ -438,7 +438,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let rot = body.position().rotation * UnitComplex::new(angle);
         let p = body.position().translation.vector + rot.transform_vector(&offset);
         let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
-        let alpha = ((damage as f32).log(10.0) / 3.0).clamp(0.3, 1.0);
+        let alpha = ((damage as f32).log(10.0) / 3.0).clamp(0.5, 1.0);
         let color = vector![1.00, 0.63, 0.00, alpha];
         let ttl = 5.0;
         bullet::create(
