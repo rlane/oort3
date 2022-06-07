@@ -190,7 +190,7 @@ pub fn cruiser(team: i32) -> ShipData {
         ..base_launcher
     };
     let right_launcher = MissileLauncher {
-        angle: std::f64::consts::TAU / 4.0,
+        angle: -std::f64::consts::TAU / 4.0,
         ..base_launcher
     };
     ShipData {
