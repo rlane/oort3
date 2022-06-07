@@ -110,8 +110,12 @@ impl Renderer {
     }
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, snapshot: &Snapshot) {
-        self.canvas.set_width(self.canvas.client_width() as u32);
-        self.canvas.set_height(self.canvas.client_height() as u32);
+        if self.canvas.client_width() != self.canvas.width() as i32 {
+            self.canvas.set_width(self.canvas.client_width() as u32);
+        }
+        if self.canvas.client_height() != self.canvas.height() as i32 {
+            self.canvas.set_height(self.canvas.client_height() as u32);
+        }
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(gl::COLOR_BUFFER_BIT);
 
