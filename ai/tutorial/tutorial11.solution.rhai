@@ -22,11 +22,8 @@ fn ship_tick() {
         radar.set_heading(dp.angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
+        ship.aim_weapon(0, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
         ship.fire_weapon();
-        ship.aim_weapon(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
-        ship.fire_weapon_with_index(1);
-        ship.aim_weapon(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
-        ship.fire_weapon_with_index(2);
         for i in 0..6 {
             ship.launch_missile_with_index(i);
         }
@@ -41,13 +38,10 @@ fn ship_tick() {
     }
     let dp = target_position - ship.position();
     let dist = dp.magnitude();
-    let bullet_speed = 4000.0;
-    let t = dist / bullet_speed;
-    let predicted_dp = dp + t * (target_velocity - ship.velocity());
-    turn_to(predicted_dp.angle(), 0.0);
+    turn_to(dp.angle(), 0.0);
 
     if contact.found && dist < 1000 {
-        ship.accelerate(-ship.velocity().rotate(-ship.heading()));
+        ship.accelerate(-dp - ship.velocity().rotate(-ship.heading()));
     } else {
         ship.accelerate((dp - ship.velocity()).rotate(-ship.heading()));
     }
