@@ -48,10 +48,16 @@ pub struct Weapon {
 }
 
 #[derive(Debug)]
+pub struct MissileLauncher {
+    pub reload_time: f64,
+    pub reload_time_remaining: f64,
+}
+
+#[derive(Debug)]
 pub struct ShipData {
     pub class: ShipClass,
     pub weapons: Vec<Weapon>,
-    pub missile: Option<Weapon>,
+    pub missile: Option<MissileLauncher>,
     pub health: f64,
     pub team: i32,
     pub acceleration: Vector2<f64>,
@@ -93,13 +99,9 @@ pub fn fighter(team: i32) -> ShipData {
             offset: vector![20.0, 0.0],
             angle: 0.0,
         }],
-        missile: Some(Weapon {
+        missile: Some(MissileLauncher {
             reload_time: 5.0,
             reload_time_remaining: 0.0,
-            damage: 0.0,
-            speed: 0.0,
-            offset: vector![20.0, 0.0],
-            angle: 0.0,
         }),
         health: 100.0,
         team,
@@ -146,13 +148,9 @@ pub fn frigate(team: i32) -> ShipData {
                 angle: 0.0,
             },
         ],
-        missile: Some(Weapon {
+        missile: Some(MissileLauncher {
             reload_time: 2.0,
             reload_time_remaining: 0.0,
-            damage: 0.0,
-            speed: 0.0,
-            offset: vector![40.0, 0.0],
-            angle: 0.0,
         }),
         health: 10000.0,
         team,
@@ -181,13 +179,9 @@ pub fn cruiser(team: i32) -> ShipData {
             offset: vector![0.0, 0.0],
             angle: 0.0,
         }],
-        missile: Some(Weapon {
+        missile: Some(MissileLauncher {
             reload_time: 0.2,
             reload_time_remaining: 0.0,
-            damage: 0.0,
-            speed: 0.0,
-            offset: vector![0.0, 0.0], // HACK
-            angle: 0.0,
         }),
         health: 30000.0,
         team,
