@@ -65,7 +65,11 @@ pub mod plugin {
     }
 
     pub fn launch_missile(obj: ShipApi) {
-        obj.ship_mut().launch_missile();
+        obj.ship_mut().launch_missile(0);
+    }
+
+    pub fn launch_missile_with_index(obj: ShipApi, index: i64) {
+        obj.ship_mut().launch_missile(index);
     }
 
     pub fn explode(obj: ShipApi) {

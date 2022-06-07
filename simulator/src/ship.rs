@@ -60,7 +60,7 @@ pub struct MissileLauncher {
 pub struct ShipData {
     pub class: ShipClass,
     pub weapons: Vec<Weapon>,
-    pub missile: Option<MissileLauncher>,
+    pub missile_launchers: Vec<MissileLauncher>,
     pub health: f64,
     pub team: i32,
     pub acceleration: Vector2<f64>,
@@ -77,7 +77,7 @@ impl Default for ShipData {
         ShipData {
             class: ShipClass::Fighter,
             weapons: vec![],
-            missile: None,
+            missile_launchers: vec![],
             health: 100.0,
             team: 0,
             acceleration: vector![0.0, 0.0],
@@ -102,13 +102,13 @@ pub fn fighter(team: i32) -> ShipData {
             offset: vector![20.0, 0.0],
             angle: 0.0,
         }],
-        missile: Some(MissileLauncher {
+        missile_launchers: vec![MissileLauncher {
             reload_time: 5.0,
             reload_time_remaining: 0.0,
             initial_speed: 100.0,
             offset: vector![20.0, 0.0],
             angle: 0.0,
-        }),
+        }],
         health: 100.0,
         team,
         max_acceleration: vector![200.0, 100.0],
@@ -154,13 +154,13 @@ pub fn frigate(team: i32) -> ShipData {
                 angle: 0.0,
             },
         ],
-        missile: Some(MissileLauncher {
+        missile_launchers: vec![MissileLauncher {
             reload_time: 2.0,
             reload_time_remaining: 0.0,
             initial_speed: 100.0,
             offset: vector![32.0, 0.0],
             angle: 0.0,
-        }),
+        }],
         health: 10000.0,
         team,
         max_acceleration: vector![20.0, 10.0],
@@ -178,6 +178,21 @@ pub fn frigate(team: i32) -> ShipData {
 }
 
 pub fn cruiser(team: i32) -> ShipData {
+    let base_launcher = MissileLauncher {
+        reload_time: 1.2,
+        reload_time_remaining: 0.0,
+        initial_speed: 100.0,
+        offset: vector![0.0, 0.0],
+        angle: 0.0,
+    };
+    let left_launcher = MissileLauncher {
+        angle: std::f64::consts::TAU / 4.0,
+        ..base_launcher
+    };
+    let right_launcher = MissileLauncher {
+        angle: std::f64::consts::TAU / 4.0,
+        ..base_launcher
+    };
     ShipData {
         class: ShipClass::Cruiser,
         weapons: vec![Weapon {
@@ -188,13 +203,32 @@ pub fn cruiser(team: i32) -> ShipData {
             offset: vector![0.0, 0.0],
             angle: 0.0,
         }],
-        missile: Some(MissileLauncher {
-            reload_time: 0.2,
-            reload_time_remaining: 0.0,
-            initial_speed: 100.0,
-            offset: vector![0.0, 30.0],
-            angle: std::f64::consts::TAU / 4.0,
-        }),
+        missile_launchers: vec![
+            MissileLauncher {
+                offset: vector![10.0, 30.0],
+                ..left_launcher
+            },
+            MissileLauncher {
+                offset: vector![0.0, 30.0],
+                ..left_launcher
+            },
+            MissileLauncher {
+                offset: vector![-10.0, 30.0],
+                ..left_launcher
+            },
+            MissileLauncher {
+                offset: vector![10.0, -30.0],
+                ..right_launcher
+            },
+            MissileLauncher {
+                offset: vector![0.0, -30.0],
+                ..right_launcher
+            },
+            MissileLauncher {
+                offset: vector![-10.0, -30.0],
+                ..right_launcher
+            },
+        ],
         health: 30000.0,
         team,
         max_acceleration: vector![10.0, 50.0],
@@ -422,8 +456,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         );
     }
 
-    pub fn launch_missile(&mut self) {
-        let missile_launcher = if let Some(missile_launcher) = self.data_mut().missile.as_mut() {
+    pub fn launch_missile(&mut self, index: i64) {
+        let missile_launcher = if let Some(missile_launcher) = self
+            .data_mut()
+            .missile_launchers
+            .get_mut(index as usize)
+            .as_mut()
+        {
             if missile_launcher.reload_time_remaining > 0.0 {
                 return;
             }
@@ -501,9 +540,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                     (weapon.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
             }
 
-            if let Some(missile) = ship_data.missile.as_mut() {
-                missile.reload_time_remaining =
-                    (missile.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
+            for missile_launcher in ship_data.missile_launchers.iter_mut() {
+                missile_launcher.reload_time_remaining = (missile_launcher.reload_time_remaining
+                    - simulation::PHYSICS_TICK_LENGTH)
+                    .max(0.0);
             }
         }
 
