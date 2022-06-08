@@ -104,7 +104,7 @@ void main() {
                 color.w *= bullet.ttl;
             }
             attribs.push(BulletAttribs {
-                color: color,
+                color,
                 transform: geometry::line_transform(p - v * dt, p + v * dt, base_line_width),
             });
         }

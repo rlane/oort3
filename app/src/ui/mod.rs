@@ -56,9 +56,10 @@ impl UI {
             .get_element_by_id("picked")
             .expect("should have a picked div");
 
-        let renderer = Renderer::new().expect("Failed to create renderer");
+        let mut renderer = Renderer::new().expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
+        renderer.set_view(zoom, point![camera_target.x, camera_target.y]);
         let frame_timer: frame_timer::FrameTimer = Default::default();
         let paused = false;
         let single_steps = 0;
@@ -251,8 +252,22 @@ impl UI {
             return;
         }
 
+        let first_snapshot = self.snapshot.is_none();
+
         self.snapshot = self.pending_snapshots.pop_front();
         let snapshot = self.snapshot.as_ref().unwrap();
+
+        // Zoom out to show all ships.
+        if first_snapshot {
+            let maxdist = snapshot
+                .ships
+                .iter()
+                .map(|ship| nalgebra::distance(&ship.position, &point![0.0, 0.0]))
+                .fold(0.0, |a, b| if a > b { a } else { b });
+            let cornerdist = nalgebra::distance(&point![0.0, 0.0], &self.renderer.unproject(0, 0));
+            self.zoom = (self.zoom * cornerdist as f32 / (1.5 * maxdist as f32))
+                .clamp(MIN_ZOOM, INITIAL_ZOOM);
+        }
 
         if !snapshot.errors.is_empty() {
             self.paused = true;
