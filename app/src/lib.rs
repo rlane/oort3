@@ -28,6 +28,7 @@ use web_sys::{EventTarget, HtmlInputElement};
 use yew::events::Event;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
+use yew_router::prelude::*;
 
 #[derive(BuildDateTime, BuildInfo)]
 struct BuildTag;
@@ -61,6 +62,14 @@ fn empty() -> JsValue {
     js_sys::Object::new().into()
 }
 
+#[derive(Clone, Routable, PartialEq)]
+enum Route {
+    #[at("/")]
+    Home,
+    #[at("/scenario/:name")]
+    Scenario { name: String },
+}
+
 pub enum Msg {
     Render,
     SelectScenario(String),
@@ -81,6 +90,26 @@ enum Overlay {
     MissionComplete,
 }
 
+#[function_component(Main)]
+fn app() -> Html {
+    html! {
+        <BrowserRouter>
+            <Switch<Route> render={Switch::render(switch)} />
+        </BrowserRouter>
+    }
+}
+
+fn switch(routes: &Route) -> Html {
+    match routes {
+        Route::Home => switch(&Route::Scenario {
+            name: "welcome".to_owned(),
+        }),
+        Route::Scenario { name } => html! {
+            <Model scenario={name.clone()} />
+        },
+    }
+}
+
 pub struct Model {
     render_handle: Option<AnimationFrame>,
     scenario_name: String,
@@ -98,14 +127,19 @@ pub struct Model {
     current_decorations: js_sys::Array,
 }
 
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub scenario: String,
+}
+
 impl Component for Model {
     type Message = Msg;
-    type Properties = ();
+    type Properties = Props;
 
     fn create(context: &yew::Context<Self>) -> Self {
         context
             .link()
-            .send_message(Msg::SelectScenario("welcome".to_string()));
+            .send_message(Msg::SelectScenario(context.props().scenario.clone()));
         let link2 = context.link().clone();
         let render_handle = Some(request_animation_frame(move |_ts| {
             link2.send_message(Msg::Render)
@@ -252,11 +286,13 @@ impl Component for Model {
             html! { <option name={name.clone()} selected={selected}>{name}</option> }
         };
 
-        let select_scenario_cb = context.link().callback(|e: Event| {
+        let history = context.link().history().unwrap();
+        let select_scenario_cb = context.link().callback(move |e: Event| {
             let target: EventTarget = e
                 .target()
                 .expect("Event should have a target when dispatched");
             let data = target.unchecked_into::<HtmlInputElement>().value();
+            history.push(Route::Scenario { name: data.clone() });
             Msg::SelectScenario(data)
         });
 
@@ -523,6 +559,6 @@ pub fn run_app() -> Result<(), JsValue> {
     let userid = userid::get_userid();
     log::info!("userid {}", &userid);
     log::info!("username {}", &userid::get_username(&userid));
-    yew::start_app::<Model>();
+    yew::start_app::<Main>();
     Ok(())
 }

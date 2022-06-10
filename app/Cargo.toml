@@ -37,6 +37,7 @@ gloo-render = "0.1.1"
 reqwasm = "0.5.0"
 wasm-bindgen-futures = "0.4.30"
 monaco = { version = "0.3.0", features = ["yew-components"] }
+yew-router = "0.16"
 
 [dependencies.web-sys]
 version = "0.3.57"
