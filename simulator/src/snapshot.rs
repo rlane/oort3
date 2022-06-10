@@ -19,6 +19,7 @@ pub struct Snapshot {
     pub errors: Vec<script::Error>,
     pub cheats: bool,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,
+    pub timing: Timing,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -39,6 +40,12 @@ pub struct BulletSnapshot {
     pub velocity: Vector2<f64>,
     pub color: Vector4<f32>,
     pub ttl: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct Timing {
+    pub physics: f64,
+    pub script: f64,
 }
 
 pub fn interpolate(snapshot: &mut Snapshot, dt: f64) {

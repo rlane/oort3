@@ -9,6 +9,7 @@ use crate::script::{ShipController, TeamController};
 use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::snapshot::*;
 use crossbeam::channel::Sender;
+use instant::Instant;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 use std::cell::RefCell;
@@ -42,6 +43,7 @@ pub struct Simulation {
     tick: u32,
     pub cheats: bool,
     seed: u32,
+    timing: Timing,
 }
 
 impl Simulation {
@@ -78,6 +80,7 @@ impl Simulation {
             tick: 0,
             cheats: false,
             seed,
+            timing: Default::default(),
         });
 
         sim.upload_code(/*team=*/ 0, code);
@@ -136,9 +139,10 @@ impl Simulation {
     #[allow(clippy::let_unit_value)]
     pub fn step(self: &mut Simulation) {
         self.events.clear();
+
+        let physics_start_time = Instant::now();
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
-
         self.physics_pipeline.step(
             &gravity,
             &self.integration_parameters,
@@ -196,7 +200,9 @@ impl Simulation {
                 }
             }
         }
+        self.timing.physics = (Instant::now() - physics_start_time).as_secs_f64();
 
+        let script_start_time = Instant::now();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
@@ -207,6 +213,7 @@ impl Simulation {
             debug::emit_ship(self, handle);
             self.ship_mut(handle).tick();
         }
+        self.timing.script = (Instant::now() - script_start_time).as_secs_f64();
 
         let bullets: Vec<BulletHandle> = self.bullets.iter().cloned().collect();
         for handle in bullets {
@@ -275,6 +282,7 @@ impl Simulation {
             ships_destroyed: self.events.ships_destroyed.clone(),
             errors: self.events.errors.clone(),
             cheats: self.cheats,
+            timing: self.timing.clone(),
         };
 
         for &handle in self.ships.iter() {

@@ -202,7 +202,11 @@ impl UI {
             status_msgs.push(format!("{:.0} fps", self.fps.fps()));
             if self.debug {
                 let (a, b, c) = self.frame_timer.get_latency();
-                status_msgs.push(format!("LATENCY {:.1}/{:.1}/{:.1} ms", a, b, c,));
+                status_msgs.push(format!("UI {:.1}/{:.1}/{:.1} ms", a, b, c,));
+                if let Some(snapshot) = self.snapshot.as_ref() {
+                    status_msgs.push(format!("PHYS {:.1} ms", snapshot.timing.physics * 1e3));
+                    status_msgs.push(format!("SCRIPT {:.1} ms", snapshot.timing.script * 1e3));
+                }
                 status_msgs.push(format!("SNAP {}", self.pending_snapshots.len()));
             }
             let status_msg = status_msgs.join("; ");
