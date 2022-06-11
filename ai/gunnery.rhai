@@ -32,7 +32,7 @@ fn tick() {
         let target_angular_velocity = (target_heading - last_target_heading) * 60.0;
         turn_to(target_heading, target_angular_velocity);
         if vec2(predicted_dp.magnitude(), 0).rotate(ship.heading()).distance(predicted_dp) <= 5 {
-            ship.fire_weapon();
+            ship.fire_gun();
         }
         let next_tick_dp = dp + dv / 60;
         radar.set_heading(next_tick_dp.angle() - ship.heading());

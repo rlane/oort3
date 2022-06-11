@@ -22,10 +22,10 @@ fn ship_tick() {
         radar.set_heading(dp.angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
-        ship.aim_weapon(0, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
-        ship.fire_weapon();
+        ship.aim_gun(0, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
+        ship.fire_gun();
         for i in 0..3 {
-            ship.launch_missile_with_index(i);
+            ship.launch_missile(i);
         }
         dbg.draw_diamond(contact.position, 20.0, 0xffff00);
         dbg.draw_diamond(ship.position() + predicted_dp, 5.0, 0xffffff);

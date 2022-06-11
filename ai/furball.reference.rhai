@@ -24,20 +24,20 @@ fn ship_tick() {
         target_position = contact.position;
         target_velocity = contact.velocity;
         if ship.class() == "fighter" {
-            ship.fire_weapon();
+            ship.fire_gun();
             ship.launch_missile();
         } else if ship.class() == "frigate" {
-            ship.fire_weapon();
-            ship.aim_weapon(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
-            ship.fire_weapon_with_index(1);
-            ship.aim_weapon(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
-            ship.fire_weapon_with_index(2);
+            ship.fire_gun();
+            ship.aim_gun(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
+            ship.fire_gun(1);
+            ship.aim_gun(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
+            ship.fire_gun(2);
             ship.launch_missile();
         } else if ship.class() == "cruiser" {
-            ship.aim_weapon(0, predicted_dp.angle() - ship.heading());
-            ship.fire_weapon_with_index(0);
+            ship.aim_gun(0, predicted_dp.angle() - ship.heading());
+            ship.fire_gun(0);
             for i in 0..3 {
-                ship.launch_missile_with_index(i);
+                ship.launch_missile(i);
             }
         }
     } else {

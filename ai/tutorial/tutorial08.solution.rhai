@@ -48,7 +48,7 @@ fn tick() {
     let target_angular_velocity = (target_heading - last_target_heading) * 60.0;
     turn_to(target_heading, target_angular_velocity);
     if contact.found && vec2(predicted_dp.magnitude(), 0).rotate(ship.heading()).distance(predicted_dp) <= 10 {
-        ship.fire_weapon();
+        ship.fire_gun();
     }
     last_target_heading = target_heading;
     ship.accelerate((target_position - ship.position() - ship.velocity())

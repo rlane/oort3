@@ -4,5 +4,5 @@
 
 fn tick() {
     ship.accelerate(0.1 * (target - ship.position()));
-    ship.fire_weapon();
+    ship.fire_gun();
 }

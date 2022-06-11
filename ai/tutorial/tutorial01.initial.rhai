@@ -3,5 +3,5 @@
 
 fn tick() {
     // Uncomment me, then press ctrl-Enter to upload the code.
-    // ship.fire_weapon();
+    // ship.fire_gun();
 }

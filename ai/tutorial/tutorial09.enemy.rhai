@@ -19,7 +19,7 @@ fn tick() {
     }
     if (contact.position.distance(ship.position()) < 1000.0 && contact.velocity.magnitude() > 100) {
         turn_to((contact.position - ship.position()).angle());
-        ship.fire_weapon();
+        ship.fire_gun();
     } else {
         turn_to((target - ship.position()).angle());
     }

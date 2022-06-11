@@ -14,9 +14,9 @@ fn tick() {
                 ship.explode();
             }
         } else {
-            ship.fire_weapon();
-            ship.fire_weapon_with_index(1);
-            ship.fire_weapon_with_index(2);
+            ship.fire_gun();
+            ship.fire_gun(1);
+            ship.fire_gun(2);
             ship.launch_missile();
         }
     }

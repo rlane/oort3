@@ -848,7 +848,7 @@ impl Scenario for Tutorial09 {
         sim.upload_code(1, include_str!("../../ai/tutorial/tutorial09.enemy.rhai"));
 
         let mut shipdata = fighter(0);
-        shipdata.weapons.clear();
+        shipdata.guns.clear();
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, shipdata);
 
         let mut rng = new_rng(seed);

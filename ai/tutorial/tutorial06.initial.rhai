@@ -6,5 +6,5 @@ fn tick() {
     radar.set_heading(rng.next(0.0, 2 * PI()));
     let contact = radar.scan();
     ship.accelerate(0.1 * (contact.position - ship.position()));
-    ship.fire_weapon();
+    ship.fire_gun();
 }

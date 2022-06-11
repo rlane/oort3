@@ -6,5 +6,5 @@ fn tick() {
     let target_heading = (target - ship.position()).angle();
     ship.torque(20 * (angle_diff(ship.heading(), target_heading)
         - 0.33 * ship.angular_velocity()));
-    ship.fire_weapon();
+    ship.fire_gun();
 }

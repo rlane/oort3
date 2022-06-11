@@ -16,7 +16,7 @@ fn ship_tick() {
         radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
-        ship.fire_weapon();
+        ship.fire_gun();
         ship.launch_missile();
     } else {
         radar.set_heading(rng.next(0.0, PI() * 2));

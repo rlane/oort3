@@ -16,5 +16,5 @@ fn tick() {
     turn_to((contact.position - ship.position()).angle());
     ship.accelerate((contact.position - ship.position() - ship.velocity())
         .normalize().rotate(-ship.heading()) * 100.0);
-    ship.fire_weapon();
+    ship.fire_gun();
 }

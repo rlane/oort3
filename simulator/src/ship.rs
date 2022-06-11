@@ -39,7 +39,7 @@ pub enum ShipClass {
 }
 
 #[derive(Debug)]
-pub struct Weapon {
+pub struct Gun {
     pub reload_time: f64,
     pub reload_time_remaining: f64,
     pub damage: f64,
@@ -61,7 +61,7 @@ pub struct MissileLauncher {
 #[derive(Debug)]
 pub struct ShipData {
     pub class: ShipClass,
-    pub weapons: Vec<Weapon>,
+    pub guns: Vec<Gun>,
     pub missile_launchers: Vec<MissileLauncher>,
     pub health: f64,
     pub team: i32,
@@ -79,7 +79,7 @@ impl Default for ShipData {
     fn default() -> ShipData {
         ShipData {
             class: ShipClass::Fighter,
-            weapons: vec![],
+            guns: vec![],
             missile_launchers: vec![],
             health: 100.0,
             team: 0,
@@ -98,7 +98,7 @@ impl Default for ShipData {
 pub fn fighter(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Fighter,
-        weapons: vec![Weapon {
+        guns: vec![Gun {
             reload_time: 0.2,
             reload_time_remaining: 0.0,
             damage: 20.0,
@@ -133,8 +133,8 @@ pub fn fighter(team: i32) -> ShipData {
 pub fn frigate(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Frigate,
-        weapons: vec![
-            Weapon {
+        guns: vec![
+            Gun {
                 reload_time: 1.0,
                 reload_time_remaining: 0.0,
                 damage: 1000.0,
@@ -142,7 +142,7 @@ pub fn frigate(team: i32) -> ShipData {
                 offset: vector![40.0, 0.0],
                 angle: 0.0,
             },
-            Weapon {
+            Gun {
                 reload_time: 0.2,
                 reload_time_remaining: 0.0,
                 damage: 20.0,
@@ -150,7 +150,7 @@ pub fn frigate(team: i32) -> ShipData {
                 offset: vector![0.0, 15.0],
                 angle: 0.0,
             },
-            Weapon {
+            Gun {
                 reload_time: 0.2,
                 reload_time_remaining: 0.0,
                 damage: 20.0,
@@ -194,7 +194,7 @@ pub fn cruiser(team: i32) -> ShipData {
     };
     ShipData {
         class: ShipClass::Cruiser,
-        weapons: vec![Weapon {
+        guns: vec![Gun {
             reload_time: 0.1,
             reload_time_remaining: 0.0,
             damage: 20.0,
@@ -240,7 +240,7 @@ pub fn cruiser(team: i32) -> ShipData {
 pub fn asteroid(variant: i32) -> ShipData {
     ShipData {
         class: ShipClass::Asteroid { variant },
-        weapons: vec![],
+        guns: vec![],
         health: 200.0,
         team: 9,
         ..Default::default()
@@ -427,9 +427,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         self.data_mut().angular_acceleration = clamped_angular_acceleration;
     }
 
-    pub fn fire_weapon(&mut self, index: i64) {
+    pub fn fire_gun(&mut self, index: i64) {
         let ship_data = self.data_mut();
-        if index as usize >= ship_data.weapons.len() {
+        if index as usize >= ship_data.guns.len() {
             return;
         }
         let team = ship_data.team;
@@ -438,15 +438,15 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let speed;
         let angle;
         {
-            let weapon = &mut ship_data.weapons[index as usize];
-            if weapon.reload_time_remaining > 0.0 {
+            let gun = &mut ship_data.guns[index as usize];
+            if gun.reload_time_remaining > 0.0 {
                 return;
             }
-            damage = weapon.damage;
-            offset = weapon.offset;
-            speed = weapon.speed;
-            angle = weapon.angle;
-            weapon.reload_time_remaining += weapon.reload_time;
+            damage = gun.damage;
+            offset = gun.offset;
+            speed = gun.speed;
+            angle = gun.angle;
+            gun.reload_time_remaining += gun.reload_time;
         }
 
         let body = self.body();
@@ -510,13 +510,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         );
     }
 
-    pub fn aim_weapon(&mut self, index: i64, angle: f64) {
+    pub fn aim_gun(&mut self, index: i64, angle: f64) {
         let ship_data = self.data_mut();
-        if index as usize >= ship_data.weapons.len() {
+        if index as usize >= ship_data.guns.len() {
             return;
         }
-        let weapon = &mut ship_data.weapons[index as usize];
-        weapon.angle = angle;
+        let gun = &mut ship_data.guns[index as usize];
+        gun.angle = angle;
     }
 
     pub fn explode(&mut self) {
@@ -557,12 +557,12 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn tick(&mut self) {
-        // Weapons.
+        // Guns.
         {
             let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
-            for weapon in ship_data.weapons.iter_mut() {
-                weapon.reload_time_remaining =
-                    (weapon.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
+            for gun in ship_data.guns.iter_mut() {
+                gun.reload_time_remaining =
+                    (gun.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
             }
 
             for missile_launcher in ship_data.missile_launchers.iter_mut() {

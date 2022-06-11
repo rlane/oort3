@@ -20,8 +20,9 @@ pub fn documentation() -> Html {
               <li><code>{ "ship.angular_velocity() → float" }</code>{ ": Get the current angular velocity in radians/s." }</li>
               <li><code>{ "ship.accelerate(acceleration: vec2)" }</code>{ ": Linear acceleration. X axis is forward/back, Y axis is left/right. Units are m/s<sup>2</sup>" }</li>
               <li><code>{ "ship.torque(acceleration: float)" }</code>{ ": Angular acceleration. Unit is radians/s<sup>2</sup>." }</li>
-              <li><code>{ "ship.fire_weapon()" }</code>{ ": Fire the ship's main weapon." }</li>
-              <li><code>{ "ship.launch_missile()" }</code>{ ": Launch a missile." }</li>
+              <li><code>{ "ship.fire_gun(index=0)" }</code>{ ": Fire a gun." }</li>
+              <li><code>{ "ship.aim_gun(index, angle)" }</code>{ ": Aim a gun." }</li>
+              <li><code>{ "ship.launch_missile(index=0)" }</code>{ ": Launch a missile." }</li>
               <li><code>{ "ship.class() → string" }</code>{ ": Returns the ship class as a string." }</li>
               <li><code>{ "ship.explode()" }</code>{ ": Self-destruct." }</li>
             </ul>

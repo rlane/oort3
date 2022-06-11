@@ -4,5 +4,5 @@
 
 fn tick() {
     ship.torque(1.0);
-    ship.fire_weapon();
+    ship.fire_gun();
 }

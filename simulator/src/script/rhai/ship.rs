@@ -52,22 +52,29 @@ pub mod plugin {
         obj.ship_mut().torque(angular_acceleration);
     }
 
+    pub fn fire_gun(obj: ShipApi) {
+        obj.ship_mut().fire_gun(0);
+    }
+
+    // Backwards compatibility.
     pub fn fire_weapon(obj: ShipApi) {
-        obj.ship_mut().fire_weapon(0);
+        obj.ship_mut().fire_gun(0);
     }
 
-    pub fn fire_weapon_with_index(obj: ShipApi, index: i64) {
-        obj.ship_mut().fire_weapon(index);
+    #[rhai_fn(name = "fire_gun")]
+    pub fn fire_gun_with_index(obj: ShipApi, index: i64) {
+        obj.ship_mut().fire_gun(index);
     }
 
-    pub fn aim_weapon(obj: ShipApi, index: i64, angle: f64) {
-        obj.ship_mut().aim_weapon(index, angle);
+    pub fn aim_gun(obj: ShipApi, index: i64, angle: f64) {
+        obj.ship_mut().aim_gun(index, angle);
     }
 
     pub fn launch_missile(obj: ShipApi) {
         obj.ship_mut().launch_missile(0);
     }
 
+    #[rhai_fn(name = "launch_missile")]
     pub fn launch_missile_with_index(obj: ShipApi, index: i64) {
         obj.ship_mut().launch_missile(index);
     }

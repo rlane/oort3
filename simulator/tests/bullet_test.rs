@@ -15,7 +15,7 @@ fn test_hit() {
 
     let initial_health = sim.ship(ship1).data().health;
 
-    sim.ship_mut(ship0).fire_weapon(0);
+    sim.ship_mut(ship0).fire_gun(0);
     assert!(!sim.bullets.iter().len() > 0);
 
     for _ in 0..100 {
@@ -40,7 +40,7 @@ fn test_destroyed() {
     assert!(sim.ships.contains(ship1));
 
     for _ in 0..1000 {
-        sim.ship_mut(ship0).fire_weapon(0);
+        sim.ship_mut(ship0).fire_gun(0);
         sim.step();
         if !sim.ships.contains(ship1) {
             break;

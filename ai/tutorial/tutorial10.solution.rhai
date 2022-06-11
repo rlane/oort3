@@ -19,11 +19,11 @@ fn ship_tick() {
         radar.set_heading(dp.angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
-        ship.fire_weapon();
-        ship.aim_weapon(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
-        ship.fire_weapon_with_index(1);
-        ship.aim_weapon(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
-        ship.fire_weapon_with_index(2);
+        ship.fire_gun();
+        ship.aim_gun(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
+        ship.fire_gun(1);
+        ship.aim_gun(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
+        ship.fire_gun(2);
         ship.launch_missile();
         dbg.draw_diamond(contact.position, 20.0, 0xffff00);
         dbg.draw_diamond(ship.position() + predicted_dp, 5.0, 0xffffff);
