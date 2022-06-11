@@ -15,18 +15,31 @@ fn ship_tick() {
     if (contact.found) {
         let dp = contact.position - ship.position();
         let dv = contact.velocity - ship.velocity();
-        let predicted_dp = dp + dv * dp.magnitude() / 1000.0;
+        let predicted_dp = dp;
+        let bullet_speed = 1000.0;
+        for i in 0..3 {
+            predicted_dp = dp + dv * predicted_dp.magnitude() / bullet_speed;
+        }
         radar.set_heading(dp.angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
-        ship.fire_weapon();
-        if ship.class() == "frigate" {
+        if ship.class() == "fighter" {
+            ship.fire_weapon();
+            ship.launch_missile();
+        } else if ship.class() == "frigate" {
+            ship.fire_weapon();
             ship.aim_weapon(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
             ship.fire_weapon_with_index(1);
             ship.aim_weapon(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
             ship.fire_weapon_with_index(2);
+            ship.launch_missile();
+        } else if ship.class() == "cruiser" {
+            ship.aim_weapon(0, predicted_dp.angle() - ship.heading());
+            ship.fire_weapon_with_index(0);
+            for i in 0..6 {
+                ship.launch_missile_with_index(i);
+            }
         }
-        ship.launch_missile();
     } else {
         radar.set_heading(rng.next(0.0, PI() * 2));
         if (target_position - ship.position()).magnitude() < 100 {
