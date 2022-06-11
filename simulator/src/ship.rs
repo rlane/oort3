@@ -70,6 +70,7 @@ pub struct ShipData {
     pub destroyed: bool,
     pub radar: Option<Radar>,
     pub radar_cross_section: f64,
+    pub ttl: Option<u64>,
 }
 
 impl Default for ShipData {
@@ -87,6 +88,7 @@ impl Default for ShipData {
             destroyed: false,
             radar: None,
             radar_cross_section: 10.0,
+            ttl: None,
         }
     }
 }
@@ -279,6 +281,7 @@ pub fn missile(team: i32) -> ShipData {
             scanned: false,
         }),
         radar_cross_section: 4.0,
+        ttl: Some(600),
         ..Default::default()
     }
 }
@@ -573,6 +576,16 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             self.body().reset_torques(false);
             self.body().add_torque(torque, true);
             self.data_mut().angular_acceleration = 0.0;
+        }
+
+        // TTL
+        {
+            if let Some(ttl) = self.data_mut().ttl {
+                self.data_mut().ttl = Some(ttl - 1);
+                if self.data().ttl.unwrap() == 0 {
+                    self.explode();
+                }
+            }
         }
 
         // Destruction.
