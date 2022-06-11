@@ -22,7 +22,9 @@ fn check_victory(sim: &Simulation) -> Status {
     let mut alive_teams: HashSet<i32> = HashSet::new();
     for &handle in sim.ships.iter() {
         let ship = sim.ship(handle);
-        if ship.data().class == ship::ShipClass::Missile {
+        if ship.data().class == ship::ShipClass::Missile
+            || ship.data().class == ship::ShipClass::Torpedo
+        {
             continue;
         }
         alive_teams.insert(ship.data().team);
