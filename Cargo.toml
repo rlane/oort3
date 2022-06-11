@@ -17,6 +17,12 @@ opt-level = 3
 [profile.dev.package.oort_renderer]
 opt-level = 1
 
+[profile.dev.package.oort_simulator]
+opt-level = 1
+
+[profile.dev.package.oort_worker]
+opt-level = 1
+
 [profile.dev]
 opt-level = 0
 
