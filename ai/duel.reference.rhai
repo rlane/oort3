@@ -13,11 +13,33 @@ let target_velocity = vec2(0.0, 0.0);
 fn ship_tick() {
     let contact = radar.scan();
     if (contact.found) {
-        radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
+        let dp = contact.position - ship.position();
+        let dv = contact.velocity - ship.velocity();
+        let predicted_dp = dp;
+        let bullet_speed = 1000.0;
+        for i in 0..3 {
+            predicted_dp = dp + dv * predicted_dp.magnitude() / bullet_speed;
+        }
+        radar.set_heading(dp.angle() - ship.heading());
         target_position = contact.position;
         target_velocity = contact.velocity;
-        ship.fire_weapon();
-        ship.launch_missile();
+        if ship.class() == "fighter" {
+            ship.fire_weapon();
+            ship.launch_missile();
+        } else if ship.class() == "frigate" {
+            ship.fire_weapon();
+            ship.aim_weapon(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
+            ship.fire_weapon_with_index(1);
+            ship.aim_weapon(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
+            ship.fire_weapon_with_index(2);
+            ship.launch_missile();
+        } else if ship.class() == "cruiser" {
+            ship.aim_weapon(0, predicted_dp.angle() - ship.heading());
+            ship.fire_weapon_with_index(0);
+            for i in 0..6 {
+                ship.launch_missile_with_index(i);
+            }
+        }
     } else {
         radar.set_heading(rng.next(0.0, PI() * 2));
         if (target_position - ship.position()).magnitude() < 100 {
@@ -28,6 +50,9 @@ fn ship_tick() {
     let dp = target_position - ship.position();
     let dist = dp.magnitude();
     let bullet_speed = 1000.0;
+    if ship.class() == "frigate" {
+        bullet_speed = 4000.0;
+    }
     let t = dist / bullet_speed;
     let predicted_dp = dp + t * (target_velocity - ship.velocity());
     turn_to(predicted_dp.angle(), 0.0);
@@ -41,6 +66,11 @@ fn ship_tick() {
 
 fn turn_to(target_heading, target_angular_velocity) {
     let acc = 2 * PI();
+    if ship.class() == "frigate" {
+        acc = 2 * PI() / 6;
+    } else if ship.class() == "cruiser" {
+        acc = 2 * PI() / 16.0;
+    }
     let dh = angle_diff(ship.heading(), target_heading);
     let vh = ship.angular_velocity() - target_angular_velocity;
     let margin = 0.001;

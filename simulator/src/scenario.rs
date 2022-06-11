@@ -118,7 +118,9 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial10" => Box::new(Tutorial10::new()),
         "tutorial11" => Box::new(Tutorial11::new()),
         // Tournament
-        "duel" => Box::new(Duel::new()),
+        "fighter_duel" => Box::new(FighterDuel::new()),
+        "frigate_duel" => Box::new(FrigateDuel::new()),
+        "cruiser_duel" => Box::new(CruiserDuel::new()),
         "furball" => Box::new(Furball::new()),
         _ => panic!("Unknown scenario"),
     };
@@ -141,7 +143,9 @@ pub fn list() -> Vec<String> {
         "tutorial10",
         "tutorial11",
         "gunnery",
-        "duel",
+        "fighter_duel",
+        "frigate_duel",
+        "cruiser_duel",
         "furball",
     ]
     .iter()
@@ -952,24 +956,114 @@ impl Scenario for Tutorial11 {
     }
 }
 
-struct Duel {}
+struct FighterDuel {}
 
-impl Duel {
+impl FighterDuel {
     fn new() -> Self {
         Self {}
     }
 }
 
-impl Scenario for Duel {
+impl Scenario for FighterDuel {
     fn name(&self) -> String {
-        "duel".into()
+        "fighter_duel".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
         sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
-        ship::create(sim, -1000.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
-        ship::create(sim, 1000.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(1));
+        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(
+            sim,
+            1000.0,
+            500.0,
+            0.0,
+            0.0,
+            std::f64::consts::PI,
+            fighter(1),
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        include_str!("../../ai/duel.initial.rhai").to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/duel.reference.rhai").to_string()
+    }
+}
+
+struct FrigateDuel {}
+
+impl FrigateDuel {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for FrigateDuel {
+    fn name(&self) -> String {
+        "frigate_duel".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+        add_walls(sim);
+        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
+        ship::create(
+            sim,
+            1000.0,
+            500.0,
+            0.0,
+            0.0,
+            std::f64::consts::PI,
+            frigate(1),
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        include_str!("../../ai/duel.initial.rhai").to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/duel.reference.rhai").to_string()
+    }
+}
+
+struct CruiserDuel {}
+
+impl CruiserDuel {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for CruiserDuel {
+    fn name(&self) -> String {
+        "cruiser_duel".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+        add_walls(sim);
+        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
+        ship::create(
+            sim,
+            1000.0,
+            500.0,
+            0.0,
+            0.0,
+            std::f64::consts::PI,
+            cruiser(1),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
