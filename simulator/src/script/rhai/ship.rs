@@ -84,6 +84,7 @@ pub mod plugin {
             ShipClass::Asteroid { .. } => "asteroid".to_string(),
             ShipClass::Target => "target".to_string(),
             ShipClass::Missile => "missile".to_string(),
+            ShipClass::Torpedo => "torpedo".to_string(),
         }
     }
 

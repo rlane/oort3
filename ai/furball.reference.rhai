@@ -1,5 +1,5 @@
 fn tick() {
-    if ship.class() == "missile" {
+    if ship.class() == "missile" || ship.class() == "torpedo" {
         missile_tick();
     } else {
         ship_tick();
@@ -36,7 +36,7 @@ fn ship_tick() {
         } else if ship.class() == "cruiser" {
             ship.aim_weapon(0, predicted_dp.angle() - ship.heading());
             ship.fire_weapon_with_index(0);
-            for i in 0..6 {
+            for i in 0..3 {
                 ship.launch_missile_with_index(i);
             }
         }

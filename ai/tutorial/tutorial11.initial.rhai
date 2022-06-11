@@ -4,7 +4,7 @@
 fn tick() {
     let contact = ship.scan();
     if contact.found {
-        if ship.class() == "missile" {
+        if ship.class() == "missile" || ship.class == "torpedo" {
             let dp = contact.position - ship.position();
             let dv = contact.velocity - ship.velocity();
             ship.torque(20 * (angle_diff(ship.heading(), dp.angle())
@@ -15,9 +15,9 @@ fn tick() {
             }
         } else {
             ship.fire_weapon();
-            ship.fire_weapon_with_index(1);
-            ship.fire_weapon_with_index(2);
-            ship.launch_missile();
+            for i in 0..3 {
+                ship.launch_missile_with_index(i);
+            }
         }
     }
 }

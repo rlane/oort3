@@ -35,6 +35,7 @@ pub enum ShipClass {
     Asteroid { variant: i32 },
     Target,
     Missile,
+    Torpedo,
 }
 
 #[derive(Debug)]
@@ -49,6 +50,7 @@ pub struct Weapon {
 
 #[derive(Debug, Clone)]
 pub struct MissileLauncher {
+    pub class: ShipClass,
     pub reload_time: f64,
     pub reload_time_remaining: f64,
     pub initial_speed: f64,
@@ -105,6 +107,7 @@ pub fn fighter(team: i32) -> ShipData {
             angle: 0.0,
         }],
         missile_launchers: vec![MissileLauncher {
+            class: ShipClass::Missile,
             reload_time: 5.0,
             reload_time_remaining: 0.0,
             initial_speed: 100.0,
@@ -157,6 +160,7 @@ pub fn frigate(team: i32) -> ShipData {
             },
         ],
         missile_launchers: vec![MissileLauncher {
+            class: ShipClass::Missile,
             reload_time: 2.0,
             reload_time_remaining: 0.0,
             initial_speed: 100.0,
@@ -180,20 +184,13 @@ pub fn frigate(team: i32) -> ShipData {
 }
 
 pub fn cruiser(team: i32) -> ShipData {
-    let base_launcher = MissileLauncher {
+    let missile_launcher = MissileLauncher {
+        class: ShipClass::Missile,
         reload_time: 1.2,
         reload_time_remaining: 0.0,
         initial_speed: 100.0,
         offset: vector![0.0, 0.0],
         angle: 0.0,
-    };
-    let left_launcher = MissileLauncher {
-        angle: std::f64::consts::TAU / 4.0,
-        ..base_launcher
-    };
-    let right_launcher = MissileLauncher {
-        angle: -std::f64::consts::TAU / 4.0,
-        ..base_launcher
     };
     ShipData {
         class: ShipClass::Cruiser,
@@ -207,28 +204,22 @@ pub fn cruiser(team: i32) -> ShipData {
         }],
         missile_launchers: vec![
             MissileLauncher {
-                offset: vector![10.0, 30.0],
-                ..left_launcher
-            },
-            MissileLauncher {
                 offset: vector![0.0, 30.0],
-                ..left_launcher
-            },
-            MissileLauncher {
-                offset: vector![-10.0, 30.0],
-                ..left_launcher
-            },
-            MissileLauncher {
-                offset: vector![10.0, -30.0],
-                ..right_launcher
+                angle: std::f64::consts::TAU / 4.0,
+                ..missile_launcher
             },
             MissileLauncher {
                 offset: vector![0.0, -30.0],
-                ..right_launcher
+                angle: -std::f64::consts::TAU / 4.0,
+                ..missile_launcher
             },
             MissileLauncher {
-                offset: vector![-10.0, -30.0],
-                ..right_launcher
+                class: ShipClass::Torpedo,
+                reload_time: 3.0,
+                reload_time_remaining: 0.0,
+                initial_speed: 100.0,
+                offset: vector![100.0, 0.0],
+                angle: 0.0,
             },
         ],
         health: 30000.0,
@@ -282,6 +273,27 @@ pub fn missile(team: i32) -> ShipData {
         }),
         radar_cross_section: 4.0,
         ttl: Some(600),
+        ..Default::default()
+    }
+}
+
+pub fn torpedo(team: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::Torpedo,
+        health: 100.0,
+        max_acceleration: vector![200.0, 50.0],
+        max_angular_acceleration: 2.0 * std::f64::consts::TAU,
+        team,
+        radar: Some(Radar {
+            heading: 0.0,
+            width: std::f64::consts::TAU / 6.0,
+            power: 20e3,
+            rx_cross_section: 3.0,
+            min_rssi: 1e-2,
+            scanned: false,
+        }),
+        radar_cross_section: 10.0,
+        ttl: Some(1200),
         ..Default::default()
     }
 }
@@ -490,7 +502,11 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             v.x,
             v.y,
             rot2.angle(),
-            missile(team),
+            match missile_launcher.class {
+                ShipClass::Missile => missile(team),
+                ShipClass::Torpedo => torpedo(team),
+                _ => unimplemented!(),
+            },
         );
     }
 
@@ -509,13 +525,19 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
         self.data_mut().destroyed = true;
 
+        let (damage, num) = match self.data().class {
+            ShipClass::Missile => (20.0, 25),
+            ShipClass::Torpedo => (500.0, 50),
+            _ => (20.0, 25),
+        };
+
         let team = self.data().team;
         let speed = 1000.0;
         let p = self.body().position().translation;
         let color = vector![0.5, 0.5, 0.5, 0.30];
         let ttl = 1.0;
         let mut rng = new_rng(0);
-        for _ in 0..25 {
+        for _ in 0..num {
             let rot = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU));
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             bullet::create(
@@ -525,7 +547,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 v.x,
                 v.y,
                 BulletData {
-                    damage: 20.0,
+                    damage,
                     team,
                     color,
                     ttl,

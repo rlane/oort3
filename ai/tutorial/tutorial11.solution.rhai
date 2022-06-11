@@ -2,7 +2,7 @@
 // Destroy the enemy ships with your Cruiser.
 
 fn tick() {
-    if ship.class() == "missile" {
+    if ship.class() == "missile" || ship.class() == "torpedo" {
         missile_tick();
     } else {
         ship_tick();
@@ -24,7 +24,7 @@ fn ship_tick() {
         target_velocity = contact.velocity;
         ship.aim_weapon(0, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
         ship.fire_weapon();
-        for i in 0..6 {
+        for i in 0..3 {
             ship.launch_missile_with_index(i);
         }
         dbg.draw_diamond(contact.position, 20.0, 0xffff00);

@@ -97,6 +97,24 @@ pub fn missile() -> Vec<Vector2<f32>> {
     )
 }
 
+pub fn torpedo() -> Vec<Vector2<f32>> {
+    scale(
+        8.0,
+        &[
+            // back left
+            vector![-0.8, -0.2],
+            // back right
+            vector![-0.8, 0.2],
+            // front right
+            vector![0.8, 0.2],
+            // front
+            vector![1.1, 0.0],
+            // front left
+            vector![0.8, -0.2],
+        ],
+    )
+}
+
 pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
     match class {
         ShipClass::Fighter => fighter(),
@@ -105,5 +123,6 @@ pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
         ShipClass::Asteroid { variant } => asteroid(variant),
         ShipClass::Target => target(),
         ShipClass::Missile => missile(),
+        ShipClass::Torpedo => torpedo(),
     }
 }
