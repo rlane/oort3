@@ -1019,7 +1019,24 @@ impl Scenario for Furball {
                     fighter(team),
                 );
             }
-            ship::create(sim, center.x, center.y, 0.0, 0.0, heading, frigate(team));
+            ship::create(
+                sim,
+                center.x,
+                center.y + 100.0,
+                0.0,
+                0.0,
+                heading,
+                frigate(team),
+            );
+            ship::create(
+                sim,
+                center.x,
+                center.y - 100.0,
+                0.0,
+                0.0,
+                heading,
+                cruiser(team),
+            );
         }
     }
 
