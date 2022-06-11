@@ -48,6 +48,29 @@ pub struct Timing {
     pub script: f64,
 }
 
+impl Timing {
+    pub fn total(&self) -> f64 {
+        self.physics + self.script
+    }
+}
+
+impl std::ops::Add for Timing {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            physics: self.physics + other.physics,
+            script: self.script + other.script,
+        }
+    }
+}
+
+impl std::ops::AddAssign for Timing {
+    fn add_assign(&mut self, other: Self) {
+        *self = self.clone() + other;
+    }
+}
+
 pub fn interpolate(snapshot: &mut Snapshot, dt: f64) {
     snapshot.time += dt;
 

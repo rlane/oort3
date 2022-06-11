@@ -1,3 +1,4 @@
+pub mod benchmark;
 pub mod code_size;
 pub mod codestorage;
 pub mod documentation;
@@ -42,6 +43,8 @@ enum Route {
     Home,
     #[at("/scenario/:name")]
     Scenario { name: String },
+    #[at("/benchmark/:name")]
+    Benchmark { name: String },
 }
 
 #[function_component(Main)]
@@ -60,6 +63,9 @@ fn switch(routes: &Route) -> Html {
         }),
         Route::Scenario { name } => html! {
             <game::Game scenario={name.clone()} />
+        },
+        Route::Benchmark { name } => html! {
+            <benchmark::Benchmark scenario={name.clone()} />
         },
     }
 }
