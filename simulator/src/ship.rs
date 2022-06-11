@@ -38,6 +38,20 @@ pub enum ShipClass {
     Torpedo,
 }
 
+impl ShipClass {
+    pub fn name(&self) -> &'static str {
+        match self {
+            ShipClass::Fighter => "fighter",
+            ShipClass::Frigate => "frigate",
+            ShipClass::Cruiser => "cruiser",
+            ShipClass::Asteroid { .. } => "asteroid",
+            ShipClass::Target => "target",
+            ShipClass::Missile => "missile",
+            ShipClass::Torpedo => "torpedo",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Gun {
     pub reload_time: f64,
@@ -124,6 +138,7 @@ pub fn fighter(team: i32) -> ShipData {
             power: 20e3,
             rx_cross_section: 5.0,
             min_rssi: 1e-2,
+            classify_rssi: 1e-1,
             scanned: false,
         }),
         ..Default::default()
@@ -177,6 +192,7 @@ pub fn frigate(team: i32) -> ShipData {
             power: 100e3,
             rx_cross_section: 50.0,
             min_rssi: 1e-2,
+            classify_rssi: 1e-1,
             scanned: false,
         }),
         ..Default::default()
@@ -232,6 +248,7 @@ pub fn cruiser(team: i32) -> ShipData {
             power: 200e3,
             rx_cross_section: 100.0,
             min_rssi: 1e-2,
+            classify_rssi: 1e-1,
             scanned: false,
         }),
         ..Default::default()
@@ -269,6 +286,7 @@ pub fn missile(team: i32) -> ShipData {
             power: 10e3,
             rx_cross_section: 3.0,
             min_rssi: 1e-2,
+            classify_rssi: 1e-1,
             scanned: false,
         }),
         radar_cross_section: 4.0,
@@ -290,6 +308,7 @@ pub fn torpedo(team: i32) -> ShipData {
             power: 20e3,
             rx_cross_section: 3.0,
             min_rssi: 1e-2,
+            classify_rssi: 1e-1,
             scanned: false,
         }),
         radar_cross_section: 10.0,

@@ -1,5 +1,5 @@
 use crate::rng;
-use crate::ship::ShipHandle;
+use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Line, Simulation};
 use nalgebra::{vector, Point2, UnitComplex, Vector2};
 use rand::Rng;
@@ -14,6 +14,7 @@ pub struct Radar {
     pub power: f64,
     pub rx_cross_section: f64,
     pub min_rssi: f64,
+    pub classify_rssi: f64,
     pub scanned: bool,
 }
 
@@ -28,6 +29,7 @@ struct RadarBeam {
 
 #[derive(Copy, Clone)]
 pub struct ScanResult {
+    pub class: Option<ShipClass>,
     pub position: Vector2<f64>,
     pub velocity: Vector2<f64>,
 }
@@ -54,6 +56,11 @@ pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
             let rssi = compute_rssi(sim, &beam, own_ship, other);
             if rssi > radar.min_rssi && (result.is_none() || rssi > best_rssi) {
                 result = Some(ScanResult {
+                    class: if rssi > radar.classify_rssi {
+                        Some(sim.ship(other).data().class)
+                    } else {
+                        None
+                    },
                     position: sim.ship(other).position().vector + noise(&mut rng, rssi),
                     velocity: sim.ship(other).velocity() + noise(&mut rng, rssi),
                 });

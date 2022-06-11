@@ -96,6 +96,9 @@ fn missile_tick() {
     }
 
     let contact = radar.scan();
+    if contact.found && ship.class() == "torpedo" && contact.class != "frigate" && contact.class != "cruiser" {
+        contact = #{ found: false };
+    }
     if (!contact.found) {
         if has_locked {
             radar.set_heading(rng.next(0.0, PI() * 2));

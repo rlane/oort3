@@ -1,7 +1,7 @@
 use super::radar::plugin::ScanResult;
 use super::vec2::Vec2;
 use crate::script::rhai::radar;
-use crate::ship::{ShipAccessor, ShipAccessorMut, ShipClass, ShipHandle};
+use crate::ship::{ShipAccessor, ShipAccessorMut, ShipHandle};
 use crate::simulation::Simulation;
 use rhai::plugin::*;
 use rhai::Map;
@@ -91,15 +91,7 @@ pub mod plugin {
     }
 
     pub fn class(obj: ShipApi) -> String {
-        match obj.ship().data().class {
-            ShipClass::Fighter => "fighter".to_string(),
-            ShipClass::Frigate => "frigate".to_string(),
-            ShipClass::Cruiser => "cruiser".to_string(),
-            ShipClass::Asteroid { .. } => "asteroid".to_string(),
-            ShipClass::Target => "target".to_string(),
-            ShipClass::Missile => "missile".to_string(),
-            ShipClass::Torpedo => "torpedo".to_string(),
-        }
+        obj.ship().data().class.name().to_string()
     }
 
     // Backwards compatibility.
