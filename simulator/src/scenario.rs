@@ -105,6 +105,8 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "welcome" => Box::new(WelcomeScenario::new()),
+        "frigate_vs_cruiser" => Box::new(FrigateVsCruiser::new()),
+        "cruiser_vs_frigate" => Box::new(CruiserVsFrigate::new()),
         // Tutorials
         "tutorial01" => Box::new(Tutorial01 {}),
         "tutorial02" => Box::new(Tutorial02::new()),
@@ -146,6 +148,8 @@ pub fn list() -> Vec<String> {
         "fighter_duel",
         "frigate_duel",
         "cruiser_duel",
+        "frigate_vs_cruiser",
+        "cruiser_vs_frigate",
         "furball",
     ]
     .iter()
@@ -1063,6 +1067,88 @@ impl Scenario for CruiserDuel {
             0.0,
             std::f64::consts::PI,
             cruiser(1),
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        include_str!("../../ai/duel.initial.rhai").to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/duel.reference.rhai").to_string()
+    }
+}
+
+struct FrigateVsCruiser {}
+
+impl FrigateVsCruiser {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for FrigateVsCruiser {
+    fn name(&self) -> String {
+        "frigate_vs_cruiser".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+        add_walls(sim);
+        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
+        ship::create(
+            sim,
+            1000.0,
+            500.0,
+            0.0,
+            0.0,
+            std::f64::consts::PI,
+            cruiser(1),
+        );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        include_str!("../../ai/duel.initial.rhai").to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/duel.reference.rhai").to_string()
+    }
+}
+
+struct CruiserVsFrigate {}
+
+impl CruiserVsFrigate {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for CruiserVsFrigate {
+    fn name(&self) -> String {
+        "cruiser_vs_frigate".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+        add_walls(sim);
+        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
+        ship::create(
+            sim,
+            1000.0,
+            500.0,
+            0.0,
+            0.0,
+            std::f64::consts::PI,
+            frigate(1),
         );
     }
 
