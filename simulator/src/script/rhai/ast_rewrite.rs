@@ -10,6 +10,7 @@ use rhai::{
 fn find_globals(ast: &AST) -> std::collections::HashSet<Identifier> {
     let mut globals = std::collections::HashSet::new();
     globals.insert("rng".into());
+    globals.insert("orders".into());
     for stmt in ast.statements() {
         if let Stmt::Var(bx, _, _) = stmt {
             globals.insert(bx.0.name.clone());

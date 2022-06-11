@@ -17,6 +17,7 @@ pub trait TeamController {
         &mut self,
         handle: ShipHandle,
         sim: &mut Simulation,
+        orders: String,
     ) -> Result<Box<dyn ShipController>, Error>;
 }
 

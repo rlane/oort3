@@ -1058,10 +1058,10 @@ impl Scenario for CruiserDuel {
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
         sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
-        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
+        ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
-            1000.0,
+            4000.0,
             500.0,
             0.0,
             0.0,

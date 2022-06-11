@@ -307,6 +307,20 @@ pub fn create(
     h: f64,
     data: ShipData,
 ) -> ShipHandle {
+    create_with_orders(sim, x, y, vx, vy, h, data, "".to_string())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn create_with_orders(
+    sim: &mut Simulation,
+    x: f64,
+    y: f64,
+    vx: f64,
+    vy: f64,
+    h: f64,
+    data: ShipData,
+    orders: String,
+) -> ShipHandle {
     let rigid_body = RigidBodyBuilder::dynamic()
         .translation(vector![x, y])
         .linvel(vector![vx, vy])
@@ -337,7 +351,10 @@ pub fn create(
     sim.ship_data.insert(handle, data);
 
     if let Some(team_ctrl) = sim.get_team_controller(team) {
-        match team_ctrl.borrow_mut().create_ship_controller(handle, sim) {
+        match team_ctrl
+            .borrow_mut()
+            .create_ship_controller(handle, sim, orders)
+        {
             Ok(ship_ctrl) => {
                 sim.ship_controllers.insert(handle, ship_ctrl);
             }
@@ -471,7 +488,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         );
     }
 
-    pub fn launch_missile(&mut self, index: i64) {
+    pub fn launch_missile(&mut self, index: i64, orders: String) {
         let missile_launcher = if let Some(missile_launcher) = self
             .data_mut()
             .missile_launchers
@@ -495,7 +512,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let rot2 = rot * UnitComplex::new(missile_launcher.angle);
         let v = body.linvel() + rot2.transform_vector(&vector![speed, 0.0]);
         let team = self.data().team;
-        create(
+        create_with_orders(
             self.simulation,
             p.x,
             p.y,
@@ -507,6 +524,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 ShipClass::Torpedo => torpedo(team),
                 _ => unimplemented!(),
             },
+            orders,
         );
     }
 

@@ -4,6 +4,7 @@ use crate::script::rhai::radar;
 use crate::ship::{ShipAccessor, ShipAccessorMut, ShipClass, ShipHandle};
 use crate::simulation::Simulation;
 use rhai::plugin::*;
+use rhai::Map;
 
 #[export_module]
 pub mod plugin {
@@ -71,12 +72,18 @@ pub mod plugin {
     }
 
     pub fn launch_missile(obj: ShipApi) {
-        obj.ship_mut().launch_missile(0);
+        obj.ship_mut().launch_missile(0, "".to_string());
     }
 
     #[rhai_fn(name = "launch_missile")]
     pub fn launch_missile_with_index(obj: ShipApi, index: i64) {
-        obj.ship_mut().launch_missile(index);
+        obj.ship_mut().launch_missile(index, "".to_string());
+    }
+
+    #[rhai_fn(name = "launch_missile")]
+    pub fn launch_missile_with_index_and_map(obj: ShipApi, index: i64, map: Map) {
+        obj.ship_mut()
+            .launch_missile(index, rhai::format_map_as_json(&map));
     }
 
     pub fn explode(obj: ShipApi) {

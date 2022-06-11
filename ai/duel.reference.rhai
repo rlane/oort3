@@ -37,8 +37,9 @@ fn ship_tick() {
             ship.aim_gun(0, predicted_dp.angle() - ship.heading());
             ship.fire_gun(0);
             for i in 0..3 {
-                ship.launch_missile(i);
+                ship.launch_missile(i, #{x: contact.position.x, y: contact.position.y});
             }
+            dbg.draw_diamond(contact.position, 30.0, 0xffff00);
         }
     } else {
         radar.set_heading(rng.next(0.0, PI() * 2));
@@ -83,14 +84,31 @@ fn turn_to(target_heading, target_angular_velocity) {
     }
 }
 
+let has_locked = false;
 fn missile_tick() {
     let acc = 400;
 
+    if !has_locked {
+        target_position = vec2(orders.x, orders.y);
+        radar.set_heading((target_position - ship.position()).angle() - ship.heading());
+        radar.set_width(PI() * 2 / 32);
+        dbg.draw_diamond(target_position, 20.0, 0xff0000);
+    }
+
     let contact = radar.scan();
     if (!contact.found) {
-        radar.set_heading(rng.next(0.0, PI() * 2));
+        if has_locked {
+            radar.set_heading(rng.next(0.0, PI() * 2));
+            radar.set_width(PI() * 2 / 6);
+        } else {
+            let dp = target_position - ship.position();
+            turn_to(dp.angle(), 0.0);
+            let a = dp.rotate(-ship.heading()).normalize() * acc;
+            ship.accelerate(a);
+        }
         return;
     }
+    has_locked = true;
     radar.set_heading((contact.position - ship.position()).angle() - ship.heading());
 
     let dp = contact.position - ship.position();

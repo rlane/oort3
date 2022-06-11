@@ -87,6 +87,7 @@ impl TeamController for RhaiTeamController {
         &mut self,
         handle: ShipHandle,
         sim: &mut Simulation,
+        orders: String,
     ) -> Result<Box<dyn ShipController>, super::Error> {
         let mut engine = new_engine();
 
@@ -108,6 +109,14 @@ impl TeamController for RhaiTeamController {
             "globals" => Ok(Some(Dynamic::from(globals))),
             _ => Ok(None),
         });
+
+        if !orders.is_empty() {
+            if let Ok(map) = engine.parse_json(&orders, true) {
+                globals_map.insert("orders".into(), Dynamic::from(map));
+            } else {
+                log::info!("Failed to parse orders JSON: {}", orders);
+            }
+        }
 
         let mut ship_ctrl = Box::new(RhaiShipController {
             engine,
