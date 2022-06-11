@@ -70,6 +70,7 @@ pub struct Game {
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub scenario: String,
+    pub demo: bool,
 }
 
 impl Component for Game {
@@ -117,11 +118,15 @@ impl Component for Game {
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
-                let code = crate::codestorage::load(&self.scenario_name);
+                let code = if context.props().demo {
+                    oort_simulator::scenario::load(&self.scenario_name).solution()
+                } else {
+                    crate::codestorage::load(&self.scenario_name)
+                };
                 self.editor_link.with_editor(|editor| {
                     editor.get_model().unwrap().set_value(&code);
                 });
-                self.running_code = String::new();
+                self.running_code = code.clone();
                 let seed = rand::thread_rng().gen();
                 self.nonce = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
@@ -131,7 +136,7 @@ impl Component for Game {
                 self.sim_agent.send(oort_worker::Request::StartScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
-                    code: String::new(),
+                    code,
                     nonce: self.nonce,
                 });
                 self.background_agents.clear();
@@ -337,6 +342,10 @@ impl Game {
             self.last_status = ui.status();
 
             if let Status::Victory { team: 0 } = ui.status() {
+                if context.props().demo {
+                    return true;
+                }
+
                 let snapshot = ui.snapshot().unwrap();
                 let code = &self.running_code;
                 if !snapshot.cheats {

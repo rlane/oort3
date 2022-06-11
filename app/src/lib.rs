@@ -43,6 +43,8 @@ enum Route {
     Home,
     #[at("/scenario/:name")]
     Scenario { name: String },
+    #[at("/demo/:name")]
+    Demo { name: String },
     #[at("/benchmark/:name")]
     Benchmark { name: String },
 }
@@ -62,7 +64,10 @@ fn switch(routes: &Route) -> Html {
             name: "welcome".to_owned(),
         }),
         Route::Scenario { name } => html! {
-            <game::Game scenario={name.clone()} />
+            <game::Game scenario={name.clone()} demo=false />
+        },
+        Route::Demo { name } => html! {
+            <game::Game scenario={name.clone()} demo=true />
         },
         Route::Benchmark { name } => html! {
             <benchmark::Benchmark scenario={name.clone()} />
