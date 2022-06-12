@@ -11,8 +11,19 @@ fn tick() {
 let initial_position = ship.position();
 let target_position = initial_position;
 let target_velocity = vec2(0.0, 0.0);
+let ticks = 0;
 
 fn ship_tick() {
+    ticks += 1;
+    if ship.class() == "cruiser" {
+        if ticks % 6 == 0 {
+            radar.set_width(2 * PI());
+        } else {
+            radar.set_width(2 * PI() / 60);
+            radar.set_heading(2 * PI() * (ticks/2) / 60.0 - ship.heading());
+        }
+    }
+
     let contact = radar.scan();
     if (contact.found) {
         let dp = contact.position - ship.position();
@@ -90,7 +101,6 @@ fn turn_to(target_heading, target_angular_velocity) {
 }
 
 let has_locked = false;
-let ticks = 0;
 let no_contact_ticks = 0;
 
 fn missile_tick() {
