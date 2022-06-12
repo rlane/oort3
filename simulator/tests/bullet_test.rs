@@ -1,5 +1,5 @@
 use oort_simulator::ship;
-use oort_simulator::ship::fighter;
+use oort_simulator::ship::{fighter, target};
 use oort_simulator::simulation;
 use test_log::test;
 
@@ -34,7 +34,7 @@ fn test_destroyed() {
     let mut sim = simulation::Simulation::new("test", 0, "");
 
     let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
-    let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter(1));
+    let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, target(1));
 
     assert!(sim.ships.contains(ship0));
     assert!(sim.ships.contains(ship1));

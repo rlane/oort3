@@ -2,6 +2,7 @@ use super::index_set::{HasIndex, Index};
 use super::rng::new_rng;
 use crate::model;
 use crate::radar::Radar;
+use crate::rng;
 use crate::simulation;
 use crate::simulation::Simulation;
 use crate::{bullet, collision};
@@ -60,6 +61,7 @@ pub struct Gun {
     pub speed: f64,
     pub offset: Vector2<f64>,
     pub angle: f64,
+    pub inaccuracy: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -119,6 +121,7 @@ pub fn fighter(team: i32) -> ShipData {
             speed: 1000.0,
             offset: vector![20.0, 0.0],
             angle: 0.0,
+            inaccuracy: 0.017,
         }],
         missile_launchers: vec![MissileLauncher {
             class: ShipClass::Missile,
@@ -157,6 +160,7 @@ pub fn frigate(team: i32) -> ShipData {
                 speed: 4000.0,
                 offset: vector![40.0, 0.0],
                 angle: 0.0,
+                inaccuracy: 0.0,
             },
             Gun {
                 reload_time: 0.2,
@@ -165,6 +169,7 @@ pub fn frigate(team: i32) -> ShipData {
                 speed: 1000.0,
                 offset: vector![0.0, 15.0],
                 angle: 0.0,
+                inaccuracy: 0.017,
             },
             Gun {
                 reload_time: 0.2,
@@ -173,6 +178,7 @@ pub fn frigate(team: i32) -> ShipData {
                 speed: 1000.0,
                 offset: vector![0.0, -15.0],
                 angle: 0.0,
+                inaccuracy: 0.017,
             },
         ],
         missile_launchers: vec![MissileLauncher {
@@ -219,6 +225,7 @@ pub fn cruiser(team: i32) -> ShipData {
             speed: 1000.0,
             offset: vector![0.0, 0.0],
             angle: 0.0,
+            inaccuracy: 0.035,
         }],
         missile_launchers: vec![
             MissileLauncher {
@@ -475,7 +482,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let damage;
         let offset;
         let speed;
-        let angle;
+        let mut angle;
+        let inaccuracy;
         {
             let gun = &mut ship_data.guns[index as usize];
             if gun.reload_time_remaining > 0.0 {
@@ -485,9 +493,15 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             offset = gun.offset;
             speed = gun.speed;
             angle = gun.angle;
+            inaccuracy = gun.inaccuracy;
             gun.reload_time_remaining += gun.reload_time;
         }
 
+        if inaccuracy > 0.0 {
+            let mut rng =
+                rng::new_rng(self.simulation.tick() ^ u64::from(self.handle) as u32 ^ index as u32);
+            angle += rng.gen_range(-inaccuracy..inaccuracy);
+        }
         let body = self.body();
         let rot = body.position().rotation * UnitComplex::new(angle);
         let p = body.position().translation.vector + rot.transform_vector(&offset);
