@@ -37,7 +37,9 @@ fn ship_tick() {
         target_position = contact.position;
         target_velocity = contact.velocity;
         if ship.class() == "fighter" {
-            ship.fire_gun();
+            if predicted_dp.magnitude() < 5000.0 {
+                ship.fire_gun();
+            }
             ship.launch_missile(0, #{x: contact.position.x, y: contact.position.y});
         } else if ship.class() == "frigate" {
             ship.fire_gun();
@@ -47,8 +49,10 @@ fn ship_tick() {
             ship.fire_gun(2);
             ship.launch_missile(0, #{x: contact.position.x, y: contact.position.y});
         } else if ship.class() == "cruiser" {
-            ship.aim_gun(0, predicted_dp.angle() - ship.heading());
-            ship.fire_gun(0);
+            if predicted_dp.magnitude() < 5000.0 {
+                ship.aim_gun(0, predicted_dp.angle() - ship.heading());
+                ship.fire_gun(0);
+            }
             for i in 0..2 {
                 ship.launch_missile(i, #{x: contact.position.x, y: contact.position.y});
             }
