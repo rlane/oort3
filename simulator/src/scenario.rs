@@ -126,6 +126,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "frigate_duel" => Box::new(FrigateDuel::new()),
         "cruiser_duel" => Box::new(CruiserDuel::new()),
         "furball" => Box::new(Furball::new()),
+        "fleet" => Box::new(Fleet::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -153,6 +154,7 @@ pub fn list() -> Vec<String> {
         "frigate_vs_cruiser",
         "cruiser_vs_frigate",
         "furball",
+        "fleet",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -1201,24 +1203,67 @@ impl Scenario for Furball {
                     fighter(team),
                 );
             }
-            ship::create(
-                sim,
-                center.x,
-                center.y + 100.0,
-                0.0,
-                0.0,
-                heading,
-                frigate(team),
-            );
-            ship::create(
-                sim,
-                center.x,
-                center.y - 100.0,
-                0.0,
-                0.0,
-                heading,
-                cruiser(team),
-            );
+        }
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_victory(sim)
+    }
+
+    fn initial_code(&self) -> String {
+        "".to_string()
+    }
+
+    fn solution(&self) -> String {
+        include_str!("../../ai/reference.rhai").to_string()
+    }
+}
+
+struct Fleet {}
+
+impl Fleet {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Fleet {
+    fn name(&self) -> String {
+        "fleet".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        add_walls(sim);
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        let mut rng = new_rng(seed);
+        for team in 0..2 {
+            let signum = if team == 0 { -1.0 } else { 1.0 };
+            let center = point![signum * 4000.0, rng.gen_range(-3000.0..3000.0)];
+            let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
+            for i in -10..10 {
+                let offset = point![signum * -200.0, i as f64 * 50.0];
+                ship::create(
+                    sim,
+                    center.x + offset.x,
+                    center.y + offset.y,
+                    0.0,
+                    0.0,
+                    heading,
+                    fighter(team),
+                );
+            }
+            for sign in [-1.0, 1.0] {
+                ship::create(
+                    sim,
+                    center.x,
+                    center.y + sign * 300.0,
+                    0.0,
+                    0.0,
+                    heading,
+                    frigate(team),
+                );
+            }
+            ship::create(sim, center.x, center.y, 0.0, 0.0, heading, cruiser(team));
         }
     }
 
