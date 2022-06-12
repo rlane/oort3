@@ -141,6 +141,7 @@ pub fn fighter(team: i32) -> ShipData {
             classify_rssi: 1e-1,
             scanned: false,
         }),
+        radar_cross_section: 10.0,
         ..Default::default()
     }
 }
@@ -190,11 +191,12 @@ pub fn frigate(team: i32) -> ShipData {
             heading: 0.0,
             width: std::f64::consts::TAU / 6.0,
             power: 100e3,
-            rx_cross_section: 50.0,
+            rx_cross_section: 10.0,
             min_rssi: 1e-2,
             classify_rssi: 1e-1,
             scanned: false,
         }),
+        radar_cross_section: 30.0,
         ..Default::default()
     }
 }
@@ -246,11 +248,12 @@ pub fn cruiser(team: i32) -> ShipData {
             heading: 0.0,
             width: std::f64::consts::TAU / 6.0,
             power: 200e3,
-            rx_cross_section: 100.0,
+            rx_cross_section: 20.0,
             min_rssi: 1e-2,
             classify_rssi: 1e-1,
             scanned: false,
         }),
+        radar_cross_section: 40.0,
         ..Default::default()
     }
 }
@@ -289,7 +292,7 @@ pub fn missile(team: i32) -> ShipData {
             classify_rssi: 1e-1,
             scanned: false,
         }),
-        radar_cross_section: 4.0,
+        radar_cross_section: 3.0,
         ttl: Some(600),
         ..Default::default()
     }
@@ -311,7 +314,7 @@ pub fn torpedo(team: i32) -> ShipData {
             classify_rssi: 1e-1,
             scanned: false,
         }),
-        radar_cross_section: 10.0,
+        radar_cross_section: 8.0,
         ttl: Some(1200),
         ..Default::default()
     }
