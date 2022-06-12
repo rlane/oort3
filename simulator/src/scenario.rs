@@ -977,7 +977,7 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(
             sim,
@@ -995,11 +995,11 @@ impl Scenario for FighterDuel {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/duel.initial.rhai").to_string()
+        "".to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/duel.reference.rhai").to_string()
+        include_str!("../../ai/reference.rhai").to_string()
     }
 }
 
@@ -1018,7 +1018,7 @@ impl Scenario for FrigateDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1036,11 +1036,11 @@ impl Scenario for FrigateDuel {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/duel.initial.rhai").to_string()
+        "".to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/duel.reference.rhai").to_string()
+        include_str!("../../ai/reference.rhai").to_string()
     }
 }
 
@@ -1059,7 +1059,7 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
         ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1077,11 +1077,11 @@ impl Scenario for CruiserDuel {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/duel.initial.rhai").to_string()
+        "".to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/duel.reference.rhai").to_string()
+        include_str!("../../ai/reference.rhai").to_string()
     }
 }
 
@@ -1100,7 +1100,7 @@ impl Scenario for FrigateVsCruiser {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1118,11 +1118,11 @@ impl Scenario for FrigateVsCruiser {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/duel.initial.rhai").to_string()
+        "".to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/duel.reference.rhai").to_string()
+        include_str!("../../ai/reference.rhai").to_string()
     }
 }
 
@@ -1141,7 +1141,7 @@ impl Scenario for CruiserVsFrigate {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/duel.reference.rhai"));
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1159,11 +1159,11 @@ impl Scenario for CruiserVsFrigate {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/duel.initial.rhai").to_string()
+        "".to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/duel.reference.rhai").to_string()
+        include_str!("../../ai/reference.rhai").to_string()
     }
 }
 
@@ -1182,7 +1182,7 @@ impl Scenario for Furball {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/furball.reference.rhai"));
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let fleet_radius = 500.0;
@@ -1227,10 +1227,10 @@ impl Scenario for Furball {
     }
 
     fn initial_code(&self) -> String {
-        include_str!("../../ai/furball.initial.rhai").to_string()
+        "".to_string()
     }
 
     fn solution(&self) -> String {
-        include_str!("../../ai/furball.reference.rhai").to_string()
+        include_str!("../../ai/reference.rhai").to_string()
     }
 }
