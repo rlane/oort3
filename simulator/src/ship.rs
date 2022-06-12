@@ -62,6 +62,7 @@ pub struct Gun {
     pub offset: Vector2<f64>,
     pub angle: f64,
     pub inaccuracy: f64,
+    pub burst_size: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -122,6 +123,7 @@ pub fn fighter(team: i32) -> ShipData {
             offset: vector![20.0, 0.0],
             angle: 0.0,
             inaccuracy: 0.017,
+            burst_size: 1,
         }],
         missile_launchers: vec![MissileLauncher {
             class: ShipClass::Missile,
@@ -161,6 +163,7 @@ pub fn frigate(team: i32) -> ShipData {
                 offset: vector![40.0, 0.0],
                 angle: 0.0,
                 inaccuracy: 0.0,
+                burst_size: 1,
             },
             Gun {
                 reload_time: 0.2,
@@ -170,6 +173,7 @@ pub fn frigate(team: i32) -> ShipData {
                 offset: vector![0.0, 15.0],
                 angle: 0.0,
                 inaccuracy: 0.017,
+                burst_size: 1,
             },
             Gun {
                 reload_time: 0.2,
@@ -179,6 +183,7 @@ pub fn frigate(team: i32) -> ShipData {
                 offset: vector![0.0, -15.0],
                 angle: 0.0,
                 inaccuracy: 0.017,
+                burst_size: 1,
             },
         ],
         missile_launchers: vec![MissileLauncher {
@@ -219,13 +224,14 @@ pub fn cruiser(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Cruiser,
         guns: vec![Gun {
-            reload_time: 0.1,
+            reload_time: 0.2,
             reload_time_remaining: 0.0,
             damage: 20.0,
             speed: 1000.0,
             offset: vector![0.0, 0.0],
             angle: 0.0,
             inaccuracy: 0.035,
+            burst_size: 5,
         }],
         missile_launchers: vec![
             MissileLauncher {
@@ -482,8 +488,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let damage;
         let offset;
         let speed;
-        let mut angle;
+        let angle;
         let inaccuracy;
+        let burst_size;
         {
             let gun = &mut ship_data.guns[index as usize];
             if gun.reload_time_remaining > 0.0 {
@@ -494,34 +501,40 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             speed = gun.speed;
             angle = gun.angle;
             inaccuracy = gun.inaccuracy;
+            burst_size = gun.burst_size;
             gun.reload_time_remaining += gun.reload_time;
         }
 
-        if inaccuracy > 0.0 {
-            let mut rng =
-                rng::new_rng(self.simulation.tick() ^ u64::from(self.handle) as u32 ^ index as u32);
-            angle += rng.gen_range(-inaccuracy..inaccuracy);
-        }
-        let body = self.body();
-        let rot = body.position().rotation * UnitComplex::new(angle);
-        let p = body.position().translation.vector + rot.transform_vector(&offset);
-        let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
+        let mut rng =
+            rng::new_rng(self.simulation.tick() ^ u64::from(self.handle) as u32 ^ index as u32);
         let alpha = ((damage as f32).log(10.0) / 3.0).clamp(0.5, 1.0);
         let color = vector![1.00, 0.63, 0.00, alpha];
         let ttl = 5.0;
-        bullet::create(
-            self.simulation,
-            p.x,
-            p.y,
-            v.x,
-            v.y,
-            BulletData {
-                damage,
-                team,
-                color,
-                ttl,
-            },
-        );
+
+        for _ in 0..burst_size {
+            let angle = if inaccuracy > 0.0 {
+                angle + rng.gen_range(-inaccuracy..inaccuracy)
+            } else {
+                angle
+            };
+            let body = self.body();
+            let rot = body.position().rotation * UnitComplex::new(angle);
+            let p = body.position().translation.vector + rot.transform_vector(&offset);
+            let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
+            bullet::create(
+                self.simulation,
+                p.x,
+                p.y,
+                v.x,
+                v.y,
+                BulletData {
+                    damage,
+                    team,
+                    color,
+                    ttl,
+                },
+            );
+        }
     }
 
     pub fn launch_missile(&mut self, index: i64, orders: String) {
