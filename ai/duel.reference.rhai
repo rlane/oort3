@@ -38,14 +38,14 @@ fn ship_tick() {
         target_velocity = contact.velocity;
         if ship.class() == "fighter" {
             ship.fire_gun();
-            ship.launch_missile();
+            ship.launch_missile(0, #{x: contact.position.x, y: contact.position.y});
         } else if ship.class() == "frigate" {
             ship.fire_gun();
             ship.aim_gun(1, (predicted_dp - vec2(0.0, 15.0).rotate(ship.heading())).angle() - ship.heading());
             ship.fire_gun(1);
             ship.aim_gun(2, (predicted_dp - vec2(0.0, -15.0).rotate(ship.heading())).angle() - ship.heading());
             ship.fire_gun(2);
-            ship.launch_missile();
+            ship.launch_missile(0, #{x: contact.position.x, y: contact.position.y});
         } else if ship.class() == "cruiser" {
             ship.aim_gun(0, predicted_dp.angle() - ship.heading());
             ship.fire_gun(0);
