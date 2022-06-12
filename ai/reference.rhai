@@ -30,8 +30,10 @@ fn ship_tick() {
         let dv = contact.velocity - ship.velocity();
         let predicted_dp = dp;
         let bullet_speed = 1000.0;
-        for i in 0..3 {
-            predicted_dp = dp + dv * predicted_dp.magnitude() / bullet_speed;
+        if dot(dp, dv) > -0.9 {
+            for i in 0..3 {
+                predicted_dp = dp + dv * predicted_dp.magnitude() / bullet_speed;
+            }
         }
         radar.set_heading(dp.angle() - ship.heading());
         target_position = contact.position;
