@@ -240,7 +240,7 @@ pub fn cruiser(team: i32) -> ShipData {
                 angle: 0.0,
             },
         ],
-        health: 30000.0,
+        health: 10000.0,
         team,
         max_acceleration: vector![10.0, 50.0],
         max_angular_acceleration: std::f64::consts::TAU / 16.0,
@@ -567,7 +567,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         let (damage, num) = match self.data().class {
             ShipClass::Missile => (20.0, 25),
-            ShipClass::Torpedo => (500.0, 50),
+            ShipClass::Torpedo => (50.0, 50),
             _ => (20.0, 25),
         };
 
