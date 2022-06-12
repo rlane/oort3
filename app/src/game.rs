@@ -340,12 +340,14 @@ impl Game {
                 return false;
             }
             self.last_status = ui.status();
+            if context.props().demo && ui.status() != Status::Running {
+                context
+                    .link()
+                    .send_message(Msg::SelectScenario(context.props().scenario.clone()));
+                return true;
+            }
 
             if let Status::Victory { team: 0 } = ui.status() {
-                if context.props().demo {
-                    return true;
-                }
-
                 let snapshot = ui.snapshot().unwrap();
                 let code = &self.running_code;
                 if !snapshot.cheats {
