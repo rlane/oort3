@@ -1,6 +1,7 @@
 use oort_simulator::snapshot::{Snapshot, Timing};
 use oort_worker::SimAgent;
 use rand::Rng;
+use sha2::{Digest, Sha256};
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 
@@ -21,6 +22,7 @@ pub struct Benchmark {
     cumulative_timing: Timing,
     num_slow_ticks: usize,
     slowest_snapshot: Option<Snapshot>,
+    hash: Option<String>,
 }
 
 impl Component for Benchmark {
@@ -51,6 +53,7 @@ impl Component for Benchmark {
             cumulative_timing: Timing::default(),
             num_slow_ticks: 0,
             slowest_snapshot: None,
+            hash: None,
         }
     }
 
@@ -74,6 +77,14 @@ impl Component for Benchmark {
                         .send(oort_worker::Request::Snapshot { nonce: 0 });
                     self.ticks % 10 == 0
                 } else {
+                    if self.hash.is_none() {
+                        let mut snapshot = snapshot;
+                        snapshot.timing = Timing::default();
+                        let bytes = bincode::serialize(&snapshot).unwrap();
+                        let mut hasher = Sha256::new();
+                        hasher.update(&bytes);
+                        self.hash = Some(format!("{:x}", hasher.finalize()));
+                    }
                     true
                 }
             }
@@ -105,6 +116,7 @@ impl Component for Benchmark {
                 <p>{ format!("Physics: {:.1}s", self.cumulative_timing.physics ) }</p>
                 <p>{ format!("Script: {:.1}s", self.cumulative_timing.script ) }</p>
                 <p>{ format!("Slow ticks: {}", self.num_slow_ticks) }</p>
+                <p>{ format!("Hash: {:?}", self.hash) }</p>
                 { slowest_snapshot }
             </div>
         }
