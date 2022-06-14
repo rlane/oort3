@@ -1,5 +1,5 @@
 use crate::rng::{new_rng, SeededRng};
-use crate::ship::{asteroid, cruiser, fighter, frigate, target, ShipHandle};
+use crate::ship::{asteroid, cruiser, fighter, frigate, missile, target, ShipHandle};
 use crate::simulation::{Line, Simulation, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
@@ -106,6 +106,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "gunnery" => Box::new(GunneryScenario {}),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
+        "missile-stress" => Box::new(MissileStressScenario {}),
         "welcome" => Box::new(WelcomeScenario::new()),
         "frigate_vs_cruiser" => Box::new(FrigateVsCruiser::new()),
         "cruiser_vs_frigate" => Box::new(CruiserVsFrigate::new()),
@@ -286,6 +287,46 @@ impl Scenario for BulletStressScenario {
 
     fn status(&self, sim: &Simulation) -> Status {
         if sim.bullets.is_empty() {
+            Status::Victory { team: 0 }
+        } else {
+            Status::Running
+        }
+    }
+}
+
+struct MissileStressScenario {}
+
+impl Scenario for MissileStressScenario {
+    fn name(&self) -> String {
+        "missile-stress".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        if seed != 0 {
+            log::warn!("Ignoring nonzero seed {}", seed);
+        }
+        let mut rng = new_rng(0);
+        sim.upload_code(0, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        add_walls(sim);
+
+        let bound = (WORLD_SIZE / 2.0) * 0.9;
+        for i in 0..100 {
+            ship::create_with_orders(
+                sim,
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-bound..bound),
+                rng.gen_range(-30.0..30.0),
+                rng.gen_range(-30.0..30.0),
+                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                missile(i % 2),
+                "{x:0,y:0}".to_string(),
+            );
+        }
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        if sim.ships.len() < 50 {
             Status::Victory { team: 0 }
         } else {
             Status::Running

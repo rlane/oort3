@@ -41,6 +41,10 @@ name = "bullets"
 harness = false
 
 [[bench]]
+name = "missiles"
+harness = false
+
+[[bench]]
 name = "tutorials"
 harness = false
 
