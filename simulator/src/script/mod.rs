@@ -1,5 +1,7 @@
+pub mod native;
 pub mod rhai;
 
+use self::native::NativeTeamController;
 use self::rhai::RhaiTeamController;
 use crate::ship::ShipHandle;
 use crate::simulation::Simulation;
@@ -27,5 +29,9 @@ pub trait ShipController {
 }
 
 pub fn new_team_controller(code: &str) -> Result<Box<dyn TeamController>, Error> {
-    RhaiTeamController::create(code)
+    if code.starts_with("native") {
+        NativeTeamController::create()
+    } else {
+        RhaiTeamController::create(code)
+    }
 }
