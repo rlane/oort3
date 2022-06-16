@@ -1,5 +1,7 @@
 pub mod native;
 pub mod rhai;
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
 
 use self::native::NativeTeamController;
 use self::rhai::RhaiTeamController;
@@ -8,10 +10,23 @@ use crate::simulation::Simulation;
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_arch = "wasm32")]
+use self::wasm::WasmTeamController;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
     pub line: usize,
     pub msg: String,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl From<wasm_bindgen::JsValue> for Error {
+    fn from(err: wasm_bindgen::JsValue) -> Self {
+        Self {
+            line: 0,
+            msg: format!("JS error: {:?}", err),
+        }
+    }
 }
 
 pub trait TeamController {
@@ -31,6 +46,11 @@ pub trait ShipController {
 pub fn new_team_controller(code: &str) -> Result<Box<dyn TeamController>, Error> {
     if code.starts_with("native") {
         NativeTeamController::create()
+    } else if code.starts_with("wasm") {
+        #[cfg(target_arch = "wasm32")]
+        return WasmTeamController::create();
+        #[cfg(not(target_arch = "wasm32"))]
+        unreachable!();
     } else {
         RhaiTeamController::create(code)
     }

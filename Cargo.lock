@@ -941,6 +941,7 @@ dependencies = [
  "env_logger",
  "getrandom",
  "instant",
+ "js-sys",
  "lazy_static",
  "log",
  "nalgebra",
@@ -957,6 +958,8 @@ dependencies = [
  "serde_json",
  "smartstring",
  "test-log",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
