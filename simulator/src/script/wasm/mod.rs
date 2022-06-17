@@ -1,3 +1,9 @@
+// TODO:
+// - Debug log
+// - Debug lines
+// - Vec2 methods and overloads
+// - Angle utilities
+// - RNG
 pub mod shared;
 
 use super::{ShipController, TeamController};

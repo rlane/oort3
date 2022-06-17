@@ -146,7 +146,14 @@ pub mod prelude {
     pub use crate::shared::*;
 }
 
+static mut USER_STATE: Option<user::Ship> = None;
+
 #[no_mangle]
 pub fn export_tick() {
-    user::tick();
+    unsafe {
+        if USER_STATE.is_none() {
+            USER_STATE = Some(user::Ship::new());
+        }
+        USER_STATE.as_mut().unwrap().tick();
+    }
 }
