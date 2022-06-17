@@ -29,6 +29,28 @@ impl From<wasm_bindgen::JsValue> for Error {
     }
 }
 
+/*
+#[cfg(target_arch = "wasm32")]
+impl From<wasmer::CompileError> for Error {
+    fn from(err: wasmer::CompileError) -> Self {
+        Self {
+            line: 0,
+            msg: format!("Wasmer compile error: {:?}", err),
+        }
+    }
+}
+*/
+
+#[cfg(target_arch = "wasm32")]
+impl From<wasmer::InstantiationError> for Error {
+    fn from(err: wasmer::InstantiationError) -> Self {
+        Self {
+            line: 0,
+            msg: format!("Wasmer instantiation error: {:?}", err),
+        }
+    }
+}
+
 pub trait TeamController {
     fn create_ship_controller(
         &mut self,

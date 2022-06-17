@@ -1,24 +1,22 @@
 use super::{ShipController, TeamController};
 use crate::ship::ShipHandle;
 use crate::simulation::Simulation;
-use js_sys::{Float64Array, Function, Object, Reflect, Uint8Array, WebAssembly};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
 const WASM: &[u8] = include_bytes!("../../../../ai/rust/reference.wasm");
+const SYSTEM_STATE_SIZE: usize = 2;
 
 pub type Vec2 = nalgebra::Vector2<f64>;
 
 pub struct WasmTeamController {
-    pub module: WebAssembly::Module,
+    pub module: Module,
 }
 
 impl WasmTeamController {
     pub fn create() -> Result<Box<dyn TeamController>, super::Error> {
         log::info!("Creating WasmTeamController");
-        let buffer = Uint8Array::new_with_length(WASM.len() as u32);
-        buffer.copy_from(WASM);
-        let module: WebAssembly::Module = WebAssembly::Module::new(&buffer)?;
+        let store = Store::default();
+        let module = translate_error(Module::new(&store, WASM))?;
 
         Ok(Box::new(WasmTeamController { module }))
     }
@@ -31,28 +29,24 @@ impl TeamController for WasmTeamController {
         sim: &mut Simulation,
         _orders: String,
     ) -> Result<Box<dyn ShipController>, super::Error> {
-        let instance: WebAssembly::Instance =
-            WebAssembly::Instance::new(&self.module, &Object::new())?;
-        let exports = instance.exports();
+        let import_object = imports! {};
+        let instance = Instance::new(&self.module, &import_object)?;
 
-        let system_state_global: WebAssembly::Global =
-            Reflect::get(exports.as_ref(), &"SYSTEM_STATE".into())?.dyn_into()?;
-        let system_state_offset = system_state_global.value().as_f64().unwrap() as u32;
+        let memory = translate_error(instance.exports.get_memory("memory"))?.clone();
+        let system_state_offset: i32 =
+            translate_error(instance.exports.get_global("SYSTEM_STATE"))?
+                .get()
+                .i32()
+                .unwrap();
+        let system_state_ptr: WasmPtr<f64> = WasmPtr::new(system_state_offset as u32);
 
-        let memory: WebAssembly::Memory =
-            Reflect::get(exports.as_ref(), &"memory".into())?.dyn_into()?;
-        let buffer = memory.buffer();
-        let system_state =
-            Float64Array::new_with_byte_offset_and_length(&buffer, system_state_offset, 2);
-
-        let tick = Reflect::get(exports.as_ref(), &"export_tick".into())?
-            .dyn_into::<Function>()
-            .expect("export_tick wasn't a function");
+        let tick = translate_error(instance.exports.get_function("export_tick"))?.clone();
 
         Ok(Box::new(WasmShipController {
             handle,
             sim,
-            system_state,
+            memory,
+            system_state_ptr,
             tick,
         }))
     }
@@ -61,21 +55,48 @@ impl TeamController for WasmTeamController {
 struct WasmShipController {
     pub handle: ShipHandle,
     pub sim: *mut Simulation,
-    pub system_state: Float64Array,
-    pub tick: Function,
+    pub memory: wasmer::Memory,
+    pub system_state_ptr: WasmPtr<f64>,
+    pub tick: wasmer::Function,
+}
+
+impl WasmShipController {
+    pub fn read_system_state(&self) -> [f64; SYSTEM_STATE_SIZE] {
+        let mut system_state = [0.0; SYSTEM_STATE_SIZE];
+        let mut ptr = self.system_state_ptr;
+        for i in 0..SYSTEM_STATE_SIZE {
+            system_state[i] = ptr.deref(&self.memory).unwrap().get();
+            ptr = WasmPtr::new(ptr.offset() + 8);
+        }
+        system_state
+    }
 }
 
 impl ShipController for WasmShipController {
     fn tick(&mut self) -> Result<(), super::Error> {
-        //log::info!("before: system state: {:?}", self.system_state.to_vec());
-        self.tick.call0(&JsValue::undefined())?;
-        //log::info!("after:  system state: {:?}", self.system_state.to_vec());
-        let system_state = self.system_state.to_vec();
+        //log::info!("before: system state: {:?}", self.read_system_state());
+        translate_error(self.tick.call(&[]))?;
+        //log::info!("after:  system state: {:?}", self.read_system_state());
+        let system_state = self.read_system_state();
         let sim = unsafe { &mut *self.sim };
         sim.ship_mut(self.handle)
             .accelerate(Vec2::new(system_state[0], system_state[1]));
+
         Ok(())
     }
 
     fn write_target(&mut self, _target: Vec2) {}
+}
+
+fn translate_error<T, U>(err: Result<T, U>) -> Result<T, super::Error>
+where
+    U: std::fmt::Debug,
+{
+    match err {
+        Ok(val) => Ok(val),
+        Err(err) => Err(super::Error {
+            line: 0,
+            msg: format!("Wasmer error: {:?}", err),
+        }),
+    }
 }
