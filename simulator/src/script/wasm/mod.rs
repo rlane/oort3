@@ -1,7 +1,7 @@
 pub mod shared;
 
 use super::{ShipController, TeamController};
-use crate::ship::ShipHandle;
+use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
 use shared::*;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
@@ -63,14 +63,22 @@ struct WasmShipController {
 }
 
 impl WasmShipController {
-    pub fn read_system_state(&self) -> [f64; SystemState::Size as usize] {
-        let mut system_state = [0.0; SystemState::Size as usize];
+    pub fn read_system_state(&self) -> LocalSystemState {
+        let mut state = [0.0; SystemState::Size as usize];
         let mut ptr = self.system_state_ptr;
         for i in 0..SystemState::Size as usize {
-            system_state[i] = ptr.deref(&self.memory).unwrap().get();
+            state[i] = ptr.deref(&self.memory).unwrap().get();
             ptr = WasmPtr::new(ptr.offset() + 8);
         }
-        system_state
+        LocalSystemState { state }
+    }
+
+    pub fn write_system_state(&self, state: &LocalSystemState) {
+        let mut ptr = self.system_state_ptr;
+        for i in 0..SystemState::Size as usize {
+            ptr.deref(&self.memory).unwrap().set(state.state[i]);
+            ptr = WasmPtr::new(ptr.offset() + 8);
+        }
     }
 }
 
@@ -79,21 +87,56 @@ impl ShipController for WasmShipController {
         //log::info!("before: system state: {:?}", self.read_system_state());
         translate_error(self.tick.call(&[]))?;
         //log::info!("after:  system state: {:?}", self.read_system_state());
-        let system_state = self.read_system_state();
+        let mut state = self.read_system_state();
         let sim = unsafe { &mut *self.sim };
 
+        state.set(
+            SystemState::Class,
+            translate_class(sim.ship(self.handle).data().class) as u32 as f64,
+        );
+
         sim.ship_mut(self.handle).accelerate(Vec2::new(
-            system_state[SystemState::AccelerateX as usize],
-            system_state[SystemState::AccelerateY as usize],
+            state.get(SystemState::AccelerateX),
+            state.get(SystemState::AccelerateY),
         ));
+        state.set(SystemState::AccelerateX, 0.0);
+        state.set(SystemState::AccelerateY, 0.0);
 
         sim.ship_mut(self.handle)
-            .torque(system_state[SystemState::Torque as usize]);
+            .torque(state.get(SystemState::Torque));
+        state.set(SystemState::Torque, 0.0);
 
+        self.write_system_state(&state);
         Ok(())
     }
 
     fn write_target(&mut self, _target: Vec2) {}
+}
+
+struct LocalSystemState {
+    pub state: [f64; SystemState::Size as usize],
+}
+
+impl LocalSystemState {
+    pub fn get(&self, index: SystemState) -> f64 {
+        self.state[index as usize]
+    }
+
+    pub fn set(&mut self, index: SystemState, value: f64) {
+        self.state[index as usize] = value;
+    }
+}
+
+fn translate_class(class: ShipClass) -> Class {
+    match class {
+        ShipClass::Fighter => Class::Fighter,
+        ShipClass::Frigate => Class::Frigate,
+        ShipClass::Cruiser => Class::Cruiser,
+        ShipClass::Asteroid { .. } => Class::Asteroid,
+        ShipClass::Target => Class::Target,
+        ShipClass::Missile => Class::Missile,
+        ShipClass::Torpedo => Class::Torpedo,
+    }
 }
 
 fn translate_error<T, U>(err: Result<T, U>) -> Result<T, super::Error>
