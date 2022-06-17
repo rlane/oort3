@@ -1,10 +1,12 @@
+pub mod shared;
+
 use super::{ShipController, TeamController};
 use crate::ship::ShipHandle;
 use crate::simulation::Simulation;
+use shared::*;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
 const WASM: &[u8] = include_bytes!("../../../../ai/rust/reference.wasm");
-const SYSTEM_STATE_SIZE: usize = 2;
 
 pub type Vec2 = nalgebra::Vector2<f64>;
 
@@ -61,10 +63,10 @@ struct WasmShipController {
 }
 
 impl WasmShipController {
-    pub fn read_system_state(&self) -> [f64; SYSTEM_STATE_SIZE] {
-        let mut system_state = [0.0; SYSTEM_STATE_SIZE];
+    pub fn read_system_state(&self) -> [f64; SystemState::Size as usize] {
+        let mut system_state = [0.0; SystemState::Size as usize];
         let mut ptr = self.system_state_ptr;
-        for i in 0..SYSTEM_STATE_SIZE {
+        for i in 0..SystemState::Size as usize {
             system_state[i] = ptr.deref(&self.memory).unwrap().get();
             ptr = WasmPtr::new(ptr.offset() + 8);
         }
@@ -79,8 +81,14 @@ impl ShipController for WasmShipController {
         //log::info!("after:  system state: {:?}", self.read_system_state());
         let system_state = self.read_system_state();
         let sim = unsafe { &mut *self.sim };
+
+        sim.ship_mut(self.handle).accelerate(Vec2::new(
+            system_state[SystemState::AccelerateX as usize],
+            system_state[SystemState::AccelerateY as usize],
+        ));
+
         sim.ship_mut(self.handle)
-            .accelerate(Vec2::new(system_state[0], system_state[1]));
+            .torque(system_state[SystemState::Torque as usize]);
 
         Ok(())
     }
