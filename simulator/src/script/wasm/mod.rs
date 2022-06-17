@@ -95,6 +95,20 @@ impl ShipController for WasmShipController {
             translate_class(sim.ship(self.handle).data().class) as u32 as f64,
         );
 
+        let position = sim.ship(self.handle).position();
+        state.set(SystemState::PositionX, position.x);
+        state.set(SystemState::PositionY, position.y);
+
+        let velocity = sim.ship(self.handle).velocity();
+        state.set(SystemState::VelocityX, velocity.x);
+        state.set(SystemState::VelocityY, velocity.y);
+
+        state.set(SystemState::Heading, sim.ship(self.handle).heading());
+        state.set(
+            SystemState::AngularVelocity,
+            sim.ship(self.handle).angular_velocity(),
+        );
+
         sim.ship_mut(self.handle).accelerate(Vec2::new(
             state.get(SystemState::AccelerateX),
             state.get(SystemState::AccelerateY),
@@ -105,6 +119,25 @@ impl ShipController for WasmShipController {
         sim.ship_mut(self.handle)
             .torque(state.get(SystemState::Torque));
         state.set(SystemState::Torque, 0.0);
+
+        sim.ship_mut(self.handle)
+            .aim_gun(0, state.get(SystemState::Gun0Aim));
+        if state.get(SystemState::Gun0Fire) > 0.0 {
+            sim.ship_mut(self.handle).fire_gun(0);
+            state.set(SystemState::Gun0Fire, 0.0);
+        }
+        // TODO
+
+        if state.get(SystemState::Missile0Launch) > 0.0 {
+            sim.ship_mut(self.handle).launch_missile(0, "".to_string());
+            state.set(SystemState::Missile0Launch, 0.0);
+        }
+        // TODO
+
+        if state.get(SystemState::Explode) > 0.0 {
+            sim.ship_mut(self.handle).explode();
+            state.set(SystemState::Explode, 0.0);
+        }
 
         self.write_system_state(&state);
         Ok(())

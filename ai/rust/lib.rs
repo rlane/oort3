@@ -73,10 +73,10 @@ pub mod api {
 
     pub fn aim_gun(gun_index: usize, heading: f64) {
         let state_index = match gun_index {
-            0 => SystemState::Gun0Heading,
-            1 => SystemState::Gun1Heading,
-            2 => SystemState::Gun2Heading,
-            3 => SystemState::Gun3Heading,
+            0 => SystemState::Gun0Aim,
+            1 => SystemState::Gun1Aim,
+            2 => SystemState::Gun2Aim,
+            3 => SystemState::Gun3Aim,
             _ => return,
         };
         write_system_state(state_index, heading);
@@ -84,10 +84,10 @@ pub mod api {
 
     pub fn fire_gun(gun_index: usize) {
         let state_index = match gun_index {
-            0 => SystemState::Gun0Fired,
-            1 => SystemState::Gun1Fired,
-            2 => SystemState::Gun2Fired,
-            3 => SystemState::Gun3Fired,
+            0 => SystemState::Gun0Fire,
+            1 => SystemState::Gun1Fire,
+            2 => SystemState::Gun2Fire,
+            3 => SystemState::Gun3Fire,
             _ => return,
         };
         write_system_state(state_index, 1.0);
@@ -95,10 +95,10 @@ pub mod api {
 
     pub fn launch_missile(missile_index: usize) {
         let state_index = match missile_index {
-            0 => SystemState::Missile0Launched,
-            1 => SystemState::Missile1Launched,
-            2 => SystemState::Missile2Launched,
-            3 => SystemState::Missile3Launched,
+            0 => SystemState::Missile0Launch,
+            1 => SystemState::Missile1Launch,
+            2 => SystemState::Missile2Launch,
+            3 => SystemState::Missile3Launch,
             _ => return,
         };
         write_system_state(state_index, 1.0);
