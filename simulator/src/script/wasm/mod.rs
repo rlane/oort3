@@ -139,6 +139,28 @@ impl ShipController for WasmShipController {
             state.set(SystemState::Explode, 0.0);
         }
 
+        if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
+            radar.heading = state.get(SystemState::RadarHeading);
+            radar.width = state.get(SystemState::RadarWidth);
+        }
+        if let Some(contact) = crate::radar::scan(sim, self.handle) {
+            state.set(SystemState::RadarContactFound, 1.0);
+            state.set(SystemState::RadarContactPositionX, contact.position.x);
+            state.set(SystemState::RadarContactPositionY, contact.position.y);
+            state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
+            state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
+            if let Some(class) = contact.class {
+                state.set(
+                    SystemState::RadarContactClass,
+                    translate_class(class) as u32 as f64,
+                );
+            } else {
+                state.set(SystemState::RadarContactClass, Class::Unknown as u32 as f64);
+            }
+        } else {
+            state.set(SystemState::RadarContactFound, 0.0);
+        }
+
         self.write_system_state(&state);
         Ok(())
     }
