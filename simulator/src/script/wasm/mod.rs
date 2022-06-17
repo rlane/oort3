@@ -84,9 +84,8 @@ impl WasmShipController {
 
 impl ShipController for WasmShipController {
     fn tick(&mut self) -> Result<(), super::Error> {
-        //log::info!("before: system state: {:?}", self.read_system_state());
         translate_error(self.tick.call(&[]))?;
-        //log::info!("after:  system state: {:?}", self.read_system_state());
+
         let mut state = self.read_system_state();
         let sim = unsafe { &mut *self.sim };
 
@@ -120,19 +119,37 @@ impl ShipController for WasmShipController {
             .torque(state.get(SystemState::Torque));
         state.set(SystemState::Torque, 0.0);
 
-        sim.ship_mut(self.handle)
-            .aim_gun(0, state.get(SystemState::Gun0Aim));
-        if state.get(SystemState::Gun0Fire) > 0.0 {
-            sim.ship_mut(self.handle).fire_gun(0);
-            state.set(SystemState::Gun0Fire, 0.0);
+        for (i, (aim, fire)) in [
+            (SystemState::Gun0Aim, SystemState::Gun0Fire),
+            (SystemState::Gun1Aim, SystemState::Gun1Fire),
+            (SystemState::Gun2Aim, SystemState::Gun2Fire),
+            (SystemState::Gun3Aim, SystemState::Gun3Fire),
+        ]
+        .iter()
+        .enumerate()
+        {
+            if state.get(*fire) > 0.0 {
+                sim.ship_mut(self.handle).aim_gun(i as i64, state.get(*aim));
+                sim.ship_mut(self.handle).fire_gun(i as i64);
+                state.set(*fire, 0.0);
+            }
         }
-        // TODO
 
-        if state.get(SystemState::Missile0Launch) > 0.0 {
-            sim.ship_mut(self.handle).launch_missile(0, "".to_string());
-            state.set(SystemState::Missile0Launch, 0.0);
+        for (i, launch) in [
+            SystemState::Missile0Launch,
+            SystemState::Missile1Launch,
+            SystemState::Missile2Launch,
+            SystemState::Missile3Launch,
+        ]
+        .iter()
+        .enumerate()
+        {
+            if state.get(*launch) > 0.0 {
+                sim.ship_mut(self.handle)
+                    .launch_missile(i as i64, "".to_string());
+                state.set(*launch, 0.0);
+            }
         }
-        // TODO
 
         if state.get(SystemState::Explode) > 0.0 {
             sim.ship_mut(self.handle).explode();
