@@ -141,6 +141,7 @@ pub mod api {
 pub mod prelude {
     pub use super::api::*;
     pub use super::vec::*;
+    pub use fastrand as rng;
     pub use oort_shared::*;
 }
 
@@ -150,6 +151,7 @@ static mut USER_STATE: Option<user::Ship> = None;
 pub fn export_tick() {
     unsafe {
         if USER_STATE.is_none() {
+            fastrand::seed(sys::read_system_state(oort_shared::SystemState::Seed) as u64);
             USER_STATE = Some(user::Ship::new());
         }
         USER_STATE.as_mut().unwrap().tick();

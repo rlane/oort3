@@ -1,6 +1,7 @@
 #[derive(Copy, Clone)]
 pub enum SystemState {
     Class,
+    Seed,
     PositionX,
     PositionY,
     VelocityX,
@@ -37,7 +38,7 @@ pub enum SystemState {
     RadarContactVelocityX,
     RadarContactVelocityY,
 
-    Size
+    Size,
 }
 
 pub enum Class {

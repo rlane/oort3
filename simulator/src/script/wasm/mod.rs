@@ -9,7 +9,7 @@ use super::{ShipController, TeamController};
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
 use oort_shared::*;
-use wasmer::{imports, Instance, Module, Store, WasmPtr};
+use wasmer::{imports, Function, Instance, Module, Store, WasmPtr};
 
 const WASM: &[u8] = include_bytes!("../../../../ai/reference.wasm");
 
@@ -36,7 +36,12 @@ impl TeamController for WasmTeamController {
         sim: &mut Simulation,
         _orders: String,
     ) -> Result<Box<dyn ShipController>, super::Error> {
-        let import_object = imports! {};
+        let import_object = imports! {
+            "env" => {
+                "now" => Function::new_native(&self.module.store(), instant::now)
+            }
+
+        };
         let instance = Instance::new(&self.module, &import_object)?;
 
         let memory = translate_error(instance.exports.get_memory("memory"))?.clone();
@@ -49,13 +54,22 @@ impl TeamController for WasmTeamController {
 
         let tick = translate_error(instance.exports.get_function("export_tick"))?.clone();
 
-        Ok(Box::new(WasmShipController {
+        let mut ctrl = WasmShipController {
             handle,
             sim,
             memory,
             system_state_ptr,
             tick,
-        }))
+        };
+
+        let mut state = ctrl.read_system_state();
+        state.set(
+            SystemState::Seed,
+            (make_seed(sim.seed(), handle) & 0xffffff) as f64,
+        );
+        ctrl.write_system_state(&state);
+
+        Ok(Box::new(ctrl))
     }
 }
 
@@ -85,6 +99,17 @@ impl WasmShipController {
             ptr = WasmPtr::new(ptr.offset() + 8);
         }
     }
+}
+
+fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+    let mut s = DefaultHasher::new();
+    let (i, j) = handle.0.into_raw_parts();
+    s.write_u32(sim_seed);
+    s.write_u32(i);
+    s.write_u32(j);
+    s.finish() as i64
 }
 
 impl ShipController for WasmShipController {
