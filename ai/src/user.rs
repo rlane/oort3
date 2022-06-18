@@ -1,4 +1,4 @@
-use prelude::*;
+use crate::prelude::*;
 use std::f64::consts::TAU;
 
 pub struct Ship {

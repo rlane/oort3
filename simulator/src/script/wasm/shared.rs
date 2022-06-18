@@ -1,1 +1,1 @@
-../../../../ai/rust/shared.rs
+../../../../ai/src/shared.rs

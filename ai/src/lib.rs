@@ -1,16 +1,15 @@
-mod user;
 mod shared;
+mod user;
 
 pub mod sys {
-    use shared::SystemState;
+    use crate::shared::SystemState;
 
     #[no_mangle]
-    pub static mut SYSTEM_STATE: [f64; SystemState::Size as usize] = [0.0; SystemState::Size as usize];
+    pub static mut SYSTEM_STATE: [f64; SystemState::Size as usize] =
+        [0.0; SystemState::Size as usize];
 
     pub fn read_system_state(index: SystemState) -> f64 {
-        unsafe {
-            SYSTEM_STATE[index as usize]
-        }
+        unsafe { SYSTEM_STATE[index as usize] }
     }
 
     pub fn write_system_state(index: SystemState, value: f64) {
@@ -34,10 +33,10 @@ pub mod vec {
 pub mod api {
     use super::sys::{read_system_state, write_system_state};
     use super::vec::*;
-    use crate::shared::{SystemState, Class};
+    use crate::shared::{Class, SystemState};
 
     pub fn class() -> Class {
-        Class::from_f64( read_system_state(SystemState::Class))
+        Class::from_f64(read_system_state(SystemState::Class))
     }
 
     pub fn position() -> Vec2 {
@@ -63,12 +62,12 @@ pub mod api {
     }
 
     pub fn accelerate(acceleration: Vec2) {
-        write_system_state(SystemState::AccelerateX, acceleration.x );
-        write_system_state(SystemState::AccelerateY, acceleration.y );
+        write_system_state(SystemState::AccelerateX, acceleration.x);
+        write_system_state(SystemState::AccelerateY, acceleration.y);
     }
 
     pub fn torque(angular_acceleration: f64) {
-        write_system_state(SystemState::Torque, angular_acceleration );
+        write_system_state(SystemState::Torque, angular_acceleration);
     }
 
     pub fn aim_gun(gun_index: usize, heading: f64) {

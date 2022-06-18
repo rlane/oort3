@@ -5,6 +5,7 @@ members = [
     "worker",
     "app",
     "renderer",
+    "ai",
 ]
 
 [patch.crates-io]
