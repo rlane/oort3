@@ -12,7 +12,7 @@ use crate::simulation::Simulation;
 use shared::*;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
-const WASM: &[u8] = include_bytes!("../../../../ai/rust/reference.wasm");
+const WASM: &[u8] = include_bytes!("../../../../ai/reference.wasm");
 
 pub type Vec2 = nalgebra::Vector2<f64>;
 
