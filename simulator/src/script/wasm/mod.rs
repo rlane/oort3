@@ -4,12 +4,11 @@
 // - Vec2 methods and overloads
 // - Angle utilities
 // - RNG
-pub mod shared;
 
 use super::{ShipController, TeamController};
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
-use shared::*;
+use oort_shared::*;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
 const WASM: &[u8] = include_bytes!("../../../../ai/reference.wasm");

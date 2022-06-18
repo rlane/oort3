@@ -1134,6 +1134,9 @@ dependencies = [
 [[package]]
 name = "oort_reference_ai"
 version = "0.1.0"
+dependencies = [
+ "oort_shared",
+]
 
 [[package]]
 name = "oort_renderer"
@@ -1157,6 +1160,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_shared"
+version = "0.1.0"
+
+[[package]]
 name = "oort_simulator"
 version = "0.1.0"
 dependencies = [
@@ -1171,6 +1178,7 @@ dependencies = [
  "log",
  "nalgebra",
  "oorandom",
+ "oort_shared",
  "rand",
  "rand_chacha",
  "rand_distr",

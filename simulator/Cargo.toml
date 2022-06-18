@@ -27,6 +27,7 @@ rhai = { version = "1.7.0", features = ["internals"] }
 serde = { version = "1.0.137", features = ["derive"] }
 smartstring = "1.0.1"
 instant = "0.1.12"
+oort_shared = { path = "../shared" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.57"

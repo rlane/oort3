@@ -1,8 +1,7 @@
-mod shared;
 mod user;
 
 pub mod sys {
-    use crate::shared::SystemState;
+    use oort_shared::SystemState;
 
     #[no_mangle]
     pub static mut SYSTEM_STATE: [f64; SystemState::Size as usize] =
@@ -33,7 +32,7 @@ pub mod vec {
 pub mod api {
     use super::sys::{read_system_state, write_system_state};
     use super::vec::*;
-    use crate::shared::{Class, SystemState};
+    use oort_shared::{Class, SystemState};
 
     pub fn class() -> Class {
         Class::from_f64(read_system_state(SystemState::Class))
@@ -142,7 +141,7 @@ pub mod api {
 pub mod prelude {
     pub use super::api::*;
     pub use super::vec::*;
-    pub use crate::shared::*;
+    pub use oort_shared::*;
 }
 
 static mut USER_STATE: Option<user::Ship> = None;
