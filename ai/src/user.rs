@@ -285,5 +285,6 @@ fn parse_orders(orders: &str) -> Vec2 {
 }
 
 fn format_orders(target: Vec2) -> String {
-    format!("{} {}", target.x, target.y)
+    //format!("{} {}", target.x, target.y)
+    "".to_string() // TODO
 }
