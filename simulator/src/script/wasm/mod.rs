@@ -9,7 +9,7 @@ use super::{ShipController, TeamController};
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
 use oort_shared::*;
-use wasmer::{imports, Function, Instance, Module, Store, WasmPtr};
+use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
 const WASM: &[u8] = include_bytes!("../../../../ai/reference.wasm");
 
@@ -36,12 +36,7 @@ impl TeamController for WasmTeamController {
         sim: &mut Simulation,
         _orders: String,
     ) -> Result<Box<dyn ShipController>, super::Error> {
-        let import_object = imports! {
-            "env" => {
-                "now" => Function::new_native(&self.module.store(), instant::now)
-            }
-
-        };
+        let import_object = imports! {};
         let instance = Instance::new(&self.module, &import_object)?;
 
         let memory = translate_error(instance.exports.get_memory("memory"))?.clone();
