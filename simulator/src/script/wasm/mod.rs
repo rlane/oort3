@@ -84,22 +84,20 @@ struct WasmShipController {
 impl WasmShipController {
     pub fn read_system_state(&self) -> LocalSystemState {
         let mut state = [0.0; SystemState::Size as usize];
-        let mut ptr = self.system_state_ptr;
-        for i in 0..SystemState::Size as usize {
-            state[i] = ptr.deref(&self.memory).read().expect("system state read");
-            ptr = WasmPtr::new(ptr.offset() + 8);
-        }
+        let slice = self
+            .system_state_ptr
+            .slice(&self.memory, SystemState::Size as u32)
+            .expect("system state read");
+        slice.read_slice(&mut state).expect("system state read");
         LocalSystemState { state }
     }
 
     pub fn write_system_state(&self, state: &LocalSystemState) {
-        let mut ptr = self.system_state_ptr;
-        for i in 0..SystemState::Size as usize {
-            ptr.deref(&self.memory)
-                .write(state.state[i])
-                .expect("system state write");
-            ptr = WasmPtr::new(ptr.offset() + 8);
-        }
+        let slice = self
+            .system_state_ptr
+            .slice(&self.memory, SystemState::Size as u32)
+            .expect("system state write");
+        slice.write_slice(&state.state).expect("system state write");
     }
 }
 
