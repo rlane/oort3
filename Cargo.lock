@@ -1114,6 +1114,7 @@ dependencies = [
 name = "oort_reference_ai"
 version = "0.1.0"
 dependencies = [
+ "nalgebra",
  "oorandom",
  "oort_shared",
 ]

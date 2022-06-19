@@ -19,13 +19,58 @@ pub mod sys {
 }
 
 pub mod vec {
-    pub struct Vec2 {
-        pub x: f64,
-        pub y: f64,
+    pub type Vec2 = nalgebra::Vector2<f64>;
+
+    pub trait Vec2Extras {
+        fn angle0(&self) -> f64;
+        fn distance(&self, other: Vec2) -> f64;
+        fn rotate(&self, angle: f64) -> Vec2;
+    }
+
+    impl Vec2Extras for Vec2 {
+        fn distance(&self, other: Vec2) -> f64 {
+            self.metric_distance(&other)
+        }
+
+        fn angle0(&self) -> f64 {
+            let mut a = self.y.atan2(self.x);
+            if a < 0.0 {
+                a += std::f64::consts::TAU;
+            }
+            a
+        }
+
+        fn rotate(&self, angle: f64) -> Vec2 {
+            nalgebra::Rotation2::new(angle).transform_vector(self)
+        }
     }
 
     pub fn vec2(x: f64, y: f64) -> Vec2 {
-        Vec2 { x, y }
+        Vec2::new(x, y)
+    }
+}
+
+pub mod math {
+    use std::f64::consts::{PI, TAU};
+
+    pub fn normalize_angle(a: f64) -> f64 {
+        let mut a = a;
+        if a.abs() > TAU {
+            a %= TAU;
+        }
+        if a < 0.0 {
+            a += TAU;
+        }
+        a
+    }
+
+    pub fn angle_diff(a: f64, b: f64) -> f64 {
+        let c = normalize_angle(b - a);
+        if c > PI {
+            c - TAU
+        } else {
+            c
+        }
     }
 }
 
@@ -43,17 +88,17 @@ pub mod api {
     }
 
     pub fn position() -> Vec2 {
-        Vec2 {
-            x: read_system_state(SystemState::PositionX),
-            y: read_system_state(SystemState::PositionY),
-        }
+        vec2(
+            read_system_state(SystemState::PositionX),
+            read_system_state(SystemState::PositionY),
+        )
     }
 
     pub fn velocity() -> Vec2 {
-        Vec2 {
-            x: read_system_state(SystemState::VelocityX),
-            y: read_system_state(SystemState::VelocityY),
-        }
+        vec2(
+            read_system_state(SystemState::VelocityX),
+            read_system_state(SystemState::VelocityY),
+        )
     }
 
     pub fn heading() -> f64 {
@@ -95,7 +140,7 @@ pub mod api {
         write_system_state(state_index, 1.0);
     }
 
-    pub fn launch_missile(missile_index: usize) {
+    pub fn launch_missile(missile_index: usize, _orders: &str) {
         let state_index = match missile_index {
             0 => SystemState::Missile0Launch,
             1 => SystemState::Missile1Launch,
@@ -144,6 +189,7 @@ pub mod api {
 
 pub mod prelude {
     pub use super::api::*;
+    pub use super::math::*;
     pub use super::vec::*;
     pub use oort_shared::*;
 }

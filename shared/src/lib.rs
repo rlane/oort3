@@ -41,6 +41,7 @@ pub enum SystemState {
     Size,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Class {
     Fighter,
     Frigate,
