@@ -54,7 +54,7 @@ impl TeamController for WasmTeamController {
 
         let tick = translate_error(instance.exports.get_function("export_tick"))?.clone();
 
-        let mut ctrl = WasmShipController {
+        let ctrl = WasmShipController {
             handle,
             sim,
             memory,
@@ -67,6 +67,10 @@ impl TeamController for WasmTeamController {
             SystemState::Seed,
             (make_seed(sim.seed(), handle) & 0xffffff) as f64,
         );
+        if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
+            state.set(SystemState::RadarHeading, radar.heading);
+            state.set(SystemState::RadarWidth, radar.width);
+        }
         ctrl.write_system_state(&state);
 
         Ok(Box::new(ctrl))
