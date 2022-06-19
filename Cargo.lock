@@ -534,15 +534,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fastrand"
-version = "1.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3fcf0cee53519c866c09b5de1f6c56ff9d647101f81c1964fa632e148896cdf"
-dependencies = [
- "instant",
-]
-
-[[package]]
 name = "flate2"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1144,7 +1135,7 @@ dependencies = [
 name = "oort_reference_ai"
 version = "0.1.0"
 dependencies = [
- "fastrand",
+ "oorandom",
  "oort_shared",
 ]
 

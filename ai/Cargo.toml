@@ -12,4 +12,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 oort_shared = { path = "../shared" }
-fastrand = "1.7.0"
+oorandom = "11.1.3"

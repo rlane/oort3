@@ -38,6 +38,10 @@ pub mod api {
         Class::from_f64(read_system_state(SystemState::Class))
     }
 
+    pub fn seed() -> u128 {
+        read_system_state(oort_shared::SystemState::Seed) as u128
+    }
+
     pub fn position() -> Vec2 {
         Vec2 {
             x: read_system_state(SystemState::PositionX),
@@ -141,7 +145,6 @@ pub mod api {
 pub mod prelude {
     pub use super::api::*;
     pub use super::vec::*;
-    pub use fastrand as rng;
     pub use oort_shared::*;
 }
 
@@ -151,7 +154,6 @@ static mut USER_STATE: Option<user::Ship> = None;
 pub fn export_tick() {
     unsafe {
         if USER_STATE.is_none() {
-            fastrand::seed(sys::read_system_state(oort_shared::SystemState::Seed) as u64);
             USER_STATE = Some(user::Ship::new());
         }
         USER_STATE.as_mut().unwrap().tick();
