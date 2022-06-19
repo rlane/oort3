@@ -12,6 +12,7 @@ members = [
 [patch.crates-io]
 yew = { git = "https://github.com/yewstack/yew", rev = "6f6519dab4c5990029fe8d85c47daf439fdc3988" }
 yew-agent = { git = "https://github.com/yewstack/yew", rev = "6f6519dab4c5990029fe8d85c47daf439fdc3988" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "da4e9fe61796f68edf1eff211bab1f133b984c4f" }
 
 [profile.dev.package.'*']
 opt-level = 3

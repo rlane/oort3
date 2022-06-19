@@ -876,27 +876,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "loupe"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b6a72dfa44fe15b5e76b94307eeb2ff995a8c5b283b55008940c02e0c5b634d"
-dependencies = [
- "indexmap",
- "loupe-derive",
- "rustversion",
-]
-
-[[package]]
-name = "loupe-derive"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0fbfc88337168279f2e9ae06e157cfed4efd3316e14dc96ed074d4f2e6c5952"
-dependencies = [
- "quote 1.0.18",
- "syn 1.0.96",
-]
-
-[[package]]
 name = "mach"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1651,12 +1630,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustversion"
-version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2cc38e8fa666e2de3c4aba7edeb5ffc5246c1c2ed0e3d17e560aeeba736b23f"
-
-[[package]]
 name = "ryu"
 version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2097,13 +2070,11 @@ dependencies = [
 [[package]]
 name = "wasmer"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea8d8361c9d006ea3d7797de7bd6b1492ffd0f91a22430cfda6c1658ad57bedf"
+source = "git+https://github.com/wasmerio/wasmer?rev=da4e9fe61796f68edf1eff211bab1f133b984c4f#da4e9fe61796f68edf1eff211bab1f133b984c4f"
 dependencies = [
  "cfg-if",
  "indexmap",
  "js-sys",
- "loupe",
  "more-asserts",
  "target-lexicon",
  "thiserror",
@@ -2121,11 +2092,9 @@ dependencies = [
 [[package]]
 name = "wasmer-artifact"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7aaf9428c29c1d8ad2ac0e45889ba8a568a835e33fd058964e5e500f2f7ce325"
+source = "git+https://github.com/wasmerio/wasmer?rev=da4e9fe61796f68edf1eff211bab1f133b984c4f#da4e9fe61796f68edf1eff211bab1f133b984c4f"
 dependencies = [
  "enumset",
- "loupe",
  "thiserror",
  "wasmer-compiler",
  "wasmer-types",
@@ -2134,11 +2103,9 @@ dependencies = [
 [[package]]
 name = "wasmer-compiler"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e67a6cd866aed456656db2cfea96c18baabbd33f676578482b85c51e1ee19d2c"
+source = "git+https://github.com/wasmerio/wasmer?rev=da4e9fe61796f68edf1eff211bab1f133b984c4f#da4e9fe61796f68edf1eff211bab1f133b984c4f"
 dependencies = [
  "enumset",
- "loupe",
  "rkyv",
  "serde",
  "serde_bytes",
@@ -2151,8 +2118,7 @@ dependencies = [
 [[package]]
 name = "wasmer-derive"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00e50405cc2a2f74ff574584710a5f2c1d5c93744acce2ca0866084739284b51"
+source = "git+https://github.com/wasmerio/wasmer?rev=da4e9fe61796f68edf1eff211bab1f133b984c4f#da4e9fe61796f68edf1eff211bab1f133b984c4f"
 dependencies = [
  "proc-macro-error",
  "proc-macro2 1.0.39",
@@ -2163,13 +2129,11 @@ dependencies = [
 [[package]]
 name = "wasmer-engine"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f98f010978c244db431b392aeab0661df7ea0822343334f8f2a920763548e45"
+source = "git+https://github.com/wasmerio/wasmer?rev=da4e9fe61796f68edf1eff211bab1f133b984c4f#da4e9fe61796f68edf1eff211bab1f133b984c4f"
 dependencies = [
  "backtrace",
  "enumset",
  "lazy_static",
- "loupe",
  "memmap2",
  "more-asserts",
  "rustc-demangle",
@@ -2186,13 +2150,10 @@ dependencies = [
 [[package]]
 name = "wasmer-types"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39df01ea05dc0a9bab67e054c7cb01521e53b35a7bb90bd02eca564ed0b2667f"
+source = "git+https://github.com/wasmerio/wasmer?rev=da4e9fe61796f68edf1eff211bab1f133b984c4f#da4e9fe61796f68edf1eff211bab1f133b984c4f"
 dependencies = [
- "backtrace",
  "enum-iterator",
  "indexmap",
- "loupe",
  "more-asserts",
  "rkyv",
  "serde",
@@ -2202,8 +2163,7 @@ dependencies = [
 [[package]]
 name = "wasmer-vm"
 version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30d965fa61f4dc4cdb35a54daaf7ecec3563fbb94154a6c35433f879466247dd"
+source = "git+https://github.com/wasmerio/wasmer?rev=da4e9fe61796f68edf1eff211bab1f133b984c4f#da4e9fe61796f68edf1eff211bab1f133b984c4f"
 dependencies = [
  "backtrace",
  "cc",
@@ -2213,7 +2173,6 @@ dependencies = [
  "indexmap",
  "lazy_static",
  "libc",
- "loupe",
  "mach",
  "memoffset",
  "more-asserts",
