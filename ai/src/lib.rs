@@ -87,6 +87,10 @@ pub mod api {
         read_system_state(oort_shared::SystemState::Seed) as u128
     }
 
+    pub fn orders() -> f64 {
+        read_system_state(oort_shared::SystemState::Orders)
+    }
+
     pub fn position() -> Vec2 {
         vec2(
             read_system_state(SystemState::PositionX),
@@ -140,15 +144,16 @@ pub mod api {
         write_system_state(state_index, 1.0);
     }
 
-    pub fn launch_missile(missile_index: usize, _orders: &str) {
-        let state_index = match missile_index {
-            0 => SystemState::Missile0Launch,
-            1 => SystemState::Missile1Launch,
-            2 => SystemState::Missile2Launch,
-            3 => SystemState::Missile3Launch,
+    pub fn launch_missile(missile_index: usize, orders: f64) {
+        let (state_index, orders_index) = match missile_index {
+            0 => (SystemState::Missile0Launch, SystemState::Missile0Orders),
+            1 => (SystemState::Missile1Launch, SystemState::Missile1Orders),
+            2 => (SystemState::Missile2Launch, SystemState::Missile2Orders),
+            3 => (SystemState::Missile3Launch, SystemState::Missile3Orders),
             _ => return,
         };
         write_system_state(state_index, 1.0);
+        write_system_state(orders_index, orders);
     }
 
     pub fn explode() {

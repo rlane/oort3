@@ -2,6 +2,7 @@
 pub enum SystemState {
     Class,
     Seed,
+    Orders,
     PositionX,
     PositionY,
     VelocityX,
@@ -23,9 +24,13 @@ pub enum SystemState {
     Gun3Fire,
 
     Missile0Launch,
+    Missile0Orders,
     Missile1Launch,
+    Missile1Orders,
     Missile2Launch,
+    Missile2Orders,
     Missile3Launch,
+    Missile3Orders,
 
     Explode,
 

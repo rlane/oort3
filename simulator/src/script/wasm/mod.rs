@@ -34,7 +34,7 @@ impl TeamController for WasmTeamController {
         &mut self,
         handle: ShipHandle,
         sim: &mut Simulation,
-        _orders: String,
+        orders: String,
     ) -> Result<Box<dyn ShipController>, super::Error> {
         let import_object = imports! {};
         let instance = Instance::new(&self.module, &import_object)?;
@@ -62,6 +62,9 @@ impl TeamController for WasmTeamController {
             SystemState::Seed,
             (make_seed(sim.seed(), handle) & 0xffffff) as f64,
         );
+        if let Ok(orders) = orders.parse::<f64>() {
+            state.set(SystemState::Orders, orders);
+        }
         if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
             state.set(SystemState::RadarHeading, radar.heading);
             state.set(SystemState::RadarWidth, radar.width);
@@ -164,18 +167,19 @@ impl ShipController for WasmShipController {
             }
         }
 
-        for (i, launch) in [
-            SystemState::Missile0Launch,
-            SystemState::Missile1Launch,
-            SystemState::Missile2Launch,
-            SystemState::Missile3Launch,
+        for (i, (launch, orders)) in [
+            (SystemState::Missile0Launch, SystemState::Missile0Orders),
+            (SystemState::Missile1Launch, SystemState::Missile1Orders),
+            (SystemState::Missile2Launch, SystemState::Missile2Orders),
+            (SystemState::Missile3Launch, SystemState::Missile3Orders),
         ]
         .iter()
         .enumerate()
         {
             if state.get(*launch) > 0.0 {
+                let orders = state.get(*orders);
                 sim.ship_mut(self.handle)
-                    .launch_missile(i as i64, "".to_string());
+                    .launch_missile(i as i64, orders.to_string());
                 state.set(*launch, 0.0);
             }
         }

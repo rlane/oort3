@@ -5,7 +5,6 @@ pub struct Ship {
     rng: oorandom::Rand64,
     target_position: Vec2,
     target_velocity: Vec2,
-    orders: Vec2,
     ticks: u64,
     has_locked: bool,
     no_contact_ticks: i64,
@@ -13,13 +12,12 @@ pub struct Ship {
 
 impl Ship {
     pub fn new() -> Ship {
-        let target_position = position();
+        let target_position = parse_orders(orders());
         let target_velocity = Vec2::new(0.0, 0.0);
         Ship {
             rng: oorandom::Rand64::new(seed()),
             target_position,
             target_velocity,
-            orders: Vec2::new(0.0, 0.0), // TODO
             ticks: 0,
             has_locked: false,
             no_contact_ticks: 0,
@@ -66,7 +64,7 @@ impl Ship {
                 if predicted_dp.magnitude() < 5000.0 {
                     fire_gun(0);
                 }
-                launch_missile(0, &format_orders(contact.position));
+                launch_missile(0, make_orders(contact.position));
             } else if class() == Class::Frigate {
                 fire_gun(0);
                 aim_gun(
@@ -79,17 +77,17 @@ impl Ship {
                     (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle0() - heading(),
                 );
                 fire_gun(2);
-                launch_missile(0, &format_orders(contact.position));
+                launch_missile(0, make_orders(contact.position));
             } else if class() == Class::Cruiser {
                 if predicted_dp.magnitude() < 5000.0 {
                     aim_gun(0, predicted_dp.angle0() - heading());
                     fire_gun(0);
                 }
                 for i in 0..2 {
-                    launch_missile(i, &format_orders(contact.position));
+                    launch_missile(i, make_orders(contact.position));
                 }
                 if contact.class == Class::Frigate || contact.class == Class::Cruiser {
-                    launch_missile(2, &format_orders(contact.position));
+                    launch_missile(2, make_orders(contact.position));
                 }
                 //dbg.draw_diamond(contact.position, 30.0, 0xffff00);
             }
@@ -123,7 +121,6 @@ impl Ship {
         let acc = 400.0;
 
         if !self.has_locked {
-            self.target_position = self.orders;
             set_radar_heading((self.target_position - position()).angle0() - heading());
             set_radar_width(TAU / 32.0);
             //dbg.draw_diamond(target_position, 20.0, 0xff0000);
@@ -180,10 +177,6 @@ impl Ship {
     fn torpedo_tick(&mut self) {
         let mut acc = 1000.0;
         self.target_velocity = velocity();
-
-        if self.ticks == 0 {
-            self.target_position = self.orders;
-        }
         self.ticks += 1;
 
         let target_heading = (self.target_position - position()).angle0();
@@ -274,17 +267,17 @@ impl Ship {
     }
 }
 
-fn parse_orders(orders: &str) -> Vec2 {
-    if orders.is_empty() {
-        return vec2(0.0, 0.0);
+const SCALE: f64 = 1e6;
+const BIAS: f64 = SCALE / 2.0;
+
+fn parse_orders(o: f64) -> Vec2 {
+    if o == 0.0 {
+        vec2(0.0, 0.0)
+    } else {
+        vec2(o % SCALE - BIAS, (o / SCALE).round() - BIAS)
     }
-    let mut orders = orders.split(' ');
-    let x = orders.next().unwrap().parse::<f64>().unwrap();
-    let y = orders.next().unwrap().parse::<f64>().unwrap();
-    vec2(x, y)
 }
 
-fn format_orders(target: Vec2) -> String {
-    //format!("{} {}", target.x, target.y)
-    "".to_string() // TODO
+fn make_orders(o: Vec2) -> f64 {
+    (o.x.round() + BIAS) + (o.y.round() + BIAS) * SCALE
 }
