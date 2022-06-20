@@ -1,0 +1,9 @@
+**/.git
+**/node_modules
+target
+backend
+perf.data.*
+scratch
+wbindgen
+pkg
+flamegraph.svg
