@@ -26,6 +26,9 @@ opt-level = 1
 [profile.dev.package.oort_worker]
 opt-level = 1
 
+[profile.dev.package.oort-app]
+opt-level = 1
+
 [profile.dev]
 opt-level = 0
 
