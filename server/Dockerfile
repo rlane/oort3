@@ -1,4 +1,4 @@
-FROM rust:1.61 as builder
+FROM rust:1.61-slim-buster as builder
 WORKDIR /usr/src/app
 COPY . .
 RUN \
@@ -11,12 +11,13 @@ FROM rust:1.61-slim-buster
 RUN rustup target add wasm32-unknown-unknown
 WORKDIR /usr/src/app
 COPY Cargo.toml.user Cargo.toml
-COPY Cargo.lock scripts/build-ai.sh .
+COPY Cargo.lock.user Cargo.lock
+COPY scripts/build-ai.sh scripts/
 COPY --from=builder /registry /usr/local/cargo/registry
 COPY --from=builder /usr/local/cargo/bin/oort_server /usr/local/bin/oort_server
 COPY ai ai
 COPY shared shared
 RUN cargo fetch
-RUN ./build-ai.sh
+RUN ./scripts/build-ai.sh
 ENV PORT 8080
 CMD ["oort_server"]
