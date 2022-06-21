@@ -1,8 +1,9 @@
 **/.git
 **/node_modules
 target
+app/dist
 backend
-perf.data.*
+perf.data*
 scratch
 wbindgen
 pkg

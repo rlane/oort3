@@ -1,0 +1,10 @@
+[workspace]
+
+members = [
+    "ai",
+    "shared",
+]
+
+[profile.release]
+debug = true
+lto = true
