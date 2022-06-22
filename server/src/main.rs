@@ -1,5 +1,4 @@
 use bytes::Bytes;
-use env_logger::Env;
 use salvo::prelude::*;
 use tokio::process::Command;
 
@@ -38,7 +37,7 @@ async fn compile(req: &mut Request, res: &mut Response) {
 
 #[tokio::main]
 async fn main() {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    stackdriver_logger::init_with_cargo!();
 
     let mut port: u16 = 8080;
     match std::env::var("PORT") {
