@@ -12,12 +12,22 @@ use crossbeam::channel::Sender;
 use instant::Instant;
 use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
 pub const WORLD_SIZE: f64 = 10000.0;
 pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum Code {
+    None,
+    Rhai(String),
+    Rust(String),
+    Native,
+    Wasm(Vec<u8>),
+}
 
 pub struct Simulation {
     scenario: Option<Box<dyn Scenario>>,
@@ -47,10 +57,7 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    pub fn new(scenario_name: &str, seed: u32, mut code: &str) -> Box<Simulation> {
-        if code.is_empty() {
-            code = "fn tick(){}";
-        }
+    pub fn new(scenario_name: &str, seed: u32, code: &Code) -> Box<Simulation> {
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
         let mut sim = Box::new(Simulation {
             scenario: None,
@@ -83,7 +90,9 @@ impl Simulation {
             timing: Default::default(),
         });
 
-        sim.upload_code(/*team=*/ 0, code);
+        if !matches!(code, Code::None) {
+            sim.upload_code(/*team=*/ 0, code);
+        }
 
         let mut scenario = scenario::load(scenario_name);
         scenario.init(&mut sim, seed);
@@ -227,7 +236,7 @@ impl Simulation {
         self.tick += 1;
     }
 
-    pub fn upload_code(&mut self, team: i32, code: &str) {
+    pub fn upload_code(&mut self, team: i32, code: &Code) {
         match script::new_team_controller(code) {
             Ok(team_ctrl) => {
                 self.team_controllers

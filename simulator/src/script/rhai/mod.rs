@@ -189,6 +189,7 @@ pub fn check_errors(sim: &mut Simulation) {
 mod test {
     use super::check_errors;
     use crate::ship;
+    use crate::simulation::Code;
     use crate::simulation::Simulation;
     use test_log::test;
 
@@ -197,7 +198,8 @@ mod test {
         let mut sim = Simulation::new(
             "test",
             0,
-            "
+            &Code::Rhai(
+                "
         let v1 = vec2(1.0, 2.0);
         let v2 = vec2(3.0, 4.0);
         assert_eq((v1 + v2).x, 4.0);
@@ -210,7 +212,9 @@ mod test {
         assert_eq(vec2(1, 2).rotate(PI()), vec2(-1.0000000000000002, -1.9999999999999998));
         assert_eq(vec2(1, 2).rotate(3 * PI() / 2), vec2(1.9999999999999998, -1.0000000000000004));
         assert_eq(vec2(3, 4).normalize(), vec2(0.6, 0.8));
-        ",
+        "
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
@@ -221,12 +225,15 @@ mod test {
         let mut sim = Simulation::new(
             "test",
             0,
-            "
+            &Code::Rhai(
+                "
         assert_eq(vec2(1.0, 0.0).angle(), 0.0);
         assert_eq(vec2(0.0, 1.0).angle(), PI() / 2.0);
         assert_eq(vec2(-1.0, 0.0).angle(), PI());
         assert_eq(vec2(0.0, -1.0).angle(), 3 * PI() / 2.0);
-        ",
+        "
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
@@ -237,11 +244,14 @@ mod test {
         let mut sim = Simulation::new(
             "test",
             0,
-            "
+            &Code::Rhai(
+                "
         assert_eq(ship.position(), vec2(1.0, 2.0));
         assert_eq(ship.velocity(), vec2(3.0, 4.0));
         assert_eq(ship.heading(), PI());
-        ",
+        "
+                .to_string(),
+            ),
         );
         ship::create(
             &mut sim,
@@ -260,14 +270,17 @@ mod test {
         let mut sim = Simulation::new(
             "test",
             0,
-            "
+            &Code::Rhai(
+                "
             fn foo() {
                 assert_eq(ship.position(), vec2(0.0, 0.0));
             }
 
             assert_eq(ship.velocity(), vec2(0.0, 0.0));
             foo();
-        ",
+        "
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
@@ -278,7 +291,8 @@ mod test {
         let mut sim = Simulation::new(
             "test",
             0,
-            r#"
+            &Code::Rhai(
+                r#"
            let a = 1;
            let b = 2.0;
            let c = b;
@@ -305,7 +319,9 @@ mod test {
            }
            assert_eq(a, 4);
            print(`a=${a}`);
-       "#,
+       "#
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
@@ -316,13 +332,16 @@ mod test {
         let mut sim = Simulation::new(
             "test",
             0,
-            r#"
+            &Code::Rhai(
+                r#"
 assert_eq(vec2(1, 2), vec2(1.0, 2.0));
 assert_eq(vec2(1.0, 2), vec2(1, 2.0));
 assert_eq(vec2(1, 1) * 2.0, vec2(1, 1) * 2);
 assert_eq(2.0 * vec2(1, 1), 2 * vec2(1, 1));
 assert_eq(vec2(1, 1) / 2.0, vec2(1, 1) / 2);
-       "#,
+       "#
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
@@ -334,13 +353,16 @@ assert_eq(vec2(1, 1) / 2.0, vec2(1, 1) / 2);
         let mut sim = Simulation::new(
             "test",
             0,
-            r#"
+            &Code::Rhai(
+                r#"
 let i = 0;
 while true {
     print(`i=${i}`);
     i += 1;
 }
-       "#,
+       "#
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
@@ -351,13 +373,16 @@ while true {
         let mut sim = Simulation::new(
             "test",
             0,
-            r#"
+            &Code::Rhai(
+                r#"
 let rng = new_rng(1);
 assert_eq(rng.next(-10.0, 10.0), -5.130375501385842);
 assert_eq(rng.next(-10.0, 10.0), -3.0351627041509293);
 assert_eq(rng.next(-10.0, 10.0), -4.8407819174603075);
 assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
-       "#,
+       "#
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);
@@ -368,12 +393,15 @@ assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
         let mut sim = Simulation::new(
             "test",
             0,
-            "
+            &Code::Rhai(
+                "
 let contact = ship.scan();
 assert_eq(contact.found, true);
 assert_eq(contact.position, vec2(100.0372559606343, 2.0873777882830655));
 assert_eq(contact.velocity, vec2(3.075282845362119, 4.03504268798271));
-        ",
+        "
+                .to_string(),
+            ),
         );
         ship::create(
             &mut sim,
@@ -393,7 +421,8 @@ assert_eq(contact.velocity, vec2(3.075282845362119, 4.03504268798271));
         let mut sim = Simulation::new(
             "test",
             0,
-            r#"
+            &Code::Rhai(
+                r#"
 assert_eq(angle_diff(0.0, 0.0), 0.0);
 assert_eq(angle_diff(0.0, PI()/2), PI()/2);
 assert_eq(angle_diff(0.0, PI()), PI());
@@ -408,7 +437,9 @@ assert_eq(angle_diff(-PI()/2, -PI()/2), 0.0);
 assert_eq(angle_diff(-PI()/2, 0.0), PI()/2);
 assert_eq(angle_diff(-PI()/2, PI()/2), PI());
 assert_eq(angle_diff(-PI()/2, PI()), -PI()/2);
-       "#,
+       "#
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);

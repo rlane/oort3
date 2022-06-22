@@ -1,7 +1,9 @@
+use super::game::{code_to_string, str_to_code};
 use log::{error, info};
 use oort_simulator::scenario;
+use oort_simulator::simulation::Code;
 
-pub fn load(scenario_name: &str) -> String {
+pub fn load(scenario_name: &str) -> Code {
     let window = web_sys::window().expect("no global `window` exists");
     let storage = window
         .local_storage()
@@ -9,7 +11,7 @@ pub fn load(scenario_name: &str) -> String {
         .unwrap();
     let initial_code = scenario::load(scenario_name).initial_code();
     match storage.get_item(&format!("/code/{}", scenario_name)) {
-        Ok(Some(code)) => code,
+        Ok(Some(code)) => str_to_code(&code),
         Ok(None) => {
             info!("No saved code, using starter code");
             initial_code
@@ -21,15 +23,13 @@ pub fn load(scenario_name: &str) -> String {
     }
 }
 
-pub fn save(scenario_name: &str, code: &str) {
+pub fn save(scenario_name: &str, code: &Code) {
     let window = web_sys::window().expect("no global `window` exists");
-    if !code.is_empty() {
-        let storage = window
-            .local_storage()
-            .expect("failed to get local storage")
-            .unwrap();
-        if let Err(msg) = storage.set_item(&format!("/code/{}", scenario_name), code) {
-            error!("Failed to save code: {:?}", msg);
-        }
+    let storage = window
+        .local_storage()
+        .expect("failed to get local storage")
+        .unwrap();
+    if let Err(msg) = storage.set_item(&format!("/code/{}", scenario_name), &code_to_string(code)) {
+        error!("Failed to save code: {:?}", msg);
     }
 }

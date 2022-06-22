@@ -11,8 +11,6 @@ use crate::simulation::Simulation;
 use oort_shared::*;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
-const WASM: &[u8] = include_bytes!("../../../../ai/reference.wasm");
-
 pub type Vec2 = nalgebra::Vector2<f64>;
 
 pub struct WasmTeamController {
@@ -20,10 +18,10 @@ pub struct WasmTeamController {
 }
 
 impl WasmTeamController {
-    pub fn create() -> Result<Box<dyn TeamController>, super::Error> {
+    pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, super::Error> {
         log::info!("Creating WasmTeamController");
         let store = Store::default();
-        let module = translate_error(Module::new(&store, WASM))?;
+        let module = translate_error(Module::new(&store, code))?;
 
         Ok(Box::new(WasmTeamController { module }))
     }

@@ -1,4 +1,5 @@
 use oort_simulator::scenario::Status;
+use oort_simulator::simulation::Code;
 use oort_simulator::simulation::Simulation;
 use oort_simulator::snapshot::Snapshot;
 use serde::{Deserialize, Serialize};
@@ -9,13 +10,13 @@ pub enum Request {
     StartScenario {
         scenario_name: String,
         seed: u32,
-        code: String,
+        code: Code,
         nonce: u32,
     },
     RunScenario {
         scenario_name: String,
         seed: u32,
-        code: String,
+        code: Code,
     },
     Snapshot {
         nonce: u32,

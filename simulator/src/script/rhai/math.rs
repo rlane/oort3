@@ -47,6 +47,7 @@ pub mod plugin {
 mod test {
     use crate::script::rhai::check_errors;
     use crate::ship;
+    use crate::simulation::Code;
     use crate::simulation::Simulation;
     use test_log::test;
 
@@ -55,7 +56,8 @@ mod test {
         let mut sim = Simulation::new(
             "test",
             0,
-            r#"
+            &Code::Rhai(
+                r#"
 assert_eq(min(5, 7), 5);
 assert_eq(min(5, 7.0), 5.0);
 assert_eq(min(5.0, 7), 5.0);
@@ -71,7 +73,9 @@ assert_eq(max(7.0, 5.0), 7.0);
 assert_eq(7.min(10).max(3), 7);
 assert_eq(-1.min(10).max(3), 3);
 assert_eq(12.min(10).max(3), 10);
-       "#,
+       "#
+                .to_string(),
+            ),
         );
         ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
         check_errors(&mut sim);

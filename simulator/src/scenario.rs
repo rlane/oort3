@@ -1,6 +1,6 @@
 use crate::rng::{new_rng, SeededRng};
 use crate::ship::{asteroid, cruiser, fighter, frigate, missile, target, ShipHandle};
-use crate::simulation::{Line, Simulation, WORLD_SIZE};
+use crate::simulation::{Code, Line, Simulation, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
 use nalgebra::{Point2, Rotation2, Translation2};
@@ -16,6 +16,10 @@ pub enum Status {
     Running,
     Victory { team: i32 },
     Failed,
+}
+
+fn rhai(code: &str) -> Code {
+    Code::Rhai(code.to_string())
 }
 
 fn check_victory(sim: &Simulation) -> Status {
@@ -59,12 +63,12 @@ pub trait Scenario {
         Running
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        "".to_string()
+    fn solution(&self) -> Code {
+        rhai("")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -218,8 +222,8 @@ impl Scenario for GunneryScenario {
         check_tutorial_victory(sim)
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/gunnery.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/gunnery.rhai"))
     }
 }
 
@@ -306,8 +310,8 @@ impl Scenario for MissileStressScenario {
             log::warn!("Ignoring nonzero seed {}", seed);
         }
         let mut rng = new_rng(0);
-        sim.upload_code(0, include_str!("../../ai/reference.rhai"));
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(0, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         add_walls(sim);
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -354,7 +358,7 @@ impl Scenario for WelcomeScenario {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         self.rng = Some(new_rng(seed));
         add_walls(sim);
-        sim.upload_code(0, include_str!("../../ai/welcome.rhai"));
+        sim.upload_code(0, &rhai(include_str!("../../ai/welcome.rhai")));
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     }
 
@@ -376,12 +380,13 @@ impl Scenario for WelcomeScenario {
         }
     }
 
-    fn initial_code(&self) -> String {
-        "\
+    fn initial_code(&self) -> Code {
+        rhai(
+            "\
 // Welcome to Oort.
 // Select a scenario from the list in the top-right of the page.
-// If you're new, start with \"tutorial01\"."
-            .to_string()
+// If you're new, start with \"tutorial01\".",
+        )
     }
 }
 
@@ -402,12 +407,12 @@ impl Scenario for Tutorial01 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial01.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial01.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial01.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial01.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -480,12 +485,12 @@ impl Scenario for Tutorial02 {
         }
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial02.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial02.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial02.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial02.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -566,12 +571,12 @@ impl Scenario for Tutorial03 {
         }
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial03.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial03.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial03.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial03.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -611,12 +616,12 @@ impl Scenario for Tutorial04 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial04.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial04.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial04.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial04.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -665,7 +670,10 @@ impl Scenario for Tutorial05 {
             c.write_target(target.coords);
         }
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial05.enemy.rhai"));
+        sim.upload_code(
+            1,
+            &rhai(include_str!("../../ai/tutorial/tutorial05.enemy.rhai")),
+        );
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -684,12 +692,12 @@ impl Scenario for Tutorial05 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial05.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial05.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial05.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial05.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -730,19 +738,22 @@ impl Scenario for Tutorial06 {
             );
         }
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial06.enemy.rhai"));
+        sim.upload_code(
+            1,
+            &rhai(include_str!("../../ai/tutorial/tutorial06.enemy.rhai")),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial06.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial06.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial06.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial06.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -766,7 +777,10 @@ impl Scenario for Tutorial07 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial07.enemy.rhai"));
+        sim.upload_code(
+            1,
+            &rhai(include_str!("../../ai/tutorial/tutorial07.enemy.rhai")),
+        );
 
         let mut rng = new_rng(seed);
         for team in 0..2 {
@@ -793,12 +807,12 @@ impl Scenario for Tutorial07 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial07.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial07.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial07.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial07.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -822,7 +836,10 @@ impl Scenario for Tutorial08 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial08.enemy.rhai"));
+        sim.upload_code(
+            1,
+            &rhai(include_str!("../../ai/tutorial/tutorial08.enemy.rhai")),
+        );
 
         let mut rng = new_rng(seed);
         {
@@ -861,12 +878,12 @@ impl Scenario for Tutorial08 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial08.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial08.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial08.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial08.solution.rhai"))
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -890,7 +907,10 @@ impl Scenario for Tutorial09 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial09.enemy.rhai"));
+        sim.upload_code(
+            1,
+            &rhai(include_str!("../../ai/tutorial/tutorial09.enemy.rhai")),
+        );
 
         let mut shipdata = fighter(0);
         shipdata.guns.clear();
@@ -910,12 +930,12 @@ impl Scenario for Tutorial09 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial09.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial09.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial09.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial09.solution.rhai"))
     }
 }
 
@@ -935,7 +955,10 @@ impl Scenario for Tutorial10 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial10.enemy.rhai"));
+        sim.upload_code(
+            1,
+            &rhai(include_str!("../../ai/tutorial/tutorial10.enemy.rhai")),
+        );
 
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, frigate(0));
 
@@ -953,12 +976,12 @@ impl Scenario for Tutorial10 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial10.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial10.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial10.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial10.solution.rhai"))
     }
 }
 
@@ -978,7 +1001,10 @@ impl Scenario for Tutorial11 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, include_str!("../../ai/tutorial/tutorial11.enemy.rhai"));
+        sim.upload_code(
+            1,
+            &rhai(include_str!("../../ai/tutorial/tutorial11.enemy.rhai")),
+        );
 
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, cruiser(0));
 
@@ -996,12 +1022,12 @@ impl Scenario for Tutorial11 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial11.initial.rhai").to_string()
+    fn initial_code(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial11.initial.rhai"))
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/tutorial/tutorial11.solution.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/tutorial/tutorial11.solution.rhai"))
     }
 }
 
@@ -1020,7 +1046,7 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(
             sim,
@@ -1037,12 +1063,12 @@ impl Scenario for FighterDuel {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/reference.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/reference.rhai"))
     }
 }
 
@@ -1061,7 +1087,7 @@ impl Scenario for FrigateDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1078,12 +1104,12 @@ impl Scenario for FrigateDuel {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/reference.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/reference.rhai"))
     }
 }
 
@@ -1102,7 +1128,7 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1119,12 +1145,12 @@ impl Scenario for CruiserDuel {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/reference.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/reference.rhai"))
     }
 }
 
@@ -1143,7 +1169,7 @@ impl Scenario for FrigateVsCruiser {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1160,12 +1186,12 @@ impl Scenario for FrigateVsCruiser {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/reference.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/reference.rhai"))
     }
 }
 
@@ -1184,7 +1210,7 @@ impl Scenario for CruiserVsFrigate {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1201,12 +1227,12 @@ impl Scenario for CruiserVsFrigate {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/reference.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/reference.rhai"))
     }
 }
 
@@ -1225,7 +1251,7 @@ impl Scenario for Furball {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let fleet_radius = 500.0;
@@ -1251,12 +1277,12 @@ impl Scenario for Furball {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/reference.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/reference.rhai"))
     }
 }
 
@@ -1275,7 +1301,7 @@ impl Scenario for Fleet {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, include_str!("../../ai/reference.rhai"));
+        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let signum = if team == 0 { -1.0 } else { 1.0 };
@@ -1312,11 +1338,11 @@ impl Scenario for Fleet {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> String {
-        "".to_string()
+    fn initial_code(&self) -> Code {
+        rhai("")
     }
 
-    fn solution(&self) -> String {
-        include_str!("../../ai/reference.rhai").to_string()
+    fn solution(&self) -> Code {
+        rhai(include_str!("../../ai/reference.rhai"))
     }
 }

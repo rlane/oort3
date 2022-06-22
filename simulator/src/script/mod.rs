@@ -6,7 +6,7 @@ pub mod wasm;
 use self::native::NativeTeamController;
 use self::rhai::RhaiTeamController;
 use crate::ship::ShipHandle;
-use crate::simulation::Simulation;
+use crate::simulation::{Code, Simulation};
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
 
@@ -65,15 +65,15 @@ pub trait ShipController {
     fn write_target(&mut self, target: Vector2<f64>);
 }
 
-pub fn new_team_controller(code: &str) -> Result<Box<dyn TeamController>, Error> {
-    if code.starts_with("native") {
-        NativeTeamController::create()
-    } else if code.starts_with("wasm") {
+pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
+    log::info!("Creating team controller with code {:?}", code);
+    match code {
+        Code::Rhai(s) => RhaiTeamController::create(s),
+        Code::Native => NativeTeamController::create(),
         #[cfg(target_arch = "wasm32")]
-        return WasmTeamController::create();
-        #[cfg(not(target_arch = "wasm32"))]
-        unreachable!();
-    } else {
-        RhaiTeamController::create(code)
+        Code::Wasm(b) => {
+            return WasmTeamController::create(b);
+        }
+        _ => unreachable!(),
     }
 }

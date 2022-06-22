@@ -6,9 +6,11 @@ use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
 use oort_simulator::scenario::{self, Status};
+use oort_simulator::simulation::Code;
 use oort_simulator::{script, simulation};
 use oort_worker::SimAgent;
 use rand::Rng;
+use reqwasm::http::Request;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -42,6 +44,7 @@ pub enum Msg {
     EditorAction(String),
     ShowDocumentation,
     DismissOverlay,
+    CompileFinished(Code),
 }
 
 enum Overlay {
@@ -63,7 +66,7 @@ pub struct Game {
     nonce: u32,
     status_ref: NodeRef,
     last_status: Status,
-    running_code: String,
+    running_code: Code,
     current_decorations: js_sys::Array,
 }
 
@@ -99,7 +102,7 @@ impl Component for Game {
             nonce: 0,
             status_ref: NodeRef::default(),
             last_status: Status::Running,
-            running_code: String::new(),
+            running_code: Code::None,
             current_decorations: js_sys::Array::new(),
         }
     }
@@ -124,23 +127,12 @@ impl Component for Game {
                     crate::codestorage::load(&self.scenario_name)
                 };
                 self.editor_link.with_editor(|editor| {
-                    editor.get_model().unwrap().set_value(&code);
+                    editor
+                        .get_model()
+                        .unwrap()
+                        .set_value(&code_to_string(&code));
                 });
-                self.running_code = code.clone();
-                let seed = rand::thread_rng().gen();
-                self.nonce = rand::thread_rng().gen();
-                self.ui = Some(Box::new(UI::new(
-                    context.link().callback(|_| Msg::RequestSnapshot),
-                    self.nonce,
-                )));
-                self.sim_agent.send(oort_worker::Request::StartScenario {
-                    scenario_name: self.scenario_name.to_owned(),
-                    seed,
-                    code,
-                    nonce: self.nonce,
-                });
-                self.background_agents.clear();
-                self.background_statuses.clear();
+                self.start_compile(context, code);
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
@@ -148,35 +140,28 @@ impl Component for Game {
                     .editor_link
                     .with_editor(|editor| editor.get_model().unwrap().get_value())
                     .unwrap();
+                let code = str_to_code(&code);
                 crate::codestorage::save(&self.scenario_name, &code);
-                self.running_code = code.clone();
-                let seed = rand::thread_rng().gen();
-                self.nonce = rand::thread_rng().gen();
-                self.ui = Some(Box::new(UI::new(
-                    context.link().callback(|_| Msg::RequestSnapshot),
-                    self.nonce,
-                )));
-                self.sim_agent.send(oort_worker::Request::StartScenario {
-                    scenario_name: self.scenario_name.to_owned(),
-                    seed,
-                    code,
-                    nonce: self.nonce,
-                });
-                self.background_agents.clear();
-                self.background_statuses.clear();
+                self.start_compile(context, code);
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
                 let code = scenario::load(&self.scenario_name).initial_code();
                 self.editor_link.with_editor(|editor| {
-                    editor.get_model().unwrap().set_value(&code);
+                    editor
+                        .get_model()
+                        .unwrap()
+                        .set_value(&code_to_string(&code));
                 });
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-load-solution" => {
                 let code = scenario::load(&self.scenario_name).solution();
                 self.editor_link.with_editor(|editor| {
-                    editor.get_model().unwrap().set_value(&code);
+                    editor
+                        .get_model()
+                        .unwrap()
+                        .set_value(&code_to_string(&code));
                 });
                 false
             }
@@ -221,6 +206,11 @@ impl Component for Game {
                 self.background_agents.clear();
                 self.background_statuses.clear();
                 true
+            }
+            Msg::CompileFinished(code) => {
+                log::info!("Received CompileFinished");
+                self.run(context, &code);
+                false
             }
         }
     }
@@ -353,9 +343,9 @@ impl Game {
                 if !snapshot.cheats {
                     crate::telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario_name.clone(),
-                        code: code.to_string(),
+                        code: code_to_string(code),
                         ticks: (snapshot.time / simulation::PHYSICS_TICK_LENGTH) as u32,
-                        code_size: crate::code_size::calculate(code),
+                        code_size: crate::code_size::calculate(&code_to_string(code)),
                     });
                 }
 
@@ -421,7 +411,7 @@ impl Game {
 
     fn render_mission_complete_overlay(&self, context: &yew::Context<Self>) -> Html {
         let time = self.ui.as_ref().unwrap().snapshot().unwrap().time;
-        let code_size = crate::code_size::calculate(&self.running_code);
+        let code_size = crate::code_size::calculate(&code_to_string(&self.running_code));
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         let next_scenario_link = match next_scenario {
@@ -501,5 +491,76 @@ impl Game {
                     .delta_decorations(&self.current_decorations, &decorations_jsarray)
             })
             .unwrap();
+    }
+
+    pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
+        let callback = context.link().callback(Msg::CompileFinished);
+        match code {
+            Code::Rust(src_code) => {
+                let url = "https://api.oort.rs/compile";
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = Request::post(url).body(src_code).send().await;
+                    if let Err(e) = result {
+                        // TODO
+                        log::error!("Compile error: {}", e);
+                        return;
+                    }
+
+                    let wasm = result.as_ref().unwrap().binary().await;
+                    if let Err(e) = result {
+                        // TODO
+                        log::error!("Compile error: {}", e);
+                        return;
+                    }
+
+                    log::info!("Compile succeeded");
+                    callback.emit(Code::Wasm(wasm.unwrap()));
+                });
+            }
+            Code::Rhai(s) => callback.emit(Code::Rhai(s)),
+            Code::Native => callback.emit(Code::Native),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn run(&mut self, context: &Context<Self>, code: &Code) {
+        self.running_code = code.clone();
+        let seed = rand::thread_rng().gen();
+        self.nonce = rand::thread_rng().gen();
+        self.ui = Some(Box::new(UI::new(
+            context.link().callback(|_| Msg::RequestSnapshot),
+            self.nonce,
+        )));
+        self.sim_agent.send(oort_worker::Request::StartScenario {
+            scenario_name: self.scenario_name.to_owned(),
+            seed,
+            code: code.clone(),
+            nonce: self.nonce,
+        });
+        self.background_agents.clear();
+        self.background_statuses.clear();
+    }
+}
+
+pub fn code_to_string(code: &Code) -> String {
+    match code {
+        Code::None => "".to_string(),
+        Code::Rhai(s) => format!("// rhai\n{}", &s),
+        Code::Rust(s) => format!("// rust\n{}", &s),
+        Code::Native => "// native".to_string(),
+        Code::Wasm(_) => "// wasm".to_string(),
+    }
+}
+
+pub fn str_to_code(s: &str) -> Code {
+    if let Some(s) = s.strip_prefix("// rust\n") {
+        Code::Rust(s.to_string())
+    } else if let Some(s) = s.strip_prefix("// rhai\n") {
+        Code::Rhai(s.to_string())
+    } else if s.starts_with("// native") {
+        Code::Native
+    } else {
+        Code::Rhai(s.to_string())
     }
 }

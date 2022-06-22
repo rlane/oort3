@@ -1,11 +1,11 @@
 use oort_simulator::ship;
 use oort_simulator::ship::{fighter, target};
-use oort_simulator::simulation;
+use oort_simulator::simulation::{self, Code};
 use test_log::test;
 
 #[test]
 fn test_hit() {
-    let mut sim = simulation::Simulation::new("test", 0, "");
+    let mut sim = simulation::Simulation::new("test", 0, &Code::None);
 
     let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, fighter(1));
@@ -31,7 +31,7 @@ fn test_hit() {
 
 #[test]
 fn test_destroyed() {
-    let mut sim = simulation::Simulation::new("test", 0, "");
+    let mut sim = simulation::Simulation::new("test", 0, &Code::None);
 
     let ship0 = ship::create(&mut sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     let ship1 = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.1, target(1));
