@@ -20,4 +20,5 @@ COPY shared shared
 RUN cargo fetch
 RUN ./scripts/build-ai.sh
 ENV PORT 8080
+ENV RUST_LOG info
 CMD ["oort_server"]
