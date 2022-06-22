@@ -1,5 +1,9 @@
 use bytes::Bytes;
-use salvo::prelude::*;
+use salvo::{
+    http::{self, HeaderValue},
+    prelude::*,
+};
+use salvo_extra::cors::CorsHandler;
 use tokio::process::Command;
 
 async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
@@ -51,7 +55,12 @@ async fn main() {
         }
         Err(_e) => {}
     };
-    let router = Router::with_path("compile").post(compile);
+
+    let cors_handler = CorsHandler::builder().with_allow_any_origin().build();
+
+    let router = Router::with_path("compile")
+        .hoop(cors_handler)
+        .post(compile);
     log::info!("Starting oort_server");
     Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
         .serve(router)
