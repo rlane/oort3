@@ -69,12 +69,12 @@ impl Ship {
                 fire_gun(0);
                 aim_gun(
                     1,
-                    (predicted_dp - vec2(0.0, 15.0).rotate_by(heading())).angle() - heading(),
+                    (predicted_dp - vec2(0.0, 15.0).rotate(heading())).angle() - heading(),
                 );
                 fire_gun(1);
                 aim_gun(
                     2,
-                    (predicted_dp - vec2(0.0, -15.0).rotate_by(heading())).angle() - heading(),
+                    (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle() - heading(),
                 );
                 fire_gun(2);
                 launch_missile(0, make_orders(contact.position));
@@ -95,7 +95,7 @@ impl Ship {
             set_radar_heading(self.rand(0.0, TAU));
             if (self.target_position - position()).length() < 100.0 {
                 self.target_position =
-                    vec2(self.rand(3500.0, 4500.0), 0.0).rotate_by(self.rand(0.0, TAU));
+                    vec2(self.rand(3500.0, 4500.0), 0.0).rotate(self.rand(0.0, TAU));
                 self.target_velocity = vec2(0.0, 0.0);
             }
         }
@@ -111,9 +111,9 @@ impl Ship {
         self.turn_to(predicted_dp.angle(), 0.0);
 
         if scan_result.is_some() && dist < 1000.0 {
-            accelerate(-velocity().rotate_by(-heading()));
+            accelerate(-velocity().rotate(-heading()));
         } else {
-            accelerate((dp - velocity()).rotate_by(-heading()));
+            accelerate((dp - velocity()).rotate(-heading()));
         }
     }
 
@@ -141,7 +141,7 @@ impl Ship {
             } else {
                 let dp = self.target_position - position();
                 self.turn_to(dp.angle(), 0.0);
-                let a = dp.rotate_by(-heading()).normalize() * acc;
+                let a = dp.rotate(-heading()).normalize() * acc;
                 accelerate(a);
             }
             return;
@@ -161,9 +161,9 @@ impl Ship {
         }
 
         let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
-        let a = (dp - badv * 10.0).rotate_by(-heading()).normalize() * acc;
+        let a = (dp - badv * 10.0).rotate(-heading()).normalize() * acc;
         accelerate(a);
-        self.turn_to(a.rotate_by(heading()).angle(), 0.0);
+        self.turn_to(a.rotate(heading()).angle(), 0.0);
 
         /* TODO
         dbg.draw_diamond(contact.position, 20.0, 0xffff00);
@@ -226,9 +226,9 @@ impl Ship {
         let pdp = predicted_position - position();
 
         let badv = -(dv - dv.dot(dp) * pdp.normalize() / pdp.length());
-        let a = (pdp - badv * 10.0).rotate_by(-heading()).normalize() * acc;
+        let a = (pdp - badv * 10.0).rotate(-heading()).normalize() * acc;
         accelerate(a);
-        self.turn_to(a.rotate_by(heading()).angle(), 0.0);
+        self.turn_to(a.rotate(heading()).angle(), 0.0);
 
         /*
         if no_contact_ticks > 0 {

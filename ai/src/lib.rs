@@ -1,4 +1,5 @@
 mod user;
+mod vec;
 
 pub mod sys {
     use oort_shared::SystemState;
@@ -15,29 +16,6 @@ pub mod sys {
         unsafe {
             SYSTEM_STATE[index as usize] = value;
         }
-    }
-}
-
-pub mod vec {
-    pub type Vec2 = glam::DVec2;
-
-    pub trait Vec2Extras {
-        fn angle(&self) -> f64;
-        fn rotate_by(&self, angle: f64) -> Vec2;
-    }
-
-    impl Vec2Extras for Vec2 {
-        fn angle(&self) -> f64 {
-            self.angle_between(vec2(1.0, 0.0))
-        }
-
-        fn rotate_by(&self, angle: f64) -> Vec2 {
-            self.rotate(Vec2::from_angle(angle))
-        }
-    }
-
-    pub fn vec2(x: f64, y: f64) -> Vec2 {
-        Vec2::new(x, y)
     }
 }
 
@@ -67,7 +45,7 @@ pub mod math {
 
 pub mod api {
     use super::sys::{read_system_state, write_system_state};
-    use super::vec::*;
+    use crate::vec::*;
     use oort_shared::{Class, SystemState};
 
     pub fn class() -> Class {
