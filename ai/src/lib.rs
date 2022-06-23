@@ -19,29 +19,20 @@ pub mod sys {
 }
 
 pub mod vec {
-    pub type Vec2 = nalgebra::Vector2<f64>;
+    pub type Vec2 = glam::DVec2;
 
     pub trait Vec2Extras {
-        fn angle0(&self) -> f64;
-        fn distance(&self, other: Vec2) -> f64;
-        fn rotate(&self, angle: f64) -> Vec2;
+        fn angle(&self) -> f64;
+        fn rotate_by(&self, angle: f64) -> Vec2;
     }
 
     impl Vec2Extras for Vec2 {
-        fn distance(&self, other: Vec2) -> f64 {
-            self.metric_distance(&other)
+        fn angle(&self) -> f64 {
+            self.angle_between(vec2(1.0, 0.0))
         }
 
-        fn angle0(&self) -> f64 {
-            let mut a = self.y.atan2(self.x);
-            if a < 0.0 {
-                a += std::f64::consts::TAU;
-            }
-            a
-        }
-
-        fn rotate(&self, angle: f64) -> Vec2 {
-            nalgebra::Rotation2::new(angle).transform_vector(self)
+        fn rotate_by(&self, angle: f64) -> Vec2 {
+            self.rotate(Vec2::from_angle(angle))
         }
     }
 

@@ -1043,6 +1043,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
+name = "glam"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a584a40db880a596e88e5065bf3018f92b1ae9e9143a05c6122068a5cb21a1b"
+
+[[package]]
 name = "gloo"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1812,7 +1818,7 @@ dependencies = [
 name = "oort_reference_ai"
 version = "0.1.0"
 dependencies = [
- "nalgebra",
+ "glam",
  "oorandom",
  "oort_shared",
 ]
