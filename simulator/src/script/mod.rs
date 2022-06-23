@@ -66,7 +66,6 @@ pub trait ShipController {
 }
 
 pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
-    log::info!("Creating team controller with code {:?}", code);
     match code {
         Code::Rhai(s) => RhaiTeamController::create(s),
         Code::Native => NativeTeamController::create(),
