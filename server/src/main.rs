@@ -10,7 +10,7 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
     log::debug!("Code: {}", code);
     std::fs::write("ai/src/user.rs", payload)?;
     let start_time = std::time::Instant::now();
-    let output = Command::new("./scripts/build-ai.sh").output().await?;
+    let output = Command::new("./scripts/build-ai-fast.sh").output().await?;
     let elapsed = std::time::Instant::now() - start_time;
     if !output.status.success() {
         log::info!("Compile failed in {:?}", elapsed);
@@ -23,7 +23,7 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
     }
     log::info!("Compile succeeded in {:?}", elapsed);
     log::debug!("Compile finished: {}", std::str::from_utf8(&output.stderr)?);
-    let wasm = std::fs::read("target/wasm32-unknown-unknown/release/oort_reference_ai.wasm")?;
+    let wasm = std::fs::read("output.wasm")?;
     res.write_body(Bytes::copy_from_slice(&wasm))?;
     Ok(())
 }

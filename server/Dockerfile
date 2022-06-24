@@ -12,7 +12,7 @@ RUN rustup target add wasm32-unknown-unknown
 WORKDIR /usr/src/app
 COPY Cargo.toml.user Cargo.toml
 COPY Cargo.lock.user Cargo.lock
-COPY scripts/build-ai.sh scripts/
+COPY scripts/build-ai.sh scripts/build-ai-fast.sh scripts/
 COPY --from=builder /registry /usr/local/cargo/registry
 COPY --from=builder /usr/local/cargo/bin/oort_server /usr/local/bin/oort_server
 COPY ai ai
