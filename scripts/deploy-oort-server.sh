@@ -9,4 +9,6 @@ gcloud run deploy oortserver \
   --region=us-west1 \
   --cpu 1 \
   --memory 1G \
-  --timeout 20s
+  --timeout 20s \
+  --concurrency 1 \
+  --max-instances 3
