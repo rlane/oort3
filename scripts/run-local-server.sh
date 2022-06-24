@@ -6,7 +6,8 @@ cp Cargo.toml.user scratch/server_sandbox/Cargo.toml
 cp Cargo.lock.user scratch/server_sandbox/Cargo.lock
 cp -a ai shared scratch/server_sandbox
 mkdir scratch/server_sandbox/scripts
-cp scripts/build-ai.sh scratch/server_sandbox/scripts/
+cp scripts/build-ai.sh scripts/build-ai-fast.sh scratch/server_sandbox/scripts/
 cargo build -p oort_server
 cd scratch/server_sandbox
+./scripts/build-ai.sh
 PORT=8081 RUST_LOG=debug ../../target/debug/oort_server

@@ -1,5 +1,5 @@
-#!/bin/sh -eux
-rustc --crate-name oort_reference_ai \
+#!/bin/sh -eu
+exec rustc --crate-name oort_reference_ai \
   --edition=2021 \
   ai/src/lib.rs \
   --crate-type cdylib \

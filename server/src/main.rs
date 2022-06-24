@@ -18,7 +18,7 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
         let stdout = std::str::from_utf8(&output.stdout)?;
         let stderr = std::str::from_utf8(&output.stderr)?;
         log::debug!("Compile failed: stderr={}\nstdout={}", stderr, stdout);
-        res.render(stdout.to_string());
+        res.render(stderr.to_string());
         return Ok(());
     }
     log::info!("Compile succeeded in {:?}", elapsed);
