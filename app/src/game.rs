@@ -44,13 +44,16 @@ pub enum Msg {
     EditorAction(String),
     ShowDocumentation,
     DismissOverlay,
-    CompileFinished(Code),
+    CompileSucceeded(Code),
+    CompileFailed(String),
 }
 
 enum Overlay {
     Documentation,
     #[allow(dead_code)]
     MissionComplete,
+    Compiling,
+    CompileError(String),
 }
 
 pub struct Game {
@@ -143,7 +146,7 @@ impl Component for Game {
                 let code = str_to_code(&code);
                 crate::codestorage::save(&self.scenario_name, &code);
                 self.start_compile(context, code);
-                false
+                true
             }
             Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
                 let code = scenario::load(&self.scenario_name).initial_code();
@@ -170,20 +173,28 @@ impl Component for Game {
                 false
             }
             Msg::KeyEvent(e) => {
-                self.ui.as_mut().unwrap().on_key_event(e);
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.on_key_event(e);
+                }
                 false
             }
             Msg::WheelEvent(e) => {
-                self.ui.as_mut().unwrap().on_wheel_event(e);
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.on_wheel_event(e);
+                }
                 false
             }
             Msg::MouseEvent(e) => {
-                self.ui.as_mut().unwrap().on_mouse_event(e);
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.on_mouse_event(e);
+                }
                 false
             }
             Msg::ReceivedSimAgentResponse(oort_worker::Response::Snapshot { snapshot }) => {
                 self.display_errors(&snapshot.errors);
-                self.ui.as_mut().unwrap().on_snapshot(snapshot);
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.on_snapshot(snapshot);
+                }
                 false
             }
             Msg::ReceivedBackgroundSimAgentResponse(oort_worker::Response::Snapshot {
@@ -207,10 +218,16 @@ impl Component for Game {
                 self.background_statuses.clear();
                 true
             }
-            Msg::CompileFinished(code) => {
-                log::info!("Received CompileFinished");
+            Msg::CompileSucceeded(code) => {
+                if matches!(self.overlay, Some(Overlay::Compiling)) {
+                    self.overlay = None;
+                }
                 self.run(context, &code);
-                false
+                true
+            }
+            Msg::CompileFailed(error) => {
+                self.overlay = Some(Overlay::CompileError(error));
+                true
             }
         }
     }
@@ -389,13 +406,20 @@ impl Game {
         if self.overlay.is_none() {
             return html! {};
         }
+        let inner_class = match &self.overlay {
+            Some(Overlay::Compiling) => "inner-overlay small-overlay",
+            _ => "inner-overlay",
+        };
+
         html! {
             <div ref={self.overlay_ref.clone()} id="overlay"
                 onkeydown={key_cb} onclick={outer_click_cb} tabindex="-1">
-                <div class="inner-overlay" onclick={inner_click_cb}>{
-                    match self.overlay {
+                <div class={inner_class} onclick={inner_click_cb}>{
+                    match &self.overlay {
                         Some(Overlay::Documentation) => html! { <crate::documentation::Documentation /> },
                         Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(context),
+                        Some(Overlay::Compiling) => html! { <h1 class="compiling">{ "Compiling..." }</h1> },
+                        Some(Overlay::CompileError(e)) => html! { <pre><h1>{ "Compile error" }</h1>{ e }</pre> },
                         None => unreachable!(),
                     }
                 }</div>
@@ -410,7 +434,11 @@ impl Game {
     }
 
     fn render_mission_complete_overlay(&self, context: &yew::Context<Self>) -> Html {
-        let time = self.ui.as_ref().unwrap().snapshot().unwrap().time;
+        let time = if let Some(ui) = self.ui.as_ref() {
+            ui.snapshot().unwrap().time
+        } else {
+            0.0
+        };
         let code_size = crate::code_size::calculate(&code_to_string(&self.running_code));
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
@@ -494,7 +522,10 @@ impl Game {
     }
 
     pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
-        let callback = context.link().callback(Msg::CompileFinished);
+        self.ui = None;
+        self.nonce = rand::thread_rng().gen();
+        let success_callback = context.link().callback(Msg::CompileSucceeded);
+        let failure_callback = context.link().callback(Msg::CompileFailed);
         match code {
             Code::Rust(src_code) => {
                 let url = "https://api.oort.rs/compile";
@@ -502,30 +533,34 @@ impl Game {
                 wasm_bindgen_futures::spawn_local(async move {
                     let result = Request::post(url).body(src_code).send().await;
                     if let Err(e) = result {
-                        // TODO
                         log::error!("Compile error: {}", e);
+                        failure_callback.emit(e.to_string());
                         return;
                     }
 
                     let response = result.unwrap();
                     if !response.ok() {
-                        log::error!("Compile error: {}", response.text().await.unwrap());
+                        let error = response.text().await.unwrap();
+                        log::error!("Compile error: {}", error);
+                        failure_callback.emit(error);
                         return;
                     }
 
                     let wasm = response.binary().await;
                     if let Err(e) = wasm {
-                        // TODO
                         log::error!("Compile error: {}", e);
+                        failure_callback.emit(e.to_string());
                         return;
                     }
 
                     log::info!("Compile succeeded");
-                    callback.emit(Code::Wasm(wasm.unwrap()));
+                    success_callback.emit(Code::Wasm(wasm.unwrap()));
                 });
+
+                self.overlay = Some(Overlay::Compiling);
             }
-            Code::Rhai(s) => callback.emit(Code::Rhai(s)),
-            Code::Native => callback.emit(Code::Native),
+            Code::Rhai(s) => success_callback.emit(Code::Rhai(s)),
+            Code::Native => success_callback.emit(Code::Native),
             _ => unreachable!(),
         }
     }
@@ -533,7 +568,6 @@ impl Game {
     pub fn run(&mut self, context: &Context<Self>, code: &Code) {
         self.running_code = code.clone();
         let seed = rand::thread_rng().gen();
-        self.nonce = rand::thread_rng().gen();
         self.ui = Some(Box::new(UI::new(
             context.link().callback(|_| Msg::RequestSnapshot),
             self.nonce,
