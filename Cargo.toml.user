@@ -6,5 +6,6 @@ members = [
 ]
 
 [profile.release]
-debug = true
+debug = false
 lto = true
+strip = "debuginfo"
