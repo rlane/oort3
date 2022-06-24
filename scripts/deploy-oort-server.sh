@@ -7,5 +7,6 @@ gcloud run deploy oortserver \
   --image $PROJECT/oortserver/oortserver \
   --allow-unauthenticated \
   --region=us-west1 \
-  --memory 2G \
+  --cpu 1 \
+  --memory 1G \
   --timeout 20s
