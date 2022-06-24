@@ -507,8 +507,14 @@ impl Game {
                         return;
                     }
 
-                    let wasm = result.as_ref().unwrap().binary().await;
-                    if let Err(e) = result {
+                    let response = result.unwrap();
+                    if !response.ok() {
+                        log::error!("Compile error: {}", response.text().await.unwrap());
+                        return;
+                    }
+
+                    let wasm = response.binary().await;
+                    if let Err(e) = wasm {
                         // TODO
                         log::error!("Compile error: {}", e);
                         return;
