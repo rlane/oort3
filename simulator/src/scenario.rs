@@ -22,6 +22,10 @@ fn rhai(code: &str) -> Code {
     Code::Rhai(code.to_string())
 }
 
+fn rust(code: &str) -> Code {
+    Code::Rust(code.to_string())
+}
+
 fn check_victory(sim: &Simulation) -> Status {
     let mut alive_teams: HashSet<i32> = HashSet::new();
     for &handle in sim.ships.iter() {
@@ -408,7 +412,7 @@ impl Scenario for Tutorial01 {
     }
 
     fn initial_code(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial01.initial.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial01.initial.rs"))
     }
 
     fn solution(&self) -> Code {
