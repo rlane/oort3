@@ -46,6 +46,7 @@ pub enum Msg {
     DismissOverlay,
     CompileSucceeded(Code),
     CompileFailed(String),
+    CompileSlow,
 }
 
 enum Overlay {
@@ -71,6 +72,7 @@ pub struct Game {
     last_status: Status,
     running_code: Code,
     current_decorations: js_sys::Array,
+    saw_slow_compile: bool,
 }
 
 #[derive(Properties, PartialEq)]
@@ -107,6 +109,7 @@ impl Component for Game {
             last_status: Status::Running,
             running_code: Code::None,
             current_decorations: js_sys::Array::new(),
+            saw_slow_compile: false,
         }
     }
 
@@ -228,6 +231,10 @@ impl Component for Game {
             Msg::CompileFailed(error) => {
                 self.overlay = Some(Overlay::CompileError(error));
                 true
+            }
+            Msg::CompileSlow => {
+                self.saw_slow_compile = true;
+                false
             }
         }
     }
@@ -526,15 +533,31 @@ impl Game {
         self.nonce = rand::thread_rng().gen();
         let success_callback = context.link().callback(Msg::CompileSucceeded);
         let failure_callback = context.link().callback(Msg::CompileFailed);
+        let compile_slow_callback = context.link().callback(|_| Msg::CompileSlow);
         match code {
             Code::Rust(src_code) => {
-                let url = "https://api.oort.rs/compile";
+                let saw_slow_compile = self.saw_slow_compile;
+                let url = if saw_slow_compile {
+                    "https://api.oort.rs/compile"
+                } else {
+                    "http://api-vm.oort.rs/compile"
+                };
 
                 wasm_bindgen_futures::spawn_local(async move {
+                    let start_time = instant::Instant::now();
+                    let check_compile_time = || {
+                        let elapsed = instant::Instant::now() - start_time;
+                        if !saw_slow_compile && elapsed > std::time::Duration::from_millis(3000) {
+                            log::info!("Compilation was slow, switching backend to serverless");
+                            compile_slow_callback.emit(());
+                        }
+                    };
+
                     let result = Request::post(url).body(src_code).send().await;
                     if let Err(e) = result {
                         log::error!("Compile error: {}", e);
                         failure_callback.emit(e.to_string());
+                        check_compile_time();
                         return;
                     }
 
@@ -543,6 +566,7 @@ impl Game {
                         let error = response.text().await.unwrap();
                         log::error!("Compile error: {}", error);
                         failure_callback.emit(error);
+                        check_compile_time();
                         return;
                     }
 
@@ -550,10 +574,13 @@ impl Game {
                     if let Err(e) = wasm {
                         log::error!("Compile error: {}", e);
                         failure_callback.emit(e.to_string());
+                        check_compile_time();
                         return;
                     }
 
-                    log::info!("Compile succeeded");
+                    let elapsed = instant::Instant::now() - start_time;
+                    log::info!("Compile succeeded in {:?}", elapsed);
+                    check_compile_time();
                     success_callback.emit(Code::Wasm(wasm.unwrap()));
                 });
 
