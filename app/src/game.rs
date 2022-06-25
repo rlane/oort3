@@ -614,7 +614,13 @@ pub fn code_to_string(code: &Code) -> String {
     match code {
         Code::None => "".to_string(),
         Code::Rhai(s) => format!("// rhai\n{}", &s),
-        Code::Rust(s) => format!("// rust\n{}", &s),
+        Code::Rust(s) => {
+            if s.contains("impl Ship") {
+                s.clone()
+            } else {
+                format!("// rust\n{}", &s)
+            }
+        }
         Code::Native => "// native".to_string(),
         Code::Wasm(_) => "// wasm".to_string(),
     }
@@ -622,6 +628,8 @@ pub fn code_to_string(code: &Code) -> String {
 
 pub fn str_to_code(s: &str) -> Code {
     if let Some(s) = s.strip_prefix("// rust\n") {
+        Code::Rust(s.to_string())
+    } else if s.contains("impl Ship") {
         Code::Rust(s.to_string())
     } else if let Some(s) = s.strip_prefix("// rhai\n") {
         Code::Rhai(s.to_string())
