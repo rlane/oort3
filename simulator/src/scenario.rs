@@ -385,7 +385,7 @@ impl Scenario for WelcomeScenario {
     }
 
     fn initial_code(&self) -> Code {
-        rhai(
+        rust(
             "\
 // Welcome to Oort.
 // Select a scenario from the list in the top-right of the page.

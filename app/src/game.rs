@@ -615,7 +615,7 @@ pub fn code_to_string(code: &Code) -> String {
         Code::None => "".to_string(),
         Code::Rhai(s) => format!("// rhai\n{}", &s),
         Code::Rust(s) => {
-            if s.contains("impl Ship") {
+            if s.contains("impl Ship") || s.contains("Welcome to Oort") {
                 s.clone()
             } else {
                 format!("// rust\n{}", &s)
