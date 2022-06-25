@@ -540,7 +540,7 @@ impl Game {
                 let url = if saw_slow_compile {
                     "https://api.oort.rs/compile"
                 } else {
-                    "http://api-vm.oort.rs/compile"
+                    "https://api-vm.oort.rs/compile"
                 };
 
                 wasm_bindgen_futures::spawn_local(async move {
