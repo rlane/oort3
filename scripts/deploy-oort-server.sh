@@ -1,10 +1,11 @@
 #!/bin/bash -eux
 cd $(realpath $(dirname $0))/..
 PROJECT=us-west1-docker.pkg.dev/oort-319301
-docker tag oort_server:latest $PROJECT/oortserver/oortserver
-docker push $PROJECT/oortserver/oortserver
+CONTAINER_IMAGE=$PROJECT/oortserver/oortserver
+docker tag oort_server:latest $CONTAINER_IMAGE
+docker push $CONTAINER_IMAGE
 gcloud run deploy oortserver \
-  --image $PROJECT/oortserver/oortserver \
+  --image $CONTAINER_IMAGE \
   --allow-unauthenticated \
   --region=us-west1 \
   --cpu 1 \
@@ -12,3 +13,6 @@ gcloud run deploy oortserver \
   --timeout 20s \
   --concurrency 1 \
   --max-instances 3
+gcloud compute instances update-container \
+  server-1 \
+  --container-image $CONTAINER_IMAGE

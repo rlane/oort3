@@ -59,7 +59,7 @@ async fn main() {
     let router = Router::with_path("compile")
         .hoop(cors_handler)
         .post(compile);
-    log::info!("Starting oort_server");
+    log::info!("Starting oort_server v1");
     Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
         .serve(router)
         .await;
