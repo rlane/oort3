@@ -138,7 +138,7 @@ impl Component for Game {
                         .unwrap()
                         .set_value(&code_to_string(&code));
                 });
-                self.start_compile(context, code);
+                self.run(context, &Code::None);
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
