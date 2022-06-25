@@ -314,8 +314,8 @@ impl Scenario for MissileStressScenario {
             log::warn!("Ignoring nonzero seed {}", seed);
         }
         let mut rng = new_rng(0);
-        sim.upload_code(0, &rhai(include_str!("../../ai/reference.rhai")));
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(0, &Code::Native);
+        sim.upload_code(1, &Code::Native);
         add_walls(sim);
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -1050,7 +1050,7 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &Code::Native);
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(
             sim,
@@ -1091,7 +1091,7 @@ impl Scenario for FrigateDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &Code::Native);
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1132,7 +1132,7 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &Code::Native);
         ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1173,7 +1173,7 @@ impl Scenario for FrigateVsCruiser {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &Code::Native);
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1214,7 +1214,7 @@ impl Scenario for CruiserVsFrigate {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &Code::Native);
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1255,7 +1255,7 @@ impl Scenario for Furball {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &Code::Native);
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let fleet_radius = 500.0;
@@ -1305,7 +1305,7 @@ impl Scenario for Fleet {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &rhai(include_str!("../../ai/reference.rhai")));
+        sim.upload_code(1, &Code::Native);
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let signum = if team == 0 { -1.0 } else { 1.0 };
