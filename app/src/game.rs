@@ -70,6 +70,7 @@ pub struct Game {
     nonce: u32,
     status_ref: NodeRef,
     last_status: Status,
+    running_source_code: Code,
     running_code: Code,
     current_decorations: js_sys::Array,
     saw_slow_compile: bool,
@@ -107,6 +108,7 @@ impl Component for Game {
             nonce: 0,
             status_ref: NodeRef::default(),
             last_status: Status::Running,
+            running_source_code: Code::None,
             running_code: Code::None,
             current_decorations: js_sys::Array::new(),
             saw_slow_compile: false,
@@ -363,7 +365,7 @@ impl Game {
 
             if let Status::Victory { team: 0 } = ui.status() {
                 let snapshot = ui.snapshot().unwrap();
-                let code = &self.running_code;
+                let code = &self.running_source_code;
                 if !snapshot.cheats {
                     crate::telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario_name.clone(),
@@ -446,7 +448,7 @@ impl Game {
         } else {
             0.0
         };
-        let code_size = crate::code_size::calculate(&code_to_string(&self.running_code));
+        let code_size = crate::code_size::calculate(&code_to_string(&self.running_source_code));
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
         let next_scenario_link = match next_scenario {
@@ -531,6 +533,7 @@ impl Game {
     pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
         self.ui = None;
         self.nonce = rand::thread_rng().gen();
+        self.running_source_code = code.clone();
         let success_callback = context.link().callback(Msg::CompileSucceeded);
         let failure_callback = context.link().callback(Msg::CompileFailed);
         let compile_slow_callback = context.link().callback(|_| Msg::CompileSlow);
