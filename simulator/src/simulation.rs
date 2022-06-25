@@ -43,6 +43,7 @@ pub struct Simulation {
     pub(crate) colliders: ColliderSet,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
+    pub(crate) query_pipeline: QueryPipeline,
     pub(crate) island_manager: IslandManager,
     broad_phase: BroadPhase,
     narrow_phase: NarrowPhase,
@@ -77,6 +78,7 @@ impl Simulation {
                 ..Default::default()
             },
             physics_pipeline: PhysicsPipeline::new(),
+            query_pipeline: QueryPipeline::new(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),
             narrow_phase: NarrowPhase::new(),
@@ -150,6 +152,9 @@ impl Simulation {
         self.events.clear();
 
         let physics_start_time = Instant::now();
+
+        self.step_bullets();
+
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
         self.physics_pipeline.step(
@@ -167,48 +172,8 @@ impl Simulation {
             &self.event_collector,
         );
 
-        while let Ok(event) = self.contact_recv.try_recv() {
-            if let CollisionEvent::Started(h1, h2, _flags) = event {
-                let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
-                let handle_hit = |sim: &mut Simulation, ship, bullet| {
-                    if sim.bullet(bullet).data().team == sim.ship(ship).data().team {
-                        sim.bullet_mut(bullet).destroy();
-                        return;
-                    }
-                    let damage = sim.bullet(bullet).data().damage;
-                    let ship_destroyed = {
-                        let ship_data = sim.ship_data.get_mut(&ship).unwrap();
-                        ship_data.health -= damage;
-                        ship_data.health <= 0.0
-                    };
-                    if ship_destroyed {
-                        sim.events
-                            .ships_destroyed
-                            .push(sim.ship(ship).body().position().translation.vector);
-                        sim.ship_mut(ship).data_mut().destroyed = true;
-                    }
-                    sim.events
-                        .hits
-                        .push(sim.bullet(bullet).body().position().translation.vector);
-                    sim.bullet_mut(bullet).destroy();
-                };
-                if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
-                    if self.bullets.contains(BulletHandle(idx1)) {
-                        if self.ships.contains(ShipHandle(idx2)) {
-                            handle_hit(self, ShipHandle(idx2), BulletHandle(idx1));
-                        } else {
-                            self.bullet_mut(BulletHandle(idx1)).destroy();
-                        }
-                    } else if self.bullets.contains(BulletHandle(idx2)) {
-                        if self.ships.contains(ShipHandle(idx1)) {
-                            handle_hit(self, ShipHandle(idx1), BulletHandle(idx2));
-                        } else {
-                            self.bullet_mut(BulletHandle(idx2)).destroy();
-                        }
-                    }
-                }
-            }
-        }
+        // TODO remove
+        while let Ok(_event) = self.contact_recv.try_recv() {}
         self.timing.physics = (Instant::now() - physics_start_time).as_secs_f64();
 
         let script_start_time = Instant::now();
@@ -224,16 +189,54 @@ impl Simulation {
         }
         self.timing.script = (Instant::now() - script_start_time).as_secs_f64();
 
-        let bullets: Vec<BulletHandle> = self.bullets.iter().cloned().collect();
-        for handle in bullets {
-            self.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
-        }
-
         let mut scenario = std::mem::take(&mut self.scenario);
         scenario.as_mut().unwrap().tick(self);
         self.scenario = scenario;
 
         self.tick += 1;
+    }
+
+    pub fn step_bullets(&mut self) {
+        self.query_pipeline
+            .update(&self.island_manager, &self.bodies, &self.colliders);
+
+        let bullets: Vec<BulletHandle> = self.bullets.iter().cloned().collect();
+        let mut bullet_collisions = Vec::new();
+        for handle in bullets {
+            self.bullet_mut(handle)
+                .tick(PHYSICS_TICK_LENGTH, &mut bullet_collisions);
+        }
+
+        for c in bullet_collisions {
+            let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
+            let handle_hit = |sim: &mut Simulation, ship, bullet| {
+                if sim.bullet(bullet).data().team == sim.ship(ship).data().team {
+                    sim.bullet_mut(bullet).destroy();
+                    return;
+                }
+                let damage = sim.bullet(bullet).data().damage;
+                let ship_destroyed = {
+                    let ship_data = sim.ship_data.get_mut(&ship).unwrap();
+                    ship_data.health -= damage;
+                    ship_data.health <= 0.0
+                };
+                if ship_destroyed {
+                    sim.events
+                        .ships_destroyed
+                        .push(sim.ship(ship).body().position().translation.vector);
+                    sim.ship_mut(ship).data_mut().destroyed = true;
+                }
+                sim.events.hits.push(c.impact_point.coords);
+                sim.bullet_mut(bullet).destroy();
+            };
+            if let Some(collider_index) = get_index(c.collider_handle) {
+                if self.ships.contains(ShipHandle(collider_index)) {
+                    handle_hit(self, ShipHandle(collider_index), c.bullet_handle);
+                } else {
+                    self.bullet_mut(c.bullet_handle).destroy();
+                }
+            }
+        }
     }
 
     pub fn upload_code(&mut self, team: i32, code: &Code) {

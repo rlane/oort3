@@ -64,7 +64,7 @@ fn test_head_on_collision() {
 }
 
 #[test]
-fn test_fighter_bullet_no_collision_same_team() {
+fn test_fighter_bullet_collision_same_team() {
     let mut sim = simulation::Simulation::new("test", 0, &Code::None);
 
     let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
@@ -113,7 +113,7 @@ fn test_fighter_bullet_collision_different_team() {
         sim.step();
     }
 
-    assert_ne!(sim.ship(ship).velocity().x, 0.0);
+    assert_eq!(sim.ship(ship).velocity().x, 0.0);
     assert_eq!(sim.bullets.len(), 0);
 }
 

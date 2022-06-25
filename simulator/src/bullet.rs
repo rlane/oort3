@@ -1,6 +1,6 @@
 use super::index_set::{HasIndex, Index};
-use crate::collision;
-use crate::simulation::Simulation;
+use crate::ship::ShipHandle;
+use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
 use nalgebra::Vector4;
 use rapier2d_f64::prelude::*;
 
@@ -31,16 +31,8 @@ pub fn create(
     let rigid_body = RigidBodyBuilder::dynamic()
         .translation(vector![x, y])
         .linvel(vector![vx, vy])
-        .ccd_enabled(true)
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
-    let collider = ColliderBuilder::ball(1.0)
-        .restitution(1.0)
-        .collision_groups(collision::bullet_interaction_groups(data.team))
-        .active_events(ActiveEvents::COLLISION_EVENTS)
-        .build();
-    sim.colliders
-        .insert_with_parent(collider, body_handle, &mut sim.bodies);
     let handle = BulletHandle(body_handle.0);
     sim.bullet_data.insert(handle, data);
     sim.bullets.insert(handle);
@@ -75,11 +67,62 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
         self.simulation.bullet_data.get_mut(&self.handle).unwrap()
     }
 
-    pub fn tick(&mut self, dt: f64) {
-        let data = self.data_mut();
-        data.ttl -= dt as f32;
-        if data.ttl <= 0.0 {
-            self.destroy();
+    pub fn tick(&mut self, dt: f64, collisions: &mut Vec<BulletCollisionData>) {
+        let team = {
+            let data = self.data_mut();
+            data.ttl -= dt as f32;
+            if data.ttl <= 0.0 {
+                self.destroy();
+                return;
+            }
+            data.team
+        };
+
+        let body = self
+            .simulation
+            .bodies
+            .get(RigidBodyHandle(self.handle.index()))
+            .unwrap();
+
+        let position = body.position();
+        let velocity = body.linvel();
+
+        let shape = rapier2d_f64::geometry::Ball::new(3.0);
+        let max_toi = PHYSICS_TICK_LENGTH;
+
+        let groups = InteractionGroups::all();
+        let collision_filter = |other: ColliderHandle| {
+            let index = self
+                .simulation
+                .colliders
+                .get(other)
+                .and_then(|x| x.parent())
+                .map(|x| x.0);
+            if let Some(index) = index {
+                if self.simulation.ships.contains(ShipHandle(index)) {
+                    let ship = self.simulation.ship(ShipHandle(index));
+                    return ship.data().team != team;
+                }
+            }
+            false
+        };
+        let filter_fn: &dyn Fn(ColliderHandle) -> bool = &collision_filter;
+        let filter = Some(filter_fn);
+
+        if let Some((collider_handle, toi)) = self.simulation.query_pipeline.cast_shape(
+            &self.simulation.colliders,
+            position,
+            velocity,
+            &shape,
+            max_toi,
+            groups,
+            filter,
+        ) {
+            collisions.push(BulletCollisionData {
+                bullet_handle: self.handle,
+                collider_handle,
+                impact_point: toi.witness1,
+            });
         }
     }
 
@@ -94,4 +137,10 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
             /*remove_attached_colliders=*/ true,
         );
     }
+}
+
+pub struct BulletCollisionData {
+    pub bullet_handle: BulletHandle,
+    pub collider_handle: ColliderHandle,
+    pub impact_point: Point<f64>,
 }
