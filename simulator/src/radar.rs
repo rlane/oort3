@@ -1,11 +1,15 @@
 use crate::rng;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Line, Simulation};
-use nalgebra::{vector, Point2, UnitComplex, Vector2};
+use nalgebra::Rotation2;
+use nalgebra::{vector, Point2, Vector2};
 use rand::Rng;
 use rand_distr::StandardNormal;
+use rapier2d_f64::geometry::Triangle;
 use rng::SeededRng;
 use std::f64::consts::TAU;
+
+const MAX_RADAR_RANGE: f64 = 10000.0;
 
 #[derive(Clone, Debug)]
 pub struct Radar {
@@ -28,7 +32,6 @@ struct RadarEmitter {
     rx_cross_section: f64,
     min_rssi: f64,
     classify_rssi: f64,
-    center_vec: Vector2<f64>,
     team: i32,
 }
 
@@ -81,7 +84,6 @@ pub fn tick(sim: &mut Simulation) {
                 width: w,
                 start_bearing: h - 0.5 * w,
                 end_bearing: h + 0.5 * w,
-                center_vec: UnitComplex::new(h).transform_vector(&vector![1.0, 0.0]),
             });
         }
 
@@ -100,10 +102,17 @@ pub fn tick(sim: &mut Simulation) {
         let mut result = None;
         let mut best_rssi = 0.0;
         let mut rng = rng::new_rng(sim.tick());
+        let shape = make_beam_shape(emitter);
+
         for reflector in &reflectors {
             if emitter.team == reflector.team {
                 continue;
             }
+
+            if !shape.contains_point(&reflector.position) {
+                continue;
+            }
+
             let rssi = compute_rssi(emitter, reflector);
             if rssi > emitter.min_rssi && (result.is_none() || rssi > best_rssi) {
                 result = Some(ScanResult {
@@ -131,10 +140,19 @@ pub fn tick(sim: &mut Simulation) {
     }
 }
 
+fn make_beam_shape(emitter: &RadarEmitter) -> Triangle {
+    Triangle::new(
+        emitter.center,
+        Rotation2::new(emitter.start_bearing)
+            .transform_vector(&vector![MAX_RADAR_RANGE, 0.0])
+            .into(),
+        Rotation2::new(emitter.end_bearing)
+            .transform_vector(&vector![MAX_RADAR_RANGE, 0.0])
+            .into(),
+    )
+}
+
 fn compute_rssi(emitter: &RadarEmitter, reflector: &RadarReflector) -> f64 {
-    if (reflector.position - emitter.center).angle(&emitter.center_vec) > emitter.width * 0.5 {
-        return 0.0;
-    }
     let r_sq = nalgebra::distance_squared(&emitter.center, &reflector.position);
     emitter.power * reflector.radar_cross_section * emitter.rx_cross_section
         / (TAU * emitter.width * r_sq)
@@ -145,6 +163,7 @@ fn compute_approx_range(emitter: &RadarEmitter) -> f64 {
     (emitter.power * target_cross_section * emitter.rx_cross_section
         / (TAU * emitter.width * emitter.min_rssi))
         .sqrt()
+        .min(MAX_RADAR_RANGE)
 }
 
 fn noise(rng: &mut SeededRng, rssi: f64) -> Vector2<f64> {
