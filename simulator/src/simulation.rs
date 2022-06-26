@@ -198,6 +198,7 @@ impl Simulation {
         self.tick += 1;
     }
 
+    #[inline(never)]
     pub fn step_bullets(&mut self) {
         self.query_pipeline
             .update(&self.island_manager, &self.bodies, &self.colliders);

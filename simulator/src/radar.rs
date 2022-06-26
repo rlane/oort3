@@ -55,6 +55,7 @@ pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
     }
 }
 
+#[inline(never)]
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
 
