@@ -61,22 +61,33 @@ pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
 
-    let mut emitters: Vec<RadarEmitter> = Vec::new();
-    emitters.reserve(handle_snapshot.len());
-    let mut reflectors: Vec<RadarReflector> = Vec::new();
-    reflectors.reserve(handle_snapshot.len());
-    for handle in handle_snapshot {
+    let reflectors: Vec<RadarReflector> = handle_snapshot
+        .iter()
+        .cloned()
+        .map(|handle| {
+            let ship = sim.ship(handle);
+            let ship_data = ship.data();
+            RadarReflector {
+                team: ship_data.team,
+                position: ship.position().vector.into(),
+                velocity: ship.velocity(),
+                radar_cross_section: ship_data.radar_cross_section,
+                class: ship_data.class,
+            }
+        })
+        .collect();
+
+    for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
         let ship_data = ship.data();
-        let position: Point2<f64> = sim.ship(handle).position().vector.into();
+
         if let Some(radar) = ship_data.radar.as_ref() {
-            let heading = sim.ship(handle).heading();
-            let h = radar.heading + heading;
+            let h = radar.heading + ship.heading();
             let w = radar.width;
-            emitters.push(RadarEmitter {
+            let emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,
-                center: position,
+                center: ship.position().vector.into(),
                 power: radar.power,
                 min_rssi: radar.min_rssi,
                 classify_rssi: radar.classify_rssi,
@@ -84,59 +95,46 @@ pub fn tick(sim: &mut Simulation) {
                 width: w,
                 start_bearing: h - 0.5 * w,
                 end_bearing: h + 0.5 * w,
+            };
+            let mut rng = rng::new_rng(sim.tick());
+            let shape = make_beam_shape(&emitter);
+
+            let mut best_rssi = emitter.min_rssi;
+            let mut best_reflector: Option<&RadarReflector> = None;
+            for reflector in &reflectors {
+                if emitter.team == reflector.team {
+                    continue;
+                }
+
+                if !shape.contains_point(&reflector.position) {
+                    continue;
+                }
+
+                let rssi = compute_rssi(&emitter, reflector);
+                if rssi > best_rssi {
+                    best_reflector = Some(reflector);
+                    best_rssi = rssi;
+                }
+            }
+
+            let result = best_reflector.map(|reflector| ScanResult {
+                class: if best_rssi > emitter.classify_rssi {
+                    Some(reflector.class)
+                } else {
+                    None
+                },
+                position: reflector.position.coords + noise(&mut rng, best_rssi),
+                velocity: reflector.velocity + noise(&mut rng, best_rssi),
             });
+
+            sim.ship_mut(emitter.handle)
+                .data_mut()
+                .radar
+                .as_mut()
+                .unwrap()
+                .result = result;
+            draw_emitter(sim, &emitter);
         }
-
-        {
-            reflectors.push(RadarReflector {
-                team: ship_data.team,
-                position,
-                velocity: sim.ship(handle).velocity(),
-                radar_cross_section: ship_data.radar_cross_section,
-                class: ship_data.class,
-            });
-        }
-    }
-
-    for emitter in &emitters {
-        let mut result = None;
-        let mut best_rssi = 0.0;
-        let mut rng = rng::new_rng(sim.tick());
-        let shape = make_beam_shape(emitter);
-
-        for reflector in &reflectors {
-            if emitter.team == reflector.team {
-                continue;
-            }
-
-            if !shape.contains_point(&reflector.position) {
-                continue;
-            }
-
-            let rssi = compute_rssi(emitter, reflector);
-            if rssi > emitter.min_rssi && (result.is_none() || rssi > best_rssi) {
-                result = Some(ScanResult {
-                    class: if rssi > emitter.classify_rssi {
-                        Some(reflector.class)
-                    } else {
-                        None
-                    },
-                    position: reflector.position.coords + noise(&mut rng, rssi),
-                    velocity: reflector.velocity + noise(&mut rng, rssi),
-                });
-                best_rssi = rssi;
-            }
-        }
-        sim.ship_mut(emitter.handle)
-            .data_mut()
-            .radar
-            .as_mut()
-            .unwrap()
-            .result = result;
-    }
-
-    for emitter in &emitters {
-        draw_emitter(sim, emitter);
     }
 }
 
