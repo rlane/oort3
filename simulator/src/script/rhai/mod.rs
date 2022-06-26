@@ -395,10 +395,12 @@ assert_eq(rng.next(-10.0, 10.0), 4.134284076597936);
             0,
             &Code::Rhai(
                 "
-let contact = ship.scan();
-assert_eq(contact.found, true);
-assert_eq(contact.position, vec2(100.0372559606343, 2.0873777882830655));
-assert_eq(contact.velocity, vec2(3.075282845362119, 4.03504268798271));
+fn tick() {
+    let contact = ship.scan();
+    assert_eq(contact.found, true);
+    assert_eq(contact.position, vec2(100.0372559606343, 2.0873777882830655));
+    assert_eq(contact.velocity, vec2(3.075282845362119, 4.03504268798271));
+}
         "
                 .to_string(),
             ),
@@ -413,6 +415,7 @@ assert_eq(contact.velocity, vec2(3.075282845362119, 4.03504268798271));
             ship::fighter(1),
         );
         ship::create(&mut sim, 1.0, 2.0, 3.0, 4.0, 0.0, ship::fighter(0));
+        sim.step();
         check_errors(&mut sim);
     }
 

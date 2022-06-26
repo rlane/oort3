@@ -2,6 +2,7 @@ use crate::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle}
 use crate::debug;
 pub use crate::debug::Line;
 use crate::index_set::IndexSet;
+use crate::radar;
 use crate::scenario;
 use crate::scenario::Scenario;
 use crate::script;
@@ -154,6 +155,7 @@ impl Simulation {
         let physics_start_time = Instant::now();
 
         self.step_bullets();
+        self.step_radar();
 
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
@@ -194,6 +196,16 @@ impl Simulation {
         self.scenario = scenario;
 
         self.tick += 1;
+    }
+
+    pub fn step_radar(&mut self) {
+        let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
+        for handle in handle_snapshot {
+            let ship_data = self.ship_data.get(&handle).unwrap();
+            if ship_data.radar.is_some() {
+                radar::tick(self, handle);
+            }
+        }
     }
 
     pub fn step_bullets(&mut self) {

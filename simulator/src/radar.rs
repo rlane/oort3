@@ -15,7 +15,7 @@ pub struct Radar {
     pub rx_cross_section: f64,
     pub min_rssi: f64,
     pub classify_rssi: f64,
-    pub scanned: bool,
+    pub result: Option<ScanResult>,
 }
 
 struct RadarBeam {
@@ -27,7 +27,7 @@ struct RadarBeam {
     center_vec: Vector2<f64>,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct ScanResult {
     pub class: Option<ShipClass>,
     pub position: Vector2<f64>,
@@ -35,14 +35,16 @@ pub struct ScanResult {
 }
 
 pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
-    let mut result = None;
-    if let Some(radar) = sim.ship_mut(own_ship).data_mut().radar.as_mut() {
-        if radar.scanned {
-            return result;
-        }
-        radar.scanned = true;
+    if let Some(radar) = sim.ship(own_ship).data().radar.as_ref() {
+        radar.result
+    } else {
+        None
     }
+}
+
+pub fn tick(sim: &mut Simulation, own_ship: ShipHandle) {
     if let Some(radar) = sim.ship_mut(own_ship).data_mut().radar.clone() {
+        let mut result = None;
         let own_team = sim.ship(own_ship).data().team;
         let own_position: Point2<f64> = sim.ship(own_ship).position().vector.into();
         let own_heading = sim.ship(own_ship).heading();
@@ -68,8 +70,13 @@ pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
             }
         }
         draw_beam(sim, own_ship, &radar, &beam);
+        sim.ship_mut(own_ship)
+            .data_mut()
+            .radar
+            .as_mut()
+            .unwrap()
+            .result = result;
     }
-    result
 }
 
 fn compute_beam(radar: &Radar, ship_position: Point2<f64>, ship_heading: f64) -> RadarBeam {
