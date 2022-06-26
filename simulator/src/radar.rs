@@ -42,40 +42,43 @@ pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
     }
 }
 
-pub fn tick(sim: &mut Simulation, own_ship: ShipHandle) {
-    if let Some(radar) = sim.ship_mut(own_ship).data_mut().radar.clone() {
-        let mut result = None;
-        let own_team = sim.ship(own_ship).data().team;
-        let own_position: Point2<f64> = sim.ship(own_ship).position().vector.into();
-        let own_heading = sim.ship(own_ship).heading();
-        let beam = compute_beam(&radar, own_position, own_heading);
-        let mut best_rssi = 0.0;
-        let mut rng = rng::new_rng(sim.tick());
-        for &other in sim.ships.iter() {
-            if sim.ship(other).data().team == own_team {
-                continue;
+pub fn tick(sim: &mut Simulation) {
+    let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
+    for own_ship in handle_snapshot {
+        if let Some(radar) = sim.ship_mut(own_ship).data_mut().radar.clone() {
+            let mut result = None;
+            let own_team = sim.ship(own_ship).data().team;
+            let own_position: Point2<f64> = sim.ship(own_ship).position().vector.into();
+            let own_heading = sim.ship(own_ship).heading();
+            let beam = compute_beam(&radar, own_position, own_heading);
+            let mut best_rssi = 0.0;
+            let mut rng = rng::new_rng(sim.tick());
+            for &other in sim.ships.iter() {
+                if sim.ship(other).data().team == own_team {
+                    continue;
+                }
+                let rssi = compute_rssi(sim, &beam, own_ship, other);
+                if rssi > radar.min_rssi && (result.is_none() || rssi > best_rssi) {
+                    result = Some(ScanResult {
+                        class: if rssi > radar.classify_rssi {
+                            Some(sim.ship(other).data().class)
+                        } else {
+                            None
+                        },
+                        position: sim.ship(other).position().vector + noise(&mut rng, rssi),
+                        velocity: sim.ship(other).velocity() + noise(&mut rng, rssi),
+                    });
+                    best_rssi = rssi;
+                }
             }
-            let rssi = compute_rssi(sim, &beam, own_ship, other);
-            if rssi > radar.min_rssi && (result.is_none() || rssi > best_rssi) {
-                result = Some(ScanResult {
-                    class: if rssi > radar.classify_rssi {
-                        Some(sim.ship(other).data().class)
-                    } else {
-                        None
-                    },
-                    position: sim.ship(other).position().vector + noise(&mut rng, rssi),
-                    velocity: sim.ship(other).velocity() + noise(&mut rng, rssi),
-                });
-                best_rssi = rssi;
-            }
+            draw_beam(sim, own_ship, &radar, &beam);
+            sim.ship_mut(own_ship)
+                .data_mut()
+                .radar
+                .as_mut()
+                .unwrap()
+                .result = result;
         }
-        draw_beam(sim, own_ship, &radar, &beam);
-        sim.ship_mut(own_ship)
-            .data_mut()
-            .radar
-            .as_mut()
-            .unwrap()
-            .result = result;
     }
 }
 
