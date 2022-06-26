@@ -443,6 +443,10 @@ impl<'a> ShipAccessor<'a> {
     pub fn data(&self) -> &ShipData {
         self.simulation.ship_data.get(&self.handle).unwrap()
     }
+
+    pub fn radar(&self) -> Option<&Radar> {
+        self.data().radar.as_ref()
+    }
 }
 
 pub struct ShipAccessorMut<'a> {
@@ -464,6 +468,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
     pub fn data_mut(&mut self) -> &mut ShipData {
         self.simulation.ship_data.get_mut(&self.handle).unwrap()
+    }
+
+    pub fn radar_mut(&mut self) -> Option<&mut Radar> {
+        self.data_mut().radar.as_mut()
     }
 
     pub fn accelerate(&mut self, acceleration: Vector2<f64>) {
