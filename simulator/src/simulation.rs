@@ -18,7 +18,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
-pub const WORLD_SIZE: f64 = 10000.0;
+pub const WORLD_SIZE: f64 = 20000.0;
 pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
