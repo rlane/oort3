@@ -504,11 +504,17 @@ impl Scenario for Tutorial02 {
     }
 
     fn initial_code(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial02.initial.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial02.initial.rs"))
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial02.solution.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial02.solution.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!(
+            "../../ai/compiled/tutorial/tutorial02.solution.wasm"
+        ))
     }
 
     fn next_scenario(&self) -> Option<String> {
