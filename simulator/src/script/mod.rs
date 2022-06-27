@@ -1,6 +1,5 @@
 pub mod native;
 pub mod rhai;
-#[cfg(target_arch = "wasm32")]
 pub mod wasm;
 
 use self::native::NativeTeamController;
@@ -10,7 +9,6 @@ use crate::simulation::{Code, Simulation};
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
 
-#[cfg(target_arch = "wasm32")]
 use self::wasm::WasmTeamController;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -29,19 +27,6 @@ impl From<wasm_bindgen::JsValue> for Error {
     }
 }
 
-/*
-#[cfg(target_arch = "wasm32")]
-impl From<wasmer::CompileError> for Error {
-    fn from(err: wasmer::CompileError) -> Self {
-        Self {
-            line: 0,
-            msg: format!("Wasmer compile error: {:?}", err),
-        }
-    }
-}
-*/
-
-#[cfg(target_arch = "wasm32")]
 impl From<wasmer::InstantiationError> for Error {
     fn from(err: wasmer::InstantiationError) -> Self {
         Self {
@@ -69,10 +54,7 @@ pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error
     match code {
         Code::Rhai(s) => RhaiTeamController::create(s),
         Code::Native => NativeTeamController::create(),
-        #[cfg(target_arch = "wasm32")]
-        Code::Wasm(b) => {
-            return WasmTeamController::create(b);
-        }
+        Code::Wasm(b) => WasmTeamController::create(b),
         _ => unreachable!(),
     }
 }

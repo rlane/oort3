@@ -6,7 +6,7 @@ use test_log::test;
 fn check_solution(scenario_name: &str) {
     let check_once = || -> u64 {
         let scenario = scenario::load(scenario_name);
-        let mut sim = simulation::Simulation::new(scenario_name, 0, &scenario.solution());
+        let mut sim = simulation::Simulation::new(scenario_name, 0, &scenario.compiled_solution());
 
         let mut i = 0;
         while sim.status() == scenario::Status::Running && i < 10000 {

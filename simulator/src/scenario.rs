@@ -26,6 +26,10 @@ fn rust(code: &str) -> Code {
     Code::Rust(code.to_string())
 }
 
+fn wasm(code: &[u8]) -> Code {
+    Code::Wasm(code.to_vec())
+}
+
 fn check_victory(sim: &Simulation) -> Status {
     let mut alive_teams: HashSet<i32> = HashSet::new();
     for &handle in sim.ships.iter() {
@@ -73,6 +77,10 @@ pub trait Scenario {
 
     fn solution(&self) -> Code {
         rhai("")
+    }
+
+    fn compiled_solution(&self) -> Code {
+        self.solution()
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -416,7 +424,13 @@ impl Scenario for Tutorial01 {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial01.solution.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial01.solution.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!(
+            "../../ai/compiled/tutorial/tutorial01.solution.wasm"
+        ))
     }
 
     fn next_scenario(&self) -> Option<String> {
