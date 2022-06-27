@@ -42,7 +42,7 @@ void main() {
     varying_color = color;
     float lifetime = 2.0;
     float age_frac = clamp((current_time - creation_time) / lifetime, 0.0, 1.0);
-    varying_color.a = (1.0 - age_frac) * 0.5;
+    varying_color.a *= (1.0 - age_frac);
 }
     "#,
         )?;
@@ -103,7 +103,12 @@ void main() {
             if let ShipClass::Asteroid { .. } = ship.class {
                 continue;
             }
-            let color = super::ShipRenderer::team_color(ship.team);
+            let mut color = super::ShipRenderer::team_color(ship.team);
+            color.w = match ship.class {
+                ShipClass::Missile => 0.15,
+                ShipClass::Torpedo => 0.3,
+                _ => 0.5,
+            };
             let current_position: Point2<f32> = ship.position.cast();
             {
                 use std::collections::hash_map::Entry;
