@@ -1850,6 +1850,7 @@ dependencies = [
  "oort_simulator",
  "oort_worker",
  "petname",
+ "qstring",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rand_seeder",
@@ -2253,6 +2254,15 @@ dependencies = [
  "proc-macro2 1.0.39",
  "quote 1.0.18",
  "syn 1.0.96",
+]
+
+[[package]]
+name = "qstring"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d464fae65fff2680baf48019211ce37aaec0c78e9264c84a3e484717f965104e"
+dependencies = [
+ "percent-encoding",
 ]
 
 [[package]]

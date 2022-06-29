@@ -9,6 +9,7 @@ use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
 use oort_simulator::{script, simulation};
 use oort_worker::SimAgent;
+use qstring::QString;
 use rand::Rng;
 use reqwasm::http::Request;
 use std::rc::Rc;
@@ -74,6 +75,7 @@ pub struct Game {
     running_code: Code,
     current_decorations: js_sys::Array,
     saw_slow_compile: bool,
+    local_compiler: bool,
 }
 
 #[derive(Properties, PartialEq)]
@@ -95,6 +97,11 @@ impl Component for Game {
             link2.send_message(Msg::Render)
         }));
         let sim_agent = SimAgent::bridge(context.link().callback(Msg::ReceivedSimAgentResponse));
+        let local_compiler =
+            QString::from(context.link().location().unwrap().search().as_str()).has("local");
+        if local_compiler {
+            log::info!("Using local compiler");
+        }
         Self {
             render_handle,
             scenario_name: String::new(),
@@ -112,6 +119,7 @@ impl Component for Game {
             running_code: Code::None,
             current_decorations: js_sys::Array::new(),
             saw_slow_compile: false,
+            local_compiler,
         }
     }
 
@@ -540,7 +548,9 @@ impl Game {
         match code {
             Code::Rust(src_code) => {
                 let saw_slow_compile = self.saw_slow_compile;
-                let url = if saw_slow_compile {
+                let url = if self.local_compiler {
+                    "http://localhost:8081/compile"
+                } else if saw_slow_compile {
                     "https://api.oort.rs/compile"
                 } else {
                     "https://api-vm.oort.rs/compile"
