@@ -11,4 +11,4 @@ exec rustc --crate-name oort_reference_ai \
   --extern oort_shared=$(echo target/wasm32-unknown-unknown/release/deps/liboort_shared-*.rlib) \
   --extern wee_alloc=$(echo target/wasm32-unknown-unknown/release/deps/libwee_alloc-*.rlib) \
   -C opt-level=s \
-  -C link-arg=-zstack-size=1024
+  -C link-arg=-zstack-size=16384
