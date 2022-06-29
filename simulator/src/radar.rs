@@ -131,6 +131,9 @@ pub fn tick(sim: &mut Simulation) {
                 .unwrap()
                 .result = result;
             draw_emitter(sim, &emitter);
+            if let Some(contact) = &result {
+                draw_contact(sim, emitter.handle, contact);
+            }
         }
     }
 }
@@ -199,6 +202,39 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
         color,
     });
     sim.emit_debug_lines(emitter.handle, &lines);
+}
+
+fn draw_contact(sim: &mut Simulation, emitter_handle: ShipHandle, contact: &ScanResult) {
+    let color = vector![0.9, 0.9, 0.9, 1.0];
+    let w = 10.0;
+    let center: Point2<f64> = contact.position.into();
+    let v0 = center + vector![w, w];
+    let v1 = center + vector![w, -w];
+    let v2 = center + vector![-w, -w];
+    let v3 = center + vector![-w, w];
+    let lines = vec![
+        Line {
+            a: v0,
+            b: v1,
+            color,
+        },
+        Line {
+            a: v1,
+            b: v2,
+            color,
+        },
+        Line {
+            a: v2,
+            b: v3,
+            color,
+        },
+        Line {
+            a: v3,
+            b: v0,
+            color,
+        },
+    ];
+    sim.emit_debug_lines(emitter_handle, &lines);
 }
 
 #[cfg(test)]
