@@ -183,6 +183,7 @@ impl Simulation {
         for handle in handle_snapshot {
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
                 if let Err(e) = ship_controller.tick() {
+                    log::warn!("Ship tick error: {:?}", e);
                     self.events.errors.push(e);
                 }
             }

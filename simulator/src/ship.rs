@@ -394,6 +394,7 @@ pub fn create_with_orders(
                 sim.ship_controllers.insert(handle, ship_ctrl);
             }
             Err(e) => {
+                log::warn!("Ship creation error: {:?}", e);
                 sim.events.errors.push(e);
             }
         }
