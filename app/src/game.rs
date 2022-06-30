@@ -137,10 +137,13 @@ impl Component for Game {
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
-                let code = if context.props().demo {
-                    oort_simulator::scenario::load(&self.scenario_name).solution()
+                let (code, compiled_code) = if context.props().demo {
+                    (
+                        oort_simulator::scenario::load(&self.scenario_name).solution(),
+                        oort_simulator::scenario::load(&self.scenario_name).compiled_solution(),
+                    )
                 } else {
-                    crate::codestorage::load(&self.scenario_name)
+                    (crate::codestorage::load(&self.scenario_name), Code::None)
                 };
                 self.editor_link.with_editor(|editor| {
                     editor
@@ -148,7 +151,7 @@ impl Component for Game {
                         .unwrap()
                         .set_value(&code_to_string(&code));
                 });
-                self.run(context, &Code::None);
+                self.run(context, &compiled_code);
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
