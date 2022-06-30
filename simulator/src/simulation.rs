@@ -267,6 +267,10 @@ impl Simulation {
             .extend(lines.iter().cloned());
     }
 
+    pub fn emit_debug_text(&mut self, ship: ShipHandle, s: String) {
+        self.events.debug_text.insert(ship.into(), s);
+    }
+
     pub fn hash(&self) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::Hasher;
@@ -294,6 +298,7 @@ impl Simulation {
             bullets: vec![],
             scenario_lines: self.scenario.as_ref().unwrap().lines(),
             debug_lines: self.events.debug_lines.clone(),
+            debug_text: self.events.debug_text.clone(),
             hits: self.events.hits.clone(),
             ships_destroyed: self.events.ships_destroyed.clone(),
             errors: self.events.errors.clone(),
@@ -370,6 +375,7 @@ pub struct SimEvents {
     pub hits: Vec<Vector2<f64>>,
     pub ships_destroyed: Vec<Vector2<f64>>,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,
+    pub debug_text: BTreeMap<u64, String>,
 }
 
 impl SimEvents {
@@ -379,6 +385,7 @@ impl SimEvents {
             hits: vec![],
             ships_destroyed: vec![],
             debug_lines: BTreeMap::new(),
+            debug_text: BTreeMap::new(),
         }
     }
 
@@ -387,6 +394,7 @@ impl SimEvents {
         self.hits.clear();
         self.ships_destroyed.clear();
         self.debug_lines.clear();
+        self.debug_text.clear();
     }
 }
 

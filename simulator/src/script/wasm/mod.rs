@@ -99,6 +99,15 @@ impl WasmShipController {
             .expect("system state write");
         slice.write_slice(&state.state).expect("system state write");
     }
+
+    pub fn read_string(&self, offset: u32, length: u32) -> Option<String> {
+        let ptr: WasmPtr<u8> = WasmPtr::new(offset);
+        let mut bytes: Vec<u8> = Vec::new();
+        bytes.resize(length as usize, 0);
+        let slice = ptr.slice(&self.memory, length).ok()?;
+        slice.read_slice(&mut bytes).ok()?;
+        String::from_utf8(bytes).ok()
+    }
 }
 
 fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
@@ -207,6 +216,14 @@ impl ShipController for WasmShipController {
             }
         } else {
             state.set(SystemState::RadarContactFound, 0.0);
+        }
+
+        if state.get(SystemState::DebugTextLength) > 0.0 {
+            let offset = state.get(SystemState::DebugTextPointer) as u32;
+            let length = state.get(SystemState::DebugTextLength) as u32;
+            if let Some(s) = self.read_string(offset, length) {
+                sim.emit_debug_text(self.handle, s);
+            }
         }
 
         self.write_system_state(&state);

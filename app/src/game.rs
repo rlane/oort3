@@ -286,7 +286,7 @@ impl Component for Game {
                 <CodeEditor options={monaco_options} link={self.editor_link.clone()} />
             </div>
             <div id="status" ref={self.status_ref.clone()} />
-            <div id="picked" />
+            <div id="picked"><pre id="picked_text"></pre></div>
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
                 <div class="toolbar-elem right">

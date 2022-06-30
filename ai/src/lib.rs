@@ -164,8 +164,38 @@ pub mod api {
     }
 }
 
+pub mod debug {
+    use crate::sys::write_system_state;
+    static mut TEXT_BUFFER: heapless::String<1024> = heapless::String::new();
+
+    pub fn text(s: &str) {
+        unsafe {
+            TEXT_BUFFER.push_str(s).unwrap();
+        }
+    }
+
+    pub(super) fn update() {
+        let slice = unsafe { TEXT_BUFFER.as_bytes() };
+        write_system_state(
+            oort_shared::SystemState::DebugTextPointer,
+            slice.as_ptr() as u32 as f64,
+        );
+        write_system_state(
+            oort_shared::SystemState::DebugTextLength,
+            slice.len() as u32 as f64,
+        );
+    }
+
+    pub(super) fn reset() {
+        unsafe {
+            TEXT_BUFFER.clear();
+        }
+    }
+}
+
 pub mod prelude {
     pub use super::api::*;
+    pub use super::debug;
     pub use super::math::*;
     pub use super::vec::*;
     pub use oort_shared::*;
@@ -176,9 +206,11 @@ static mut USER_STATE: Option<user::Ship> = None;
 #[no_mangle]
 pub fn export_tick() {
     unsafe {
+        debug::reset();
         if USER_STATE.is_none() {
             USER_STATE = Some(user::Ship::new());
         }
         USER_STATE.as_mut().unwrap().tick();
+        debug::update();
     }
 }

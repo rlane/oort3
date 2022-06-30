@@ -39,7 +39,7 @@ pub struct UI {
     nonce: u32,
     request_snapshot: yew::Callback<()>,
     picked_ship_id: Option<u64>,
-    picked_div: web_sys::Element,
+    picked_text: web_sys::Element,
 }
 
 unsafe impl Send for UI {}
@@ -52,9 +52,9 @@ impl UI {
             .get_element_by_id("status")
             .expect("should have a status div");
         status_div.set_inner_html("LOADING...");
-        let picked_div = document
-            .get_element_by_id("picked")
-            .expect("should have a picked div");
+        let picked_text = document
+            .get_element_by_id("picked_text")
+            .expect("should have a picked_text element");
 
         let mut renderer = Renderer::new().expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
@@ -91,7 +91,7 @@ impl UI {
             nonce,
             request_snapshot,
             picked_ship_id: None,
-            picked_div,
+            picked_text,
         }
     }
 
@@ -343,11 +343,17 @@ impl UI {
                 health,
                 ..
             } = ship;
-            self.picked_div.set_inner_html(&format!(
-                "{class:?}<br/>Team: {team:?}<br/>Health: {health:.0}"
-            ));
+            let debug_text = self
+                .snapshot
+                .as_ref()
+                .and_then(|s| s.debug_text.get(&self.picked_ship_id.unwrap()))
+                .cloned()
+                .unwrap_or_default();
+            self.picked_text.set_text_content(Some(&format!(
+                "{class:?}\nTeam: {team:?}\nHealth: {health:.0}\n{debug_text}"
+            )));
         } else {
-            self.picked_div.set_inner_html("");
+            self.picked_text.set_text_content(Some(""));
         }
         self.renderer.set_picked_ship(self.picked_ship_id);
     }

@@ -49,8 +49,13 @@ body {
 #picked {
   top: 45px;
   left: 55ch;
-
   position: absolute;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 24px;
+}
+
+#picked_text {
+  margin: 0;
   color: #dddddd;
   font-family: "Share Tech Mono", monospace;
   font-size: 24px;

@@ -19,6 +19,7 @@ pub struct Snapshot {
     pub errors: Vec<script::Error>,
     pub cheats: bool,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,
+    pub debug_text: BTreeMap<u64, String>,
     pub timing: Timing,
 }
 

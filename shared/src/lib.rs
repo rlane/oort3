@@ -43,6 +43,8 @@ pub enum SystemState {
     RadarContactVelocityX,
     RadarContactVelocityY,
 
+    DebugTextPointer,
+    DebugTextLength,
     Size,
 }
 
