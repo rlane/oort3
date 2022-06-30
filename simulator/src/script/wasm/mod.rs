@@ -20,6 +20,12 @@ pub struct WasmTeamController {
 impl WasmTeamController {
     pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, super::Error> {
         log::info!("Creating WasmTeamController");
+        #[cfg(not(target_arch = "wasm32"))]
+        let store = Store::new_with_engine(
+            &wasmer_compiler::Universal::new(wasmer_compiler_cranelift::Cranelift::default())
+                .engine(),
+        );
+        #[cfg(target_arch = "wasm32")]
         let store = Store::default();
         let module = translate_error(Module::new(&store, code))?;
 

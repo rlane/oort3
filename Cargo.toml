@@ -13,7 +13,9 @@ members = [
 [patch.crates-io]
 yew = { git = "https://github.com/yewstack/yew", rev = "6f6519dab4c5990029fe8d85c47daf439fdc3988" }
 yew-agent = { git = "https://github.com/yewstack/yew", rev = "6f6519dab4c5990029fe8d85c47daf439fdc3988" }
-wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "da4e9fe61796f68edf1eff211bab1f133b984c4f" }
+wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
+wasmer-compiler = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
+wasmer-compiler-cranelift = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
 
 [profile.dev.package.'*']
 opt-level = 3

@@ -250,6 +250,7 @@ impl Simulation {
                     .insert(team, Rc::new(RefCell::new(team_ctrl)));
             }
             Err(e) => {
+                log::warn!("Creating team controller failed: {:?}", e);
                 self.events.errors.push(e);
             }
         }
