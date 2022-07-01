@@ -23,7 +23,7 @@ pub mod sys {
 }
 
 pub mod math {
-    use std::f64::consts::{PI, TAU};
+    pub use std::f64::consts::{PI, TAU};
 
     pub fn normalize_angle(a: f64) -> f64 {
         let mut a = a;
@@ -50,6 +50,8 @@ pub mod api {
     use super::sys::{read_system_state, write_system_state};
     use crate::vec::*;
     use oort_shared::{Class, SystemState};
+
+    pub const TICK_LENGTH: f64 = 1.0 / 60.0;
 
     pub fn class() -> Class {
         Class::from_f64(read_system_state(SystemState::Class))
