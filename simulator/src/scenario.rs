@@ -3,7 +3,7 @@ use crate::ship::{asteroid, cruiser, fighter, frigate, missile, target, ShipHand
 use crate::simulation::{Code, Line, Simulation, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
-use nalgebra::{Point2, Rotation2, Translation2};
+use nalgebra::{vector, Point2, Rotation2, Translation2, Vector2};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
@@ -120,6 +120,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "test" => Box::new(TestScenario {}),
         "basic" => Box::new(BasicScenario {}),
         "gunnery" => Box::new(GunneryScenario {}),
+        "missile_test" => Box::new(MissileTest::new()),
         "asteroid-stress" => Box::new(AsteroidStressScenario {}),
         "bullet-stress" => Box::new(BulletStressScenario {}),
         "missile-stress" => Box::new(MissileStressScenario {}),
@@ -236,6 +237,100 @@ impl Scenario for GunneryScenario {
 
     fn solution(&self) -> Code {
         rhai(include_str!("../../ai/gunnery.rhai"))
+    }
+}
+
+struct MissileTest {
+    target: Option<ShipHandle>,
+    current_iteration: i64,
+    tick_in_iteration: i64,
+}
+
+impl MissileTest {
+    const MAX_ITERATIONS: i64 = 20;
+
+    fn new() -> Self {
+        Self {
+            target: None,
+            current_iteration: 0,
+            tick_in_iteration: 0,
+        }
+    }
+}
+
+impl Scenario for MissileTest {
+    fn name(&self) -> String {
+        "missile_test".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+        log::info!("Running MissileTest iteration {}", self.current_iteration);
+        add_walls(sim);
+        let mut missile_data = missile(0);
+        missile_data.radar.as_mut().unwrap().rx_cross_section = 1e9;
+
+        let mut rng = new_rng(self.current_iteration as u32);
+        let target_p: Vector2<f64> = vector![
+            rng.gen_range(-1000.0..1000.0),
+            rng.gen_range(-1000.0..1000.0)
+        ];
+        let target_v: Vector2<f64> = vector![
+            rng.gen_range(-1000.0..1000.0),
+            rng.gen_range(-1000.0..1000.0)
+        ];
+
+        ship::create(
+            sim,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            target_p.y.atan2(target_p.x),
+            missile_data,
+        );
+        self.target = Some(ship::create(
+            sim,
+            target_p.x,
+            target_p.y,
+            target_v.x,
+            target_v.y,
+            0.0,
+            target(1),
+        ));
+    }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        self.tick_in_iteration += 1;
+        if !sim.ships.contains(self.target.unwrap())
+            && self.current_iteration < MissileTest::MAX_ITERATIONS
+        {
+            self.current_iteration += 1;
+            self.tick_in_iteration = 0;
+            while !sim.bullets.is_empty() {
+                sim.step_bullets();
+            }
+            self.init(sim, 0);
+        }
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        if self.tick_in_iteration > 600 {
+            Status::Failed
+        } else if sim.ships.contains(self.target.unwrap())
+            || self.current_iteration < MissileTest::MAX_ITERATIONS
+        {
+            Status::Running
+        } else {
+            Status::Victory { team: 0 }
+        }
+    }
+
+    fn solution(&self) -> Code {
+        rust(include_str!("../../ai/missile.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!("../../ai/compiled/missile.wasm"))
     }
 }
 
