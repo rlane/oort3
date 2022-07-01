@@ -30,6 +30,14 @@ fn wasm(code: &[u8]) -> Code {
     Code::Wasm(code.to_vec())
 }
 
+fn reference_ai() -> Code {
+    rust(include_str!("../../ai/reference.rs"))
+}
+
+fn compiled_reference_ai() -> Code {
+    wasm(include_bytes!("../../ai/compiled/reference.wasm"))
+}
+
 fn check_victory(sim: &Simulation) -> Status {
     let mut alive_teams: HashSet<i32> = HashSet::new();
     for &handle in sim.ships.iter() {
@@ -1187,7 +1195,11 @@ impl Scenario for FighterDuel {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/reference.rhai"))
+        reference_ai()
+    }
+
+    fn compiled_solution(&self) -> Code {
+        compiled_reference_ai()
     }
 }
 
@@ -1228,7 +1240,11 @@ impl Scenario for FrigateDuel {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/reference.rhai"))
+        reference_ai()
+    }
+
+    fn compiled_solution(&self) -> Code {
+        compiled_reference_ai()
     }
 }
 
@@ -1269,7 +1285,11 @@ impl Scenario for CruiserDuel {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/reference.rhai"))
+        reference_ai()
+    }
+
+    fn compiled_solution(&self) -> Code {
+        compiled_reference_ai()
     }
 }
 
@@ -1310,7 +1330,11 @@ impl Scenario for FrigateVsCruiser {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/reference.rhai"))
+        reference_ai()
+    }
+
+    fn compiled_solution(&self) -> Code {
+        compiled_reference_ai()
     }
 }
 
@@ -1351,7 +1375,11 @@ impl Scenario for CruiserVsFrigate {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/reference.rhai"))
+        reference_ai()
+    }
+
+    fn compiled_solution(&self) -> Code {
+        compiled_reference_ai()
     }
 }
 
@@ -1401,7 +1429,11 @@ impl Scenario for Furball {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/reference.rhai"))
+        reference_ai()
+    }
+
+    fn compiled_solution(&self) -> Code {
+        compiled_reference_ai()
     }
 }
 
@@ -1475,6 +1507,10 @@ impl Scenario for Fleet {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/reference.rhai"))
+        reference_ai()
+    }
+
+    fn compiled_solution(&self) -> Code {
+        compiled_reference_ai()
     }
 }
