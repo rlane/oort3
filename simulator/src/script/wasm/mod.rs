@@ -236,7 +236,12 @@ impl ShipController for WasmShipController {
         Ok(())
     }
 
-    fn write_target(&mut self, _target: Vec2) {}
+    fn write_target(&mut self, target: Vec2) {
+        let mut state = self.read_system_state();
+        state.set(SystemState::RadarContactPositionX, target.x);
+        state.set(SystemState::RadarContactPositionY, target.y);
+        self.write_system_state(&state);
+    }
 }
 
 struct LocalSystemState {

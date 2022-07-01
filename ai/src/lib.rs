@@ -164,6 +164,14 @@ pub mod api {
             ),
         })
     }
+
+    // Only used in tutorials.
+    pub fn target() -> Vec2 {
+        vec2(
+            read_system_state(SystemState::RadarContactPositionX),
+            read_system_state(SystemState::RadarContactPositionY),
+        )
+    }
 }
 
 pub mod debug {
