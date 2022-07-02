@@ -129,110 +129,120 @@ fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
 
 impl ShipController for WasmShipController {
     fn tick(&mut self) -> Result<(), super::Error> {
+        {
+            let mut state = self.read_system_state();
+            let sim = unsafe { &mut *self.sim };
+
+            state.set(
+                SystemState::Class,
+                translate_class(sim.ship(self.handle).data().class) as u32 as f64,
+            );
+
+            let position = sim.ship(self.handle).position();
+            state.set(SystemState::PositionX, position.x);
+            state.set(SystemState::PositionY, position.y);
+
+            let velocity = sim.ship(self.handle).velocity();
+            state.set(SystemState::VelocityX, velocity.x);
+            state.set(SystemState::VelocityY, velocity.y);
+
+            state.set(SystemState::Heading, sim.ship(self.handle).heading());
+            state.set(
+                SystemState::AngularVelocity,
+                sim.ship(self.handle).angular_velocity(),
+            );
+
+            if let Some(contact) = crate::radar::scan(sim, self.handle) {
+                state.set(SystemState::RadarContactFound, 1.0);
+                state.set(SystemState::RadarContactPositionX, contact.position.x);
+                state.set(SystemState::RadarContactPositionY, contact.position.y);
+                state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
+                state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
+                if let Some(class) = contact.class {
+                    state.set(
+                        SystemState::RadarContactClass,
+                        translate_class(class) as u32 as f64,
+                    );
+                } else {
+                    state.set(SystemState::RadarContactClass, Class::Unknown as u32 as f64);
+                }
+            } else {
+                state.set(SystemState::RadarContactFound, 0.0);
+            }
+
+            self.write_system_state(&state);
+        }
+
         translate_error(self.tick.call(&[]))?;
 
-        let mut state = self.read_system_state();
-        let sim = unsafe { &mut *self.sim };
-
-        state.set(
-            SystemState::Class,
-            translate_class(sim.ship(self.handle).data().class) as u32 as f64,
-        );
-
-        let position = sim.ship(self.handle).position();
-        state.set(SystemState::PositionX, position.x);
-        state.set(SystemState::PositionY, position.y);
-
-        let velocity = sim.ship(self.handle).velocity();
-        state.set(SystemState::VelocityX, velocity.x);
-        state.set(SystemState::VelocityY, velocity.y);
-
-        state.set(SystemState::Heading, sim.ship(self.handle).heading());
-        state.set(
-            SystemState::AngularVelocity,
-            sim.ship(self.handle).angular_velocity(),
-        );
-
-        sim.ship_mut(self.handle).accelerate(Vec2::new(
-            state.get(SystemState::AccelerateX),
-            state.get(SystemState::AccelerateY),
-        ));
-        state.set(SystemState::AccelerateX, 0.0);
-        state.set(SystemState::AccelerateY, 0.0);
-
-        sim.ship_mut(self.handle)
-            .torque(state.get(SystemState::Torque));
-        state.set(SystemState::Torque, 0.0);
-
-        for (i, (aim, fire)) in [
-            (SystemState::Gun0Aim, SystemState::Gun0Fire),
-            (SystemState::Gun1Aim, SystemState::Gun1Fire),
-            (SystemState::Gun2Aim, SystemState::Gun2Fire),
-            (SystemState::Gun3Aim, SystemState::Gun3Fire),
-        ]
-        .iter()
-        .enumerate()
         {
-            if state.get(*fire) > 0.0 {
-                sim.ship_mut(self.handle).aim_gun(i as i64, state.get(*aim));
-                sim.ship_mut(self.handle).fire_gun(i as i64);
-                state.set(*fire, 0.0);
+            let mut state = self.read_system_state();
+            let sim = unsafe { &mut *self.sim };
+
+            sim.ship_mut(self.handle).accelerate(Vec2::new(
+                state.get(SystemState::AccelerateX),
+                state.get(SystemState::AccelerateY),
+            ));
+            state.set(SystemState::AccelerateX, 0.0);
+            state.set(SystemState::AccelerateY, 0.0);
+
+            sim.ship_mut(self.handle)
+                .torque(state.get(SystemState::Torque));
+            state.set(SystemState::Torque, 0.0);
+
+            for (i, (aim, fire)) in [
+                (SystemState::Gun0Aim, SystemState::Gun0Fire),
+                (SystemState::Gun1Aim, SystemState::Gun1Fire),
+                (SystemState::Gun2Aim, SystemState::Gun2Fire),
+                (SystemState::Gun3Aim, SystemState::Gun3Fire),
+            ]
+            .iter()
+            .enumerate()
+            {
+                if state.get(*fire) > 0.0 {
+                    sim.ship_mut(self.handle).aim_gun(i as i64, state.get(*aim));
+                    sim.ship_mut(self.handle).fire_gun(i as i64);
+                    state.set(*fire, 0.0);
+                }
             }
-        }
 
-        for (i, (launch, orders)) in [
-            (SystemState::Missile0Launch, SystemState::Missile0Orders),
-            (SystemState::Missile1Launch, SystemState::Missile1Orders),
-            (SystemState::Missile2Launch, SystemState::Missile2Orders),
-            (SystemState::Missile3Launch, SystemState::Missile3Orders),
-        ]
-        .iter()
-        .enumerate()
-        {
-            if state.get(*launch) > 0.0 {
-                let orders = state.get(*orders);
-                sim.ship_mut(self.handle)
-                    .launch_missile(i as i64, orders.to_string());
-                state.set(*launch, 0.0);
+            for (i, (launch, orders)) in [
+                (SystemState::Missile0Launch, SystemState::Missile0Orders),
+                (SystemState::Missile1Launch, SystemState::Missile1Orders),
+                (SystemState::Missile2Launch, SystemState::Missile2Orders),
+                (SystemState::Missile3Launch, SystemState::Missile3Orders),
+            ]
+            .iter()
+            .enumerate()
+            {
+                if state.get(*launch) > 0.0 {
+                    let orders = state.get(*orders);
+                    sim.ship_mut(self.handle)
+                        .launch_missile(i as i64, orders.to_string());
+                    state.set(*launch, 0.0);
+                }
             }
-        }
 
-        if state.get(SystemState::Explode) > 0.0 {
-            sim.ship_mut(self.handle).explode();
-            state.set(SystemState::Explode, 0.0);
-        }
-
-        if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
-            radar.heading = state.get(SystemState::RadarHeading);
-            radar.width = state.get(SystemState::RadarWidth);
-        }
-        if let Some(contact) = crate::radar::scan(sim, self.handle) {
-            state.set(SystemState::RadarContactFound, 1.0);
-            state.set(SystemState::RadarContactPositionX, contact.position.x);
-            state.set(SystemState::RadarContactPositionY, contact.position.y);
-            state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
-            state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
-            if let Some(class) = contact.class {
-                state.set(
-                    SystemState::RadarContactClass,
-                    translate_class(class) as u32 as f64,
-                );
-            } else {
-                state.set(SystemState::RadarContactClass, Class::Unknown as u32 as f64);
+            if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
+                radar.heading = state.get(SystemState::RadarHeading);
+                radar.width = state.get(SystemState::RadarWidth);
             }
-        } else {
-            state.set(SystemState::RadarContactFound, 0.0);
-        }
 
-        if state.get(SystemState::DebugTextLength) > 0.0 {
-            let offset = state.get(SystemState::DebugTextPointer) as u32;
-            let length = state.get(SystemState::DebugTextLength) as u32;
-            if let Some(s) = self.read_string(offset, length) {
-                sim.emit_debug_text(self.handle, s);
+            if state.get(SystemState::Explode) > 0.0 {
+                sim.ship_mut(self.handle).explode();
+                state.set(SystemState::Explode, 0.0);
             }
-        }
 
-        self.write_system_state(&state);
+            if state.get(SystemState::DebugTextLength) > 0.0 {
+                let offset = state.get(SystemState::DebugTextPointer) as u32;
+                let length = state.get(SystemState::DebugTextLength) as u32;
+                if let Some(s) = self.read_string(offset, length) {
+                    sim.emit_debug_text(self.handle, s);
+                }
+            }
+
+            self.write_system_state(&state);
+        }
         Ok(())
     }
 
