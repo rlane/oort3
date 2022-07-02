@@ -10,8 +10,6 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        debug::text(&format!("position: {:?}\n", position()));
-        debug::text(&format!("velocity: {:?}\n", velocity()));
         if class() == Class::Missile {
             if let Some(contact) = scan() {
                 seek(contact.position, contact.velocity);
@@ -46,9 +44,6 @@ pub fn seek(p: Vec2, v: Vec2) {
     let closing_speed = -(dp.y * dv.y - dp.x * dv.x).abs() / dp.length();
     let los = dp.angle();
     let los_rate = (dp.y * dv.x - dp.x * dv.y) / (dp.length() * dp.length());
-    if los_rate < 0.01 {
-        debug::text("On collision course");
-    }
 
     const N: f64 = 4.0;
     let a = vec2(100.0, N * closing_speed * los_rate).rotate(los);

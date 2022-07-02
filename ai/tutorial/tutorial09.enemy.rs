@@ -16,7 +16,6 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        debug::text(&format!("target: {:?}", self.target));
         if (self.target - position()).length() < 50.0 {
             self.target = self.initial_position
                 + vec2(self.rng.rand_float() * 1000.0, 0.0).rotate(self.rng.rand_float() * TAU);

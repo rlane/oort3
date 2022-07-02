@@ -20,7 +20,6 @@ impl Ship {
             return self.missile_tick();
         }
 
-        debug::text(&format!("target: {:?}", self.target));
         if (self.target - position()).length() < 50.0 {
             self.target = self.initial_position
                 + vec2(self.rng.rand_float() * 1000.0, 0.0).rotate(self.rng.rand_float() * TAU);
@@ -64,9 +63,6 @@ pub fn seek(p: Vec2, v: Vec2) {
     let closing_speed = -(dp.y * dv.y - dp.x * dv.x).abs() / dp.length();
     let los = dp.angle();
     let los_rate = (dp.y * dv.x - dp.x * dv.y) / (dp.length() * dp.length());
-    if los_rate < 0.01 {
-        debug::text("On collision course");
-    }
 
     const N: f64 = 4.0;
     let a = vec2(100.0, N * closing_speed * los_rate).rotate(los);
