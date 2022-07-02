@@ -174,8 +174,23 @@ impl Simulation {
             &self.event_collector,
         );
 
-        // TODO remove
-        while let Ok(_event) = self.contact_recv.try_recv() {}
+        while let Ok(event) = self.contact_recv.try_recv() {
+            let mut handle_collision = |collider: ColliderHandle| {
+                if let Some(handle) = self
+                    .colliders
+                    .get(collider)
+                    .and_then(|x| x.parent())
+                    .map(|x| ShipHandle(x.0))
+                {
+                    if self.ship(handle).exists() {
+                        self.ship_mut(handle).handle_collision();
+                    }
+                }
+            };
+            handle_collision(event.collider1());
+            handle_collision(event.collider2());
+        }
+
         self.timing.physics = (Instant::now() - physics_start_time).as_secs_f64();
 
         let script_start_time = Instant::now();

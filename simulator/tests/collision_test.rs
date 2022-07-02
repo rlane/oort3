@@ -182,8 +182,8 @@ fn test_missile_fighter_collision_same_team() {
         sim.step();
     }
 
-    assert_ne!(sim.ship(ship).velocity().x, 0.0);
-    assert_ne!(sim.ship(msl).body().linvel().x, 400.0);
+    assert!(sim.ship(ship).exists());
+    assert!(!sim.ship(msl).exists());
 }
 
 #[test]
@@ -197,6 +197,6 @@ fn test_missile_fighter_collision_different_team() {
         sim.step();
     }
 
-    assert_ne!(sim.ship(ship).velocity().x, 0.0);
-    assert_ne!(sim.ship(msl).body().linvel().x, 400.0);
+    assert!(!sim.ship(ship).exists());
+    assert!(!sim.ship(msl).exists());
 }

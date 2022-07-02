@@ -378,6 +378,7 @@ pub fn create_with_orders(
         .unwrap()
         .restitution(restitution)
         .collision_groups(collision::ship_interaction_groups(team))
+        .active_events(ActiveEvents::COLLISION_EVENTS)
         .build();
     sim.colliders
         .insert_with_parent(collider, body_handle, &mut sim.bodies);
@@ -418,6 +419,10 @@ fn normalize_heading(mut h: f64) -> f64 {
 }
 
 impl<'a> ShipAccessor<'a> {
+    pub fn exists(&self) -> bool {
+        self.simulation.ship_data.contains_key(&self.handle)
+    }
+
     pub fn body(&self) -> &'a RigidBody {
         self.simulation
             .bodies
@@ -689,6 +694,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 &mut self.simulation.multibody_joints,
                 /*remove_attached_colliders=*/ true,
             );
+            self.simulation.ship_data.remove(&self.handle);
+        }
+    }
+
+    pub fn handle_collision(&mut self) {
+        if self.data().class == ShipClass::Missile || self.data().class == ShipClass::Torpedo {
+            self.explode();
         }
     }
 }
