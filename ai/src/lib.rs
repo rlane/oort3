@@ -46,6 +46,25 @@ pub mod math {
     }
 }
 
+pub mod rng {
+    use super::api::seed;
+
+    static mut RNG: Option<oorandom::Rand64> = None;
+
+    fn rng() -> &'static mut oorandom::Rand64 {
+        unsafe {
+            if RNG.is_none() {
+                RNG = Some(oorandom::Rand64::new(seed()));
+            }
+            RNG.as_mut().unwrap()
+        }
+    }
+
+    pub fn rand(low: f64, high: f64) -> f64 {
+        rng().rand_float() * (high - low) + low
+    }
+}
+
 pub mod api {
     use super::sys::{read_system_state, write_system_state};
     use crate::vec::*;
@@ -207,6 +226,7 @@ pub mod prelude {
     pub use super::api::*;
     pub use super::debug;
     pub use super::math::*;
+    pub use super::rng::*;
     pub use super::vec::*;
     pub use oort_shared::*;
 }

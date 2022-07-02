@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 pub struct Ship {
-    rng: oorandom::Rand64,
     target_position: Vec2,
     target_velocity: Vec2,
     ticks: u64,
@@ -14,7 +13,6 @@ impl Ship {
         let target_position = parse_orders(orders());
         let target_velocity = Vec2::new(0.0, 0.0);
         Ship {
-            rng: oorandom::Rand64::new(seed()),
             target_position,
             target_velocity,
             ticks: 0,
@@ -91,10 +89,9 @@ impl Ship {
                 //dbg.draw_diamond(contact.position, 30.0, 0xffff00);
             }
         } else {
-            set_radar_heading(self.rand(0.0, TAU));
+            set_radar_heading(rand(0.0, TAU));
             if (self.target_position - position()).length() < 100.0 {
-                self.target_position =
-                    vec2(self.rand(3500.0, 4500.0), 0.0).rotate(self.rand(0.0, TAU));
+                self.target_position = vec2(rand(3500.0, 4500.0), 0.0).rotate(rand(0.0, TAU));
                 self.target_velocity = vec2(0.0, 0.0);
             }
         }
@@ -135,7 +132,7 @@ impl Ship {
         }
         if contact.is_none() {
             if self.has_locked {
-                set_radar_heading(self.rand(0.0, TAU));
+                set_radar_heading(rand(0.0, TAU));
                 set_radar_width(TAU / 6.0);
             } else {
                 let dp = self.target_position - position();
@@ -180,8 +177,7 @@ impl Ship {
 
         let target_heading = (self.target_position - position()).angle();
         set_radar_heading(
-            target_heading - heading()
-                + self.rand(-PI, PI) * (self.no_contact_ticks as f64 / 600.0),
+            target_heading - heading() + rand(-PI, PI) * (self.no_contact_ticks as f64 / 600.0),
         );
         if (self.target_position - position()).length() < 200.0 {
             set_radar_width(PI * 2.0 / 6.0);
@@ -259,10 +255,6 @@ impl Ship {
         } else if pdh > 0.0 {
             torque(-acc);
         }
-    }
-
-    fn rand(&mut self, low: f64, high: f64) -> f64 {
-        self.rng.rand_float() * (high - low) + low
     }
 }
 
