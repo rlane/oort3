@@ -255,7 +255,7 @@ pub fn cruiser(team: i32) -> ShipData {
         ],
         health: 10000.0,
         team,
-        max_acceleration: vector![10.0, 50.0],
+        max_acceleration: vector![10.0, 5.0],
         max_angular_acceleration: std::f64::consts::TAU / 16.0,
         radar: Some(Radar {
             heading: 0.0,
