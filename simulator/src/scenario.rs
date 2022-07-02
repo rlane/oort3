@@ -1190,7 +1190,9 @@ impl Scenario for Tutorial11 {
 
         sim.upload_code(
             1,
-            &rhai(include_str!("../../ai/tutorial/tutorial11.enemy.rhai")),
+            &wasm(include_bytes!(
+                "../../ai/compiled/tutorial/tutorial11.enemy.wasm"
+            )),
         );
 
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, cruiser(0));
@@ -1210,11 +1212,17 @@ impl Scenario for Tutorial11 {
     }
 
     fn initial_code(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial11.initial.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial11.initial.rs"))
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial11.solution.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial11.solution.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!(
+            "../../ai/compiled/tutorial/tutorial11.solution.wasm"
+        ))
     }
 }
 
