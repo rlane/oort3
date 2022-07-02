@@ -19,5 +19,5 @@ do
   DST=${SRC/%.rs/.wasm}
   cp $AI_DIR/$SRC ai/src/user.rs
   ./scripts/build-ai-fast.sh
-  mv output.wasm $AI_DIR/compiled/$DST
+  wasm-opt -Oz -o $AI_DIR/compiled/$DST output.wasm
 done
