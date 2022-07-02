@@ -1080,7 +1080,9 @@ impl Scenario for Tutorial09 {
 
         sim.upload_code(
             1,
-            &rhai(include_str!("../../ai/tutorial/tutorial09.enemy.rhai")),
+            &wasm(include_bytes!(
+                "../../ai/compiled/tutorial/tutorial09.enemy.wasm"
+            )),
         );
 
         let mut shipdata = fighter(0);
@@ -1090,7 +1092,7 @@ impl Scenario for Tutorial09 {
         let mut rng = new_rng(seed);
         for _ in 0..3 {
             let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
+                .transform_vector(&vector![rng.gen_range(2000.0..2500.0), 0.0]);
             let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
             ship::create(sim, p.x, p.y, v.x, v.y, std::f64::consts::PI, fighter(1));
@@ -1102,11 +1104,17 @@ impl Scenario for Tutorial09 {
     }
 
     fn initial_code(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial09.initial.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial09.initial.rs"))
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial09.solution.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial09.solution.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!(
+            "../../ai/compiled/tutorial/tutorial09.solution.wasm"
+        ))
     }
 }
 
