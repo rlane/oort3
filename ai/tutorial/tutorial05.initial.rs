@@ -1,6 +1,6 @@
 // Tutorial 05
 // Destroy the enemy ship. Its location is given by the
-// "target" variable.
+// "target" function.
 use crate::prelude::*;
 
 pub struct Ship {}
