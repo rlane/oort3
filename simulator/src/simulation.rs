@@ -24,9 +24,7 @@ pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Code {
     None,
-    Rhai(String),
     Rust(String),
-    Native,
     Wasm(Vec<u8>),
 }
 

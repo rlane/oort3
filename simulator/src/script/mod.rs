@@ -1,15 +1,10 @@
-pub mod native;
-pub mod rhai;
 pub mod wasm;
 
-use self::native::NativeTeamController;
-use self::rhai::RhaiTeamController;
 use crate::ship::ShipHandle;
 use crate::simulation::{Code, Simulation};
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
-
-use self::wasm::WasmTeamController;
+use wasm::WasmTeamController;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
@@ -52,8 +47,6 @@ pub trait ShipController {
 
 pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
     match code {
-        Code::Rhai(s) => RhaiTeamController::create(s),
-        Code::Native => NativeTeamController::create(),
         Code::Wasm(b) => WasmTeamController::create(b),
         _ => unreachable!(),
     }

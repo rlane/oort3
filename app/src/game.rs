@@ -602,8 +602,6 @@ impl Game {
 
                 self.overlay = Some(Overlay::Compiling);
             }
-            Code::Rhai(s) => success_callback.emit(Code::Rhai(s)),
-            Code::Native => success_callback.emit(Code::Native),
             _ => unreachable!(),
         }
     }
@@ -629,29 +627,11 @@ impl Game {
 pub fn code_to_string(code: &Code) -> String {
     match code {
         Code::None => "".to_string(),
-        Code::Rhai(s) => format!("// rhai\n{}", &s),
-        Code::Rust(s) => {
-            if s.contains("impl Ship") || s.contains("Welcome to Oort") {
-                s.clone()
-            } else {
-                format!("// rust\n{}", &s)
-            }
-        }
-        Code::Native => "// native".to_string(),
+        Code::Rust(s) => s.clone(),
         Code::Wasm(_) => "// wasm".to_string(),
     }
 }
 
 pub fn str_to_code(s: &str) -> Code {
-    if let Some(s) = s.strip_prefix("// rust\n") {
-        Code::Rust(s.to_string())
-    } else if s.contains("impl Ship") {
-        Code::Rust(s.to_string())
-    } else if let Some(s) = s.strip_prefix("// rhai\n") {
-        Code::Rhai(s.to_string())
-    } else if s.starts_with("// native") {
-        Code::Native
-    } else {
-        Code::Rhai(s.to_string())
-    }
+    Code::Rust(s.to_string())
 }

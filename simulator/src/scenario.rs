@@ -18,10 +18,6 @@ pub enum Status {
     Failed,
 }
 
-fn rhai(code: &str) -> Code {
-    Code::Rhai(code.to_string())
-}
-
 fn rust(code: &str) -> Code {
     Code::Rust(code.to_string())
 }
@@ -80,15 +76,15 @@ pub trait Scenario {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn compiled_solution(&self) -> Code {
-        self.solution()
+        Code::None
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -434,8 +430,8 @@ impl Scenario for MissileStressScenario {
             log::warn!("Ignoring nonzero seed {}", seed);
         }
         let mut rng = new_rng(0);
-        sim.upload_code(0, &Code::Native);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(0, &compiled_reference_ai());
+        sim.upload_code(1, &compiled_reference_ai());
         add_walls(sim);
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -1250,7 +1246,7 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(1, &compiled_reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(
             sim,
@@ -1268,7 +1264,7 @@ impl Scenario for FighterDuel {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
@@ -1295,7 +1291,7 @@ impl Scenario for FrigateDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(1, &compiled_reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1313,7 +1309,7 @@ impl Scenario for FrigateDuel {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
@@ -1340,7 +1336,7 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(1, &compiled_reference_ai());
         ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1358,7 +1354,7 @@ impl Scenario for CruiserDuel {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
@@ -1385,7 +1381,7 @@ impl Scenario for FrigateVsCruiser {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(1, &compiled_reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1403,7 +1399,7 @@ impl Scenario for FrigateVsCruiser {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
@@ -1430,7 +1426,7 @@ impl Scenario for CruiserVsFrigate {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(1, &compiled_reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1448,7 +1444,7 @@ impl Scenario for CruiserVsFrigate {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
@@ -1475,7 +1471,7 @@ impl Scenario for Furball {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(1, &compiled_reference_ai());
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let fleet_radius = 500.0;
@@ -1502,7 +1498,7 @@ impl Scenario for Furball {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
@@ -1529,7 +1525,7 @@ impl Scenario for Fleet {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &Code::Native);
+        sim.upload_code(1, &compiled_reference_ai());
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let signum = if team == 0 { -1.0 } else { 1.0 };
@@ -1580,7 +1576,7 @@ impl Scenario for Fleet {
     }
 
     fn initial_code(&self) -> Code {
-        rhai("")
+        Code::None
     }
 
     fn solution(&self) -> Code {
