@@ -224,12 +224,17 @@ impl Scenario for GunneryScenario {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        let mut ship_data = frigate(0);
+        ship_data.guns.pop();
+        ship_data.guns.pop();
+        ship_data.missile_launchers.pop();
+        ship_data.acceleration = vector![0.0, 0.0];
+        ship::create(sim, -5000.0, 0.0, 0.0, 0.0, 0.0, ship_data);
         let mut rng = new_rng(seed);
         for _ in 0..4 {
             ship::create(
                 sim,
-                2000.0 + rng.gen_range(-500.0..500.0),
+                6000.0 + rng.gen_range(-500.0..500.0),
                 -2000.0 + rng.gen_range(-500.0..500.0),
                 0.0 + rng.gen_range(-10.0..10.0),
                 700.0 + rng.gen_range(-300.0..300.0),
@@ -244,7 +249,11 @@ impl Scenario for GunneryScenario {
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/gunnery.rhai"))
+        rust(include_str!("../../ai/gunnery.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!("../../ai/compiled/gunnery.wasm"))
     }
 }
 
