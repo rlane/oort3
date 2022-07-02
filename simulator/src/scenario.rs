@@ -869,6 +869,13 @@ impl Scenario for Tutorial06 {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
 
+        sim.upload_code(
+            1,
+            &wasm(include_bytes!(
+                "../../ai/compiled/tutorial/tutorial06.enemy.wasm"
+            )),
+        );
+
         let mut rng = new_rng(seed);
         let size = 500.0;
         let range = -size..size;
@@ -884,11 +891,6 @@ impl Scenario for Tutorial06 {
                 fighter(1),
             );
         }
-
-        sim.upload_code(
-            1,
-            &rhai(include_str!("../../ai/tutorial/tutorial06.enemy.rhai")),
-        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -896,11 +898,17 @@ impl Scenario for Tutorial06 {
     }
 
     fn initial_code(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial06.initial.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial06.initial.rs"))
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial06.solution.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial06.solution.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!(
+            "../../ai/compiled/tutorial/tutorial06.solution.wasm"
+        ))
     }
 
     fn next_scenario(&self) -> Option<String> {
