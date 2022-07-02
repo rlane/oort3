@@ -473,7 +473,7 @@ impl Scenario for WelcomeScenario {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         self.rng = Some(new_rng(seed));
         add_walls(sim);
-        sim.upload_code(0, &rhai(include_str!("../../ai/welcome.rhai")));
+        sim.upload_code(0, &compiled_reference_ai());
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
     }
 
