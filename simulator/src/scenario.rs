@@ -1001,7 +1001,9 @@ impl Scenario for Tutorial08 {
 
         sim.upload_code(
             1,
-            &rhai(include_str!("../../ai/tutorial/tutorial08.enemy.rhai")),
+            &wasm(include_bytes!(
+                "../../ai/compiled/tutorial/tutorial08.enemy.wasm"
+            )),
         );
 
         let mut rng = new_rng(seed);
@@ -1042,11 +1044,17 @@ impl Scenario for Tutorial08 {
     }
 
     fn initial_code(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial08.initial.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial08.initial.rs"))
     }
 
     fn solution(&self) -> Code {
-        rhai(include_str!("../../ai/tutorial/tutorial08.solution.rhai"))
+        rust(include_str!("../../ai/tutorial/tutorial08.solution.rs"))
+    }
+
+    fn compiled_solution(&self) -> Code {
+        wasm(include_bytes!(
+            "../../ai/compiled/tutorial/tutorial08.solution.wasm"
+        ))
     }
 
     fn next_scenario(&self) -> Option<String> {
