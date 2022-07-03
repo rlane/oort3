@@ -1,5 +1,5 @@
 use crate::rng::{new_rng, SeededRng};
-use crate::ship::{asteroid, cruiser, fighter, frigate, missile, target, ShipHandle};
+use crate::ship::{asteroid, cruiser, fighter, frigate, missile, target, ShipData, ShipHandle};
 use crate::simulation::{Code, Line, Simulation, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
@@ -62,6 +62,12 @@ fn check_tutorial_victory(sim: &Simulation) -> Status {
         Status::Victory { .. } => Status::Failed,
         x => x,
     }
+}
+
+fn fighter_without_missiles(team: i32) -> ShipData {
+    let mut data = fighter(team);
+    data.missile_launchers.pop();
+    data
 }
 
 pub trait Scenario {
@@ -519,7 +525,7 @@ impl Scenario for Tutorial01 {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
         ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid(1));
     }
 
@@ -563,7 +569,7 @@ impl Scenario for Tutorial02 {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
                 c.write_target(vector![200.0, 0.0]);
@@ -655,7 +661,7 @@ impl Scenario for Tutorial03 {
         let range = -size..size;
         self.target = Some(point![rng.gen_range(range.clone()), rng.gen_range(range)]);
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
                 c.write_target(self.target.unwrap().coords);
@@ -741,7 +747,7 @@ impl Scenario for Tutorial04 {
         let size = 500.0;
         let range = -size..size;
         let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
                 c.write_target(target.coords);
@@ -794,7 +800,15 @@ impl Scenario for Tutorial05 {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        self.ship_handle = Some(ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0)));
+        self.ship_handle = Some(ship::create(
+            sim,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            fighter_without_missiles(0),
+        ));
 
         sim.upload_code(
             1,
@@ -872,7 +886,7 @@ impl Scenario for Tutorial06 {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
 
         sim.upload_code(
             1,
@@ -1023,7 +1037,7 @@ impl Scenario for Tutorial08 {
                     0.0,
                     0.0,
                     rng.gen_range(0.0..std::f64::consts::TAU),
-                    fighter(0),
+                    fighter_without_missiles(0),
                 );
             }
         }
