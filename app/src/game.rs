@@ -72,7 +72,7 @@ pub struct Game {
     status_ref: NodeRef,
     last_status: Status,
     running_source_code: Code,
-    running_code: Code,
+    running_codes: Vec<Code>,
     current_decorations: js_sys::Array,
     saw_slow_compile: bool,
     local_compiler: bool,
@@ -117,7 +117,7 @@ impl Component for Game {
             status_ref: NodeRef::default(),
             last_status: Status::Running,
             running_source_code: Code::None,
-            running_code: Code::None,
+            running_codes: Vec::new(),
             current_decorations: js_sys::Array::new(),
             saw_slow_compile: false,
             local_compiler,
@@ -139,22 +139,30 @@ impl Component for Game {
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
-                let code = if context.props().demo {
-                    oort_simulator::scenario::load(&self.scenario_name).solution()
+                let mut codes = crate::codestorage::load(&self.scenario_name);
+                let displayed_code = if self.scenario_name == "welcome" {
+                    Code::Rust(
+                        "\
+// Welcome to Oort.
+// Select a scenario from the list in the top-right of the page.
+// If you're new, start with \"tutorial01\"."
+                            .to_string(),
+                    )
                 } else {
-                    crate::codestorage::load(&self.scenario_name)
+                    codes[0].clone()
                 };
                 self.editor_link.with_editor(|editor| {
                     editor
                         .get_model()
                         .unwrap()
-                        .set_value(&code_to_string(&code));
+                        .set_value(&code_to_string(&displayed_code));
                 });
-                if context.props().demo {
-                    self.run(context, &code);
+                codes[0] = if context.props().demo || self.scenario_name == "welcome" {
+                    oort_simulator::scenario::load(&self.scenario_name).solution()
                 } else {
-                    self.run(context, &Code::None);
-                }
+                    Code::None
+                };
+                self.run(context, &codes);
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
@@ -168,7 +176,7 @@ impl Component for Game {
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
-                let mut code = scenario::load(&self.scenario_name).initial_code();
+                let mut code = scenario::load(&self.scenario_name).initial_code()[0].clone();
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::script::builtin::load_source(&name).unwrap()
                 }
@@ -248,7 +256,9 @@ impl Component for Game {
                     self.overlay = None;
                 }
                 self.display_errors(&[]);
-                self.run(context, &code);
+                let mut codes = crate::codestorage::load(&self.scenario_name);
+                codes[0] = code;
+                self.run(context, &codes);
                 true
             }
             Msg::CompileFailed(error) => {
@@ -412,7 +422,7 @@ impl Game {
                     sim_agent.send(oort_worker::Request::RunScenario {
                         scenario_name: self.scenario_name.to_owned(),
                         seed: i,
-                        code: self.running_code.clone(),
+                        codes: self.running_codes.clone(),
                     });
                     self.background_agents.push(sim_agent);
                 }
@@ -650,9 +660,9 @@ impl Game {
         }
     }
 
-    pub fn run(&mut self, context: &Context<Self>, code: &Code) {
+    pub fn run(&mut self, context: &Context<Self>, codes: &[Code]) {
         self.compiler_errors = None;
-        self.running_code = code.clone();
+        self.running_codes = codes.to_vec();
         let seed = rand::thread_rng().gen();
         self.ui = Some(Box::new(UI::new(
             context.link().callback(|_| Msg::RequestSnapshot),
@@ -661,7 +671,7 @@ impl Game {
         self.sim_agent.send(oort_worker::Request::StartScenario {
             scenario_name: self.scenario_name.to_owned(),
             seed,
-            code: code.clone(),
+            codes: codes.to_vec(),
             nonce: self.nonce,
         });
         self.background_agents.clear();

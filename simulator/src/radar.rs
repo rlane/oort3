@@ -251,7 +251,7 @@ mod test {
 
     #[test]
     fn test_basic() {
-        let mut sim = Simulation::new("test", 0, &Code::None);
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
         let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
@@ -299,7 +299,7 @@ mod test {
 
     #[test]
     fn test_180_degrees() {
-        let mut sim = Simulation::new("test", 0, &Code::None);
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
         let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
@@ -351,7 +351,7 @@ mod test {
 
     #[test]
     fn test_270_degrees() {
-        let mut sim = Simulation::new("test", 0, &Code::None);
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
         let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
@@ -389,7 +389,7 @@ mod test {
 
     #[test]
     fn test_360_degrees() {
-        let mut sim = Simulation::new("test", 0, &Code::None);
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
         let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
@@ -429,7 +429,7 @@ mod test {
     fn test_random() {
         let mut rng = crate::rng::new_rng(1);
         for _ in 0..1000 {
-            let mut sim = Simulation::new("test", 0, &Code::None);
+            let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
             let mut rand_vector =
                 || vector![rng.gen_range(-100.0..100.0), rng.gen_range(-100.0..100.0)];
             let p0 = rand_vector();

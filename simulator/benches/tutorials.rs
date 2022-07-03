@@ -4,7 +4,7 @@ use oort_simulator::simulation;
 
 fn check_solution(scenario_name: &str) {
     let scenario = scenario::load(scenario_name);
-    let mut sim = simulation::Simulation::new(scenario_name, 0, &scenario.solution());
+    let mut sim = simulation::Simulation::new(scenario_name, 0, &scenario.solution_codes());
 
     let mut i = 0;
     while sim.status() == scenario::Status::Running && i < 10000 {

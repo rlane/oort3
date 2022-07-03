@@ -73,12 +73,19 @@ pub trait Scenario {
         Running
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    // Indexed by team ID.
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None]
     }
 
     fn solution(&self) -> Code {
         Code::None
+    }
+
+    fn solution_codes(&self) -> Vec<Code> {
+        let mut codes = self.initial_code();
+        codes[0] = self.solution();
+        codes
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -416,8 +423,6 @@ impl Scenario for MissileStressScenario {
             log::warn!("Ignoring nonzero seed {}", seed);
         }
         let mut rng = new_rng(0);
-        sim.upload_code(0, &reference_ai());
-        sim.upload_code(1, &reference_ai());
         add_walls(sim);
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -441,6 +446,10 @@ impl Scenario for MissileStressScenario {
         } else {
             Status::Running
         }
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![reference_ai(), reference_ai()]
     }
 }
 
@@ -466,7 +475,6 @@ impl Scenario for WelcomeScenario {
         let rng = self.rng.as_mut().unwrap();
 
         add_walls(sim);
-        sim.upload_code(0, &reference_ai());
 
         let ship_datas = &[fighter(0), frigate(0), cruiser(0)];
         let ship_data = rng.sample(rand::distributions::Slice::new(ship_datas).unwrap());
@@ -491,14 +499,12 @@ impl Scenario for WelcomeScenario {
         }
     }
 
-    fn initial_code(&self) -> Code {
-        Code::Rust(
-            "\
-// Welcome to Oort.
-// Select a scenario from the list in the top-right of the page.
-// If you're new, start with \"tutorial01\"."
-                .to_string(),
-        )
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, Code::None]
+    }
+
+    fn solution(&self) -> Code {
+        reference_ai()
     }
 }
 
@@ -519,8 +525,8 @@ impl Scenario for Tutorial01 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial01.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![builtin("tutorial/tutorial01.initial"), Code::None]
     }
 
     fn solution(&self) -> Code {
@@ -597,8 +603,8 @@ impl Scenario for Tutorial02 {
         }
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial02.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![builtin("tutorial/tutorial02.initial")]
     }
 
     fn solution(&self) -> Code {
@@ -683,8 +689,8 @@ impl Scenario for Tutorial03 {
         }
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial03.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![builtin("tutorial/tutorial03.initial")]
     }
 
     fn solution(&self) -> Code {
@@ -728,8 +734,8 @@ impl Scenario for Tutorial04 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial04.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![builtin("tutorial/tutorial04.initial"), Code::None]
     }
 
     fn solution(&self) -> Code {
@@ -772,8 +778,6 @@ impl Scenario for Tutorial05 {
             fighter_without_missiles(0),
         ));
 
-        sim.upload_code(1, &builtin("tutorial/tutorial05.enemy"));
-
         let mut rng = new_rng(seed);
         let size = 500.0;
         let range = -size..size;
@@ -809,8 +813,11 @@ impl Scenario for Tutorial05 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial05.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![
+            builtin("tutorial/tutorial05.initial"),
+            builtin("tutorial/tutorial05.enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
@@ -839,8 +846,6 @@ impl Scenario for Tutorial06 {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
 
-        sim.upload_code(1, &builtin("tutorial/tutorial06.enemy"));
-
         let mut rng = new_rng(seed);
         let size = 500.0;
         let range = -size..size;
@@ -862,8 +867,11 @@ impl Scenario for Tutorial06 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial06.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![
+            builtin("tutorial/tutorial06.initial"),
+            builtin("tutorial/tutorial06.enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
@@ -891,8 +899,6 @@ impl Scenario for Tutorial07 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, &builtin("tutorial/tutorial07.enemy"));
-
         let mut rng = new_rng(seed);
         for team in 0..2 {
             for _ in 0..10 {
@@ -918,8 +924,11 @@ impl Scenario for Tutorial07 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial07.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![
+            builtin("tutorial/tutorial07.initial"),
+            builtin("tutorial/tutorial07.enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
@@ -946,8 +955,6 @@ impl Scenario for Tutorial08 {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-
-        sim.upload_code(1, &builtin("tutorial/tutorial08.enemy"));
 
         let mut rng = new_rng(seed);
         {
@@ -986,8 +993,11 @@ impl Scenario for Tutorial08 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial08.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![
+            builtin("tutorial/tutorial08.initial"),
+            builtin("tutorial/tutorial08.enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
@@ -1015,8 +1025,6 @@ impl Scenario for Tutorial09 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, &builtin("tutorial/tutorial09.enemy"));
-
         let mut shipdata = fighter(0);
         shipdata.guns.clear();
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, shipdata);
@@ -1035,8 +1043,11 @@ impl Scenario for Tutorial09 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial09.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![
+            builtin("tutorial/tutorial09.initial"),
+            builtin("tutorial/tutorial09.enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
@@ -1060,8 +1071,6 @@ impl Scenario for Tutorial10 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, &builtin("tutorial/tutorial10.enemy"));
-
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, frigate(0));
 
         let mut rng = new_rng(seed);
@@ -1078,8 +1087,11 @@ impl Scenario for Tutorial10 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial10.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![
+            builtin("tutorial/tutorial10.initial"),
+            builtin("tutorial/tutorial10.enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
@@ -1103,8 +1115,6 @@ impl Scenario for Tutorial11 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(1, &builtin("tutorial/tutorial11.enemy"));
-
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, cruiser(0));
 
         let mut rng = new_rng(seed);
@@ -1121,8 +1131,11 @@ impl Scenario for Tutorial11 {
         check_tutorial_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        builtin("tutorial/tutorial11.initial")
+    fn initial_code(&self) -> Vec<Code> {
+        vec![
+            builtin("tutorial/tutorial11.initial"),
+            builtin("tutorial/tutorial11.enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
@@ -1145,7 +1158,6 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(
             sim,
@@ -1162,8 +1174,8 @@ impl Scenario for FighterDuel {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1186,7 +1198,6 @@ impl Scenario for FrigateDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1203,8 +1214,8 @@ impl Scenario for FrigateDuel {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1227,7 +1238,6 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &reference_ai());
         ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1244,8 +1254,8 @@ impl Scenario for CruiserDuel {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1268,7 +1278,6 @@ impl Scenario for FrigateVsCruiser {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1285,8 +1294,8 @@ impl Scenario for FrigateVsCruiser {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    fn initial_code(&self) -> Vec<Code> {
+        vec![reference_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1309,7 +1318,6 @@ impl Scenario for CruiserVsFrigate {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1326,8 +1334,8 @@ impl Scenario for CruiserVsFrigate {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    fn initial_code(&self) -> Vec<Code> {
+        vec![reference_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1350,7 +1358,6 @@ impl Scenario for Furball {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &reference_ai());
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let fleet_radius = 500.0;
@@ -1376,8 +1383,8 @@ impl Scenario for Furball {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1400,7 +1407,6 @@ impl Scenario for Fleet {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &reference_ai());
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let signum = if team == 0 { -1.0 } else { 1.0 };
@@ -1450,8 +1456,8 @@ impl Scenario for Fleet {
         check_victory(sim)
     }
 
-    fn initial_code(&self) -> Code {
-        Code::None
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
     }
 
     fn solution(&self) -> Code {

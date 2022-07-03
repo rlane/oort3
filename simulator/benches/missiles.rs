@@ -1,9 +1,10 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use oort_simulator::scenario;
-use oort_simulator::simulation::{self, Code};
+use oort_simulator::simulation;
 
 fn missile_stress() {
-    let mut sim = simulation::Simulation::new("missile-stress", 0, &Code::None);
+    let scenario = scenario::load("missile-stress");
+    let mut sim = simulation::Simulation::new("missile-stress", 0, &scenario.solution_codes());
     while sim.status() == scenario::Status::Running {
         sim.step();
     }

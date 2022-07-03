@@ -33,13 +33,15 @@ impl Component for Benchmark {
         let scenario_name = context.props().scenario.clone();
         let seed = 0;
         let nonce = rand::thread_rng().gen();
-        let code = oort_simulator::scenario::load(&scenario_name).solution();
+        let scenario = oort_simulator::scenario::load(&scenario_name);
+        let mut codes = scenario.initial_code();
+        codes[0] = scenario.solution();
         let mut sim_agent =
             SimAgent::bridge(context.link().callback(Msg::ReceivedSimAgentResponse));
         sim_agent.send(oort_worker::Request::StartScenario {
             scenario_name: scenario_name.clone(),
             seed,
-            code,
+            codes,
             nonce,
         });
         for _ in 0..5 {

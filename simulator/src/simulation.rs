@@ -58,7 +58,7 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    pub fn new(scenario_name: &str, seed: u32, code: &Code) -> Box<Simulation> {
+    pub fn new(scenario_name: &str, seed: u32, codes: &[Code]) -> Box<Simulation> {
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
         let mut sim = Box::new(Simulation {
             scenario: None,
@@ -92,8 +92,10 @@ impl Simulation {
             timing: Default::default(),
         });
 
-        if !matches!(code, Code::None) {
-            sim.upload_code(/*team=*/ 0, code);
+        for (team, code) in codes.iter().enumerate() {
+            if !matches!(code, Code::None) {
+                sim.upload_code(team as i32, code);
+            }
         }
 
         let mut scenario = scenario::load(scenario_name);

@@ -10,13 +10,13 @@ pub enum Request {
     StartScenario {
         scenario_name: String,
         seed: u32,
-        code: Code,
+        codes: Vec<Code>,
         nonce: u32,
     },
     RunScenario {
         scenario_name: String,
         seed: u32,
-        code: Code,
+        codes: Vec<Code>,
     },
     Snapshot {
         nonce: u32,
@@ -55,10 +55,10 @@ impl Agent for SimAgent {
             Request::StartScenario {
                 scenario_name,
                 seed,
-                code,
+                codes,
                 nonce,
             } => {
-                self.sim = Some(Simulation::new(&scenario_name, seed, &code));
+                self.sim = Some(Simulation::new(&scenario_name, seed, &codes));
                 let snapshot = self.sim().snapshot(nonce);
                 self.errored = !snapshot.errors.is_empty();
                 self.link.respond(who, Response::Snapshot { snapshot });
@@ -66,9 +66,9 @@ impl Agent for SimAgent {
             Request::RunScenario {
                 scenario_name,
                 seed,
-                code,
+                codes,
             } => {
-                let mut sim = Simulation::new(&scenario_name, seed, &code);
+                let mut sim = Simulation::new(&scenario_name, seed, &codes);
                 while sim.status() == Status::Running && sim.tick() < 10000 {
                     sim.step();
                 }
