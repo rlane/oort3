@@ -11,6 +11,7 @@ use nalgebra::{vector, Rotation2, UnitComplex, Vector2};
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::f64::consts::TAU;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ShipHandle(pub Index);
@@ -61,6 +62,8 @@ pub struct Gun {
     pub speed: f64,
     pub offset: Vector2<f64>,
     pub angle: f64,
+    pub min_angle: f64,
+    pub max_angle: f64,
     pub inaccuracy: f64,
     pub burst_size: i32,
 }
@@ -122,6 +125,8 @@ pub fn fighter(team: i32) -> ShipData {
             speed: 1000.0,
             offset: vector![20.0, 0.0],
             angle: 0.0,
+            min_angle: 0.0,
+            max_angle: 0.0,
             inaccuracy: 0.017,
             burst_size: 1,
         }],
@@ -136,10 +141,10 @@ pub fn fighter(team: i32) -> ShipData {
         health: 100.0,
         team,
         max_acceleration: vector![200.0, 100.0],
-        max_angular_acceleration: std::f64::consts::TAU,
+        max_angular_acceleration: TAU,
         radar: Some(Radar {
             heading: 0.0,
-            width: std::f64::consts::TAU / 6.0,
+            width: TAU / 6.0,
             power: 20e3,
             rx_cross_section: 5.0,
             min_rssi: 1e-2,
@@ -162,6 +167,8 @@ pub fn frigate(team: i32) -> ShipData {
                 speed: 4000.0,
                 offset: vector![40.0, 0.0],
                 angle: 0.0,
+                min_angle: 0.0,
+                max_angle: 0.0,
                 inaccuracy: 0.0,
                 burst_size: 1,
             },
@@ -172,6 +179,8 @@ pub fn frigate(team: i32) -> ShipData {
                 speed: 1000.0,
                 offset: vector![0.0, 15.0],
                 angle: 0.0,
+                min_angle: 0.0,
+                max_angle: TAU,
                 inaccuracy: 0.017,
                 burst_size: 1,
             },
@@ -182,6 +191,8 @@ pub fn frigate(team: i32) -> ShipData {
                 speed: 1000.0,
                 offset: vector![0.0, -15.0],
                 angle: 0.0,
+                min_angle: 0.0,
+                max_angle: TAU,
                 inaccuracy: 0.017,
                 burst_size: 1,
             },
@@ -197,10 +208,10 @@ pub fn frigate(team: i32) -> ShipData {
         health: 10000.0,
         team,
         max_acceleration: vector![20.0, 10.0],
-        max_angular_acceleration: std::f64::consts::TAU / 8.0,
+        max_angular_acceleration: TAU / 8.0,
         radar: Some(Radar {
             heading: 0.0,
-            width: std::f64::consts::TAU / 6.0,
+            width: TAU / 6.0,
             power: 100e3,
             rx_cross_section: 10.0,
             min_rssi: 1e-2,
@@ -230,18 +241,20 @@ pub fn cruiser(team: i32) -> ShipData {
             speed: 1000.0,
             offset: vector![0.0, 0.0],
             angle: 0.0,
+            min_angle: 0.0,
+            max_angle: TAU,
             inaccuracy: 0.035,
             burst_size: 5,
         }],
         missile_launchers: vec![
             MissileLauncher {
                 offset: vector![0.0, 30.0],
-                angle: std::f64::consts::TAU / 4.0,
+                angle: TAU / 4.0,
                 ..missile_launcher
             },
             MissileLauncher {
                 offset: vector![0.0, -30.0],
-                angle: -std::f64::consts::TAU / 4.0,
+                angle: -TAU / 4.0,
                 ..missile_launcher
             },
             MissileLauncher {
@@ -256,10 +269,10 @@ pub fn cruiser(team: i32) -> ShipData {
         health: 10000.0,
         team,
         max_acceleration: vector![10.0, 5.0],
-        max_angular_acceleration: std::f64::consts::TAU / 16.0,
+        max_angular_acceleration: TAU / 16.0,
         radar: Some(Radar {
             heading: 0.0,
-            width: std::f64::consts::TAU / 6.0,
+            width: TAU / 6.0,
             power: 200e3,
             rx_cross_section: 20.0,
             min_rssi: 1e-2,
@@ -294,11 +307,11 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         health: 1.0,
         max_acceleration: vector![400.0, 100.0],
-        max_angular_acceleration: 2.0 * std::f64::consts::TAU,
+        max_angular_acceleration: 2.0 * TAU,
         team,
         radar: Some(Radar {
             heading: 0.0,
-            width: std::f64::consts::TAU / 6.0,
+            width: TAU / 6.0,
             power: 10e3,
             rx_cross_section: 3.0,
             min_rssi: 1e-2,
@@ -316,11 +329,11 @@ pub fn torpedo(team: i32) -> ShipData {
         class: ShipClass::Torpedo,
         health: 100.0,
         max_acceleration: vector![200.0, 50.0],
-        max_angular_acceleration: 2.0 * std::f64::consts::TAU,
+        max_angular_acceleration: 2.0 * TAU,
         team,
         radar: Some(Radar {
             heading: 0.0,
-            width: std::f64::consts::TAU / 6.0,
+            width: TAU / 6.0,
             power: 20e3,
             rx_cross_section: 3.0,
             min_rssi: 1e-2,
@@ -408,16 +421,6 @@ pub struct ShipAccessor<'a> {
     pub(crate) handle: ShipHandle,
 }
 
-fn normalize_heading(mut h: f64) -> f64 {
-    while h < 0.0 {
-        h += std::f64::consts::TAU;
-    }
-    while h > std::f64::consts::TAU {
-        h -= std::f64::consts::TAU;
-    }
-    h
-}
-
 impl<'a> ShipAccessor<'a> {
     pub fn exists(&self) -> bool {
         self.simulation.ship_data.contains_key(&self.handle)
@@ -439,7 +442,7 @@ impl<'a> ShipAccessor<'a> {
     }
 
     pub fn heading(&self) -> Real {
-        normalize_heading(self.body().rotation().angle())
+        self.body().rotation().angle().rem_euclid(TAU)
     }
 
     pub fn angular_velocity(&self) -> Real {
@@ -597,7 +600,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             return;
         }
         let gun = &mut ship_data.guns[index as usize];
-        gun.angle = angle;
+        gun.angle = angle.rem_euclid(TAU).clamp(gun.min_angle, gun.max_angle);
     }
 
     pub fn explode(&mut self) {
@@ -619,7 +622,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let ttl = 1.0;
         let mut rng = new_rng(0);
         for _ in 0..num {
-            let rot = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU));
+            let rot = Rotation2::new(rng.gen_range(0.0..TAU));
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             bullet::create(
                 self.simulation,
