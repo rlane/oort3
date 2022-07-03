@@ -11,6 +11,7 @@ use oort_simulator::{script, simulation};
 use oort_worker::SimAgent;
 use qstring::QString;
 use rand::Rng;
+use regex::Regex;
 use reqwasm::http::Request;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -138,13 +139,10 @@ impl Component for Game {
             }
             Msg::SelectScenario(scenario_name) => {
                 self.scenario_name = scenario_name;
-                let (code, compiled_code) = if context.props().demo {
-                    (
-                        oort_simulator::scenario::load(&self.scenario_name).solution(),
-                        oort_simulator::scenario::load(&self.scenario_name).compiled_solution(),
-                    )
+                let code = if context.props().demo {
+                    oort_simulator::scenario::load(&self.scenario_name).solution()
                 } else {
-                    (crate::codestorage::load(&self.scenario_name), Code::None)
+                    crate::codestorage::load(&self.scenario_name)
                 };
                 self.editor_link.with_editor(|editor| {
                     editor
@@ -152,7 +150,11 @@ impl Component for Game {
                         .unwrap()
                         .set_value(&code_to_string(&code));
                 });
-                self.run(context, &compiled_code);
+                if context.props().demo {
+                    self.run(context, &code);
+                } else {
+                    self.run(context, &Code::None);
+                }
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
@@ -166,7 +168,10 @@ impl Component for Game {
                 true
             }
             Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
-                let code = scenario::load(&self.scenario_name).initial_code();
+                let mut code = scenario::load(&self.scenario_name).initial_code();
+                if let Code::Builtin(name) = code {
+                    code = oort_simulator::script::builtin::load_source(&name).unwrap()
+                }
                 self.editor_link.with_editor(|editor| {
                     editor
                         .get_model()
@@ -176,7 +181,10 @@ impl Component for Game {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-load-solution" => {
-                let code = scenario::load(&self.scenario_name).solution();
+                let mut code = scenario::load(&self.scenario_name).solution();
+                if let Code::Builtin(name) = code {
+                    code = oort_simulator::script::builtin::load_source(&name).unwrap()
+                }
                 self.editor_link.with_editor(|editor| {
                     editor
                         .get_model()
@@ -523,7 +531,6 @@ impl Game {
     }
 
     pub fn make_editor_errors(error: &str) -> Vec<script::Error> {
-        use regex::Regex;
         let re = Regex::new(r"(?m)error.*?: (.*?)$\n.*?ai/src/user.rs:(\d+):").unwrap();
         re.captures_iter(error)
             .map(|m| script::Error {
@@ -635,6 +642,10 @@ impl Game {
 
                 self.overlay = Some(Overlay::Compiling);
             }
+            Code::Builtin(name) => match oort_simulator::script::builtin::load_compiled(&name) {
+                Ok(code) => success_callback.emit(code),
+                Err(e) => failure_callback.emit(e),
+            },
             _ => unreachable!(),
         }
     }
@@ -663,9 +674,15 @@ pub fn code_to_string(code: &Code) -> String {
         Code::None => "".to_string(),
         Code::Rust(s) => s.clone(),
         Code::Wasm(_) => "// wasm".to_string(),
+        Code::Builtin(name) => format!("#builtin:{}", name),
     }
 }
 
 pub fn str_to_code(s: &str) -> Code {
-    Code::Rust(s.to_string())
+    let re = Regex::new(r"#builtin:(.*)").unwrap();
+    if let Some(m) = re.captures(s) {
+        Code::Builtin(m[1].to_string())
+    } else {
+        Code::Rust(s.to_string())
+    }
 }

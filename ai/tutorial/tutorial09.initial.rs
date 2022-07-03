@@ -14,14 +14,14 @@ impl Ship {
             if let Some(contact) = scan() {
                 let dp = contact.position - position();
                 let dv = contact.velocity - velocity();
-                torque(20 * (angle_diff(heading(), dp.angle()) - 0.1 * angular_velocity()));
+                torque(20.0 * (angle_diff(heading(), dp.angle()) - 0.1 * angular_velocity()));
                 accelerate((dp + dv).rotate(-heading()));
-                if dp.magnitude() < 20 {
+                if dp.length() < 20.0 {
                     explode();
                 }
             }
         } else {
-            launch_missile(0);
+            launch_missile(0, 0.0);
         }
     }
 }

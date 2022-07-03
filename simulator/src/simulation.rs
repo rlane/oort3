@@ -26,6 +26,7 @@ pub enum Code {
     None,
     Rust(String),
     Wasm(Vec<u8>),
+    Builtin(String),
 }
 
 pub struct Simulation {

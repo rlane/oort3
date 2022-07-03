@@ -1,3 +1,4 @@
+pub mod builtin;
 pub mod wasm;
 
 use crate::ship::ShipHandle;
@@ -48,6 +49,10 @@ pub trait ShipController {
 pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
     match code {
         Code::Wasm(b) => WasmTeamController::create(b),
+        Code::Builtin(name) => match builtin::load_compiled(name) {
+            Ok(code) => new_team_controller(&code),
+            Err(e) => Err(Error { line: 0, msg: e }),
+        },
         _ => unreachable!(),
     }
 }

@@ -13,7 +13,7 @@ cd scratch/builtin_ai_sandbox
 AI_DIR=../../ai
 mkdir -p $AI_DIR/compiled/tutorial
 
-SRCS=$( (cd ai; find -path ./src -prune -o -name '*.rs' -not -name '*.initial.rs' -printf '%P\n') )
+SRCS=$( (cd ai; find -path ./src -prune -o -name '*.rs' -printf '%P\n') )
 for SRC in $SRCS
 do
   DST=${SRC/%.rs/.wasm}

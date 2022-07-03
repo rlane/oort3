@@ -18,20 +18,12 @@ pub enum Status {
     Failed,
 }
 
-fn rust(code: &str) -> Code {
-    Code::Rust(code.to_string())
-}
-
-fn wasm(code: &[u8]) -> Code {
-    Code::Wasm(code.to_vec())
+fn builtin(name: &str) -> Code {
+    Code::Builtin(name.to_string())
 }
 
 fn reference_ai() -> Code {
-    rust(include_str!("../../ai/reference.rs"))
-}
-
-fn compiled_reference_ai() -> Code {
-    wasm(include_bytes!("../../ai/compiled/reference.wasm"))
+    builtin("reference")
 }
 
 fn check_victory(sim: &Simulation) -> Status {
@@ -86,10 +78,6 @@ pub trait Scenario {
     }
 
     fn solution(&self) -> Code {
-        Code::None
-    }
-
-    fn compiled_solution(&self) -> Code {
         Code::None
     }
 
@@ -251,11 +239,7 @@ impl Scenario for GunneryScenario {
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/gunnery.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!("../../ai/compiled/gunnery.wasm"))
+        builtin("gunnery")
     }
 }
 
@@ -345,11 +329,7 @@ impl Scenario for MissileTest {
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/missile.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!("../../ai/compiled/missile.wasm"))
+        builtin("missile")
     }
 }
 
@@ -436,8 +416,8 @@ impl Scenario for MissileStressScenario {
             log::warn!("Ignoring nonzero seed {}", seed);
         }
         let mut rng = new_rng(0);
-        sim.upload_code(0, &compiled_reference_ai());
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(0, &reference_ai());
+        sim.upload_code(1, &reference_ai());
         add_walls(sim);
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -486,7 +466,7 @@ impl Scenario for WelcomeScenario {
         let rng = self.rng.as_mut().unwrap();
 
         add_walls(sim);
-        sim.upload_code(0, &compiled_reference_ai());
+        sim.upload_code(0, &reference_ai());
 
         let ship_datas = &[fighter(0), frigate(0), cruiser(0)];
         let ship_data = rng.sample(rand::distributions::Slice::new(ship_datas).unwrap());
@@ -512,11 +492,12 @@ impl Scenario for WelcomeScenario {
     }
 
     fn initial_code(&self) -> Code {
-        rust(
+        Code::Rust(
             "\
 // Welcome to Oort.
 // Select a scenario from the list in the top-right of the page.
-// If you're new, start with \"tutorial01\".",
+// If you're new, start with \"tutorial01\"."
+                .to_string(),
         )
     }
 }
@@ -539,17 +520,11 @@ impl Scenario for Tutorial01 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial01.initial.rs"))
+        builtin("tutorial/tutorial01.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial01.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial01.solution.wasm"
-        ))
+        builtin("tutorial/tutorial01.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -623,17 +598,11 @@ impl Scenario for Tutorial02 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial02.initial.rs"))
+        builtin("tutorial/tutorial02.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial02.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial02.solution.wasm"
-        ))
+        builtin("tutorial/tutorial02.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -715,17 +684,11 @@ impl Scenario for Tutorial03 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial03.initial.rs"))
+        builtin("tutorial/tutorial03.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial03.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial03.solution.wasm"
-        ))
+        builtin("tutorial/tutorial03.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -766,17 +729,11 @@ impl Scenario for Tutorial04 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial04.initial.rs"))
+        builtin("tutorial/tutorial04.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial04.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial04.solution.wasm"
-        ))
+        builtin("tutorial/tutorial04.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -815,12 +772,7 @@ impl Scenario for Tutorial05 {
             fighter_without_missiles(0),
         ));
 
-        sim.upload_code(
-            1,
-            &wasm(include_bytes!(
-                "../../ai/compiled/tutorial/tutorial05.enemy.wasm"
-            )),
-        );
+        sim.upload_code(1, &builtin("tutorial/tutorial05.enemy"));
 
         let mut rng = new_rng(seed);
         let size = 500.0;
@@ -858,17 +810,11 @@ impl Scenario for Tutorial05 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial05.initial.rs"))
+        builtin("tutorial/tutorial05.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial05.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial05.solution.wasm"
-        ))
+        builtin("tutorial/tutorial05.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -893,12 +839,7 @@ impl Scenario for Tutorial06 {
         add_walls(sim);
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
 
-        sim.upload_code(
-            1,
-            &wasm(include_bytes!(
-                "../../ai/compiled/tutorial/tutorial06.enemy.wasm"
-            )),
-        );
+        sim.upload_code(1, &builtin("tutorial/tutorial06.enemy"));
 
         let mut rng = new_rng(seed);
         let size = 500.0;
@@ -922,17 +863,11 @@ impl Scenario for Tutorial06 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial06.initial.rs"))
+        builtin("tutorial/tutorial06.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial06.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial06.solution.wasm"
-        ))
+        builtin("tutorial/tutorial06.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -956,12 +891,7 @@ impl Scenario for Tutorial07 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            &wasm(include_bytes!(
-                "../../ai/compiled/tutorial/tutorial07.enemy.wasm"
-            )),
-        );
+        sim.upload_code(1, &builtin("tutorial/tutorial07.enemy"));
 
         let mut rng = new_rng(seed);
         for team in 0..2 {
@@ -989,17 +919,11 @@ impl Scenario for Tutorial07 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial07.initial.rs"))
+        builtin("tutorial/tutorial07.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial07.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial07.solution.wasm"
-        ))
+        builtin("tutorial/tutorial07.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -1023,12 +947,7 @@ impl Scenario for Tutorial08 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            &wasm(include_bytes!(
-                "../../ai/compiled/tutorial/tutorial08.enemy.wasm"
-            )),
-        );
+        sim.upload_code(1, &builtin("tutorial/tutorial08.enemy"));
 
         let mut rng = new_rng(seed);
         {
@@ -1068,17 +987,11 @@ impl Scenario for Tutorial08 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial08.initial.rs"))
+        builtin("tutorial/tutorial08.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial08.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial08.solution.wasm"
-        ))
+        builtin("tutorial/tutorial08.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
@@ -1102,12 +1015,7 @@ impl Scenario for Tutorial09 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            &wasm(include_bytes!(
-                "../../ai/compiled/tutorial/tutorial09.enemy.wasm"
-            )),
-        );
+        sim.upload_code(1, &builtin("tutorial/tutorial09.enemy"));
 
         let mut shipdata = fighter(0);
         shipdata.guns.clear();
@@ -1128,17 +1036,11 @@ impl Scenario for Tutorial09 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial09.initial.rs"))
+        builtin("tutorial/tutorial09.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial09.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial09.solution.wasm"
-        ))
+        builtin("tutorial/tutorial09.solution")
     }
 }
 
@@ -1158,12 +1060,7 @@ impl Scenario for Tutorial10 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            &wasm(include_bytes!(
-                "../../ai/compiled/tutorial/tutorial10.enemy.wasm"
-            )),
-        );
+        sim.upload_code(1, &builtin("tutorial/tutorial10.enemy"));
 
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, frigate(0));
 
@@ -1182,17 +1079,11 @@ impl Scenario for Tutorial10 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial10.initial.rs"))
+        builtin("tutorial/tutorial10.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial10.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial10.solution.wasm"
-        ))
+        builtin("tutorial/tutorial10.solution")
     }
 }
 
@@ -1212,12 +1103,7 @@ impl Scenario for Tutorial11 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        sim.upload_code(
-            1,
-            &wasm(include_bytes!(
-                "../../ai/compiled/tutorial/tutorial11.enemy.wasm"
-            )),
-        );
+        sim.upload_code(1, &builtin("tutorial/tutorial11.enemy"));
 
         ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, cruiser(0));
 
@@ -1236,17 +1122,11 @@ impl Scenario for Tutorial11 {
     }
 
     fn initial_code(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial11.initial.rs"))
+        builtin("tutorial/tutorial11.initial")
     }
 
     fn solution(&self) -> Code {
-        rust(include_str!("../../ai/tutorial/tutorial11.solution.rs"))
-    }
-
-    fn compiled_solution(&self) -> Code {
-        wasm(include_bytes!(
-            "../../ai/compiled/tutorial/tutorial11.solution.wasm"
-        ))
+        builtin("tutorial/tutorial11.solution")
     }
 }
 
@@ -1265,7 +1145,7 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(
             sim,
@@ -1289,10 +1169,6 @@ impl Scenario for FighterDuel {
     fn solution(&self) -> Code {
         reference_ai()
     }
-
-    fn compiled_solution(&self) -> Code {
-        compiled_reference_ai()
-    }
 }
 
 struct FrigateDuel {}
@@ -1310,7 +1186,7 @@ impl Scenario for FrigateDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1334,10 +1210,6 @@ impl Scenario for FrigateDuel {
     fn solution(&self) -> Code {
         reference_ai()
     }
-
-    fn compiled_solution(&self) -> Code {
-        compiled_reference_ai()
-    }
 }
 
 struct CruiserDuel {}
@@ -1355,7 +1227,7 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(1, &reference_ai());
         ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1379,10 +1251,6 @@ impl Scenario for CruiserDuel {
     fn solution(&self) -> Code {
         reference_ai()
     }
-
-    fn compiled_solution(&self) -> Code {
-        compiled_reference_ai()
-    }
 }
 
 struct FrigateVsCruiser {}
@@ -1400,7 +1268,7 @@ impl Scenario for FrigateVsCruiser {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
@@ -1424,10 +1292,6 @@ impl Scenario for FrigateVsCruiser {
     fn solution(&self) -> Code {
         reference_ai()
     }
-
-    fn compiled_solution(&self) -> Code {
-        compiled_reference_ai()
-    }
 }
 
 struct CruiserVsFrigate {}
@@ -1445,7 +1309,7 @@ impl Scenario for CruiserVsFrigate {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(1, &reference_ai());
         ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
@@ -1469,10 +1333,6 @@ impl Scenario for CruiserVsFrigate {
     fn solution(&self) -> Code {
         reference_ai()
     }
-
-    fn compiled_solution(&self) -> Code {
-        compiled_reference_ai()
-    }
 }
 
 struct Furball {}
@@ -1490,7 +1350,7 @@ impl Scenario for Furball {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(1, &reference_ai());
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let fleet_radius = 500.0;
@@ -1523,10 +1383,6 @@ impl Scenario for Furball {
     fn solution(&self) -> Code {
         reference_ai()
     }
-
-    fn compiled_solution(&self) -> Code {
-        compiled_reference_ai()
-    }
 }
 
 struct Fleet {}
@@ -1544,7 +1400,7 @@ impl Scenario for Fleet {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        sim.upload_code(1, &compiled_reference_ai());
+        sim.upload_code(1, &reference_ai());
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let signum = if team == 0 { -1.0 } else { 1.0 };
@@ -1600,9 +1456,5 @@ impl Scenario for Fleet {
 
     fn solution(&self) -> Code {
         reference_ai()
-    }
-
-    fn compiled_solution(&self) -> Code {
-        compiled_reference_ai()
     }
 }
