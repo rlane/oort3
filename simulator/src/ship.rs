@@ -54,7 +54,7 @@ impl ShipClass {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Gun {
     pub reload_time: f64,
     pub reload_time_remaining: f64,
@@ -78,7 +78,7 @@ pub struct MissileLauncher {
     pub angle: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ShipData {
     pub class: ShipClass,
     pub guns: Vec<Gun>,

@@ -483,9 +483,14 @@ impl Scenario for WelcomeScenario {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         self.rng = Some(new_rng(seed));
+        let rng = self.rng.as_mut().unwrap();
+
         add_walls(sim);
         sim.upload_code(0, &compiled_reference_ai());
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+
+        let ship_datas = &[fighter(0), frigate(0), cruiser(0)];
+        let ship_data = rng.sample(rand::distributions::Slice::new(ship_datas).unwrap());
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship_data.clone());
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
