@@ -30,6 +30,8 @@ oort_shared = { path = "../shared" }
 wasmer = { version = "2.3.0", default-features = false }
 wasmer-compiler = { version = "2.3.0", features = ["universal_engine"] }
 wasmer-compiler-cranelift = { version = "2.3.0" }
+tar = "0.4.38"
+libflate = "1.2.0"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 

@@ -10,14 +10,18 @@ cp scripts/build-ai.sh scripts/build-ai-fast.sh scratch/builtin_ai_sandbox/scrip
 cd scratch/builtin_ai_sandbox
 ./scripts/build-ai.sh
 
-AI_DIR=../../ai
-mkdir -p $AI_DIR/compiled/tutorial
+cd ai
 
-SRCS=$( (cd ai; find -path ./src -prune -o -name '*.rs' -printf '%P\n') )
+SRCS=$( (find -path ./src -prune -o -name '*.rs' -printf '%P\n') )
 for SRC in $SRCS
 do
   DST=${SRC/%.rs/.wasm}
-  cp $AI_DIR/$SRC ai/src/user.rs
-  ./scripts/build-ai-fast.sh
-  wasm-opt -Oz -o $AI_DIR/compiled/$DST output.wasm
+  cp $SRC src/user.rs
+  (cd .. && ./scripts/build-ai-fast.sh)
+  wasm-opt -Oz -o $DST ../output.wasm
 done
+
+WASMS=$( (find -path ./src -prune -o -name '*.wasm' -printf '%P\n') )
+
+tar -czf builtin-ai.tar.gz $SRCS $WASMS
+cp builtin-ai.tar.gz ../../../ai/builtin-ai.tar.gz
