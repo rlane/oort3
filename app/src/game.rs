@@ -239,6 +239,7 @@ impl Component for Game {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
+                self.display_errors(&[]);
                 self.run(context, &code);
                 true
             }
@@ -246,6 +247,7 @@ impl Component for Game {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
+                self.display_errors(&Self::make_editor_errors(&error));
                 self.compiler_errors = Some(error);
                 true
             }
@@ -518,6 +520,17 @@ impl Game {
                 <Leaderboard scenario_name={ self.scenario_name.clone() }/>
             </div>
         }
+    }
+
+    pub fn make_editor_errors(error: &str) -> Vec<script::Error> {
+        use regex::Regex;
+        let re = Regex::new(r"(?m)error.*?: (.*?)$\n.*?ai/src/user.rs:(\d+):").unwrap();
+        re.captures_iter(error)
+            .map(|m| script::Error {
+                line: m[2].parse().unwrap(),
+                msg: m[1].to_string(),
+            })
+            .collect()
     }
 
     pub fn display_errors(&mut self, errors: &[script::Error]) {
