@@ -94,7 +94,7 @@ pub fn documentation() -> Html {
             <ul>
               <li><code>{ "angle_diff(a: f64, b: f64) → float" }</code>{ ": Returns the shortest (possibly negative) distance between two angles." }</li>
               <li><code>{ "rand(low: f64, high: f64) → f64" }</code>{ ": Get a random number." }</li>
-              <li><code>{ "debug_text(msg: &str)" }</code>{ ": Add text to be displayed when the ship is selected by clicking on it." }</li>
+              <li><code>{ "debug!(...)" }</code>{ ": Add text to be displayed when the ship is selected by clicking on it. Works just like " }<code>{ "println!" }</code>{ "." }</li>
               <li>{ "Not yet implemented: "}<code>{ "debug_line(v0, v1, color: int)" }</code>{ ": Draw a line. Color is 24-bit RGB." }</li>
               <li><code>{ "orders() → f64" }</code>{ ": Returns the orders passed to "}<code>{ "launch_missile" }</code>{ "." }</li>
               <li><code>{ "seed() → u128" }</code>{ ": Returns a seed useful for initializing a random number generator." }</li>

@@ -193,13 +193,24 @@ pub mod api {
     }
 }
 
+#[macro_use]
 pub mod debug {
     use crate::sys::write_system_state;
     static mut TEXT_BUFFER: heapless::String<1024> = heapless::String::new();
 
-    pub fn text(s: &str) {
+    #[macro_export]
+    macro_rules! debug {
+        ($($arg:tt)*) => {
+            crate::debug::write(std::format_args!($($arg)*))
+        };
+    }
+
+    #[allow(unused)]
+    pub(super) fn write(args: std::fmt::Arguments) {
+        use std::fmt::Write;
         unsafe {
-            TEXT_BUFFER.push_str(s).unwrap();
+            let _ = std::fmt::write(&mut TEXT_BUFFER, args);
+            let _ = TEXT_BUFFER.push('\n');
         }
     }
 
@@ -224,10 +235,10 @@ pub mod debug {
 
 pub mod prelude {
     pub use super::api::*;
-    pub use super::debug;
     pub use super::math::*;
     pub use super::rng::*;
     pub use super::vec::*;
+    pub use crate::debug;
     pub use oort_shared::*;
 }
 

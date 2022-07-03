@@ -36,7 +36,7 @@ impl Ship {
             let error = vec2(predicted_dp.length(), 0.0)
                 .rotate(heading())
                 .distance(predicted_dp);
-            debug::text(&format!("error = {}\n", error));
+            debug!("error = {}", error);
             if error <= 10.0 {
                 fire_gun(0);
             }
