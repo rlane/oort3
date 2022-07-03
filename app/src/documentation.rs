@@ -61,9 +61,11 @@ pub fn documentation() -> Html {
             <h2>{ "Radar" }</h2>
             <ul>
               <li><code>{ "set_radar_heading(angle: f64)" }</code>{ ": Point the radar at the given heading." }</li>
+              <li><code>{ "radar_heading() -> f64" }</code>{ ": Get current radar heading." }</li>
               <li><code>{ "set_radar_width(width: f64)" }</code>{ ": Adjust the width of the radar beam (in radians)." }</li>
-              <li><code>{ "scan() → Option<ScanResult>" }</code>{ ": Find the closest enemy ship illuminated by the radar." }</li>
-              <li><code>{ "ScanResult { position: Vec2, velocity: Vec2 }" }</code></li>
+              <li><code>{ "radar_width() -> f64" }</code>{ ": Get current radar width." }</li>
+              <li><code>{ "scan() → Option<ScanResult>" }</code>{ ": Find an enemy ship illuminated by the radar." }</li>
+              <li><code>{ "struct ScanResult { position: Vec2, velocity: Vec2 }" }</code></li>
             </ul>
 
             <h2>{ "Scalar Math" }</h2>

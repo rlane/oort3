@@ -153,8 +153,16 @@ pub mod api {
         write_system_state(SystemState::Explode, 1.0);
     }
 
+    pub fn radar_heading() -> f64 {
+        read_system_state(SystemState::RadarHeading)
+    }
+
     pub fn set_radar_heading(heading: f64) {
         write_system_state(SystemState::RadarHeading, heading);
+    }
+
+    pub fn radar_width() -> f64 {
+        read_system_state(SystemState::RadarWidth)
     }
 
     pub fn set_radar_width(width: f64) {

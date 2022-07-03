@@ -2,17 +2,14 @@
 // Destroy the enemy ships with your Cruiser.
 use crate::prelude::*;
 
-pub struct Ship {
-    ticks: i64,
-}
+pub struct Ship {}
 
 impl Ship {
     pub fn new() -> Ship {
-        Ship { ticks: 0 }
+        Ship {}
     }
 
     pub fn tick(&mut self) {
-        self.ticks += 1;
         if class() == Class::Missile {
             if let Some(contact) = scan() {
                 seek(contact.position, contact.velocity);
@@ -42,7 +39,7 @@ impl Ship {
                 turn_to(dp.angle(), 0.0);
                 set_radar_heading(dp.angle() - heading());
             } else {
-                set_radar_heading(self.ticks as f64 * (TAU / 32.0) - heading());
+                set_radar_heading(radar_heading() + TAU / 32.0);
             }
         }
     }

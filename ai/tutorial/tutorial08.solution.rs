@@ -2,17 +2,14 @@
 // Destroy the enemy ships. They are initially outside of your radar range.
 use crate::prelude::*;
 
-pub struct Ship {
-    ticks: i64,
-}
+pub struct Ship {}
 
 impl Ship {
     pub fn new() -> Ship {
-        Ship { ticks: 0 }
+        Ship {}
     }
 
     pub fn tick(&mut self) {
-        self.ticks += 1;
         set_radar_width(TAU / 60.0);
         if let Some(contact) = scan() {
             accelerate(0.1 * (contact.position - position()).rotate(-heading()));
@@ -26,7 +23,7 @@ impl Ship {
             fire_gun(0);
             set_radar_heading((contact.position - position()).angle() - heading());
         } else {
-            set_radar_heading(self.ticks as f64 * std::f64::consts::TAU / 60.0);
+            set_radar_heading(radar_heading() + TAU / 60.0);
         }
     }
 }

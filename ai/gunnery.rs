@@ -1,20 +1,17 @@
 use crate::prelude::*;
 
 pub struct Ship {
-    ticks: i64,
     last_target_heading: f64,
 }
 
 impl Ship {
     pub fn new() -> Ship {
         Ship {
-            ticks: 0,
             last_target_heading: 0.0,
         }
     }
 
     pub fn tick(&mut self) {
-        self.ticks += 1;
         if let Some(contact) = scan() {
             let bullet_speed = 4000.0;
             let bullet_offset = 40.0;
@@ -46,7 +43,7 @@ impl Ship {
             set_radar_heading(next_tick_dp.angle() - heading());
         } else {
             set_radar_width(TAU / 32.0);
-            set_radar_heading(self.ticks as f64 * (TAU / 32.0) - heading());
+            set_radar_heading(radar_heading() + TAU / 32.0);
         }
     }
 }

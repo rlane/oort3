@@ -152,6 +152,11 @@ impl ShipController for WasmShipController {
                 sim.ship(self.handle).angular_velocity(),
             );
 
+            if let Some(radar) = sim.ship(self.handle).radar() {
+                state.set(SystemState::RadarHeading, radar.heading);
+                state.set(SystemState::RadarWidth, radar.width);
+            }
+
             if let Some(contact) = crate::radar::scan(sim, self.handle) {
                 state.set(SystemState::RadarContactFound, 1.0);
                 state.set(SystemState::RadarContactPositionX, contact.position.x);
