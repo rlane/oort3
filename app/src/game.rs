@@ -55,7 +55,6 @@ enum Overlay {
     #[allow(dead_code)]
     MissionComplete,
     Compiling,
-    CompileError(String),
 }
 
 pub struct Game {
@@ -76,6 +75,7 @@ pub struct Game {
     current_decorations: js_sys::Array,
     saw_slow_compile: bool,
     local_compiler: bool,
+    compiler_errors: Option<String>,
 }
 
 #[derive(Properties, PartialEq)]
@@ -120,6 +120,7 @@ impl Component for Game {
             current_decorations: js_sys::Array::new(),
             saw_slow_compile: false,
             local_compiler,
+            compiler_errors: None,
         }
     }
 
@@ -242,7 +243,10 @@ impl Component for Game {
                 true
             }
             Msg::CompileFailed(error) => {
-                self.overlay = Some(Overlay::CompileError(error));
+                if matches!(self.overlay, Some(Overlay::Compiling)) {
+                    self.overlay = None;
+                }
+                self.compiler_errors = Some(error);
                 true
             }
             Msg::CompileSlow => {
@@ -304,6 +308,7 @@ impl Component for Game {
                 <div id="username" class="toolbar-elem right" title="Your username">{ username }</div>
             </div>
             { self.render_overlay(context) }
+            { self.render_compiler_errors(context) }
         </>
         }
     }
@@ -439,11 +444,25 @@ impl Game {
                         Some(Overlay::Documentation) => html! { <crate::documentation::Documentation /> },
                         Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(context),
                         Some(Overlay::Compiling) => html! { <h1 class="compiling">{ "Compiling..." }</h1> },
-                        Some(Overlay::CompileError(e)) => html! { <pre><h1>{ "Compile error" }</h1>{ e }</pre> },
                         None => unreachable!(),
                     }
                 }</div>
             </div>
+        }
+    }
+
+    fn render_compiler_errors(&self, _context: &yew::Context<Self>) -> Html {
+        if let Some(e) = self.compiler_errors.as_ref() {
+            html! {
+                <div id="compiler-errors">
+                    <pre>
+                        <h1>{ "Compile error" }</h1>
+                        { e }
+                    </pre>
+                </div>
+            }
+        } else {
+            html! {}
         }
     }
 
@@ -543,6 +562,7 @@ impl Game {
 
     pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
         self.ui = None;
+        self.compiler_errors = None;
         self.nonce = rand::thread_rng().gen();
         self.running_source_code = code.clone();
         let success_callback = context.link().callback(Msg::CompileSucceeded);
@@ -607,6 +627,7 @@ impl Game {
     }
 
     pub fn run(&mut self, context: &Context<Self>, code: &Code) {
+        self.compiler_errors = None;
         self.running_code = code.clone();
         let seed = rand::thread_rng().gen();
         self.ui = Some(Box::new(UI::new(
