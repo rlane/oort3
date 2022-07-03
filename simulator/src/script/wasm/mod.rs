@@ -175,6 +175,17 @@ impl ShipController for WasmShipController {
                 state.set(SystemState::RadarContactFound, 0.0);
             }
 
+            {
+                let ship = sim.ship(self.handle);
+                let data = ship.data();
+                state.set(SystemState::MaxAccelerationX, data.max_acceleration.x);
+                state.set(SystemState::MaxAccelerationY, data.max_acceleration.y);
+                state.set(
+                    SystemState::MaxAngularAcceleration,
+                    data.max_angular_acceleration,
+                );
+            }
+
             self.write_system_state(&state);
         }
 

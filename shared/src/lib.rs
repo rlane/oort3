@@ -45,6 +45,11 @@ pub enum SystemState {
 
     DebugTextPointer,
     DebugTextLength,
+
+    MaxAccelerationX,
+    MaxAccelerationY,
+    MaxAngularAcceleration,
+
     Size,
 }
 

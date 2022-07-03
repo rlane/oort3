@@ -114,7 +114,7 @@ impl Ship {
     }
 
     fn missile_tick(&mut self) {
-        let acc = 400.0;
+        let acc = max_acceleration().x;
 
         if !self.has_locked {
             set_radar_heading((self.target_position - position()).angle() - heading());
@@ -171,7 +171,7 @@ impl Ship {
     }
 
     fn torpedo_tick(&mut self) {
-        let mut acc = 1000.0;
+        let mut acc = max_acceleration().x;
         self.target_velocity = velocity();
         self.ticks += 1;
 
@@ -213,7 +213,7 @@ impl Ship {
                 return;
             }
         } else {
-            acc /= 10.0;
+            acc /= 2.0;
         }
 
         let predicted_position =
@@ -240,12 +240,7 @@ impl Ship {
     }
 
     fn turn_to(&mut self, target_heading: f64, target_angular_velocity: f64) {
-        let mut acc = TAU;
-        if class() == Class::Frigate {
-            acc = TAU / 6.0;
-        } else if class() == Class::Cruiser {
-            acc = TAU / 16.0;
-        }
+        let acc = max_angular_acceleration();
         let dh = angle_diff(heading(), target_heading);
         let vh = angular_velocity() - target_angular_velocity;
         let t = (vh / acc).abs();

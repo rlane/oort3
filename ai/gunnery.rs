@@ -49,7 +49,7 @@ impl Ship {
 }
 
 fn turn_to(target_heading: f64, target_angular_velocity: f64) {
-    let acc = TAU / 8.0;
+    let acc = max_angular_acceleration();
     let dh = angle_diff(heading(), target_heading);
     let vh = angular_velocity() - target_angular_velocity;
     let t = (vh / acc).abs();

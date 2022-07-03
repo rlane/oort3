@@ -192,6 +192,17 @@ pub mod api {
         })
     }
 
+    pub fn max_acceleration() -> Vec2 {
+        vec2(
+            read_system_state(SystemState::MaxAccelerationX),
+            read_system_state(SystemState::MaxAccelerationY),
+        )
+    }
+
+    pub fn max_angular_acceleration() -> f64 {
+        read_system_state(SystemState::MaxAngularAcceleration)
+    }
+
     // Only used in tutorials.
     pub fn target() -> Vec2 {
         vec2(

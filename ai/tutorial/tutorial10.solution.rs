@@ -62,7 +62,7 @@ pub fn seek(p: Vec2, v: Vec2) {
 }
 
 fn turn_to(target_heading: f64, target_angular_velocity: f64) {
-    let mut acc = 2.0 * TAU;
+    let acc = max_angular_acceleration();
     let dh = angle_diff(heading(), target_heading);
     let vh = angular_velocity() - target_angular_velocity;
     let t = (vh / acc).abs();

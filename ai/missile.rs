@@ -34,13 +34,13 @@ pub fn seek(p: Vec2, v: Vec2) {
 
     const N: f64 = 4.0;
     let a = vec2(100.0, N * closing_speed * los_rate).rotate(los);
-    let a = vec2(400.0, 0.0).rotate(a.angle());
+    let a = vec2(max_acceleration().x, 0.0).rotate(a.angle());
     accelerate(a.rotate(-heading()));
     turn_to(a.angle(), 0.0);
 }
 
 fn turn_to(target_heading: f64, target_angular_velocity: f64) {
-    let acc = 2.0 * TAU;
+    let acc = max_angular_acceleration();
     let dh = angle_diff(heading(), target_heading);
     let vh = angular_velocity() - target_angular_velocity;
     let t = (vh / acc).abs();
