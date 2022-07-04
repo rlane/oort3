@@ -1,3 +1,4 @@
+use crate::filesystem;
 use crate::leaderboard::Leaderboard;
 use crate::telemetry::Telemetry;
 use crate::ui::UI;
@@ -49,6 +50,7 @@ pub enum Msg {
     CompileSucceeded(Code),
     CompileFailed(String),
     CompileSlow,
+    LoadedCodeFromDisk(String),
 }
 
 enum Overlay {
@@ -201,6 +203,16 @@ impl Component for Game {
                 });
                 false
             }
+            Msg::EditorAction(ref action) if action == "oort-load-file" => {
+                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
+                filesystem::load(Box::new(move |text| cb.emit(text)));
+                false
+            }
+            Msg::EditorAction(ref action) if action == "oort-reload-file" => {
+                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
+                filesystem::reload(Box::new(move |text| cb.emit(text)));
+                false
+            }
             Msg::EditorAction(action) => {
                 log::info!("Got unexpected editor action {}", action);
                 false
@@ -271,6 +283,12 @@ impl Component for Game {
             }
             Msg::CompileSlow => {
                 self.saw_slow_compile = true;
+                false
+            }
+            Msg::LoadedCodeFromDisk(text) => {
+                self.editor_link.with_editor(|editor| {
+                    editor.get_model().unwrap().set_value(&text);
+                });
                 false
             }
         }
@@ -376,6 +394,16 @@ impl Component for Game {
                 add_action("oort-restore-initial-code", "Restore initial code", None);
 
                 add_action("oort-load-solution", "Load solution", None);
+
+                add_action("oort-load-file", "Load from a file", None);
+
+                add_action(
+                    "oort-reload-file",
+                    "Reload from file",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyY as u32,
+                    ),
+                );
 
                 {
                     let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();

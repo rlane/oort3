@@ -2,6 +2,7 @@ pub mod benchmark;
 pub mod code_size;
 pub mod codestorage;
 pub mod documentation;
+pub mod filesystem;
 pub mod game;
 pub mod js;
 pub mod leaderboard;
