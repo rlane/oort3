@@ -226,15 +226,15 @@ impl Scenario for GunneryScenario {
         ship_data.guns.pop();
         ship_data.missile_launchers.pop();
         ship_data.acceleration = vector![0.0, 0.0];
-        ship::create(sim, -5000.0, 0.0, 0.0, 0.0, 0.0, ship_data);
+        ship::create(sim, -9000.0, 0.0, 0.0, 0.0, 0.0, ship_data);
         let mut rng = new_rng(seed);
         for _ in 0..4 {
             ship::create(
                 sim,
-                6000.0 + rng.gen_range(-500.0..500.0),
-                -2000.0 + rng.gen_range(-500.0..500.0),
+                9000.0 + rng.gen_range(-500.0..500.0),
+                -9000.0 + rng.gen_range(-500.0..500.0),
                 0.0 + rng.gen_range(-10.0..10.0),
-                700.0 + rng.gen_range(-300.0..300.0),
+                700.0 + rng.gen_range(-300.0..600.0),
                 std::f64::consts::PI,
                 target(1),
             );

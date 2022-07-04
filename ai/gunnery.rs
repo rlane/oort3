@@ -1,17 +1,26 @@
 use crate::prelude::*;
 
+const TRACK_RADAR_WIDTH: f64 = TAU / 4096.0;
+const SEARCH_RADAR_WIDTH: f64 = TAU / 256.0;
+const RELOAD_TICKS: i64 = 60;
+
 pub struct Ship {
     last_target_heading: f64,
+    ticks_since_fired: i64,
 }
 
 impl Ship {
     pub fn new() -> Ship {
+        set_radar_width(SEARCH_RADAR_WIDTH);
+        set_radar_heading(TAU / 8.0);
         Ship {
             last_target_heading: 0.0,
+            ticks_since_fired: RELOAD_TICKS,
         }
     }
 
     pub fn tick(&mut self) {
+        self.ticks_since_fired += 1;
         if let Some(contact) = scan() {
             let bullet_speed = 4000.0;
             let bullet_offset = 40.0;
@@ -19,11 +28,19 @@ impl Ship {
             let dp = contact.position - position();
             let dv = contact.velocity - velocity();
             let mut predicted_dp = dp;
-            for _ in 0..10 {
+            let mut iterations = 0;
+            for _ in 0..100 {
+                iterations += 1;
                 let dist = predicted_dp.length() - bullet_offset;
                 let t = dist / bullet_speed;
-                predicted_dp = dp + t * dv;
+                let new_predicted_dp = dp + t * dv;
+                let delta = predicted_dp.distance(new_predicted_dp);
+                predicted_dp = new_predicted_dp;
+                if delta < 1e-3 {
+                    break;
+                }
             }
+            debug!("prediction iterations: {}", iterations);
 
             let target_heading = predicted_dp.angle();
             let target_angular_velocity = (target_heading - self.last_target_heading) * 60.0;
@@ -34,16 +51,27 @@ impl Ship {
                 .rotate(heading())
                 .distance(predicted_dp);
             debug!("error = {}", error);
-            if error <= 10.0 {
+            debug!("ticks since fired = {}", self.ticks_since_fired);
+            if error <= 5.0
+                && radar_width() <= TRACK_RADAR_WIDTH
+                && self.ticks_since_fired >= RELOAD_TICKS
+            {
+                debug!("shot");
                 fire_gun(0);
+                set_radar_width(SEARCH_RADAR_WIDTH);
+                set_radar_heading(radar_heading() - SEARCH_RADAR_WIDTH);
+                self.ticks_since_fired = 0;
+            } else {
+                let next_tick_dp = dp + dv / 60.0;
+                set_radar_heading(next_tick_dp.angle() - heading());
+                set_radar_width((radar_width() / 2.0).max(TRACK_RADAR_WIDTH));
             }
-
-            set_radar_width(TAU / 128.0);
-            let next_tick_dp = dp + dv / 60.0;
-            set_radar_heading(next_tick_dp.angle() - heading());
         } else {
-            set_radar_width(TAU / 32.0);
-            set_radar_heading(radar_heading() + TAU / 32.0);
+            set_radar_width(SEARCH_RADAR_WIDTH);
+            set_radar_heading(radar_heading() - SEARCH_RADAR_WIDTH);
+            if radar_heading() < -TAU / 8.0 {
+                set_radar_heading(TAU / 8.0);
+            }
         }
     }
 }
