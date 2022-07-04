@@ -4,32 +4,37 @@ use rayon::prelude::*;
 use test_log::test;
 
 fn check_solution(scenario_name: &str) {
-    let check_once = || -> u64 {
-        let scenario = scenario::load(scenario_name);
-        let mut codes = scenario.initial_code();
-        codes[0] = scenario.solution().clone();
-        let mut sim = simulation::Simulation::new(scenario_name, 0, &codes);
+    (0..10u32).into_par_iter().for_each(|seed| {
+        let check_once = |seed: u32| -> u64 {
+            let scenario = scenario::load(scenario_name);
+            let mut codes = scenario.initial_code();
+            codes[0] = scenario.solution().clone();
+            let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
 
-        let mut i = 0;
-        while sim.status() == scenario::Status::Running && i < 10000 {
-            sim.step();
-            i += 1;
-        }
+            let mut i = 0;
+            while sim.status() == scenario::Status::Running && i < 10000 {
+                sim.step();
+                i += 1;
+            }
 
+            assert_eq!(
+                sim.status(),
+                scenario::Status::Victory { team: 0 },
+                "tutorial {} did not succeed",
+                scenario_name
+            );
+            sim.hash()
+        };
+        let hashes: Vec<u64> = (0..2usize)
+            .into_par_iter()
+            .map(|_| check_once(seed))
+            .collect();
         assert_eq!(
-            sim.status(),
-            scenario::Status::Victory { team: 0 },
-            "tutorial {} did not succeed",
+            hashes[0], hashes[1],
+            "tutorial {} was not deterministic",
             scenario_name
         );
-        sim.hash()
-    };
-    let hashes: Vec<u64> = (0..2usize).into_par_iter().map(|_| check_once()).collect();
-    assert_eq!(
-        hashes[0], hashes[1],
-        "tutorial {} was not deterministic",
-        scenario_name
-    );
+    });
 }
 
 #[test]
