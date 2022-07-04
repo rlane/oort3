@@ -2,6 +2,7 @@ use super::index_set::{HasIndex, Index};
 use super::rng::new_rng;
 use crate::model;
 use crate::radar::Radar;
+use crate::radio::Radio;
 use crate::rng;
 use crate::simulation;
 use crate::simulation::Simulation;
@@ -92,6 +93,7 @@ pub struct ShipData {
     pub destroyed: bool,
     pub radar: Option<Radar>,
     pub radar_cross_section: f64,
+    pub radio: Option<Radio>,
     pub ttl: Option<u64>,
 }
 
@@ -110,8 +112,20 @@ impl Default for ShipData {
             destroyed: false,
             radar: None,
             radar_cross_section: 10.0,
+            radio: None,
             ttl: None,
         }
+    }
+}
+
+fn radio() -> Radio {
+    Radio {
+        power: 20e3,
+        rx_cross_section: 5.0,
+        min_rssi: 1e-2,
+        channel: 0,
+        sent: None,
+        received: None,
     }
 }
 
@@ -152,6 +166,7 @@ pub fn fighter(team: i32) -> ShipData {
             result: None,
         }),
         radar_cross_section: 10.0,
+        radio: Some(radio()),
         ..Default::default()
     }
 }
@@ -219,6 +234,7 @@ pub fn frigate(team: i32) -> ShipData {
             result: None,
         }),
         radar_cross_section: 30.0,
+        radio: Some(radio()),
         ..Default::default()
     }
 }
@@ -280,6 +296,7 @@ pub fn cruiser(team: i32) -> ShipData {
             result: None,
         }),
         radar_cross_section: 40.0,
+        radio: Some(radio()),
         ..Default::default()
     }
 }
@@ -319,6 +336,7 @@ pub fn missile(team: i32) -> ShipData {
             result: None,
         }),
         radar_cross_section: 3.0,
+        radio: Some(radio()),
         ttl: Some(600),
         ..Default::default()
     }
@@ -341,6 +359,7 @@ pub fn torpedo(team: i32) -> ShipData {
             result: None,
         }),
         radar_cross_section: 8.0,
+        radio: Some(radio()),
         ttl: Some(1200),
         ..Default::default()
     }
@@ -456,6 +475,10 @@ impl<'a> ShipAccessor<'a> {
     pub fn radar(&self) -> Option<&Radar> {
         self.data().radar.as_ref()
     }
+
+    pub fn radio(&self) -> Option<&Radio> {
+        self.data().radio.as_ref()
+    }
 }
 
 pub struct ShipAccessorMut<'a> {
@@ -481,6 +504,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
     pub fn radar_mut(&mut self) -> Option<&mut Radar> {
         self.data_mut().radar.as_mut()
+    }
+
+    pub fn radio_mut(&mut self) -> Option<&mut Radio> {
+        self.data_mut().radio.as_mut()
     }
 
     pub fn accelerate(&mut self, acceleration: Vector2<f64>) {

@@ -50,6 +50,10 @@ pub enum SystemState {
     MaxAccelerationY,
     MaxAngularAcceleration,
 
+    RadioChannel,
+    RadioSend,
+    RadioReceive,
+
     Size,
 }
 

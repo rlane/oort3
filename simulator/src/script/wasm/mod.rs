@@ -1,9 +1,5 @@
 // TODO:
-// - Debug log
 // - Debug lines
-// - Vec2 methods and overloads
-// - Angle utilities
-// - RNG
 
 use super::{ShipController, TeamController};
 use crate::ship::{ShipClass, ShipHandle};
@@ -186,6 +182,12 @@ impl ShipController for WasmShipController {
                 );
             }
 
+            if let Some(radio) = sim.ship(self.handle).data().radio.as_ref() {
+                state.set(SystemState::RadioChannel, radio.channel as f64);
+                state.set(SystemState::RadioReceive, radio.received.unwrap_or(0.0));
+                state.set(SystemState::RadioSend, 0.0);
+            }
+
             self.write_system_state(&state);
         }
 
@@ -254,6 +256,14 @@ impl ShipController for WasmShipController {
                 let length = state.get(SystemState::DebugTextLength) as u32;
                 if let Some(s) = self.read_string(offset, length) {
                     sim.emit_debug_text(self.handle, s);
+                }
+            }
+
+            if let Some(radio) = sim.ship_mut(self.handle).data_mut().radio.as_mut() {
+                radio.channel = state.get(SystemState::RadioChannel) as usize;
+                let data = state.get(SystemState::RadioSend);
+                if data != 0.0 {
+                    radio.sent = Some(data);
                 }
             }
 

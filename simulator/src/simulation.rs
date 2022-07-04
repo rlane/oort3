@@ -3,6 +3,7 @@ use crate::debug;
 pub use crate::debug::Line;
 use crate::index_set::IndexSet;
 use crate::radar;
+use crate::radio;
 use crate::scenario;
 use crate::scenario::Scenario;
 use crate::script;
@@ -157,6 +158,7 @@ impl Simulation {
 
         self.step_bullets();
         radar::tick(self);
+        radio::tick(self);
 
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();

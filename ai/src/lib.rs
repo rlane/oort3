@@ -192,6 +192,22 @@ pub mod api {
         })
     }
 
+    pub fn set_radio_channel(channel: usize) {
+        write_system_state(SystemState::RadioChannel, channel as f64);
+    }
+
+    pub fn get_radio_channel() -> usize {
+        read_system_state(SystemState::RadioChannel) as usize
+    }
+
+    pub fn send(data: f64) {
+        write_system_state(SystemState::RadioSend, data);
+    }
+
+    pub fn receive() -> f64 {
+        read_system_state(SystemState::RadioReceive)
+    }
+
     pub fn max_acceleration() -> Vec2 {
         vec2(
             read_system_state(SystemState::MaxAccelerationX),

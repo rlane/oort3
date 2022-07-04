@@ -70,6 +70,14 @@ pub fn documentation() -> Html {
               <li><code>{ "struct ScanResult { position: Vec2, velocity: Vec2 }" }</code></li>
             </ul>
 
+            <h2>{ "Radio" }</h2>
+            <ul>
+              <li><code>{ "set_radio_channel(channel: usize)" }</code>{ ": Change the radio channel (0 to 9). Takes effect next tick." }</li>
+              <li><code>{ "get_radio_channel() -> usize" }</code>{ ": Get the radio channel." }</li>
+              <li><code>{ "send(data: f64)" }</code>{ ": Send a message on a channel." }</li>
+              <li><code>{ "receive() -> f64" }</code>{ ": Receive a message from the channel. The message with the strongest signal is returned." }</li>
+            </ul>
+
             <h2>{ "Scalar Math" }</h2>
             <ul>
               <li><code>{ "PI, TAU" }</code>{ ": Constants."}</li>
