@@ -61,26 +61,22 @@ pub fn tick(sim: &mut Simulation) {
     }
 
     for channel in 0..NUM_CHANNELS {
-        if let Some(rxs) = receivers.get(&channel) {
-            if let Some(txs) = senders.get(&channel) {
-                for rx in rxs {
-                    let mut best_data = None;
-                    let mut best_rssi = rx.min_rssi;
-                    for tx in txs {
-                        let rssi = compute_rssi(tx, rx);
-                        if rssi > best_rssi {
-                            best_rssi = rssi;
-                            best_data = Some(tx.data);
-                        }
-                    }
-                    sim.ship_mut(rx.handle)
-                        .data_mut()
-                        .radio
-                        .as_mut()
-                        .unwrap()
-                        .received = best_data;
+        for rx in receivers.get(&channel).unwrap_or(&Vec::new()) {
+            let mut best_data = None;
+            let mut best_rssi = rx.min_rssi;
+            for tx in senders.get(&channel).unwrap_or(&Vec::new()) {
+                let rssi = compute_rssi(tx, rx);
+                if rssi > best_rssi {
+                    best_rssi = rssi;
+                    best_data = Some(tx.data);
                 }
             }
+            sim.ship_mut(rx.handle)
+                .data_mut()
+                .radio
+                .as_mut()
+                .unwrap()
+                .received = best_data;
         }
     }
 
@@ -114,12 +110,19 @@ mod test {
         sim.step();
 
         assert!(sim.ship(ship0).radio().unwrap().received.is_none());
+        assert!(sim.ship(ship1).radio().unwrap().received.is_none());
 
         sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(1.0);
 
         sim.step();
 
         assert_eq!(sim.ship(ship0).radio().unwrap().received, Some(1.0));
+        assert_eq!(sim.ship(ship1).radio().unwrap().received, Some(1.0));
+
+        sim.step();
+
+        assert!(sim.ship(ship0).radio().unwrap().received.is_none());
+        assert!(sim.ship(ship1).radio().unwrap().received.is_none());
     }
 
     #[test]

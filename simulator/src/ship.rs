@@ -119,10 +119,11 @@ impl Default for ShipData {
 }
 
 fn radio() -> Radio {
+    // TODO tune this
     Radio {
         power: 20e3,
         rx_cross_section: 5.0,
-        min_rssi: 1e-2,
+        min_rssi: 1e-5,
         channel: 0,
         sent: None,
         received: None,
