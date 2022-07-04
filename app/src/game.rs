@@ -376,6 +376,15 @@ impl Component for Game {
                 add_action("oort-restore-initial-code", "Restore initial code", None);
 
                 add_action("oort-load-solution", "Load solution", None);
+
+                {
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    let options = monaco::sys::editor::IEditorOptions::from(empty());
+                    let minimap_options = monaco::sys::editor::IEditorMinimapOptions::from(empty());
+                    minimap_options.set_enabled(Some(false));
+                    options.set_minimap(Some(&minimap_options));
+                    ed.update_options(&options);
+                }
             });
         }
 
