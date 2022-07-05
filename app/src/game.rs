@@ -160,6 +160,8 @@ impl Component for Game {
 // If you're new, start with \"tutorial01\"."
                             .to_string(),
                     )
+                } else if let Code::Builtin(name) = &codes[0] {
+                    oort_simulator::script::builtin::load_source(name).unwrap()
                 } else {
                     codes[0].clone()
                 };
