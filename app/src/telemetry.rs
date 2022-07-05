@@ -27,6 +27,10 @@ pub enum Telemetry {
     Crash {
         msg: String,
     },
+    SubmitToTournament {
+        scenario_name: String,
+        code: String,
+    },
 }
 
 pub fn send(payload: Telemetry) {

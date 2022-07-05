@@ -51,6 +51,7 @@ pub enum Msg {
     CompileFailed(String),
     CompileSlow,
     LoadedCodeFromDisk(String),
+    SubmitToTournament,
 }
 
 enum Overlay {
@@ -297,6 +298,13 @@ impl Component for Game {
             Msg::LoadedCodeFromDisk(text) => {
                 self.editor_link.with_editor(|editor| {
                     editor.get_model().unwrap().set_value(&text);
+                });
+                false
+            }
+            Msg::SubmitToTournament => {
+                crate::telemetry::send(Telemetry::SubmitToTournament {
+                    scenario_name: self.scenario_name.clone(),
+                    code: code_to_string(&self.running_source_code),
                 });
                 false
             }
@@ -568,7 +576,26 @@ impl Game {
                 .iter()
                 .filter(|s| matches!(s, Status::Victory { team: 0 }))
                 .count();
-            html! { <span>{ "Simulations complete: " }{ victory_count }{"/"}{ self.background_agents.len() }{ " successful" }</span> }
+            let submit_button =
+                if scenario::load(&self.scenario_name).is_tournament() && victory_count >= 8 {
+                    let cb = context.link().batch_callback(move |_| {
+                        vec![Msg::SubmitToTournament, Msg::DismissOverlay]
+                    });
+                    html! {
+                        <>
+                            <br />
+                            <button onclick={cb}>{ "Submit to tournament" }</button>
+                        </>
+                    }
+                } else {
+                    html! {}
+                };
+            html! {
+                <>
+                    <span>{ "Simulations complete: " }{ victory_count }{"/"}{ self.background_agents.len() }{ " successful" }</span>
+                    { submit_button }
+                </>
+            }
         } else {
             html! { <span>{ "Waiting for simulations (" }{ self.background_statuses.len() }{ "/" }{ self.background_agents.len() }{ " complete)" }</span> }
         };

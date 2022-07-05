@@ -95,6 +95,10 @@ pub trait Scenario {
     fn lines(&self) -> Vec<Line> {
         vec![]
     }
+
+    fn is_tournament(&self) -> bool {
+        false
+    }
 }
 
 pub fn add_walls(sim: &mut Simulation) {
@@ -1181,6 +1185,10 @@ impl Scenario for FighterDuel {
     fn solution(&self) -> Code {
         reference_ai()
     }
+
+    fn is_tournament(&self) -> bool {
+        true
+    }
 }
 
 struct FrigateDuel {}
@@ -1221,6 +1229,10 @@ impl Scenario for FrigateDuel {
     fn solution(&self) -> Code {
         reference_ai()
     }
+
+    fn is_tournament(&self) -> bool {
+        true
+    }
 }
 
 struct CruiserDuel {}
@@ -1260,6 +1272,10 @@ impl Scenario for CruiserDuel {
 
     fn solution(&self) -> Code {
         reference_ai()
+    }
+
+    fn is_tournament(&self) -> bool {
+        true
     }
 }
 
@@ -1390,6 +1406,10 @@ impl Scenario for Furball {
     fn solution(&self) -> Code {
         reference_ai()
     }
+
+    fn is_tournament(&self) -> bool {
+        true
+    }
 }
 
 struct Fleet {}
@@ -1462,5 +1482,9 @@ impl Scenario for Fleet {
 
     fn solution(&self) -> Code {
         reference_ai()
+    }
+
+    fn is_tournament(&self) -> bool {
+        true
     }
 }
