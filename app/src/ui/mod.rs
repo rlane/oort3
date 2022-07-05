@@ -317,7 +317,8 @@ impl UI {
             snapshot
                 .ships
                 .iter()
-                .find(|ship| nalgebra::distance(&ship.position, &target) < 30.0)
+                .filter(|ship| nalgebra::distance(&ship.position, &target) < 60.0)
+                .min_by_key(|ship| nalgebra::distance(&ship.position, &target) as i64)
                 .map(|ship| ship.id)
         });
         self.update_picked();
