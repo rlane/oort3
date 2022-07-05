@@ -140,6 +140,15 @@ impl Component for Game {
                 self.check_status(context)
             }
             Msg::SelectScenario(scenario_name) => {
+                crate::codestorage::save(
+                    &self.scenario_name,
+                    &str_to_code(
+                        &self
+                            .editor_link
+                            .with_editor(|editor| editor.get_model().unwrap().get_value())
+                            .unwrap(),
+                    ),
+                );
                 self.scenario_name = scenario_name;
                 let mut codes = crate::codestorage::load(&self.scenario_name);
                 let displayed_code = if self.scenario_name == "welcome" {
