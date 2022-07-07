@@ -118,6 +118,23 @@ impl Default for ShipData {
     }
 }
 
+impl Default for Gun {
+    fn default() -> Gun {
+        Gun {
+            reload_time: 1.0,
+            reload_time_remaining: 0.0,
+            damage: 20.0,
+            speed: 1000.0,
+            offset: vector![00.0, 0.0],
+            angle: 0.0,
+            min_angle: 0.0,
+            max_angle: 0.0,
+            inaccuracy: 0.0,
+            burst_size: 1,
+        }
+    }
+}
+
 fn radio() -> Radio {
     // TODO tune this
     Radio {
@@ -135,15 +152,11 @@ pub fn fighter(team: i32) -> ShipData {
         class: ShipClass::Fighter,
         guns: vec![Gun {
             reload_time: 0.2,
-            reload_time_remaining: 0.0,
             damage: 20.0,
             speed: 1000.0,
             offset: vector![20.0, 0.0],
-            angle: 0.0,
-            min_angle: 0.0,
-            max_angle: 0.0,
             inaccuracy: 0.017,
-            burst_size: 1,
+            ..Default::default()
         }],
         missile_launchers: vec![MissileLauncher {
             class: ShipClass::Missile,
@@ -178,39 +191,28 @@ pub fn frigate(team: i32) -> ShipData {
         guns: vec![
             Gun {
                 reload_time: 1.0,
-                reload_time_remaining: 0.0,
                 damage: 1000.0,
                 speed: 4000.0,
                 offset: vector![40.0, 0.0],
-                angle: 0.0,
-                min_angle: 0.0,
-                max_angle: 0.0,
-                inaccuracy: 0.0,
-                burst_size: 1,
+                ..Default::default()
             },
             Gun {
                 reload_time: 0.2,
-                reload_time_remaining: 0.0,
                 damage: 20.0,
                 speed: 1000.0,
                 offset: vector![0.0, 15.0],
-                angle: 0.0,
-                min_angle: 0.0,
                 max_angle: TAU,
                 inaccuracy: 0.017,
-                burst_size: 1,
+                ..Default::default()
             },
             Gun {
                 reload_time: 0.2,
-                reload_time_remaining: 0.0,
                 damage: 20.0,
                 speed: 1000.0,
                 offset: vector![0.0, -15.0],
-                angle: 0.0,
-                min_angle: 0.0,
                 max_angle: TAU,
                 inaccuracy: 0.017,
-                burst_size: 1,
+                ..Default::default()
             },
         ],
         missile_launchers: vec![MissileLauncher {
@@ -253,15 +255,13 @@ pub fn cruiser(team: i32) -> ShipData {
         class: ShipClass::Cruiser,
         guns: vec![Gun {
             reload_time: 0.2,
-            reload_time_remaining: 0.0,
             damage: 20.0,
             speed: 1000.0,
             offset: vector![0.0, 0.0],
-            angle: 0.0,
-            min_angle: 0.0,
             max_angle: TAU,
             inaccuracy: 0.035,
             burst_size: 5,
+            ..Default::default()
         }],
         missile_launchers: vec![
             MissileLauncher {
