@@ -61,12 +61,14 @@ pub struct Gun {
     pub reload_time_remaining: f64,
     pub damage: f64,
     pub speed: f64,
+    pub speed_error: f64,
     pub offset: Vector2<f64>,
     pub angle: f64,
     pub min_angle: f64,
     pub max_angle: f64,
     pub inaccuracy: f64,
     pub burst_size: i32,
+    pub ttl: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -125,12 +127,14 @@ impl Default for Gun {
             reload_time_remaining: 0.0,
             damage: 20.0,
             speed: 1000.0,
+            speed_error: 0.0,
             offset: vector![00.0, 0.0],
             angle: 0.0,
             min_angle: 0.0,
             max_angle: 0.0,
             inaccuracy: 0.0,
             burst_size: 1,
+            ttl: 5.0,
         }
     }
 }
@@ -254,13 +258,15 @@ pub fn cruiser(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Cruiser,
         guns: vec![Gun {
-            reload_time: 0.2,
+            reload_time: 0.4,
             damage: 20.0,
             speed: 1000.0,
+            speed_error: 50.0,
             offset: vector![0.0, 0.0],
             max_angle: TAU,
             inaccuracy: 0.035,
-            burst_size: 5,
+            burst_size: 10,
+            ttl: 2.0,
             ..Default::default()
         }],
         missile_launchers: vec![
@@ -283,7 +289,7 @@ pub fn cruiser(team: i32) -> ShipData {
                 angle: 0.0,
             },
         ],
-        health: 10000.0,
+        health: 20000.0,
         team,
         max_acceleration: vector![10.0, 5.0],
         max_angular_acceleration: TAU / 16.0,
@@ -530,42 +536,37 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             return;
         }
         let team = ship_data.team;
-        let damage;
-        let offset;
-        let speed;
-        let angle;
-        let inaccuracy;
-        let burst_size;
-        {
+        let gun = {
             let gun = &mut ship_data.guns[index as usize];
             if gun.reload_time_remaining > 0.0 {
                 return;
             }
-            damage = gun.damage;
-            offset = gun.offset;
-            speed = gun.speed;
-            angle = gun.angle;
-            inaccuracy = gun.inaccuracy;
-            burst_size = gun.burst_size;
             gun.reload_time_remaining += gun.reload_time;
-        }
+            gun.clone()
+        };
 
         let mut rng =
             rng::new_rng(self.simulation.tick() ^ u64::from(self.handle) as u32 ^ index as u32);
-        let alpha = ((damage as f32).log(10.0) / 3.0).clamp(0.5, 1.0);
+        let alpha = ((gun.damage as f32).log(10.0) / 3.0).clamp(0.5, 1.0);
         let color = vector![1.00, 0.63, 0.00, alpha];
-        let ttl = 5.0;
+        let mut t = 0.0;
+        let dt = simulation::PHYSICS_TICK_LENGTH / gun.burst_size as f64;
 
-        for _ in 0..burst_size {
-            let angle = if inaccuracy > 0.0 {
-                angle + rng.gen_range(-inaccuracy..inaccuracy)
+        for _ in 0..gun.burst_size {
+            let angle = if gun.inaccuracy > 0.0 {
+                gun.angle + rng.gen_range(-gun.inaccuracy..gun.inaccuracy)
             } else {
-                angle
+                gun.angle
+            };
+            let speed = if gun.speed_error > 0.0 {
+                gun.speed + rng.gen_range(-gun.speed_error..gun.speed_error)
+            } else {
+                gun.speed
             };
             let body = self.body();
             let rot = body.position().rotation * UnitComplex::new(angle);
-            let p = body.position().translation.vector + rot.transform_vector(&offset);
             let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
+            let p = body.position().translation.vector + rot.transform_vector(&gun.offset) + v * t;
             bullet::create(
                 self.simulation,
                 p.x,
@@ -573,12 +574,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 v.x,
                 v.y,
                 BulletData {
-                    damage,
+                    damage: gun.damage,
                     team,
                     color,
-                    ttl,
+                    ttl: gun.ttl + t as f32,
                 },
             );
+            t += dt;
         }
     }
 
