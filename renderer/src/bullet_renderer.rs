@@ -100,8 +100,8 @@ void main() {
             let v: Vector2<f32> = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
             let mut color = bullet.color;
-            if bullet.ttl < 1.0 {
-                color.w *= bullet.ttl;
+            if bullet.ttl < 0.3 {
+                color.w *= bullet.ttl + 0.3;
             }
             attribs.push(BulletAttribs {
                 color,
