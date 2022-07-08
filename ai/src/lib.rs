@@ -169,6 +169,7 @@ pub mod api {
         write_system_state(SystemState::RadarWidth, width);
     }
 
+    #[derive(Clone, Debug)]
     pub struct ScanResult {
         pub class: Class,
         pub position: Vec2,
