@@ -63,7 +63,9 @@ impl Ship {
                 self.ticks_since_fired = 0;
             } else {
                 let next_tick_dp = dp + dv / 60.0;
-                set_radar_heading(next_tick_dp.angle() - heading());
+                set_radar_heading(
+                    next_tick_dp.angle() - heading() - angular_velocity() * TICK_LENGTH,
+                );
                 set_radar_width((radar_width() / 2.0).max(TRACK_RADAR_WIDTH));
             }
         } else {

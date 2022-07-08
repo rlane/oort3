@@ -157,8 +157,6 @@ impl Simulation {
         let physics_start_time = Instant::now();
 
         self.step_bullets();
-        radar::tick(self);
-        radio::tick(self);
 
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
@@ -193,6 +191,9 @@ impl Simulation {
             handle_collision(event.collider1());
             handle_collision(event.collider2());
         }
+
+        radar::tick(self);
+        radio::tick(self);
 
         self.timing.physics = (Instant::now() - physics_start_time).as_secs_f64();
 
