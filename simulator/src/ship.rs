@@ -566,7 +566,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             let body = self.body();
             let rot = body.position().rotation * UnitComplex::new(angle);
             let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
-            let p = body.position().translation.vector + rot.transform_vector(&gun.offset) + v * t;
+            let p = body.position().translation.vector
+                + body.position().rotation.transform_vector(&gun.offset)
+                + v * t;
             bullet::create(
                 self.simulation,
                 p.x,
