@@ -220,8 +220,12 @@ impl Simulation {
 
     #[inline(never)]
     pub fn step_bullets(&mut self) {
-        self.query_pipeline
-            .update(&self.island_manager, &self.bodies, &self.colliders);
+        self.query_pipeline.update_with_mode(
+            &self.island_manager,
+            &self.bodies,
+            &self.colliders,
+            QueryPipelineMode::SweepTestWithNextPosition,
+        );
 
         let bullets: Vec<BulletHandle> = self.bullets.iter().cloned().collect();
         let mut bullet_collisions = Vec::new();

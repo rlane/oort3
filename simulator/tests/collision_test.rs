@@ -200,3 +200,41 @@ fn test_missile_fighter_collision_different_team() {
     assert!(!sim.ship(ship).exists());
     assert!(!sim.ship(msl).exists());
 }
+
+#[test]
+fn test_bullet_continuous_collision_detection() {
+    let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
+
+    for i in 0..16 {
+        let offset = i as f64;
+        ship::create(
+            &mut sim,
+            -1000.0 + offset,
+            0.0,
+            1000.0,
+            0.0,
+            0.0,
+            missile(0),
+        );
+        bullet::create(
+            &mut sim,
+            0.0,
+            -1000.0 + offset,
+            0.0,
+            1000.0,
+            bullet::BulletData {
+                team: 1,
+                damage: 10.0,
+                color: BULLET_COLOR,
+                ttl: 5.0,
+            },
+        );
+
+        for _ in 0..120 {
+            sim.step();
+        }
+
+        assert_eq!(sim.ships.len(), 0);
+        assert_eq!(sim.bullets.len(), 0);
+    }
+}
