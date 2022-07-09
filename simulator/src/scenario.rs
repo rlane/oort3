@@ -1,6 +1,6 @@
 use crate::rng::{new_rng, SeededRng};
 use crate::ship::{asteroid, cruiser, fighter, frigate, missile, target, ShipData, ShipHandle};
-use crate::simulation::{Code, Line, Simulation, WORLD_SIZE};
+use crate::simulation::{Code, Line, Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
 use nalgebra::{vector, Point2, Rotation2, Translation2, Vector2};
@@ -321,7 +321,10 @@ impl Scenario for MissileTest {
             self.current_iteration += 1;
             self.tick_in_iteration = 0;
             while !sim.bullets.is_empty() {
-                sim.step_bullets();
+                let bullets: Vec<_> = sim.bullets.iter().cloned().collect();
+                for handle in bullets {
+                    sim.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
+                }
             }
             self.init(sim, 0);
         }

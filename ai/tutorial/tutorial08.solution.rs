@@ -23,6 +23,7 @@ impl Ship {
             fire_gun(0);
             set_radar_heading((contact.position - position()).angle() - heading());
         } else {
+            torque(-angular_velocity());
             set_radar_heading(radar_heading() + TAU / 60.0);
         }
     }
