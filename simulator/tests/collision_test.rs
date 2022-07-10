@@ -183,7 +183,7 @@ fn test_missile_fighter_collision_same_team() {
     }
 
     assert!(sim.ship(ship).exists());
-    assert!(!sim.ship(msl).exists());
+    assert!(sim.ship(msl).exists());
 }
 
 #[test]

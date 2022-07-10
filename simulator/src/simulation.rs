@@ -200,6 +200,8 @@ impl Simulation {
                 if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
                     if self.ships.contains(ShipHandle(idx1))
                         && self.ships.contains(ShipHandle(idx2))
+                        && self.ship(ShipHandle(idx1)).data().team
+                            != self.ship(ShipHandle(idx2)).data().team
                     {
                         self.ship_mut(ShipHandle(idx1)).handle_collision();
                         self.ship_mut(ShipHandle(idx2)).handle_collision();

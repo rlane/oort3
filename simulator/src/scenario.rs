@@ -9,6 +9,7 @@ use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::f64::consts::{PI, TAU};
 use Status::Running;
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
@@ -136,6 +137,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "welcome" => Box::new(WelcomeScenario::new()),
         "frigate_vs_cruiser" => Box::new(FrigateVsCruiser::new()),
         "cruiser_vs_frigate" => Box::new(CruiserVsFrigate::new()),
+        "frigate_point_defense" => Box::new(FrigatePointDefense {}),
         // Tutorials
         "tutorial01" => Box::new(Tutorial01 {}),
         "tutorial02" => Box::new(Tutorial02::new()),
@@ -1489,5 +1491,48 @@ impl Scenario for Fleet {
 
     fn is_tournament(&self) -> bool {
         true
+    }
+}
+
+struct FrigatePointDefense {}
+
+impl Scenario for FrigatePointDefense {
+    fn name(&self) -> String {
+        "frigate_point_defense".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        let mut rng = new_rng(seed);
+
+        add_walls(sim);
+        let mut data = frigate(0);
+        data.missile_launchers.clear();
+        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, data);
+
+        for i in 1..10 {
+            let distance = (i as f64) * 1000.0;
+            let angle = rng.gen_range(0.0..TAU);
+            let position = Rotation2::new(angle) * vector![distance, 0.0];
+            let velocity = Rotation2::new(angle) * vector![0.0, rng.gen_range(-2000.0..2000.0)];
+            let mut data = missile(1);
+            data.ttl = None;
+            ship::create(
+                sim,
+                position.x,
+                position.y,
+                velocity.x,
+                velocity.y,
+                angle + PI,
+                data,
+            );
+        }
+    }
+
+    fn status(&self, _sim: &Simulation) -> Status {
+        Status::Running
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
     }
 }
