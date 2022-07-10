@@ -1918,7 +1918,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_reference_ai"
+name = "oort_ai"
 version = "0.1.0"
 dependencies = [
  "oorandom",
