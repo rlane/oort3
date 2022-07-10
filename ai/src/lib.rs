@@ -232,7 +232,10 @@ pub mod api {
 #[macro_use]
 pub mod debug {
     use crate::sys::write_system_state;
+    use crate::vec::Vec2;
+    pub use oort_shared::Line;
     static mut TEXT_BUFFER: heapless::String<1024> = heapless::String::new();
+    static mut LINE_BUFFER: heapless::Vec<Line, 128> = heapless::Vec::new();
 
     #[macro_export]
     macro_rules! debug {
@@ -250,27 +253,54 @@ pub mod debug {
         }
     }
 
+    pub fn debug_line(a: Vec2, b: Vec2, color: u32) {
+        unsafe {
+            let _ = LINE_BUFFER.push(Line {
+                x0: a.x,
+                y0: a.y,
+                x1: b.x,
+                y1: b.y,
+                color,
+            });
+        }
+    }
+
     pub(super) fn update() {
-        let slice = unsafe { TEXT_BUFFER.as_bytes() };
-        write_system_state(
-            oort_shared::SystemState::DebugTextPointer,
-            slice.as_ptr() as u32 as f64,
-        );
-        write_system_state(
-            oort_shared::SystemState::DebugTextLength,
-            slice.len() as u32 as f64,
-        );
+        {
+            let slice = unsafe { TEXT_BUFFER.as_bytes() };
+            write_system_state(
+                oort_shared::SystemState::DebugTextPointer,
+                slice.as_ptr() as u32 as f64,
+            );
+            write_system_state(
+                oort_shared::SystemState::DebugTextLength,
+                slice.len() as u32 as f64,
+            );
+        }
+        {
+            let slice = unsafe { LINE_BUFFER.as_slice() };
+            write_system_state(
+                oort_shared::SystemState::DebugLinesPointer,
+                slice.as_ptr() as u32 as f64,
+            );
+            write_system_state(
+                oort_shared::SystemState::DebugLinesLength,
+                slice.len() as u32 as f64,
+            );
+        }
     }
 
     pub(super) fn reset() {
         unsafe {
             TEXT_BUFFER.clear();
+            LINE_BUFFER.clear();
         }
     }
 }
 
 pub mod prelude {
     pub use super::api::*;
+    pub use super::debug::*;
     pub use super::math::*;
     pub use super::rng::*;
     pub use super::vec::*;

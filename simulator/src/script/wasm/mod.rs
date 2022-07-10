@@ -1,9 +1,8 @@
-// TODO:
-// - Debug lines
-
 use super::{ShipController, TeamController};
+use crate::debug;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::Simulation;
+use nalgebra::point;
 use oort_shared::*;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
@@ -109,6 +108,16 @@ impl WasmShipController {
         let slice = ptr.slice(&self.memory, length).ok()?;
         slice.read_slice(&mut bytes).ok()?;
         String::from_utf8(bytes).ok()
+    }
+
+    pub fn read_vec<T: Default + Clone>(&self, offset: u32, length: u32) -> Option<Vec<T>> {
+        let ptr: WasmPtr<u8> = WasmPtr::new(offset);
+        let byte_length = length.saturating_mul(std::mem::size_of::<T>() as u32);
+        let slice = ptr.slice(&self.memory, byte_length).ok()?;
+        let byte_vec = slice.read_to_vec().ok()?;
+        let src_ptr = unsafe { std::mem::transmute::<*const u8, *const T>(byte_vec.as_ptr()) };
+        let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
+        Some(src_slice.to_vec())
     }
 }
 
@@ -256,6 +265,27 @@ impl ShipController for WasmShipController {
                 let length = state.get(SystemState::DebugTextLength) as u32;
                 if let Some(s) = self.read_string(offset, length) {
                     sim.emit_debug_text(self.handle, s);
+                }
+            }
+
+            if state.get(SystemState::DebugLinesLength) > 0.0 {
+                let offset = state.get(SystemState::DebugLinesPointer) as u32;
+                let length = state.get(SystemState::DebugLinesLength) as u32;
+                log::info!("debug lines offset={} length={}", offset, length);
+                if length <= 128 {
+                    if let Some(lines) = self.read_vec::<Line>(offset, length) {
+                        sim.emit_debug_lines(
+                            self.handle,
+                            &lines
+                                .iter()
+                                .map(|v| crate::debug::Line {
+                                    a: point![v.x0, v.y0],
+                                    b: point![v.x1, v.y1],
+                                    color: debug::convert_color(v.color),
+                                })
+                                .collect::<Vec<debug::Line>>(),
+                        );
+                    }
                 }
             }
 

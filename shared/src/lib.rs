@@ -54,6 +54,9 @@ pub enum SystemState {
     RadioSend,
     RadioReceive,
 
+    DebugLinesPointer,
+    DebugLinesLength,
+
     Size,
 }
 
@@ -82,4 +85,13 @@ impl Class {
             _ => Class::Unknown,
         }
     }
+}
+
+#[derive(Default, Clone)]
+pub struct Line {
+    pub x0: f64,
+    pub y0: f64,
+    pub x1: f64,
+    pub y1: f64,
+    pub color: u32,
 }
