@@ -232,8 +232,10 @@ pub mod api {
 #[macro_use]
 pub mod debug {
     use crate::sys::write_system_state;
-    use crate::vec::Vec2;
+    use crate::vec::*;
     pub use oort_shared::Line;
+    pub use std::f64::consts::TAU;
+
     static mut TEXT_BUFFER: heapless::String<1024> = heapless::String::new();
     static mut LINE_BUFFER: heapless::Vec<Line, 128> = heapless::Vec::new();
 
@@ -263,6 +265,32 @@ pub mod debug {
                 color,
             });
         }
+    }
+
+    pub fn debug_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32) {
+        let mut angle = angle;
+        let delta_angle = TAU / sides as f64;
+        let p = vec2(radius, 0.0);
+        for _ in 0..sides {
+            debug_line(
+                center + p.rotate(angle),
+                center + p.rotate(angle + delta_angle),
+                color,
+            );
+            angle += delta_angle;
+        }
+    }
+
+    pub fn debug_triangle(center: Vec2, radius: f64, color: u32) {
+        debug_polygon(center, radius, 3, TAU / 4.0, color);
+    }
+
+    pub fn debug_square(center: Vec2, radius: f64, color: u32) {
+        debug_polygon(center, radius, 4, 0.0, color);
+    }
+
+    pub fn debug_diamond(center: Vec2, radius: f64, color: u32) {
+        debug_polygon(center, radius, 4, TAU / 8.0, color);
     }
 
     pub(super) fn update() {
