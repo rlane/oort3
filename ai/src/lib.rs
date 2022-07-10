@@ -1,9 +1,6 @@
 mod user;
 mod vec;
 
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 pub mod sys {
     use oort_shared::SystemState;
 

@@ -13,4 +13,3 @@ crate-type = ["cdylib"]
 [dependencies]
 oort_shared = { path = "../shared" }
 oorandom = "11.1.3"
-wee_alloc = "0.4.5"
