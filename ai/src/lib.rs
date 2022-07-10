@@ -8,8 +8,8 @@ pub mod sys {
     use oort_shared::SystemState;
 
     #[no_mangle]
-    pub static mut SYSTEM_STATE: [f64; SystemState::Size as usize] =
-        [0.0; SystemState::Size as usize];
+    pub static mut SYSTEM_STATE: [f64; SystemState::MaxSize as usize] =
+        [0.0; SystemState::MaxSize as usize];
 
     pub fn read_system_state(index: SystemState) -> f64 {
         unsafe { SYSTEM_STATE[index as usize] }

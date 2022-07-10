@@ -58,6 +58,7 @@ pub enum SystemState {
     DebugLinesLength,
 
     Size,
+    MaxSize = 128,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
