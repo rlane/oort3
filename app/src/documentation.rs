@@ -5,7 +5,8 @@ pub fn documentation() -> Html {
     html! {
         <>
             <h1>{ "Quick Reference" }</h1>
-            { "Press Escape to close. File bugs on " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>{ "." }<br />
+            { "Press Escape to close. File bugs on " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>{ ". " }
+            { "Also take a look at the " }<a href="https://github.com/rlane/oort3/wiki">{ "wiki" }</a>{ "." }<br/>
 
             <h2>{ "Basics" }</h2>
             { "Select a scenario from the list in the top-right of the page." }<br/>

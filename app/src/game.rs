@@ -359,6 +359,7 @@ impl Component for Game {
                     </select>
                 </div>
                 <div class="toolbar-elem right"><a href="#" onclick={show_documentation_cb}>{ "Documentation" }</a></div>
+                <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3/wiki" target="_none">{ "Wiki" }</a></div>
                 <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
                 <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
                 <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a></div>
