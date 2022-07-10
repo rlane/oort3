@@ -236,8 +236,8 @@ pub mod debug {
     pub use oort_shared::Line;
     pub use std::f64::consts::TAU;
 
-    static mut TEXT_BUFFER: heapless::String<1024> = heapless::String::new();
-    static mut LINE_BUFFER: heapless::Vec<Line, 128> = heapless::Vec::new();
+    static mut TEXT_BUFFER: String = String::new();
+    static mut LINE_BUFFER: Vec<Line> = Vec::new();
 
     #[macro_export]
     macro_rules! debug {
@@ -251,13 +251,13 @@ pub mod debug {
         use std::fmt::Write;
         unsafe {
             let _ = std::fmt::write(&mut TEXT_BUFFER, args);
-            let _ = TEXT_BUFFER.push('\n');
+            TEXT_BUFFER.push('\n');
         }
     }
 
     pub fn debug_line(a: Vec2, b: Vec2, color: u32) {
         unsafe {
-            let _ = LINE_BUFFER.push(Line {
+            LINE_BUFFER.push(Line {
                 x0: a.x,
                 y0: a.y,
                 x1: b.x,
