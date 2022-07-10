@@ -1,5 +1,7 @@
 use crate::rng::{new_rng, SeededRng};
-use crate::ship::{asteroid, cruiser, fighter, frigate, missile, target, ShipData, ShipHandle};
+use crate::ship::{
+    asteroid, cruiser, fighter, frigate, missile, target, ShipClass, ShipData, ShipHandle,
+};
 use crate::simulation::{Code, Line, Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
@@ -31,9 +33,10 @@ fn check_victory(sim: &Simulation) -> Status {
     let mut alive_teams: HashSet<i32> = HashSet::new();
     for &handle in sim.ships.iter() {
         let ship = sim.ship(handle);
-        if ship.data().class == ship::ShipClass::Missile
-            || ship.data().class == ship::ShipClass::Torpedo
-        {
+        if [ShipClass::Missile, ShipClass::Torpedo].contains(&ship.data().class) {
+            continue;
+        }
+        if let ShipClass::Asteroid { variant: _ } = ship.data().class {
             continue;
         }
         alive_teams.insert(ship.data().team);
@@ -156,6 +159,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "cruiser_duel" => Box::new(CruiserDuel::new()),
         "furball" => Box::new(Furball::new()),
         "fleet" => Box::new(Fleet::new()),
+        "belt" => Box::new(Belt::new()),
         _ => panic!("Unknown scenario"),
     };
     assert_eq!(scenario.name(), name);
@@ -184,6 +188,7 @@ pub fn list() -> Vec<String> {
         "cruiser_vs_frigate",
         "furball",
         "fleet",
+        "belt",
     ]
     .iter()
     .map(|x| x.to_string())
@@ -1474,6 +1479,90 @@ impl Scenario for Fleet {
                     cruiser(team),
                 );
             }
+        }
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_victory(sim)
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
+    }
+
+    fn solution(&self) -> Code {
+        reference_ai()
+    }
+
+    fn is_tournament(&self) -> bool {
+        true
+    }
+}
+
+struct Belt {}
+
+impl Belt {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for Belt {
+    fn name(&self) -> String {
+        "belt".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        add_walls(sim);
+        let mut rng = new_rng(seed);
+        for team in 0..2 {
+            let signum = if team == 0 { -1.0 } else { 1.0 };
+            let center = point![rng.gen_range(-6000.0..6000.0), signum * 8000.0];
+            let heading = if team == 0 { -TAU / 4.0 } else { TAU / 4.0 };
+            let num_fighters = 8;
+            let num_frigates = 2;
+            for i in 0..(num_fighters / 2) {
+                for j in [-1.0, 1.0] {
+                    ship::create(
+                        sim,
+                        center.x + j * (1000.0 + i as f64 * 100.0),
+                        center.y,
+                        0.0,
+                        0.0,
+                        heading,
+                        fighter(team),
+                    );
+                }
+            }
+            for i in 0..(num_frigates / 2) {
+                for j in [-1.0, 1.0] {
+                    ship::create(
+                        sim,
+                        center.x + j * (500.0 + i as f64 * 200.0),
+                        center.y,
+                        0.0,
+                        0.0,
+                        heading,
+                        frigate(team),
+                    );
+                }
+            }
+            ship::create(sim, center.x, center.y, 0.0, 0.0, heading, cruiser(team));
+        }
+
+        let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 4.0)];
+        for _ in 0..100 {
+            let mut data = asteroid(rng.gen_range(0..30));
+            data.health = 10000.0;
+            ship::create(
+                sim,
+                rng.gen_range(-bound.x..bound.x),
+                rng.gen_range(-bound.y..bound.y),
+                rng.gen_range(-1.0..1.0),
+                rng.gen_range(-1.0..1.0),
+                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                data,
+            );
         }
     }
 
