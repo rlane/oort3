@@ -166,6 +166,22 @@ pub mod api {
         write_system_state(SystemState::RadarWidth, width);
     }
 
+    pub fn radar_min_distance() -> f64 {
+        read_system_state(SystemState::RadarMinDistance)
+    }
+
+    pub fn set_radar_min_distance(dist: f64) {
+        write_system_state(SystemState::RadarMinDistance, dist);
+    }
+
+    pub fn radar_max_distance() -> f64 {
+        read_system_state(SystemState::RadarMaxDistance)
+    }
+
+    pub fn set_radar_max_distance(dist: f64) {
+        write_system_state(SystemState::RadarMaxDistance, dist);
+    }
+
     #[derive(Clone, Debug)]
     pub struct ScanResult {
         pub class: Class,

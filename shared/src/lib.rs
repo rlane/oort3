@@ -57,6 +57,9 @@ pub enum SystemState {
     DebugLinesPointer,
     DebugLinesLength,
 
+    RadarMinDistance,
+    RadarMaxDistance,
+
     Size,
     MaxSize = 128,
 }

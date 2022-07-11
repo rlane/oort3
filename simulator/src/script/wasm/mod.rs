@@ -67,6 +67,8 @@ impl TeamController for WasmTeamController {
         if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
             state.set(SystemState::RadarHeading, radar.heading);
             state.set(SystemState::RadarWidth, radar.width);
+            state.set(SystemState::RadarMinDistance, radar.min_distance);
+            state.set(SystemState::RadarMaxDistance, radar.max_distance);
         }
         ctrl.write_system_state(&state);
 
@@ -253,6 +255,8 @@ impl ShipController for WasmShipController {
             if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
                 radar.heading = state.get(SystemState::RadarHeading);
                 radar.width = state.get(SystemState::RadarWidth);
+                radar.min_distance = state.get(SystemState::RadarMinDistance);
+                radar.max_distance = state.get(SystemState::RadarMaxDistance);
             }
 
             if state.get(SystemState::Explode) > 0.0 {

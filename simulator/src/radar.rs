@@ -7,16 +7,35 @@ use rand::Rng;
 use rand_distr::StandardNormal;
 use rng::SeededRng;
 use std::f64::consts::TAU;
+use std::ops::Range;
 
 #[derive(Clone, Debug)]
 pub struct Radar {
     pub heading: f64,
     pub width: f64,
+    pub min_distance: f64,
+    pub max_distance: f64,
     pub power: f64,
     pub rx_cross_section: f64,
     pub min_rssi: f64,
     pub classify_rssi: f64,
     pub result: Option<ScanResult>,
+}
+
+impl Default for Radar {
+    fn default() -> Self {
+        Radar {
+            heading: 0.0,
+            width: TAU / 6.0,
+            min_distance: 0.0,
+            max_distance: 1e9,
+            power: 100e3,
+            rx_cross_section: 10.0,
+            min_rssi: 1e-2,
+            classify_rssi: 1e-1,
+            result: None,
+        }
+    }
 }
 
 struct RadarEmitter {
@@ -25,6 +44,9 @@ struct RadarEmitter {
     width: f64,
     start_bearing: f64,
     end_bearing: f64,
+    min_distance: f64,
+    max_distance: f64,
+    square_distance_range: Range<f64>,
     power: f64,
     rx_cross_section: f64,
     min_rssi: f64,
@@ -93,6 +115,9 @@ pub fn tick(sim: &mut Simulation) {
                 width: w,
                 start_bearing: h - 0.5 * w,
                 end_bearing: h + 0.5 * w,
+                min_distance: radar.min_distance,
+                max_distance: radar.max_distance,
+                square_distance_range: radar.min_distance.powi(2)..radar.max_distance.powi(2),
             };
             let mut rng = rng::new_rng(sim.tick());
 
@@ -139,6 +164,12 @@ pub fn tick(sim: &mut Simulation) {
 }
 
 fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
+    if !emitter
+        .square_distance_range
+        .contains(&nalgebra::distance_squared(&emitter.center, point))
+    {
+        return false;
+    }
     if emitter.width >= TAU {
         return true;
     }
@@ -160,7 +191,7 @@ fn compute_rssi(emitter: &RadarEmitter, reflector: &RadarReflector) -> f64 {
 }
 
 fn compute_approx_range(emitter: &RadarEmitter) -> f64 {
-    let target_cross_section = 5.0;
+    let target_cross_section = 10.0; // Fighter
     (emitter.power * target_cross_section * emitter.rx_cross_section
         / (TAU * emitter.width * emitter.min_rssi))
         .sqrt()
@@ -173,32 +204,44 @@ fn noise(rng: &mut SeededRng, rssi: f64) -> Vector2<f64> {
 fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
     let color = vector![0.1, 0.2, 0.3, 1.0];
     let mut lines = vec![];
-    let n = 20;
     let w = emitter.end_bearing - emitter.start_bearing;
     let center = emitter.center;
-    let r = compute_approx_range(emitter);
-    for i in 0..n {
-        let frac = (i as f64) / (n as f64);
-        let angle_a = emitter.start_bearing + w * frac;
-        let angle_b = emitter.start_bearing + w * (frac + 1.0 / n as f64);
-        lines.push(Line {
-            a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-            b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-            color,
-        });
-    }
+    let min_distance = emitter.min_distance;
+    let max_distance = compute_approx_range(emitter).min(emitter.max_distance);
+    let mut draw_arc = |r| {
+        if r < 0.01 {
+            return;
+        }
+        let n = (((20.0 / TAU) * w) as i32).max(3);
+        for i in 0..n {
+            let frac = (i as f64) / (n as f64);
+            let angle_a = emitter.start_bearing + w * frac;
+            let angle_b = emitter.start_bearing + w * (frac + 1.0 / n as f64);
+            lines.push(Line {
+                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
+                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+                color,
+            });
+        }
+    };
+    draw_arc(min_distance);
+    draw_arc(max_distance);
     lines.push(Line {
         a: center,
         b: center
             + vector![
-                r * emitter.start_bearing.cos(),
-                r * emitter.start_bearing.sin()
+                max_distance * emitter.start_bearing.cos(),
+                max_distance * emitter.start_bearing.sin()
             ],
         color,
     });
     lines.push(Line {
         a: center,
-        b: center + vector![r * emitter.end_bearing.cos(), r * emitter.end_bearing.sin()],
+        b: center
+            + vector![
+                max_distance * emitter.end_bearing.cos(),
+                max_distance * emitter.end_bearing.sin()
+            ],
         color,
     });
     sim.emit_debug_lines(emitter.handle, &lines);
@@ -293,6 +336,32 @@ mod test {
         sim.ship_mut(ship1)
             .body()
             .set_translation(vector![1e6, 0.0], true);
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+    }
+
+    #[test]
+    fn test_distance_filter() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        // Initial state.
+        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
+        let _ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::target(1));
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+
+        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 900.0;
+        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 1100.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+
+        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 1050.0;
+        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 1100.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+
+        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 900.0;
+        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 950.0;
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
     }

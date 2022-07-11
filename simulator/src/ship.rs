@@ -175,13 +175,9 @@ pub fn fighter(team: i32) -> ShipData {
         max_acceleration: vector![200.0, 100.0],
         max_angular_acceleration: TAU,
         radar: Some(Radar {
-            heading: 0.0,
-            width: TAU / 6.0,
             power: 20e3,
             rx_cross_section: 5.0,
-            min_rssi: 1e-2,
-            classify_rssi: 1e-1,
-            result: None,
+            ..Default::default()
         }),
         radar_cross_section: 10.0,
         radio: Some(radio()),
@@ -232,13 +228,9 @@ pub fn frigate(team: i32) -> ShipData {
         max_acceleration: vector![20.0, 10.0],
         max_angular_acceleration: TAU / 8.0,
         radar: Some(Radar {
-            heading: 0.0,
-            width: TAU / 6.0,
             power: 100e3,
             rx_cross_section: 10.0,
-            min_rssi: 1e-2,
-            classify_rssi: 1e-1,
-            result: None,
+            ..Default::default()
         }),
         radar_cross_section: 30.0,
         radio: Some(radio()),
@@ -294,13 +286,9 @@ pub fn cruiser(team: i32) -> ShipData {
         max_acceleration: vector![10.0, 5.0],
         max_angular_acceleration: TAU / 16.0,
         radar: Some(Radar {
-            heading: 0.0,
-            width: TAU / 6.0,
             power: 200e3,
             rx_cross_section: 20.0,
-            min_rssi: 1e-2,
-            classify_rssi: 1e-1,
-            result: None,
+            ..Default::default()
         }),
         radar_cross_section: 40.0,
         radio: Some(radio()),
@@ -334,13 +322,9 @@ pub fn missile(team: i32) -> ShipData {
         max_angular_acceleration: 2.0 * TAU,
         team,
         radar: Some(Radar {
-            heading: 0.0,
-            width: TAU / 6.0,
             power: 10e3,
             rx_cross_section: 3.0,
-            min_rssi: 1e-2,
-            classify_rssi: 1e-1,
-            result: None,
+            ..Default::default()
         }),
         radar_cross_section: 3.0,
         radio: Some(radio()),
@@ -357,13 +341,9 @@ pub fn torpedo(team: i32) -> ShipData {
         max_angular_acceleration: 2.0 * TAU,
         team,
         radar: Some(Radar {
-            heading: 0.0,
-            width: TAU / 6.0,
             power: 20e3,
             rx_cross_section: 3.0,
-            min_rssi: 1e-2,
-            classify_rssi: 1e-1,
-            result: None,
+            ..Default::default()
         }),
         radar_cross_section: 8.0,
         radio: Some(radio()),

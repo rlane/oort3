@@ -67,6 +67,10 @@ pub fn documentation() -> Html {
               <li><code>{ "radar_heading() -> f64" }</code>{ ": Get current radar heading." }</li>
               <li><code>{ "set_radar_width(width: f64)" }</code>{ ": Adjust the width of the radar beam (in radians)." }</li>
               <li><code>{ "radar_width() -> f64" }</code>{ ": Get current radar width." }</li>
+              <li><code>{ "set_radar_min_distance(dist: f64)" }</code>{ ": Set the minimum distance filter." }</li>
+              <li><code>{ "radar_min_distance() -> f64" }</code>{ ": Get current minimum distance filter." }</li>
+              <li><code>{ "set_radar_max_distance(dist: f64)" }</code>{ ": Set the maximum distance filter." }</li>
+              <li><code>{ "radar_max_distance() -> f64" }</code>{ ": Get current maximum distance filter." }</li>
               <li><code>{ "scan() → Option<ScanResult>" }</code>{ ": Find an enemy ship illuminated by the radar." }</li>
               <li><code>{ "struct ScanResult { position: Vec2, velocity: Vec2 }" }</code></li>
             </ul>
