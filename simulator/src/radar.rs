@@ -104,6 +104,7 @@ pub fn tick(sim: &mut Simulation) {
         if let Some(radar) = ship_data.radar.as_ref() {
             let h = radar.heading + ship.heading();
             let w = radar.width;
+            let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/);
             let emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,
@@ -116,7 +117,7 @@ pub fn tick(sim: &mut Simulation) {
                 start_bearing: h - 0.5 * w,
                 end_bearing: h + 0.5 * w,
                 min_distance: radar.min_distance,
-                max_distance: radar.max_distance,
+                max_distance,
                 square_distance_range: radar.min_distance.powi(2)..radar.max_distance.powi(2),
             };
             let mut rng = rng::new_rng(sim.tick());
@@ -190,10 +191,9 @@ fn compute_rssi(emitter: &RadarEmitter, reflector: &RadarReflector) -> f64 {
         / (TAU * emitter.width * r_sq)
 }
 
-fn compute_approx_range(emitter: &RadarEmitter) -> f64 {
-    let target_cross_section = 10.0; // Fighter
-    (emitter.power * target_cross_section * emitter.rx_cross_section
-        / (TAU * emitter.width * emitter.min_rssi))
+fn compute_max_detection_range(radar: &Radar, target_cross_section: f64) -> f64 {
+    (radar.power * target_cross_section * radar.rx_cross_section
+        / (TAU * radar.width * radar.min_rssi))
         .sqrt()
 }
 
@@ -206,8 +206,6 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
     let mut lines = vec![];
     let w = emitter.end_bearing - emitter.start_bearing;
     let center = emitter.center;
-    let min_distance = emitter.min_distance;
-    let max_distance = compute_approx_range(emitter).min(emitter.max_distance);
     let mut draw_arc = |r| {
         if r < 0.01 {
             return;
@@ -224,14 +222,14 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
             });
         }
     };
-    draw_arc(min_distance);
-    draw_arc(max_distance);
+    draw_arc(emitter.min_distance);
+    draw_arc(emitter.max_distance);
     lines.push(Line {
         a: center,
         b: center
             + vector![
-                max_distance * emitter.start_bearing.cos(),
-                max_distance * emitter.start_bearing.sin()
+                emitter.max_distance * emitter.start_bearing.cos(),
+                emitter.max_distance * emitter.start_bearing.sin()
             ],
         color,
     });
@@ -239,8 +237,8 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
         a: center,
         b: center
             + vector![
-                max_distance * emitter.end_bearing.cos(),
-                max_distance * emitter.end_bearing.sin()
+                emitter.max_distance * emitter.end_bearing.cos(),
+                emitter.max_distance * emitter.end_bearing.sin()
             ],
         color,
     });
