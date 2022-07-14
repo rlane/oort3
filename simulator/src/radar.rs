@@ -1,6 +1,6 @@
-use crate::rng;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Line, Simulation};
+use crate::{rng, simulation};
 use nalgebra::Rotation2;
 use nalgebra::{vector, Point2, Vector2};
 use rand::Rng;
@@ -11,15 +11,15 @@ use std::ops::Range;
 
 #[derive(Clone, Debug)]
 pub struct Radar {
-    pub heading: f64,
-    pub width: f64,
-    pub min_distance: f64,
-    pub max_distance: f64,
-    pub power: f64,
-    pub rx_cross_section: f64,
-    pub min_rssi: f64,
-    pub classify_rssi: f64,
-    pub result: Option<ScanResult>,
+    pub(crate) heading: f64,
+    pub(crate) width: f64,
+    pub(crate) min_distance: f64,
+    pub(crate) max_distance: f64,
+    pub(crate) power: f64,
+    pub(crate) rx_cross_section: f64,
+    pub(crate) min_rssi: f64,
+    pub(crate) classify_rssi: f64,
+    pub(crate) result: Option<ScanResult>,
 }
 
 impl Default for Radar {
@@ -35,6 +35,44 @@ impl Default for Radar {
             classify_rssi: 1e-1,
             result: None,
         }
+    }
+}
+
+impl Radar {
+    pub fn get_heading(&self) -> f64 {
+        self.heading
+    }
+
+    pub fn set_heading(&mut self, heading: f64) {
+        self.heading = heading.rem_euclid(TAU);
+    }
+
+    pub fn get_width(&self) -> f64 {
+        self.width
+    }
+
+    pub fn set_width(&mut self, width: f64) {
+        self.width = width.rem_euclid(TAU);
+    }
+
+    pub fn get_min_distance(&self) -> f64 {
+        self.min_distance
+    }
+
+    pub fn set_min_distance(&mut self, dist: f64) {
+        self.min_distance = dist.clamp(0.0, simulation::WORLD_SIZE * 2.0);
+    }
+
+    pub fn get_max_distance(&self) -> f64 {
+        self.max_distance
+    }
+
+    pub fn set_max_distance(&mut self, dist: f64) {
+        self.max_distance = dist.clamp(0.0, simulation::WORLD_SIZE * 2.0);
+    }
+
+    pub fn scan(&self) -> Option<ScanResult> {
+        self.result
     }
 }
 
@@ -67,14 +105,6 @@ pub struct ScanResult {
     pub class: Option<ShipClass>,
     pub position: Vector2<f64>,
     pub velocity: Vector2<f64>,
-}
-
-pub fn scan(sim: &mut Simulation, own_ship: ShipHandle) -> Option<ScanResult> {
-    if let Some(radar) = sim.ship(own_ship).data().radar.as_ref() {
-        radar.result
-    } else {
-        None
-    }
 }
 
 #[inline(never)]

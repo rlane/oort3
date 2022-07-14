@@ -158,27 +158,29 @@ impl ShipController for WasmShipController {
                 sim.ship(self.handle).angular_velocity(),
             );
 
-            if let Some(radar) = sim.ship(self.handle).radar() {
-                state.set(SystemState::RadarHeading, radar.heading);
-                state.set(SystemState::RadarWidth, radar.width);
-            }
+            if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
+                state.set(SystemState::RadarHeading, radar.get_heading());
+                state.set(SystemState::RadarWidth, radar.get_width());
+                state.set(SystemState::RadarMinDistance, radar.get_min_distance());
+                state.set(SystemState::RadarMaxDistance, radar.get_max_distance());
 
-            if let Some(contact) = crate::radar::scan(sim, self.handle) {
-                state.set(SystemState::RadarContactFound, 1.0);
-                state.set(SystemState::RadarContactPositionX, contact.position.x);
-                state.set(SystemState::RadarContactPositionY, contact.position.y);
-                state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
-                state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
-                if let Some(class) = contact.class {
-                    state.set(
-                        SystemState::RadarContactClass,
-                        translate_class(class) as u32 as f64,
-                    );
+                if let Some(contact) = radar.scan() {
+                    state.set(SystemState::RadarContactFound, 1.0);
+                    state.set(SystemState::RadarContactPositionX, contact.position.x);
+                    state.set(SystemState::RadarContactPositionY, contact.position.y);
+                    state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
+                    state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
+                    if let Some(class) = contact.class {
+                        state.set(
+                            SystemState::RadarContactClass,
+                            translate_class(class) as u32 as f64,
+                        );
+                    } else {
+                        state.set(SystemState::RadarContactClass, Class::Unknown as u32 as f64);
+                    }
                 } else {
-                    state.set(SystemState::RadarContactClass, Class::Unknown as u32 as f64);
+                    state.set(SystemState::RadarContactFound, 0.0);
                 }
-            } else {
-                state.set(SystemState::RadarContactFound, 0.0);
             }
 
             {
@@ -193,8 +195,11 @@ impl ShipController for WasmShipController {
             }
 
             if let Some(radio) = sim.ship(self.handle).data().radio.as_ref() {
-                state.set(SystemState::RadioChannel, radio.channel as f64);
-                state.set(SystemState::RadioReceive, radio.received.unwrap_or(0.0));
+                state.set(SystemState::RadioChannel, radio.get_channel() as f64);
+                state.set(
+                    SystemState::RadioReceive,
+                    radio.get_received().unwrap_or(0.0),
+                );
                 state.set(SystemState::RadioSend, 0.0);
             }
 
@@ -252,10 +257,10 @@ impl ShipController for WasmShipController {
             }
 
             if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
-                radar.heading = state.get(SystemState::RadarHeading);
-                radar.width = state.get(SystemState::RadarWidth);
-                radar.min_distance = state.get(SystemState::RadarMinDistance);
-                radar.max_distance = state.get(SystemState::RadarMaxDistance);
+                radar.set_heading(state.get(SystemState::RadarHeading));
+                radar.set_width(state.get(SystemState::RadarWidth));
+                radar.set_min_distance(state.get(SystemState::RadarMinDistance));
+                radar.set_max_distance(state.get(SystemState::RadarMaxDistance));
             }
 
             if state.get(SystemState::Explode) > 0.0 {
@@ -292,10 +297,10 @@ impl ShipController for WasmShipController {
             }
 
             if let Some(radio) = sim.ship_mut(self.handle).data_mut().radio.as_mut() {
-                radio.channel = state.get(SystemState::RadioChannel) as usize;
+                radio.set_channel(state.get(SystemState::RadioChannel) as usize);
                 let data = state.get(SystemState::RadioSend);
                 if data != 0.0 {
-                    radio.sent = Some(data);
+                    radio.set_sent(Some(data));
                 }
             }
 

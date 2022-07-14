@@ -8,12 +8,30 @@ const NUM_CHANNELS: usize = 10;
 
 #[derive(Clone, Debug)]
 pub struct Radio {
-    pub power: f64,
-    pub rx_cross_section: f64,
-    pub min_rssi: f64,
-    pub channel: usize,
-    pub sent: Option<f64>,
-    pub received: Option<f64>,
+    pub(crate) power: f64,
+    pub(crate) rx_cross_section: f64,
+    pub(crate) min_rssi: f64,
+    pub(crate) channel: usize,
+    pub(crate) sent: Option<f64>,
+    pub(crate) received: Option<f64>,
+}
+
+impl Radio {
+    pub fn get_channel(&self) -> usize {
+        self.channel
+    }
+
+    pub fn set_channel(&mut self, channel: usize) {
+        self.channel = channel.clamp(0, NUM_CHANNELS - 1);
+    }
+
+    pub fn set_sent(&mut self, sent: Option<f64>) {
+        self.sent = sent;
+    }
+
+    pub fn get_received(&self) -> Option<f64> {
+        self.received
+    }
 }
 
 struct RadioSender {
