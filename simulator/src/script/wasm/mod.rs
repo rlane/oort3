@@ -14,7 +14,6 @@ pub struct WasmTeamController {
 
 impl WasmTeamController {
     pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, super::Error> {
-        log::info!("Creating WasmTeamController");
         #[cfg(not(target_arch = "wasm32"))]
         let store = Store::new_with_engine(
             &wasmer_compiler::Universal::new(wasmer_compiler_cranelift::Cranelift::default())
@@ -275,7 +274,6 @@ impl ShipController for WasmShipController {
             if state.get(SystemState::DebugLinesLength) > 0.0 {
                 let offset = state.get(SystemState::DebugLinesPointer) as u32;
                 let length = state.get(SystemState::DebugLinesLength) as u32;
-                log::info!("debug lines offset={} length={}", offset, length);
                 if length <= 128 {
                     if let Some(lines) = self.read_vec::<Line>(offset, length) {
                         sim.emit_debug_lines(
