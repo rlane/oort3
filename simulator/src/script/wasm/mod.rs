@@ -320,7 +320,12 @@ struct LocalSystemState {
 
 impl LocalSystemState {
     pub fn get(&self, index: SystemState) -> f64 {
-        self.state[index as usize]
+        let v = self.state[index as usize];
+        if v.is_nan() || v.is_infinite() {
+            0.0
+        } else {
+            v
+        }
     }
 
     pub fn set(&mut self, index: SystemState, value: f64) {
