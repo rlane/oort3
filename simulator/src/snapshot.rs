@@ -1,7 +1,7 @@
 use crate::scenario::Status;
-use crate::script;
 use crate::ship::ShipClass;
 use crate::simulation::Line;
+use crate::vm;
 use nalgebra::{Point2, Vector2, Vector4};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -16,7 +16,7 @@ pub struct Snapshot {
     pub scenario_lines: Vec<Line>,
     pub hits: Vec<Vector2<f64>>,
     pub ships_destroyed: Vec<Vector2<f64>>,
-    pub errors: Vec<script::Error>,
+    pub errors: Vec<vm::Error>,
     pub cheats: bool,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,
     pub debug_text: BTreeMap<u64, String>,

@@ -8,7 +8,7 @@ use monaco::{
 };
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
-use oort_simulator::{script, simulation};
+use oort_simulator::{simulation, vm};
 use oort_worker::SimAgent;
 use qstring::QString;
 use rand::Rng;
@@ -161,7 +161,7 @@ impl Component for Game {
                             .to_string(),
                     )
                 } else if let Code::Builtin(name) = &codes[0] {
-                    oort_simulator::script::builtin::load_source(name).unwrap()
+                    oort_simulator::vm::builtin::load_source(name).unwrap()
                 } else {
                     codes[0].clone()
                 };
@@ -192,7 +192,7 @@ impl Component for Game {
             Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
                 let mut code = scenario::load(&self.scenario_name).initial_code()[0].clone();
                 if let Code::Builtin(name) = code {
-                    code = oort_simulator::script::builtin::load_source(&name).unwrap()
+                    code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
                 self.editor_link.with_editor(|editor| {
                     editor
@@ -205,7 +205,7 @@ impl Component for Game {
             Msg::EditorAction(ref action) if action == "oort-load-solution" => {
                 let mut code = scenario::load(&self.scenario_name).solution();
                 if let Code::Builtin(name) = code {
-                    code = oort_simulator::script::builtin::load_source(&name).unwrap()
+                    code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
                 self.editor_link.with_editor(|editor| {
                     editor
@@ -616,17 +616,17 @@ impl Game {
         }
     }
 
-    pub fn make_editor_errors(error: &str) -> Vec<script::Error> {
+    pub fn make_editor_errors(error: &str) -> Vec<vm::Error> {
         let re = Regex::new(r"(?m)error.*?: (.*?)$\n.*?ai/src/user.rs:(\d+):").unwrap();
         re.captures_iter(error)
-            .map(|m| script::Error {
+            .map(|m| vm::Error {
                 line: m[2].parse().unwrap(),
                 msg: m[1].to_string(),
             })
             .collect()
     }
 
-    pub fn display_errors(&mut self, errors: &[script::Error]) {
+    pub fn display_errors(&mut self, errors: &[vm::Error]) {
         use monaco::sys::{
             editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
         };
@@ -728,7 +728,7 @@ impl Game {
 
                 self.overlay = Some(Overlay::Compiling);
             }
-            Code::Builtin(name) => match oort_simulator::script::builtin::load_compiled(&name) {
+            Code::Builtin(name) => match oort_simulator::vm::builtin::load_compiled(&name) {
                 Ok(code) => success_callback.emit(code),
                 Err(e) => failure_callback.emit(e),
             },

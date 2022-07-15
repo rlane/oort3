@@ -7,7 +7,7 @@ pub mod radar;
 pub mod radio;
 pub mod rng;
 pub mod scenario;
-pub mod script;
 pub mod ship;
 pub mod simulation;
 pub mod snapshot;
+pub mod vm;

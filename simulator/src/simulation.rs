@@ -6,10 +6,10 @@ use crate::radar;
 use crate::radio;
 use crate::scenario;
 use crate::scenario::Scenario;
-use crate::script;
-use crate::script::{ShipController, TeamController};
 use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
 use crate::snapshot::*;
+use crate::vm;
+use crate::vm::{ShipController, TeamController};
 use crossbeam::channel::Sender;
 use instant::Instant;
 use nalgebra::Vector2;
@@ -267,7 +267,7 @@ impl Simulation {
     }
 
     pub fn upload_code(&mut self, team: i32, code: &Code) {
-        match script::new_team_controller(code) {
+        match vm::new_team_controller(code) {
             Ok(team_ctrl) => {
                 self.team_controllers
                     .insert(team, Rc::new(RefCell::new(team_ctrl)));
@@ -395,7 +395,7 @@ impl EventHandler for CollisionEventHandler {
 }
 
 pub struct SimEvents {
-    pub errors: Vec<script::Error>,
+    pub errors: Vec<vm::Error>,
     pub hits: Vec<Vector2<f64>>,
     pub ships_destroyed: Vec<Vector2<f64>>,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,

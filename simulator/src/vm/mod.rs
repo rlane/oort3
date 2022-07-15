@@ -1,19 +1,72 @@
-use super::{ShipController, TeamController};
+pub mod builtin;
+
 use crate::debug;
 use crate::ship::{ShipClass, ShipHandle};
-use crate::simulation::Simulation;
+use crate::simulation::{Code, Simulation};
 use nalgebra::point;
+use nalgebra::Vector2;
 use oort_shared::*;
+use serde::{Deserialize, Serialize};
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
 pub type Vec2 = nalgebra::Vector2<f64>;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Error {
+    pub line: usize,
+    pub msg: String,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl From<wasm_bindgen::JsValue> for Error {
+    fn from(err: wasm_bindgen::JsValue) -> Self {
+        Self {
+            line: 0,
+            msg: format!("JS error: {:?}", err),
+        }
+    }
+}
+
+impl From<wasmer::InstantiationError> for Error {
+    fn from(err: wasmer::InstantiationError) -> Self {
+        Self {
+            line: 0,
+            msg: format!("Wasmer instantiation error: {:?}", err),
+        }
+    }
+}
+
+pub trait TeamController {
+    fn create_ship_controller(
+        &mut self,
+        handle: ShipHandle,
+        sim: &mut Simulation,
+        orders: String,
+    ) -> Result<Box<dyn ShipController>, Error>;
+}
+
+pub trait ShipController {
+    fn tick(&mut self) -> Result<(), Error>;
+    fn write_target(&mut self, target: Vector2<f64>);
+}
+
+pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
+    match code {
+        Code::Wasm(b) => WasmTeamController::create(b),
+        Code::Builtin(name) => match builtin::load_compiled(name) {
+            Ok(code) => new_team_controller(&code),
+            Err(e) => Err(Error { line: 0, msg: e }),
+        },
+        _ => unreachable!(),
+    }
+}
 
 pub struct WasmTeamController {
     pub module: Module,
 }
 
 impl WasmTeamController {
-    pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, super::Error> {
+    pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, Error> {
         #[cfg(not(target_arch = "wasm32"))]
         let store = Store::new_with_engine(
             &wasmer_compiler::Universal::new(wasmer_compiler_cranelift::Cranelift::default())
@@ -33,7 +86,7 @@ impl TeamController for WasmTeamController {
         handle: ShipHandle,
         sim: &mut Simulation,
         orders: String,
-    ) -> Result<Box<dyn ShipController>, super::Error> {
+    ) -> Result<Box<dyn ShipController>, Error> {
         let import_object = imports! {};
         let instance = Instance::new(&self.module, &import_object)?;
 
@@ -134,7 +187,7 @@ fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
 }
 
 impl ShipController for WasmShipController {
-    fn tick(&mut self) -> Result<(), super::Error> {
+    fn tick(&mut self) -> Result<(), Error> {
         {
             let mut state = self.read_system_state();
             let sim = unsafe { &mut *self.sim };
@@ -348,13 +401,13 @@ fn translate_class(class: ShipClass) -> Class {
     }
 }
 
-fn translate_error<T, U>(err: Result<T, U>) -> Result<T, super::Error>
+fn translate_error<T, U>(err: Result<T, U>) -> Result<T, Error>
 where
     U: std::fmt::Debug,
 {
     match err {
         Ok(val) => Ok(val),
-        Err(err) => Err(super::Error {
+        Err(err) => Err(Error {
             line: 0,
             msg: format!("Wasmer error: {:?}", err),
         }),
