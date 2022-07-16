@@ -86,10 +86,8 @@ fn test_fighter_bullet_collision_same_team() {
     );
     bullet::create(
         &mut sim,
-        0.0,
-        0.0,
-        1000.0,
-        0.0,
+        vector![0.0, 0.0],
+        vector![1000.0, 0.0],
         bullet::BulletData {
             team: 0,
             damage: 10.0,
@@ -119,10 +117,8 @@ fn test_fighter_bullet_collision_different_team() {
     );
     bullet::create(
         &mut sim,
-        0.0,
-        0.0,
-        1000.0,
-        0.0,
+        vector![0.0, 0.0],
+        vector![1000.0, 0.0],
         bullet::BulletData {
             team: 1,
             damage: 10.0,
@@ -152,10 +148,8 @@ fn test_missile_bullet_collision_same_team() {
     );
     let blt = bullet::create(
         &mut sim,
-        0.0,
-        0.0,
-        1000.0,
-        0.0,
+        vector![0.0, 0.0],
+        vector![1000.0, 0.0],
         bullet::BulletData {
             team: 0,
             damage: 10.0,
@@ -185,10 +179,8 @@ fn test_missile_bullet_collision_different_team() {
     );
     bullet::create(
         &mut sim,
-        0.0,
-        0.0,
-        1000.0,
-        0.0,
+        vector![0.0, 0.0],
+        vector![1000.0, 0.0],
         bullet::BulletData {
             team: 1,
             damage: 10.0,
@@ -274,10 +266,8 @@ fn test_bullet_continuous_collision_detection() {
         );
         bullet::create(
             &mut sim,
-            0.0,
-            -1000.0 + offset,
-            0.0,
-            1000.0,
+            vector![0.0, -1000.0 + offset],
+            vector![0.0, 1000.0],
             bullet::BulletData {
                 team: 1,
                 damage: 10.0,

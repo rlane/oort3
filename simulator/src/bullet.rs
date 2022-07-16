@@ -2,7 +2,7 @@ use super::index_set::{HasIndex, Index};
 use crate::collision;
 use crate::ship::ShipHandle;
 use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
-use nalgebra::Vector4;
+use nalgebra::{Vector2, Vector4};
 use rapier2d_f64::prelude::*;
 
 const LAZY_COLLIDERS: bool = true;
@@ -25,15 +25,13 @@ pub struct BulletData {
 
 pub fn create(
     sim: &mut Simulation,
-    x: f64,
-    y: f64,
-    vx: f64,
-    vy: f64,
+    position: Vector2<f64>,
+    velocity: Vector2<f64>,
     data: BulletData,
 ) -> BulletHandle {
     let rigid_body = RigidBodyBuilder::dynamic()
-        .translation(vector![x, y])
-        .linvel(vector![vx, vy])
+        .translation(position)
+        .linvel(velocity)
         .ccd_enabled(true)
         .build();
     let body_handle = sim.bodies.insert(rigid_body);

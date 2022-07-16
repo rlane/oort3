@@ -546,10 +546,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 + v * t;
             bullet::create(
                 self.simulation,
-                p.x,
-                p.y,
-                v.x,
-                v.y,
+                p,
+                v,
                 BulletData {
                     damage: gun.damage,
                     team,
@@ -631,10 +629,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             bullet::create(
                 self.simulation,
-                p.x,
-                p.y,
-                v.x,
-                v.y,
+                p.vector,
+                v,
                 BulletData {
                     damage,
                     team,

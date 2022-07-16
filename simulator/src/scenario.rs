@@ -418,10 +418,8 @@ impl Scenario for BulletStressScenario {
             let s = 1000.0;
             bullet::create(
                 sim,
-                rng.gen_range(-bound..bound),
-                rng.gen_range(-bound..bound),
-                rng.gen_range(-s..s),
-                rng.gen_range(-s..s),
+                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
+                vector![rng.gen_range(-s..s), rng.gen_range(-s..s)],
                 BulletData {
                     damage: 10.0,
                     team: 0,
