@@ -115,6 +115,7 @@ mod test {
     use crate::ship;
     use crate::simulation::Code;
     use crate::simulation::Simulation;
+    use nalgebra::vector;
     use test_log::test;
 
     #[test]
@@ -122,8 +123,20 @@ mod test {
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
 
         sim.step();
 
@@ -148,8 +161,20 @@ mod test {
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
 
         sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(1.0);
         sim.ship_mut(ship1).radio_mut().unwrap().channel = 5;

@@ -214,8 +214,20 @@ impl Scenario for BasicScenario {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, -100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
-        ship::create(sim, 100.0, 0.0, 0.0, 0.0, std::f64::consts::PI, fighter(1));
+        ship::create(
+            sim,
+            vector![-100.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            fighter(0),
+        );
+        ship::create(
+            sim,
+            vector![100.0, 0.0],
+            vector![0.0, 0.0],
+            std::f64::consts::PI,
+            fighter(1),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -237,15 +249,25 @@ impl Scenario for GunneryScenario {
         ship_data.guns.pop();
         ship_data.missile_launchers.pop();
         ship_data.acceleration = vector![0.0, 0.0];
-        ship::create(sim, -9000.0, 0.0, 0.0, 0.0, 0.0, ship_data);
+        ship::create(
+            sim,
+            vector![-9000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship_data,
+        );
         let mut rng = new_rng(seed);
         for _ in 0..4 {
             ship::create(
                 sim,
-                9000.0 + rng.gen_range(-500.0..500.0),
-                -9000.0 + rng.gen_range(-500.0..500.0),
-                0.0 + rng.gen_range(-10.0..10.0),
-                700.0 + rng.gen_range(-300.0..600.0),
+                vector![
+                    9000.0 + rng.gen_range(-500.0..500.0),
+                    -9000.0 + rng.gen_range(-500.0..500.0)
+                ],
+                vector![
+                    0.0 + rng.gen_range(-10.0..10.0),
+                    700.0 + rng.gen_range(-300.0..600.0)
+                ],
                 std::f64::consts::PI,
                 target(1),
             );
@@ -302,19 +324,15 @@ impl Scenario for MissileTest {
 
         ship::create(
             sim,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
             target_p.y.atan2(target_p.x),
             missile_data,
         );
         self.target = Some(ship::create(
             sim,
-            target_p.x,
-            target_p.y,
-            target_v.x,
-            target_v.y,
+            vector![target_p.x, target_p.y],
+            vector![target_v.x, target_v.y],
             0.0,
             target(1),
         ));
@@ -364,16 +382,14 @@ impl Scenario for AsteroidStressScenario {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
         for _ in 0..1000 {
             ship::create(
                 sim,
-                rng.gen_range(-bound..bound),
-                rng.gen_range(-bound..bound),
-                rng.gen_range(-30.0..30.0),
-                rng.gen_range(-30.0..30.0),
+                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
+                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
                 asteroid(rng.gen_range(0..30)),
             );
@@ -395,7 +411,7 @@ impl Scenario for BulletStressScenario {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
         for _ in 0..1000 {
@@ -443,10 +459,8 @@ impl Scenario for MissileStressScenario {
         for i in 0..100 {
             ship::create_with_orders(
                 sim,
-                rng.gen_range(-bound..bound),
-                rng.gen_range(-bound..bound),
-                rng.gen_range(-30.0..30.0),
-                rng.gen_range(-30.0..30.0),
+                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
+                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
                 missile(i % 2),
                 "{x:0,y:0}".to_string(),
@@ -492,7 +506,13 @@ impl Scenario for WelcomeScenario {
 
         let ship_datas = &[fighter(0), frigate(0), cruiser(0)];
         let ship_data = rng.sample(rand::distributions::Slice::new(ship_datas).unwrap());
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship_data.clone());
+        ship::create(
+            sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship_data.clone(),
+        );
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -503,10 +523,8 @@ impl Scenario for WelcomeScenario {
                 .transform_point(&point![rng.gen_range(500.0..2000.0), 0.0]);
             ship::create(
                 sim,
-                p.x,
-                p.y,
-                rng.gen_range(-30.0..30.0),
-                rng.gen_range(-30.0..30.0),
+                vector![p.x, p.y],
+                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
                 asteroid(*asteroid_variants.choose(rng).unwrap()),
             );
@@ -531,8 +549,20 @@ impl Scenario for Tutorial01 {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
-        ship::create(sim, 100.0, 0.0, 0.0, 0.0, 0.1, asteroid(1));
+        ship::create(
+            sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            fighter_without_missiles(0),
+        );
+        ship::create(
+            sim,
+            vector![100.0, 0.0],
+            vector![0.0, 0.0],
+            0.1,
+            asteroid(1),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -569,7 +599,13 @@ impl Scenario for Tutorial02 {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
+        ship::create(
+            sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            fighter_without_missiles(0),
+        );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
                 c.write_target(vector![200.0, 0.0]);
@@ -655,7 +691,13 @@ impl Scenario for Tutorial03 {
         let range = -size..size;
         self.target = Some(point![rng.gen_range(range.clone()), rng.gen_range(range)]);
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
+        ship::create(
+            sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            fighter_without_missiles(0),
+        );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
                 c.write_target(self.target.unwrap().coords);
@@ -735,13 +777,19 @@ impl Scenario for Tutorial04 {
         let size = 500.0;
         let range = -size..size;
         let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
+        ship::create(
+            sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            fighter_without_missiles(0),
+        );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
                 c.write_target(target.coords);
             }
         }
-        ship::create(sim, target.x, target.y, 0.0, 0.0, 0.0, asteroid(1));
+        ship::create(sim, target.coords, vector![0.0, 0.0], 0.0, asteroid(1));
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -784,10 +832,8 @@ impl Scenario for Tutorial05 {
         add_walls(sim);
         self.ship_handle = Some(ship::create(
             sim,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
             0.0,
             fighter_without_missiles(0),
         ));
@@ -798,10 +844,11 @@ impl Scenario for Tutorial05 {
         let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
         self.target_handle = Some(ship::create(
             sim,
-            target.x,
-            target.y,
-            rng.gen_range(0.0..std::f64::consts::TAU),
-            rng.gen_range(-400.0..400.0),
+            target.coords,
+            vector![
+                rng.gen_range(0.0..std::f64::consts::TAU),
+                rng.gen_range(-400.0..400.0)
+            ],
             rng.gen_range(-400.0..400.0),
             fighter(1),
         ));
@@ -858,7 +905,13 @@ impl Scenario for Tutorial06 {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, fighter_without_missiles(0));
+        ship::create(
+            sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            fighter_without_missiles(0),
+        );
 
         let mut rng = new_rng(seed);
         let size = 500.0;
@@ -867,10 +920,11 @@ impl Scenario for Tutorial06 {
             let target = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
             ship::create(
                 sim,
-                target.x,
-                target.y,
-                rng.gen_range(0.0..std::f64::consts::TAU),
-                rng.gen_range(-400.0..400.0),
+                target.coords,
+                vector![
+                    rng.gen_range(0.0..std::f64::consts::TAU),
+                    rng.gen_range(-400.0..400.0)
+                ],
                 rng.gen_range(-400.0..400.0),
                 fighter(1),
             );
@@ -918,15 +972,13 @@ impl Scenario for Tutorial07 {
             for _ in 0..10 {
                 let size = 500.0;
                 let range = -size..size;
-                let center = point![(team as f64 - 0.5) * 1000.0, 0.0];
-                let offset = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+                let center = vector![(team as f64 - 0.5) * 1000.0, 0.0];
+                let offset = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
                 let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
                 ship::create(
                     sim,
-                    center.x + offset.x,
-                    center.y + offset.y,
-                    0.0,
-                    0.0,
+                    center + offset,
+                    vector![0.0, 0.0],
                     heading,
                     fighter(team),
                 );
@@ -977,10 +1029,8 @@ impl Scenario for Tutorial08 {
                     .transform_point(&point![rng.gen_range(100.0..500.0), 0.0]);
                 ship::create(
                     sim,
-                    position.x,
-                    position.y,
-                    0.0,
-                    0.0,
+                    position.coords,
+                    vector![0.0, 0.0],
                     rng.gen_range(0.0..std::f64::consts::TAU),
                     fighter_without_missiles(0),
                 );
@@ -992,10 +1042,8 @@ impl Scenario for Tutorial08 {
                     .transform_point(&point![rng.gen_range(3500.0..4500.0), 0.0]);
                 ship::create(
                     sim,
-                    position.x,
-                    position.y,
-                    0.0,
-                    0.0,
+                    position.coords,
+                    vector![0.0, 0.0],
                     rng.gen_range(0.0..std::f64::consts::TAU),
                     fighter(1),
                 );
@@ -1041,7 +1089,7 @@ impl Scenario for Tutorial09 {
 
         let mut shipdata = fighter(0);
         shipdata.guns.clear();
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, shipdata);
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, shipdata);
 
         let mut rng = new_rng(seed);
         for _ in 0..3 {
@@ -1049,7 +1097,7 @@ impl Scenario for Tutorial09 {
                 .transform_vector(&vector![rng.gen_range(2000.0..2500.0), 0.0]);
             let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-            ship::create(sim, p.x, p.y, v.x, v.y, std::f64::consts::PI, fighter(1));
+            ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
         }
     }
 
@@ -1085,7 +1133,7 @@ impl Scenario for Tutorial10 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, frigate(0));
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, frigate(0));
 
         let mut rng = new_rng(seed);
         for _ in 0..5 {
@@ -1093,7 +1141,7 @@ impl Scenario for Tutorial10 {
                 .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
             let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-            ship::create(sim, p.x, p.y, v.x, v.y, std::f64::consts::PI, fighter(1));
+            ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
         }
     }
 
@@ -1129,7 +1177,7 @@ impl Scenario for Tutorial11 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, cruiser(0));
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, cruiser(0));
 
         let mut rng = new_rng(seed);
         for _ in 0..5 {
@@ -1137,7 +1185,7 @@ impl Scenario for Tutorial11 {
                 .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
             let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-            ship::create(sim, p.x, p.y, v.x, v.y, std::f64::consts::PI, fighter(1));
+            ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
         }
     }
 
@@ -1172,13 +1220,17 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, fighter(0));
         ship::create(
             sim,
-            1000.0,
-            500.0,
+            vector![-1000.0, -500.0],
+            vector![0.0, 0.0],
             0.0,
-            0.0,
+            fighter(0),
+        );
+        ship::create(
+            sim,
+            vector![1000.0, 500.0],
+            vector![0.0, 0.0],
             std::f64::consts::PI,
             fighter(1),
         );
@@ -1216,13 +1268,17 @@ impl Scenario for FrigateDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
-            1000.0,
-            500.0,
+            vector![-1000.0, -500.0],
+            vector![0.0, 0.0],
             0.0,
-            0.0,
+            frigate(0),
+        );
+        ship::create(
+            sim,
+            vector![1000.0, 500.0],
+            vector![0.0, 0.0],
             std::f64::consts::PI,
             frigate(1),
         );
@@ -1260,13 +1316,17 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, -4000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
-            4000.0,
-            500.0,
+            vector![-4000.0, -500.0],
+            vector![0.0, 0.0],
             0.0,
-            0.0,
+            cruiser(0),
+        );
+        ship::create(
+            sim,
+            vector![4000.0, 500.0],
+            vector![0.0, 0.0],
             std::f64::consts::PI,
             cruiser(1),
         );
@@ -1304,13 +1364,17 @@ impl Scenario for FrigateVsCruiser {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, frigate(0));
         ship::create(
             sim,
-            1000.0,
-            500.0,
+            vector![-1000.0, -500.0],
+            vector![0.0, 0.0],
             0.0,
-            0.0,
+            frigate(0),
+        );
+        ship::create(
+            sim,
+            vector![1000.0, 500.0],
+            vector![0.0, 0.0],
             std::f64::consts::PI,
             cruiser(1),
         );
@@ -1344,13 +1408,17 @@ impl Scenario for CruiserVsFrigate {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(sim, -1000.0, -500.0, 0.0, 0.0, 0.0, cruiser(0));
         ship::create(
             sim,
-            1000.0,
-            500.0,
+            vector![-1000.0, -500.0],
+            vector![0.0, 0.0],
             0.0,
-            0.0,
+            cruiser(0),
+        );
+        ship::create(
+            sim,
+            vector![1000.0, 500.0],
+            vector![0.0, 0.0],
             std::f64::consts::PI,
             frigate(1),
         );
@@ -1388,16 +1456,14 @@ impl Scenario for Furball {
         for team in 0..2 {
             let fleet_radius = 500.0;
             let range = -fleet_radius..fleet_radius;
-            let center = point![(team as f64 - 0.5) * 2000.0 * 2.0, 0.0];
+            let center = vector![(team as f64 - 0.5) * 2000.0 * 2.0, 0.0];
             let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
             for _ in 0..10 {
-                let offset = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+                let offset = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
                 ship::create(
                     sim,
-                    center.x + offset.x,
-                    center.y + offset.y,
-                    0.0,
-                    0.0,
+                    center + offset,
+                    vector![0.0, 0.0],
                     heading,
                     fighter(team),
                 );
@@ -1449,10 +1515,11 @@ impl Scenario for Fleet {
             for i in 0..num_fighters {
                 ship::create(
                     sim,
-                    center.x - signum * 200.0,
-                    center.y + i as f64 * 50.0 - (num_fighters - 1) as f64 * 25.0,
-                    0.0,
-                    0.0,
+                    vector![
+                        center.x - signum * 200.0,
+                        center.y + i as f64 * 50.0 - (num_fighters - 1) as f64 * 25.0
+                    ],
+                    vector![0.0, 0.0],
                     heading,
                     fighter(team),
                 );
@@ -1460,10 +1527,11 @@ impl Scenario for Fleet {
             for i in 0..num_frigates {
                 ship::create(
                     sim,
-                    center.x,
-                    center.y + i as f64 * 300.0 - 150.0 * (num_frigates - 1) as f64,
-                    0.0,
-                    0.0,
+                    vector![
+                        center.x,
+                        center.y + i as f64 * 300.0 - 150.0 * (num_frigates - 1) as f64
+                    ],
+                    vector![0.0, 0.0],
                     heading,
                     frigate(team),
                 );
@@ -1471,10 +1539,11 @@ impl Scenario for Fleet {
             for i in 0..num_cruisers {
                 ship::create(
                     sim,
-                    center.x + signum * 500.0,
-                    center.y + 400.0 * i as f64 - 200.0 * (num_cruisers - 1) as f64,
-                    0.0,
-                    0.0,
+                    vector![
+                        center.x + signum * 500.0,
+                        center.y + 400.0 * i as f64 - 200.0 * (num_cruisers - 1) as f64
+                    ],
+                    vector![0.0, 0.0],
                     heading,
                     cruiser(team),
                 );
@@ -1525,10 +1594,8 @@ impl Scenario for Belt {
                 for j in [-1.0, 1.0] {
                     ship::create(
                         sim,
-                        center.x + j * (1000.0 + i as f64 * 100.0),
-                        center.y,
-                        0.0,
-                        0.0,
+                        vector![center.x + j * (1000.0 + i as f64 * 100.0), center.y],
+                        vector![0.0, 0.0],
                         heading,
                         fighter(team),
                     );
@@ -1538,16 +1605,20 @@ impl Scenario for Belt {
                 for j in [-1.0, 1.0] {
                     ship::create(
                         sim,
-                        center.x + j * (500.0 + i as f64 * 200.0),
-                        center.y,
-                        0.0,
-                        0.0,
+                        vector![center.x + j * (500.0 + i as f64 * 200.0), center.y],
+                        vector![0.0, 0.0],
                         heading,
                         frigate(team),
                     );
                 }
             }
-            ship::create(sim, center.x, center.y, 0.0, 0.0, heading, cruiser(team));
+            ship::create(
+                sim,
+                center.coords,
+                vector![0.0, 0.0],
+                heading,
+                cruiser(team),
+            );
         }
 
         let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 4.0)];
@@ -1556,10 +1627,11 @@ impl Scenario for Belt {
             data.health = 10000.0;
             ship::create(
                 sim,
-                rng.gen_range(-bound.x..bound.x),
-                rng.gen_range(-bound.y..bound.y),
-                rng.gen_range(-1.0..1.0),
-                rng.gen_range(-1.0..1.0),
+                vector![
+                    rng.gen_range(-bound.x..bound.x),
+                    rng.gen_range(-bound.y..bound.y)
+                ],
+                vector![rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)],
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
                 data,
             );
@@ -1596,7 +1668,7 @@ impl Scenario for FrigatePointDefense {
         add_walls(sim);
         let mut data = frigate(0);
         data.missile_launchers.clear();
-        ship::create(sim, 0.0, 0.0, 0.0, 0.0, 0.0, data);
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, data);
 
         for i in 1..10 {
             let distance = (i as f64) * 1000.0;
@@ -1605,15 +1677,7 @@ impl Scenario for FrigatePointDefense {
             let velocity = Rotation2::new(angle) * vector![0.0, rng.gen_range(-2000.0..2000.0)];
             let mut data = missile(1);
             data.ttl = None;
-            ship::create(
-                sim,
-                position.x,
-                position.y,
-                velocity.x,
-                velocity.y,
-                angle + PI,
-                data,
-            );
+            ship::create(sim, position, velocity, angle + PI, data);
         }
     }
 

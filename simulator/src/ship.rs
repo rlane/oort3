@@ -353,31 +353,27 @@ pub fn torpedo(team: i32) -> ShipData {
 
 pub fn create(
     sim: &mut Simulation,
-    x: f64,
-    y: f64,
-    vx: f64,
-    vy: f64,
-    h: f64,
+    position: Vector2<f64>,
+    velocity: Vector2<f64>,
+    heading: f64,
     data: ShipData,
 ) -> ShipHandle {
-    create_with_orders(sim, x, y, vx, vy, h, data, "".to_string())
+    create_with_orders(sim, position, velocity, heading, data, "".to_string())
 }
 
 #[allow(clippy::too_many_arguments)]
 pub fn create_with_orders(
     sim: &mut Simulation,
-    x: f64,
-    y: f64,
-    vx: f64,
-    vy: f64,
-    h: f64,
+    position: Vector2<f64>,
+    velocity: Vector2<f64>,
+    heading: f64,
     data: ShipData,
     orders: String,
 ) -> ShipHandle {
     let rigid_body = RigidBodyBuilder::dynamic()
-        .translation(vector![x, y])
-        .linvel(vector![vx, vy])
-        .rotation(h)
+        .translation(position)
+        .linvel(velocity)
+        .rotation(heading)
         .ccd_enabled(true)
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
@@ -591,10 +587,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let team = self.data().team;
         create_with_orders(
             self.simulation,
-            p.x,
-            p.y,
-            v.x,
-            v.y,
+            p,
+            v,
             rot2.angle(),
             match missile_launcher.class {
                 ShipClass::Missile => missile(team),

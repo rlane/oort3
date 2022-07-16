@@ -325,8 +325,20 @@ mod test {
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::target(1));
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::target(1),
+        );
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
 
@@ -373,8 +385,20 @@ mod test {
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let _ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::target(1));
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let _ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::target(1),
+        );
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
 
@@ -399,8 +423,20 @@ mod test {
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::target(1));
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::target(1),
+        );
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
 
@@ -451,8 +487,20 @@ mod test {
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::target(1));
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::target(1),
+        );
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
 
@@ -489,8 +537,20 @@ mod test {
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
         // Initial state.
-        let ship0 = ship::create(&mut sim, 0.0, 0.0, 0.0, 0.0, 0.0, ship::fighter(0));
-        let ship1 = ship::create(&mut sim, 1000.0, 0.0, 0.0, 0.0, 0.0, ship::target(1));
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::target(1),
+        );
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
 
@@ -534,8 +594,8 @@ mod test {
             let h = rng.gen_range(0.0..TAU);
             let w = rng.gen_range(0.0..TAU);
 
-            let ship0 = ship::create(&mut sim, p0.x, p0.y, 0.0, 0.0, h, ship::fighter(0));
-            let _ship1 = ship::create(&mut sim, p1.x, p1.y, 0.0, 0.0, 0.0, ship::target(1));
+            let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], h, ship::fighter(0));
+            let _ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
             sim.ship_mut(ship0).radar_mut().unwrap().width = w;
             sim.step();
 

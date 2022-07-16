@@ -23,10 +23,8 @@ fn test_world_edge() {
         let vy = rng.gen_range(-s..s);
         ship::create(
             &mut sim,
-            x as f64,
-            y as f64,
-            vx as f64,
-            vy as f64,
+            vector![x as f64, y as f64],
+            vector![vx as f64, vy as f64],
             h as f64,
             fighter(0),
         );
@@ -49,8 +47,20 @@ fn test_world_edge() {
 fn test_head_on_collision() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
 
-    let ship0 = ship::create(&mut sim, -100.0, 0.0, 100.0, 0.0, 0.0, fighter(0));
-    let ship1 = ship::create(&mut sim, 100.0, 0.0, -100.0, 0.0, 0.0, fighter(0));
+    let ship0 = ship::create(
+        &mut sim,
+        vector![-100.0, 0.0],
+        vector![100.0, 0.0],
+        0.0,
+        fighter(0),
+    );
+    let ship1 = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![-100.0, 0.0],
+        0.0,
+        fighter(0),
+    );
 
     assert!(sim.ship(ship0).velocity().x > 0.0);
     assert!(sim.ship(ship1).velocity().x < 0.0);
@@ -67,7 +77,13 @@ fn test_head_on_collision() {
 fn test_fighter_bullet_collision_same_team() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
 
-    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    let ship = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        fighter(0),
+    );
     bullet::create(
         &mut sim,
         0.0,
@@ -94,7 +110,13 @@ fn test_fighter_bullet_collision_same_team() {
 fn test_fighter_bullet_collision_different_team() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
 
-    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    let ship = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        fighter(0),
+    );
     bullet::create(
         &mut sim,
         0.0,
@@ -121,7 +143,13 @@ fn test_fighter_bullet_collision_different_team() {
 fn test_missile_bullet_collision_same_team() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
 
-    let msl = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, missile(0));
+    let msl = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        missile(0),
+    );
     let blt = bullet::create(
         &mut sim,
         0.0,
@@ -148,7 +176,13 @@ fn test_missile_bullet_collision_same_team() {
 fn test_missile_bullet_collision_different_team() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
 
-    ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, missile(0));
+    ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        missile(0),
+    );
     bullet::create(
         &mut sim,
         0.0,
@@ -175,8 +209,20 @@ fn test_missile_bullet_collision_different_team() {
 fn test_missile_fighter_collision_same_team() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
 
-    let msl = ship::create(&mut sim, 0.0, 0.0, 400.0, 0.0, 0.0, missile(0));
-    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(0));
+    let msl = ship::create(
+        &mut sim,
+        vector![0.0, 0.0],
+        vector![400.0, 0.0],
+        0.0,
+        missile(0),
+    );
+    let ship = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        fighter(0),
+    );
 
     for _ in 0..60 {
         sim.step();
@@ -190,8 +236,20 @@ fn test_missile_fighter_collision_same_team() {
 fn test_missile_fighter_collision_different_team() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None, Code::None]);
 
-    let msl = ship::create(&mut sim, 0.0, 0.0, 400.0, 0.0, 0.0, missile(0));
-    let ship = ship::create(&mut sim, 100.0, 0.0, 0.0, 0.0, 0.0, fighter(1));
+    let msl = ship::create(
+        &mut sim,
+        vector![0.0, 0.0],
+        vector![400.0, 0.0],
+        0.0,
+        missile(0),
+    );
+    let ship = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        fighter(1),
+    );
 
     for _ in 0..60 {
         sim.step();
@@ -209,10 +267,8 @@ fn test_bullet_continuous_collision_detection() {
         let offset = i as f64;
         ship::create(
             &mut sim,
-            -1000.0 + offset,
-            0.0,
-            1000.0,
-            0.0,
+            vector![-1000.0 + offset, 0.0],
+            vector![1000.0, 0.0],
             0.0,
             missile(0),
         );
