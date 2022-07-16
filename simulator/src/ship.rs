@@ -361,7 +361,6 @@ pub fn create(
     create_with_orders(sim, position, velocity, heading, data, "".to_string())
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn create_with_orders(
     sim: &mut Simulation,
     position: Vector2<f64>,
