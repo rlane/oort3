@@ -342,8 +342,10 @@ impl UI {
                 class,
                 team,
                 health,
+                energy,
                 ..
             } = ship;
+            let energy = energy / 1e6;
             let debug_text = self
                 .snapshot
                 .as_ref()
@@ -351,7 +353,7 @@ impl UI {
                 .cloned()
                 .unwrap_or_default();
             self.picked_text.set_text_content(Some(&format!(
-                "{class:?}\nTeam: {team:?}\nHealth: {health:.0}\n{debug_text}"
+                "{class:?}\nTeam: {team:?}\nHealth: {health:.0} Energy: {energy:.0} MJ\n{debug_text}"
             )));
         } else {
             self.picked_text.set_text_content(Some(""));

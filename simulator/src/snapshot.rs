@@ -33,6 +33,7 @@ pub struct ShipSnapshot {
     pub team: i32,
     pub class: ShipClass,
     pub health: f64,
+    pub energy: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
