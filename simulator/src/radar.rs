@@ -52,7 +52,7 @@ impl Radar {
     }
 
     pub fn set_width(&mut self, width: f64) {
-        self.width = width.rem_euclid(TAU);
+        self.width = width.clamp(0.0, TAU);
     }
 
     pub fn get_min_distance(&self) -> f64 {
@@ -138,7 +138,8 @@ pub fn tick(sim: &mut Simulation) {
             }
             let h = radar.heading + ship.heading();
             let w = radar.width;
-            let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/);
+            let max_distance =
+                compute_max_detection_range(radar, 40.0 /*cruiser*/).min(radar.max_distance);
             let emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,
