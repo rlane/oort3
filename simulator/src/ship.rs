@@ -162,6 +162,17 @@ fn radio() -> Radio {
     }
 }
 
+pub fn vulcan_gun() -> Gun {
+    Gun {
+        reload_time: PHYSICS_TICK_LENGTH * 4.0,
+        damage: 7.0,
+        speed: 1000.0,
+        inaccuracy: 0.0025,
+        energy_required: 6e6,
+        ..Default::default()
+    }
+}
+
 pub fn fighter(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Fighter,
@@ -172,13 +183,8 @@ pub fn fighter(team: i32) -> ShipData {
         max_acceleration: vector![200.0, 100.0],
         max_angular_acceleration: TAU,
         guns: vec![Gun {
-            reload_time: 0.2,
-            damage: 20.0,
-            speed: 1000.0,
             offset: vector![20.0, 0.0],
-            inaccuracy: 0.017,
-            energy_required: 20e6,
-            ..Default::default()
+            ..vulcan_gun()
         }],
         missile_launchers: vec![MissileLauncher {
             class: ShipClass::Missile,
@@ -187,7 +193,7 @@ pub fn fighter(team: i32) -> ShipData {
             initial_speed: 100.0,
             offset: vector![20.0, 0.0],
             angle: 0.0,
-            energy_required: 2e8,
+            energy_required: 200e6,
         }],
         radar: Some(Radar {
             power: 20e3,
@@ -219,24 +225,14 @@ pub fn frigate(team: i32) -> ShipData {
                 ..Default::default()
             },
             Gun {
-                reload_time: 0.2,
-                damage: 20.0,
-                speed: 1000.0,
                 offset: vector![0.0, 15.0],
                 max_angle: TAU,
-                inaccuracy: 0.017,
-                energy_required: 20e6,
-                ..Default::default()
+                ..vulcan_gun()
             },
             Gun {
-                reload_time: 0.2,
-                damage: 20.0,
-                speed: 1000.0,
                 offset: vector![0.0, -15.0],
                 max_angle: TAU,
-                inaccuracy: 0.017,
-                energy_required: 20e6,
-                ..Default::default()
+                ..vulcan_gun()
             },
         ],
         missile_launchers: vec![MissileLauncher {
