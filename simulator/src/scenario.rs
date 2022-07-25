@@ -36,7 +36,7 @@ fn check_victory(sim: &Simulation) -> Status {
         if [ShipClass::Missile, ShipClass::Torpedo].contains(&ship.data().class) {
             continue;
         }
-        if let ShipClass::Asteroid { variant: _ } = ship.data().class {
+        if ship.data().team >= 9 {
             continue;
         }
         alive_teams.insert(ship.data().team);
@@ -552,13 +552,9 @@ impl Scenario for Tutorial01 {
             0.0,
             fighter_without_missiles(0),
         );
-        ship::create(
-            sim,
-            vector![100.0, 0.0],
-            vector![0.0, 0.0],
-            0.1,
-            asteroid(1),
-        );
+        let mut asteroid = asteroid(1);
+        asteroid.team = 1;
+        ship::create(sim, vector![100.0, 0.0], vector![0.0, 0.0], 0.1, asteroid);
     }
 
     fn status(&self, sim: &Simulation) -> Status {
