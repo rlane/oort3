@@ -739,7 +739,10 @@ impl Game {
     pub fn run(&mut self, context: &Context<Self>, codes: &[Code]) {
         self.compiler_errors = None;
         self.running_codes = codes.to_vec();
-        let seed = rand::thread_rng().gen();
+        let seed: u32 = QString::from(context.link().location().unwrap().search().as_str())
+            .get("seed")
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(rand::thread_rng().gen());
         self.ui = Some(Box::new(UI::new(
             context.link().callback(|_| Msg::RequestSnapshot),
             self.nonce,
