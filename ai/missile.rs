@@ -33,7 +33,7 @@ pub fn seek(p: Vec2, v: Vec2) {
     let los_rate = (dp.y * dv.x - dp.x * dv.y) / (dp.length() * dp.length());
 
     const N: f64 = 4.0;
-    let a = vec2(100.0, N * closing_speed * los_rate).rotate(los);
+    let a = vec2(10.0, N * closing_speed * los_rate).rotate(los);
     let a = vec2(max_acceleration().x, 0.0).rotate(a.angle());
     accelerate(a.rotate(-heading()));
     turn_to(a.angle(), 0.0);

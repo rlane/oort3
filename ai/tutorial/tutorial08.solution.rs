@@ -12,7 +12,7 @@ impl Ship {
     pub fn tick(&mut self) {
         set_radar_width(TAU / 60.0);
         if let Some(contact) = scan() {
-            accelerate(0.1 * (contact.position - position() - velocity()).rotate(-heading()));
+            accelerate(0.01 * (contact.position - position() - velocity()).rotate(-heading()));
 
             let dp = contact.position - position();
             let predicted_dp = dp + (dp.length() / 1000.0) * (contact.velocity - velocity());

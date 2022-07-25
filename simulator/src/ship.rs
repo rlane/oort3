@@ -180,7 +180,7 @@ pub fn fighter(team: i32) -> ShipData {
         health: 100.0,
         max_energy: 1e9,
         energy_refill_rate: 100e6,
-        max_acceleration: vector![200.0, 100.0],
+        max_acceleration: vector![60.0, 30.0],
         max_angular_acceleration: TAU,
         guns: vec![Gun {
             offset: vector![20.0, 0.0],
@@ -213,7 +213,7 @@ pub fn frigate(team: i32) -> ShipData {
         health: 10000.0,
         max_energy: 10e9,
         energy_refill_rate: 500e6,
-        max_acceleration: vector![20.0, 10.0],
+        max_acceleration: vector![10.0, 5.0],
         max_angular_acceleration: TAU / 8.0,
         guns: vec![
             Gun {
@@ -271,7 +271,7 @@ pub fn cruiser(team: i32) -> ShipData {
         health: 20000.0,
         max_energy: 20e9,
         energy_refill_rate: 1e9,
-        max_acceleration: vector![10.0, 5.0],
+        max_acceleration: vector![5.0, 2.5],
         max_angular_acceleration: TAU / 16.0,
         guns: vec![Gun {
             reload_time: 0.4,
@@ -342,7 +342,7 @@ pub fn missile(team: i32) -> ShipData {
         health: 1.0,
         max_energy: 100e6,
         energy_refill_rate: 0.0,
-        max_acceleration: vector![400.0, 100.0],
+        max_acceleration: vector![120.0, 30.0],
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
             power: 10e3,
@@ -351,7 +351,7 @@ pub fn missile(team: i32) -> ShipData {
         }),
         radar_cross_section: 3.0,
         radio: Some(radio()),
-        ttl: Some(600),
+        ttl: Some(20 * 60),
         ..Default::default()
     }
 }
@@ -363,7 +363,7 @@ pub fn torpedo(team: i32) -> ShipData {
         health: 100.0,
         max_energy: 200e6,
         energy_refill_rate: 0.0,
-        max_acceleration: vector![200.0, 50.0],
+        max_acceleration: vector![70.0, 20.0],
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
             power: 20e3,
@@ -372,7 +372,7 @@ pub fn torpedo(team: i32) -> ShipData {
         }),
         radar_cross_section: 8.0,
         radio: Some(radio()),
-        ttl: Some(1200),
+        ttl: Some(30 * 60),
         ..Default::default()
     }
 }

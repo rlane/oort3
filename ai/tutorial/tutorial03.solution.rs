@@ -14,6 +14,6 @@ impl Ship {
 
     pub fn tick(&mut self) {
         let dp = target() - position();
-        accelerate(dp.rotate(-heading()).normalize() * 100.0);
+        accelerate(dp.rotate(-heading()).normalize() * 30.0);
     }
 }

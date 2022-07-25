@@ -317,10 +317,8 @@ impl Scenario for MissileTest {
             rng.gen_range(-1000.0..1000.0),
             rng.gen_range(-1000.0..1000.0)
         ];
-        let target_v: Vector2<f64> = vector![
-            rng.gen_range(-1000.0..1000.0),
-            rng.gen_range(-1000.0..1000.0)
-        ];
+        let target_v: Vector2<f64> =
+            vector![rng.gen_range(-400.0..400.0), rng.gen_range(-400.0..400.0)];
 
         ship::create(
             sim,
@@ -356,7 +354,7 @@ impl Scenario for MissileTest {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if self.tick_in_iteration > 600 {
+        if self.tick_in_iteration > 1000 {
             Status::Failed
         } else if sim.ships.contains(self.target.unwrap())
             || self.current_iteration < MissileTest::MAX_ITERATIONS

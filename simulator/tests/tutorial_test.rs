@@ -20,8 +20,9 @@ fn check_solution(scenario_name: &str) {
             assert_eq!(
                 sim.status(),
                 scenario::Status::Victory { team: 0 },
-                "tutorial {} did not succeed",
-                scenario_name
+                "tutorial {} did not succeed with seed {}",
+                scenario_name,
+                seed
             );
             sim.hash()
         };
