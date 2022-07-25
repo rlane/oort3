@@ -66,6 +66,12 @@ fn fighter_without_missiles(team: i32) -> ShipData {
     data
 }
 
+fn target_asteroid(variant: i32) -> ShipData {
+    let mut asteroid = asteroid(variant);
+    asteroid.team = 1;
+    asteroid
+}
+
 pub trait Scenario {
     fn name(&self) -> String;
 
@@ -552,9 +558,13 @@ impl Scenario for Tutorial01 {
             0.0,
             fighter_without_missiles(0),
         );
-        let mut asteroid = asteroid(1);
-        asteroid.team = 1;
-        ship::create(sim, vector![100.0, 0.0], vector![0.0, 0.0], 0.1, asteroid);
+        ship::create(
+            sim,
+            vector![100.0, 0.0],
+            vector![0.0, 0.0],
+            0.1,
+            target_asteroid(1),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -781,7 +791,13 @@ impl Scenario for Tutorial04 {
                 c.write_target(target.coords);
             }
         }
-        ship::create(sim, target.coords, vector![0.0, 0.0], 0.0, asteroid(1));
+        ship::create(
+            sim,
+            target.coords,
+            vector![0.0, 0.0],
+            0.0,
+            target_asteroid(1),
+        );
     }
 
     fn status(&self, sim: &Simulation) -> Status {
