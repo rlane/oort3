@@ -3,9 +3,8 @@ use crate::prelude::*;
 pub struct Ship {
     target_position: Vec2,
     target_velocity: Vec2,
-    ticks: u64,
     has_locked: bool,
-    no_contact_ticks: i64,
+    last_contact_time: f64,
 }
 
 impl Ship {
@@ -15,9 +14,8 @@ impl Ship {
         Ship {
             target_position,
             target_velocity,
-            ticks: 0,
             has_locked: false,
-            no_contact_ticks: 0,
+            last_contact_time: current_time(),
         }
     }
 
@@ -32,13 +30,12 @@ impl Ship {
     }
 
     pub fn ship_tick(&mut self) {
-        self.ticks += 1;
         if class() == Class::Cruiser {
-            if self.ticks % 6 == 0 {
+            if current_tick() % 6 == 0 {
                 set_radar_width(TAU);
             } else {
                 set_radar_width(TAU / 60.0);
-                set_radar_heading(TAU * (self.ticks as f64 * 2.0) / 60.0 - heading());
+                set_radar_heading(TAU * (current_tick() as f64 * 2.0) / 60.0 - heading());
             }
         }
 
@@ -173,11 +170,11 @@ impl Ship {
     fn torpedo_tick(&mut self) {
         let mut acc = max_acceleration().x;
         self.target_velocity = velocity();
-        self.ticks += 1;
 
         let target_heading = (self.target_position - position()).angle();
         set_radar_heading(
-            target_heading - heading() + rand(-PI, PI) * (self.no_contact_ticks as f64 / 600.0),
+            target_heading - heading()
+                + rand(-PI, PI) * ((current_time() - self.last_contact_time) / 10.0),
         );
         if (self.target_position - position()).length() < 200.0 {
             set_radar_width(PI * 2.0 / 6.0);
@@ -196,10 +193,9 @@ impl Ship {
         if let Some(contact) = &contact {
             self.target_position = contact.position;
             self.target_velocity = contact.velocity;
-            self.no_contact_ticks = 0;
+            self.last_contact_time = current_time();
         } else {
             self.target_position += self.target_velocity / 60.0;
-            self.no_contact_ticks += 1;
         }
 
         let dp = self.target_position - position();

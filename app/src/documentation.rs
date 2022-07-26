@@ -119,7 +119,9 @@ pub fn documentation() -> Html {
 
             <h2>{ "Miscellaneous" }</h2>
             <ul>
-              <li><code>{ "angle_diff(a: f64, b: f64) → float" }</code>{ ": Returns the shortest (possibly negative) distance between two angles." }</li>
+              <li><code>{ "current_tick() → f64" }</code>{ ": Returns the number of ticks elapsed since the simulation started." }</li>
+              <li><code>{ "current_time() → f64" }</code>{ ": Returns the number of seconds elapsed since the simulation started." }</li>
+              <li><code>{ "angle_diff(a: f64, b: f64) → f64" }</code>{ ": Returns the shortest (possibly negative) distance between two angles." }</li>
               <li><code>{ "rand(low: f64, high: f64) → f64" }</code>{ ": Get a random number." }</li>
               <li><code>{ "orders() → f64" }</code>{ ": Returns the orders passed to "}<code>{ "launch_missile" }</code>{ "." }</li>
               <li><code>{ "seed() → u128" }</code>{ ": Returns a seed useful for initializing a random number generator." }</li>

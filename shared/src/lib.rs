@@ -60,6 +60,8 @@ pub enum SystemState {
     RadarMinDistance,
     RadarMaxDistance,
 
+    CurrentTick,
+
     Size,
     MaxSize = 128,
 }

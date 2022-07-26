@@ -233,6 +233,14 @@ pub mod api {
         read_system_state(SystemState::MaxAngularAcceleration)
     }
 
+    pub fn current_tick() -> u32 {
+        read_system_state(SystemState::CurrentTick) as u32
+    }
+
+    pub fn current_time() -> f64 {
+        read_system_state(SystemState::CurrentTick) * TICK_LENGTH
+    }
+
     // Only used in tutorials.
     pub fn target() -> Vec2 {
         vec2(

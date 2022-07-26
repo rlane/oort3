@@ -256,6 +256,8 @@ impl ShipController for WasmShipController {
                 state.set(SystemState::RadioSend, 0.0);
             }
 
+            state.set(SystemState::CurrentTick, sim.tick() as f64);
+
             self.write_system_state(&state);
         }
 
