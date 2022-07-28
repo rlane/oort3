@@ -105,8 +105,8 @@ void main() {
             }
             let mut color = super::ShipRenderer::team_color(ship.team);
             color.w = match ship.class {
-                ShipClass::Missile => 0.15,
-                ShipClass::Torpedo => 0.3,
+                ShipClass::Missile => 0.10,
+                ShipClass::Torpedo => 0.15,
                 _ => 0.5,
             };
             let current_position: Point2<f32> = ship.position.cast();

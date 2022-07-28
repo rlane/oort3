@@ -317,6 +317,7 @@ pub fn cruiser(team: i32) -> ShipData {
         ..Default::default()
     }
 }
+
 pub fn asteroid(variant: i32) -> ShipData {
     ShipData {
         class: ShipClass::Asteroid { variant },
@@ -644,8 +645,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         self.data_mut().destroyed = true;
 
         let (damage, num) = match self.data().class {
-            ShipClass::Missile => (20.0, 25),
-            ShipClass::Torpedo => (50.0, 50),
+            ShipClass::Missile => (40.0, 25),
+            ShipClass::Torpedo => (100.0, 50),
             _ => (20.0, 25),
         };
 
@@ -653,7 +654,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let speed = 1000.0;
         let p = self.body().position().translation;
         let color = vector![0.5, 0.5, 0.5, 0.30];
-        let ttl = 1.0;
+        let ttl = 0.5;
         let mut rng = new_rng(0);
         for _ in 0..num {
             let rot = Rotation2::new(rng.gen_range(0.0..TAU));
