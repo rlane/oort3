@@ -17,6 +17,7 @@ pub fn documentation() -> Html {
                 <li>{ "W/A/S/D: Pan the camera." }</li>
                 <li>{ "Space: Pause/resume." }</li>
                 <li>{ "N: Single-step." }</li>
+                <li>{ "F: Fast-forward." }</li>
                 <li>{ "G: Show debug lines for all ships." }</li>
                 <li>{ "Mouse wheel: Zoom." }</li>
                 <li>{ "Mouse click: Select a ship to show debugging info." }</li>

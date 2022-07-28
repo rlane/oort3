@@ -147,15 +147,22 @@ impl UI {
             self.status_div.set_text_content(Some("Exited"));
             self.quit = true;
         }
+        let fast_forward = self.keys_down.contains("f");
 
         if self.paused {
             self.physics_time = now;
         }
 
-        if self.status == Status::Running && (!self.paused || self.single_steps > 0) {
-            let dt = simulation::PHYSICS_TICK_LENGTH * 1e3;
+        if self.status == Status::Running && (!self.paused || self.single_steps > 0 || fast_forward)
+        {
+            let dt = simulation::PHYSICS_TICK_LENGTH;
             self.physics_time = self.physics_time.max(now - dt * 2.0);
-            if self.single_steps > 0 || self.physics_time + dt < now {
+            if fast_forward {
+                for _ in 0..10 {
+                    self.physics_time += dt;
+                    self.update_snapshot();
+                }
+            } else if self.single_steps > 0 || self.physics_time + dt < now {
                 self.physics_time += dt;
                 self.update_snapshot();
             } else if self.snapshot.is_some() {
@@ -194,7 +201,7 @@ impl UI {
             _ => {}
         }
 
-        if self.pending_snapshots.len() <= 1 {
+        if self.pending_snapshots.len() <= 1 && !fast_forward {
             status_msgs.push("SLOW SIM".to_owned());
         }
 
