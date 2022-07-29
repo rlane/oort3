@@ -291,18 +291,23 @@ impl Scenario for GunneryScenario {
 
 struct MissileTest {
     target: Option<ShipHandle>,
+    rng: SeededRng,
     current_iteration: i64,
     tick_in_iteration: i64,
+    acc: Vector2<f64>,
 }
 
 impl MissileTest {
-    const MAX_ITERATIONS: i64 = 20;
+    const MAX_ITERATIONS: i64 = 10;
+    const MAX_ACCELERATION: f64 = 60.0;
 
     fn new() -> Self {
         Self {
             target: None,
+            rng: new_rng(0),
             current_iteration: 0,
             tick_in_iteration: 0,
+            acc: vector![0.0, 0.0],
         }
     }
 }
@@ -312,19 +317,17 @@ impl Scenario for MissileTest {
         "missile_test".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         log::info!("Running MissileTest iteration {}", self.current_iteration);
-        add_walls(sim);
         let mut missile_data = missile(0);
         missile_data.radar.as_mut().unwrap().rx_cross_section = 1e9;
+        missile_data.ttl = None;
 
-        let mut rng = new_rng(self.current_iteration as u32);
-        let target_p: Vector2<f64> = vector![
-            rng.gen_range(-1000.0..1000.0),
-            rng.gen_range(-1000.0..1000.0)
-        ];
-        let target_v: Vector2<f64> =
-            vector![rng.gen_range(-400.0..400.0), rng.gen_range(-400.0..400.0)];
+        self.rng = new_rng(seed * 1000 + self.current_iteration as u32);
+        let d = 4000.0;
+        let target_p: Vector2<f64> = vector![self.rng.gen_range(-d..d), self.rng.gen_range(-d..d)];
+        let s = 500.0;
+        let target_v: Vector2<f64> = vector![self.rng.gen_range(-s..s), self.rng.gen_range(-s..s)];
 
         ship::create(
             sim,
@@ -333,20 +336,21 @@ impl Scenario for MissileTest {
             target_p.y.atan2(target_p.x),
             missile_data,
         );
+        let mut target_data = target(1);
+        target_data.max_acceleration = vector![1.0, 1.0] * Self::MAX_ACCELERATION;
         self.target = Some(ship::create(
             sim,
             vector![target_p.x, target_p.y],
             vector![target_v.x, target_v.y],
             0.0,
-            target(1),
+            target_data,
         ));
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
         self.tick_in_iteration += 1;
-        if !sim.ships.contains(self.target.unwrap())
-            && self.current_iteration < MissileTest::MAX_ITERATIONS
-        {
+        let target = self.target.unwrap();
+        if !sim.ships.contains(target) && self.current_iteration < MissileTest::MAX_ITERATIONS {
             self.current_iteration += 1;
             self.tick_in_iteration = 0;
             while !sim.bullets.is_empty() {
@@ -356,11 +360,17 @@ impl Scenario for MissileTest {
                 }
             }
             self.init(sim, 0);
+        } else if sim.ships.contains(target) {
+            if (self.tick_in_iteration % 60) == 0 {
+                self.acc = Rotation2::new(self.rng.gen_range(0.0..std::f64::consts::TAU))
+                    .transform_vector(&vector![Self::MAX_ACCELERATION, 0.0]);
+            }
+            sim.ship_mut(target).accelerate(self.acc);
         }
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        if self.tick_in_iteration > 1000 {
+        if self.tick_in_iteration > 2000 {
             Status::Failed
         } else if sim.ships.contains(self.target.unwrap())
             || self.current_iteration < MissileTest::MAX_ITERATIONS
