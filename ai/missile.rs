@@ -17,23 +17,26 @@ impl Ship {
                 explode();
             }
 
-            set_radar_heading((contact.position - position()).angle() - heading());
-            set_radar_width((10.0 * TAU / dp.length()).clamp(TAU / 30.0, TAU));
+            set_radar_heading((contact.position - position()).angle() - heading() - angular_velocity() * TICK_LENGTH);
+            set_radar_width((20.0 * TAU / dp.length()).clamp(TAU / 128.0, TAU));
         } else {
-            set_radar_width(TAU);
+            set_radar_heading(radar_heading() + TAU / 128.0);
         }
     }
 }
 
 pub fn seek(p: Vec2, v: Vec2) {
+    const N: f64 = 4.0;
+    let acc = max_acceleration().x;
     let dp = p - position();
     let dv = v - velocity();
     let closing_speed = -(dp.y * dv.y - dp.x * dv.x).abs() / dp.length();
     let los = dp.angle();
     let los_rate = (dp.y * dv.x - dp.x * dv.y) / (dp.length() * dp.length());
-
-    const N: f64 = 4.0;
-    let a = vec2(10.0, N * closing_speed * los_rate).rotate(los);
+    let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
+    let ax = (acc - badv.length() * 5.0).clamp(0.0, acc);
+    let ay = N * closing_speed * los_rate;
+    let a = vec2(ax, ay).rotate(los);
     let a = vec2(max_acceleration().x, 0.0).rotate(a.angle());
     accelerate(a.rotate(-heading()));
     turn_to(a.angle(), 0.0);

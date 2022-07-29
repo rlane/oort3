@@ -320,7 +320,6 @@ impl Scenario for MissileTest {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         log::info!("Running MissileTest iteration {}", self.current_iteration);
         let mut missile_data = missile(0);
-        missile_data.radar.as_mut().unwrap().rx_cross_section = 1e9;
         missile_data.ttl = None;
 
         self.rng = new_rng(seed * 1000 + self.current_iteration as u32);
@@ -328,6 +327,11 @@ impl Scenario for MissileTest {
         let target_p: Vector2<f64> = vector![self.rng.gen_range(-d..d), self.rng.gen_range(-d..d)];
         let s = 500.0;
         let target_v: Vector2<f64> = vector![self.rng.gen_range(-s..s), self.rng.gen_range(-s..s)];
+
+        if let Some(radar) = missile_data.radar.as_mut() {
+            radar.heading = target_p.angle(&vector![0.0, 0.0]);
+            radar.width = TAU / 128.0;
+        }
 
         ship::create(
             sim,
