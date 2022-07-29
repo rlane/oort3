@@ -16,3 +16,4 @@ gcloud run deploy oortserver \
 gcloud compute instances update-container \
   server-1 \
   --container-image $CONTAINER_IMAGE
+gcloud compute ssh server-1 --command="docker image prune --force"
