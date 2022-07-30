@@ -352,7 +352,6 @@ impl Scenario for MissileTest {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        self.tick_in_iteration += 1;
         let target = self.target.unwrap();
         if !sim.ships.contains(target) && self.current_iteration < MissileTest::MAX_ITERATIONS {
             self.current_iteration += 1;
@@ -371,6 +370,7 @@ impl Scenario for MissileTest {
             }
             sim.ship_mut(target).accelerate(self.acc);
         }
+        self.tick_in_iteration += 1;
     }
 
     fn status(&self, sim: &Simulation) -> Status {
