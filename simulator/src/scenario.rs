@@ -5,7 +5,7 @@ use crate::ship::{
 use crate::simulation::{Code, Line, Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
 use crate::{bullet, collision, ship};
 use bullet::BulletData;
-use nalgebra::{vector, Point2, Rotation2, Translation2, Vector2};
+use nalgebra::{vector, Point2, Rotation2, Vector2};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
@@ -322,7 +322,7 @@ impl Scenario for MissileTest {
         let mut missile_data = missile(0);
         missile_data.ttl = None;
 
-        self.rng = new_rng(seed * 1000 + self.current_iteration as u32);
+        self.rng = new_rng((seed % 1000) * 1000 + self.current_iteration as u32);
         let d = 4000.0;
         let target_p: Vector2<f64> = vector![self.rng.gen_range(-d..d), self.rng.gen_range(-d..d)];
         let s = 500.0;
@@ -567,14 +567,14 @@ impl Scenario for Tutorial01 {
         add_walls(sim);
         ship::create(
             sim,
-            vector![0.0, 0.0],
+            vector![-1000.0, 0.0],
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles(0),
         );
         ship::create(
             sim,
-            vector![100.0, 0.0],
+            vector![1000.0, 0.0],
             vector![0.0, 0.0],
             0.1,
             target_asteroid(1),
@@ -603,6 +603,8 @@ struct Tutorial02 {
 }
 
 impl Tutorial02 {
+    const TARGET: Vector2<f64> = vector![1000.0, 0.0];
+
     fn new() -> Self {
         Self { hit_target: false }
     }
@@ -617,14 +619,14 @@ impl Scenario for Tutorial02 {
         add_walls(sim);
         ship::create(
             sim,
-            vector![0.0, 0.0],
+            vector![-1000.0, 0.0],
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles(0),
         );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
-                c.write_target(vector![200.0, 0.0]);
+                c.write_target(Self::TARGET);
             }
         }
     }
@@ -632,7 +634,7 @@ impl Scenario for Tutorial02 {
     fn tick(&mut self, sim: &mut Simulation) {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
-            if (ship.position().vector - Translation2::new(200.0, 0.0).vector).magnitude() < 50.0 {
+            if (ship.position().vector - Self::TARGET).magnitude() < 50.0 {
                 self.hit_target = true;
             }
         }
@@ -640,7 +642,7 @@ impl Scenario for Tutorial02 {
 
     fn lines(&self) -> Vec<Line> {
         let mut lines = vec![];
-        let center: Point2<f64> = point![200.0, 0.0];
+        let center: Point2<f64> = Self::TARGET.into();
         let n = 20;
         let r = 50.0;
         let color = if self.hit_target {
