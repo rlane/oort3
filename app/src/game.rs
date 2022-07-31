@@ -42,7 +42,7 @@ pub enum Msg {
     WheelEvent(web_sys::WheelEvent),
     MouseEvent(web_sys::MouseEvent),
     ReceivedSimAgentResponse(oort_worker::Response),
-    ReceivedBackgroundSimAgentResponse(oort_worker::Response),
+    ReceivedBackgroundSimAgentResponse(oort_worker::Response, u32),
     RequestSnapshot,
     EditorAction(String),
     ShowDocumentation,
@@ -66,7 +66,7 @@ pub struct Game {
     scenario_name: String,
     sim_agent: Box<dyn Bridge<SimAgent>>,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
-    background_statuses: Vec<Status>,
+    background_statuses: Vec<(u32, Status)>,
     editor_link: CodeEditorLink,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
@@ -254,10 +254,11 @@ impl Component for Game {
                 }
                 false
             }
-            Msg::ReceivedBackgroundSimAgentResponse(oort_worker::Response::Snapshot {
-                snapshot,
-            }) => {
-                self.background_statuses.push(snapshot.status);
+            Msg::ReceivedBackgroundSimAgentResponse(
+                oort_worker::Response::Snapshot { snapshot },
+                seed,
+            ) => {
+                self.background_statuses.push((seed, snapshot.status));
                 true
             }
             Msg::RequestSnapshot => {
@@ -470,15 +471,14 @@ impl Game {
 
                 self.background_agents.clear();
                 self.background_statuses.clear();
-                for i in 0..10 {
-                    let mut sim_agent = SimAgent::bridge(
-                        context
-                            .link()
-                            .callback(Msg::ReceivedBackgroundSimAgentResponse),
-                    );
+                for seed in 0..10 {
+                    let mut sim_agent =
+                        SimAgent::bridge(context.link().callback(move |msg| {
+                            Msg::ReceivedBackgroundSimAgentResponse(msg, seed)
+                        }));
                     sim_agent.send(oort_worker::Request::RunScenario {
                         scenario_name: self.scenario_name.to_owned(),
-                        seed: i,
+                        seed,
                         codes: self.running_codes.clone(),
                     });
                     self.background_agents.push(sim_agent);
@@ -577,8 +577,48 @@ impl Game {
             let victory_count = self
                 .background_statuses
                 .iter()
-                .filter(|s| matches!(s, Status::Victory { team: 0 }))
+                .filter(|(_, status)| matches!(status, Status::Victory { team: 0 }))
                 .count();
+            let failed_seeds: Vec<u32> = self
+                .background_statuses
+                .iter()
+                .filter(|(_, status)| *status == Status::Failed)
+                .map(|(seed, _)| *seed)
+                .collect();
+            let failures = if failed_seeds.is_empty() {
+                html! {}
+            } else {
+                let make_cb = |seed: u32| {
+                    let history = context.link().history().unwrap();
+                    let scenario_name = self.scenario_name.clone();
+                    context.link().batch_callback(move |_| {
+                        let mut query = std::collections::HashMap::<&str, String>::new();
+                        query.insert("seed", seed.to_string());
+                        history
+                            .push_with_query(
+                                crate::Route::Scenario {
+                                    name: scenario_name.clone(),
+                                },
+                                query,
+                            )
+                            .unwrap();
+                        vec![
+                            Msg::DismissOverlay,
+                            Msg::SelectScenario(scenario_name.clone()),
+                        ]
+                    })
+                };
+                html! {
+                    <>
+                    <br />
+                    <span>
+                        {"Failed seeds: "}
+                        { failed_seeds.iter().cloned().map(|seed: u32| html! {
+                            <><a onclick={make_cb(seed)}>{ seed }</a>{ "\u{00a0}" }</>  }).collect::<Html>() }
+                    </span>
+                    </>
+                }
+            };
             let submit_button =
                 if scenario::load(&self.scenario_name).is_tournament() && victory_count >= 8 {
                     let cb = context.link().batch_callback(move |_| {
@@ -596,6 +636,7 @@ impl Game {
             html! {
                 <>
                     <span>{ "Simulations complete: " }{ victory_count }{"/"}{ self.background_agents.len() }{ " successful" }</span>
+                    { failures }
                     { submit_button }
                 </>
             }
