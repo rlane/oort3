@@ -341,9 +341,9 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 1.0,
-        max_energy: 100e6,
+        max_energy: 50e6,
         energy_refill_rate: 0.0,
-        max_acceleration: vector![120.0, 30.0],
+        max_acceleration: vector![200.0, 50.0],
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
             power: 10e3,
