@@ -575,17 +575,13 @@ impl Game {
         };
 
         let background_status = if self.background_snapshots.len() == self.background_agents.len() {
-            let victory_count = self
-                .background_snapshots
-                .iter()
-                .filter(|(_, snapshot)| matches!(snapshot.status, Status::Victory { team: 0 }))
-                .count();
             let failed_seeds: Vec<u32> = self
                 .background_snapshots
                 .iter()
-                .filter(|(_, snapshot)| snapshot.status == Status::Failed)
+                .filter(|(_, snapshot)| !matches!(snapshot.status, Status::Victory { team: 0 }))
                 .map(|(seed, _)| *seed)
                 .collect();
+            let victory_count = self.background_snapshots.len() - failed_seeds.len();
             let failures = if failed_seeds.is_empty() {
                 html! {}
             } else {
