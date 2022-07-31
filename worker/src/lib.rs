@@ -1,4 +1,4 @@
-use oort_simulator::scenario::Status;
+use oort_simulator::scenario::{Status, MAX_TICKS};
 use oort_simulator::simulation::Code;
 use oort_simulator::simulation::Simulation;
 use oort_simulator::snapshot::Snapshot;
@@ -69,10 +69,13 @@ impl Agent for SimAgent {
                 codes,
             } => {
                 let mut sim = Simulation::new(&scenario_name, seed, &codes);
-                while sim.status() == Status::Running && sim.tick() < 10000 {
+                while sim.status() == Status::Running && sim.tick() < MAX_TICKS {
                     sim.step();
                 }
                 let snapshot = sim.snapshot(0);
+                if snapshot.status == Status::Running {
+                    log::error!("running status after max ticks");
+                }
                 self.link.respond(who, Response::Snapshot { snapshot });
             }
             Request::Snapshot { nonce } => {

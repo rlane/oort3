@@ -10,15 +10,18 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::f64::consts::{PI, TAU};
 use Status::Running;
+
+pub const MAX_TICKS: u32 = 10000;
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Status {
     Running,
     Victory { team: i32 },
     Failed,
+    Draw,
 }
 
 fn builtin(name: &str) -> Code {
@@ -30,7 +33,7 @@ fn reference_ai() -> Code {
 }
 
 fn check_victory(sim: &Simulation) -> Status {
-    let mut alive_teams: HashSet<i32> = HashSet::new();
+    let mut team_health: HashMap<i32, u32> = HashMap::new();
     for &handle in sim.ships.iter() {
         let ship = sim.ship(handle);
         if [ShipClass::Missile, ShipClass::Torpedo].contains(&ship.data().class) {
@@ -39,13 +42,21 @@ fn check_victory(sim: &Simulation) -> Status {
         if ship.data().team >= 9 {
             continue;
         }
-        alive_teams.insert(ship.data().team);
+        *team_health.entry(ship.data().team).or_insert(0) += ship.data().health as u32;
     }
-    if alive_teams.is_empty() {
-        Status::Victory { team: 0 }
-    } else if alive_teams.len() == 1 {
+    if team_health.is_empty() {
+        Status::Draw
+    } else if team_health.len() == 1 {
         Status::Victory {
-            team: *alive_teams.iter().next().unwrap(),
+            team: *team_health.iter().next().unwrap().0,
+        }
+    } else if sim.tick() >= MAX_TICKS - 1 {
+        if let Some((&team, _health)) = team_health.iter().max_by_key(|(_, &v)| v) {
+            log::info!("victory to team {} after reaching max ticks", team);
+            Status::Victory { team }
+        } else {
+            log::info!("draw after reaching max ticks");
+            Status::Draw
         }
     } else {
         Status::Running
