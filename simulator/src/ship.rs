@@ -651,17 +651,19 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         };
 
         let team = self.data().team;
-        let speed = 1000.0;
-        let p = self.body().position().translation;
+        let p =
+            self.body().position().translation.vector - self.body().linvel() * PHYSICS_TICK_LENGTH;
         let color = vector![0.5, 0.5, 0.5, 0.30];
         let ttl = 0.5;
         let mut rng = new_rng(0);
         for _ in 0..num {
             let rot = Rotation2::new(rng.gen_range(0.0..TAU));
+            let speed = 2000.0 * rng.gen_range(0.0..1.0);
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
+            let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
             bullet::create(
                 self.simulation,
-                p.vector,
+                p + offset,
                 v,
                 BulletData {
                     damage,
