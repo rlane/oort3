@@ -52,6 +52,7 @@ pub fn documentation() -> Html {
               <li><code>{ "max_acceleration() -> Vec2" }</code>{ ": Maximum linear acceleration." }</li>
               <li><code>{ "torque(acceleration: f64)" }</code>{ ": Angular acceleration. Unit is radians/s²." }</li>
               <li><code>{ "max_angular_acceleration() -> f64" }</code>{ ": Maximum angular acceleration." }</li>
+              <li><code>{ "energy() -> f64" }</code>{ ": Available energy in Joules." }</li>
             </ul>
 
             <h2>{ "Weapons" }</h2>
