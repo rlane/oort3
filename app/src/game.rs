@@ -8,6 +8,7 @@ use monaco::{
 };
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
+use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{simulation, vm};
 use oort_worker::SimAgent;
 use qstring::QString;
@@ -66,7 +67,7 @@ pub struct Game {
     scenario_name: String,
     sim_agent: Box<dyn Bridge<SimAgent>>,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
-    background_statuses: Vec<(u32, Status)>,
+    background_snapshots: Vec<(u32, Snapshot)>,
     editor_link: CodeEditorLink,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
@@ -111,7 +112,7 @@ impl Component for Game {
             scenario_name: String::new(),
             sim_agent,
             background_agents: Vec::new(),
-            background_statuses: Vec::new(),
+            background_snapshots: Vec::new(),
             editor_link: CodeEditorLink::default(),
             overlay: None,
             overlay_ref: NodeRef::default(),
@@ -258,7 +259,7 @@ impl Component for Game {
                 oort_worker::Response::Snapshot { snapshot },
                 seed,
             ) => {
-                self.background_statuses.push((seed, snapshot.status));
+                self.background_snapshots.push((seed, snapshot));
                 true
             }
             Msg::RequestSnapshot => {
@@ -273,7 +274,7 @@ impl Component for Game {
             Msg::DismissOverlay => {
                 self.overlay = None;
                 self.background_agents.clear();
-                self.background_statuses.clear();
+                self.background_snapshots.clear();
                 true
             }
             Msg::CompileSucceeded(code) => {
@@ -470,7 +471,7 @@ impl Game {
                 }
 
                 self.background_agents.clear();
-                self.background_statuses.clear();
+                self.background_snapshots.clear();
                 for seed in 0..10 {
                     let mut sim_agent =
                         SimAgent::bridge(context.link().callback(move |msg| {
@@ -573,16 +574,16 @@ impl Game {
             }
         };
 
-        let background_status = if self.background_statuses.len() == self.background_agents.len() {
+        let background_status = if self.background_snapshots.len() == self.background_agents.len() {
             let victory_count = self
-                .background_statuses
+                .background_snapshots
                 .iter()
-                .filter(|(_, status)| matches!(status, Status::Victory { team: 0 }))
+                .filter(|(_, snapshot)| matches!(snapshot.status, Status::Victory { team: 0 }))
                 .count();
             let failed_seeds: Vec<u32> = self
-                .background_statuses
+                .background_snapshots
                 .iter()
-                .filter(|(_, status)| *status == Status::Failed)
+                .filter(|(_, snapshot)| snapshot.status == Status::Failed)
                 .map(|(seed, _)| *seed)
                 .collect();
             let failures = if failed_seeds.is_empty() {
@@ -633,15 +634,22 @@ impl Game {
                 } else {
                     html! {}
                 };
+            let average_time: f64 = self
+                .background_snapshots
+                .iter()
+                .map(|(_, snapshot)| snapshot.time)
+                .sum::<f64>()
+                / self.background_snapshots.len() as f64;
             html! {
                 <>
-                    <span>{ "Simulations complete: " }{ victory_count }{"/"}{ self.background_agents.len() }{ " successful" }</span>
+                    <span>{ "Simulations complete: " }{ victory_count }{"/"}{ self.background_agents.len() }{ " successful" }</span><br />
+                    <span>{ "Average time: " }{ format!("{:.2} seconds", average_time) }</span>
                     { failures }
                     { submit_button }
                 </>
             }
         } else {
-            html! { <span>{ "Waiting for simulations (" }{ self.background_statuses.len() }{ "/" }{ self.background_agents.len() }{ " complete)" }</span> }
+            html! { <span>{ "Waiting for simulations (" }{ self.background_snapshots.len() }{ "/" }{ self.background_agents.len() }{ " complete)" }</span> }
         };
 
         html! {
@@ -795,7 +803,7 @@ impl Game {
             nonce: self.nonce,
         });
         self.background_agents.clear();
-        self.background_statuses.clear();
+        self.background_snapshots.clear();
     }
 }
 
