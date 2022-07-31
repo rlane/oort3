@@ -241,6 +241,10 @@ pub mod api {
         read_system_state(SystemState::CurrentTick) * TICK_LENGTH
     }
 
+    pub fn energy() -> f64 {
+        read_system_state(SystemState::Energy)
+    }
+
     // Only used in tutorials.
     pub fn target() -> Vec2 {
         vec2(
