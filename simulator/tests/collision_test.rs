@@ -183,7 +183,7 @@ fn test_missile_bullet_collision_different_team() {
         vector![1000.0, 0.0],
         bullet::BulletData {
             team: 1,
-            damage: 10.0,
+            damage: 100.0,
             color: BULLET_COLOR,
             ttl: 5.0,
         },
@@ -270,7 +270,7 @@ fn test_bullet_continuous_collision_detection() {
             vector![0.0, 1000.0],
             bullet::BulletData {
                 team: 1,
-                damage: 10.0,
+                damage: 100.0,
                 color: BULLET_COLOR,
                 ttl: 5.0,
             },

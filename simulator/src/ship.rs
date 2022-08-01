@@ -275,15 +275,15 @@ pub fn cruiser(team: i32) -> ShipData {
         max_angular_acceleration: TAU / 16.0,
         guns: vec![Gun {
             reload_time: 0.4,
-            damage: 20.0,
+            damage: 7.0,
             speed: 1000.0,
             speed_error: 50.0,
             offset: vector![0.0, 0.0],
             max_angle: TAU,
-            inaccuracy: 0.035,
-            burst_size: 10,
-            ttl: 2.0,
-            energy_required: 200e6,
+            inaccuracy: 0.02,
+            burst_size: 3,
+            ttl: 1.0,
+            energy_required: 20e6,
             ..Default::default()
         }],
         missile_launchers: vec![
@@ -340,7 +340,7 @@ pub fn missile(team: i32) -> ShipData {
     ShipData {
         class: ShipClass::Missile,
         team,
-        health: 1.0,
+        health: 20.0,
         max_energy: 50e6,
         energy_refill_rate: 0.0,
         max_acceleration: vector![200.0, 50.0],
@@ -645,7 +645,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         self.data_mut().destroyed = true;
 
         let (damage, num) = match self.data().class {
-            ShipClass::Missile => (40.0, 25),
+            ShipClass::Missile => (15.0, 20),
             ShipClass::Torpedo => (100.0, 50),
             _ => (20.0, 25),
         };
