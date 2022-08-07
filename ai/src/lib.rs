@@ -311,11 +311,11 @@ pub mod debug {
     }
 
     pub fn debug_square(center: Vec2, radius: f64, color: u32) {
-        debug_polygon(center, radius, 4, 0.0, color);
+        debug_polygon(center, radius, 4, TAU / 8.0, color);
     }
 
     pub fn debug_diamond(center: Vec2, radius: f64, color: u32) {
-        debug_polygon(center, radius, 4, TAU / 8.0, color);
+        debug_polygon(center, radius, 4, 0.0, color);
     }
 
     pub(super) fn update() {
