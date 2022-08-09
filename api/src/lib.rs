@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![warn(missing_docs)]
 mod vec;
 
 // Public for fuzzer.
@@ -24,19 +25,11 @@ pub mod sys {
 mod math {
     pub use std::f64::consts::{PI, TAU};
 
-    pub fn normalize_angle(a: f64) -> f64 {
-        let mut a = a;
-        if a.abs() > TAU {
-            a %= TAU;
-        }
-        if a < 0.0 {
-            a += TAU;
-        }
-        a
-    }
-
+    /// Returns the smallest rotation between angles `a` and `b`.
+    ///
+    /// A positive result is a counter-clockwise rotation and negative is clockwise.
     pub fn angle_diff(a: f64, b: f64) -> f64 {
-        let c = normalize_angle(b - a);
+        let c = (b - a).rem_euclid(TAU);
         if c > PI {
             c - TAU
         } else {
@@ -59,6 +52,7 @@ mod rng {
         }
     }
 
+    /// Returns a random number between `low` and `high`.
     pub fn rand(low: f64, high: f64) -> f64 {
         rng().rand_float() * (high - low) + low
     }
@@ -69,20 +63,25 @@ mod api {
     use crate::vec::*;
     use oort_shared::{Class, SystemState};
 
+    /// The time between each simulation tick.
     pub const TICK_LENGTH: f64 = 1.0 / 60.0;
 
+    /// Returns the ship [`Class`] (Fighter, Cruiser, etc).
     pub fn class() -> Class {
         Class::from_f64(read_system_state(SystemState::Class))
     }
 
+    /// Returns a random number useful for initializing a random number generator.
     pub fn seed() -> u128 {
         read_system_state(oort_shared::SystemState::Seed) as u128
     }
 
+    /// Returns the value passed from the parent ship when launching a missile.
     pub fn orders() -> f64 {
         read_system_state(oort_shared::SystemState::Orders)
     }
 
+    /// Returns the current position (in meters).
     pub fn position() -> Vec2 {
         vec2(
             read_system_state(SystemState::PositionX),
@@ -90,6 +89,7 @@ mod api {
         )
     }
 
+    /// Returns the current velocity (in m/s).
     pub fn velocity() -> Vec2 {
         vec2(
             read_system_state(SystemState::VelocityX),
@@ -97,25 +97,33 @@ mod api {
         )
     }
 
+    /// Returns the current heading (in radians).
     pub fn heading() -> f64 {
         read_system_state(SystemState::Heading)
     }
 
+    /// Returns the current angular velocity (in radians/s).
     pub fn angular_velocity() -> f64 {
         read_system_state(SystemState::AngularVelocity)
     }
 
+    /// Sets the linear acceleration for the next tick (in m/s²).
     pub fn accelerate(acceleration: Vec2) {
         write_system_state(SystemState::AccelerateX, acceleration.x);
         write_system_state(SystemState::AccelerateY, acceleration.y);
     }
 
+    /// Sets the angular acceleration for the next tick (in radians/s²).
     pub fn torque(angular_acceleration: f64) {
         write_system_state(SystemState::Torque, angular_acceleration);
     }
 
-    pub fn aim_gun(gun_index: usize, heading: f64) {
-        let state_index = match gun_index {
+    /// Aims a turreted gun.
+    ///
+    /// `index` selects the gun.
+    /// `heading` (in radians) is relative to the ship's heading.
+    pub fn aim_gun(index: usize, heading: f64) {
+        let state_index = match index {
             0 => SystemState::Gun0Aim,
             1 => SystemState::Gun1Aim,
             2 => SystemState::Gun2Aim,
@@ -125,8 +133,11 @@ mod api {
         write_system_state(state_index, heading);
     }
 
-    pub fn fire_gun(gun_index: usize) {
-        let state_index = match gun_index {
+    /// Fires a gun.
+    ///
+    /// `index` selects the gun.
+    pub fn fire_gun(index: usize) {
+        let state_index = match index {
             0 => SystemState::Gun0Fire,
             1 => SystemState::Gun1Fire,
             2 => SystemState::Gun2Fire,
@@ -136,8 +147,12 @@ mod api {
         write_system_state(state_index, 1.0);
     }
 
-    pub fn launch_missile(missile_index: usize, orders: f64) {
-        let (state_index, orders_index) = match missile_index {
+    /// Launches a missile.
+    ///
+    /// `index` selects the missile launcher.
+    /// `orders` is passed to the missile and will be available from [`orders`].
+    pub fn launch_missile(index: usize, orders: f64) {
+        let (state_index, orders_index) = match index {
             0 => (SystemState::Missile0Launch, SystemState::Missile0Orders),
             1 => (SystemState::Missile1Launch, SystemState::Missile1Orders),
             2 => (SystemState::Missile2Launch, SystemState::Missile2Orders),
@@ -148,49 +163,79 @@ mod api {
         write_system_state(orders_index, orders);
     }
 
+    /// Self-destructs, producing a damaging explosion.
+    ///
+    /// This is commonly used by missiles.
     pub fn explode() {
         write_system_state(SystemState::Explode, 1.0);
     }
 
+    /// Returns the heading the radar is pointed at.
+    ///
+    /// This is relative to the ship's heading.
     pub fn radar_heading() -> f64 {
         read_system_state(SystemState::RadarHeading)
     }
 
+    /// Sets the heading to point the radar at.
+    ///
+    /// This is relative to the ship's heading.
+    /// It takes effect next tick.
     pub fn set_radar_heading(heading: f64) {
         write_system_state(SystemState::RadarHeading, heading);
     }
 
+    /// Returns the current radar width (in radians).
+    ///
+    /// This is the field of view of the radar.
     pub fn radar_width() -> f64 {
         read_system_state(SystemState::RadarWidth)
     }
 
+    /// Sets the radar width (in radians).
+    ///
+    /// This is the field of view of the radar.
+    /// It takes effect next tick.
     pub fn set_radar_width(width: f64) {
         write_system_state(SystemState::RadarWidth, width);
     }
 
+    /// Sets the minimum distance filter of the radar (in meters).
+    ///
+    /// It takes effect next tick.
     pub fn radar_min_distance() -> f64 {
         read_system_state(SystemState::RadarMinDistance)
     }
 
+    /// Gets the current minimum distance filter of the radar (in meters).
     pub fn set_radar_min_distance(dist: f64) {
         write_system_state(SystemState::RadarMinDistance, dist);
     }
 
+    /// Sets the maximum distance filter of the radar (in meters).
+    ///
+    /// It takes effect next tick.
     pub fn radar_max_distance() -> f64 {
         read_system_state(SystemState::RadarMaxDistance)
     }
 
+    /// Gets the current maximum distance filter of the radar (in meters).
     pub fn set_radar_max_distance(dist: f64) {
         write_system_state(SystemState::RadarMaxDistance, dist);
     }
 
+    /// A radar contact.
     #[derive(Clone, Debug)]
     pub struct ScanResult {
+        /// The contact's class.
         pub class: Class,
+        /// The contact's approximate position.
         pub position: Vec2,
+        /// The contact's approximate velocity.
         pub velocity: Vec2,
     }
 
+    /// Returns the radar contact with the highest signal strength.
     pub fn scan() -> Option<ScanResult> {
         if read_system_state(SystemState::RadarContactFound) == 0.0 {
             return None;
@@ -208,22 +253,33 @@ mod api {
         })
     }
 
+    /// Sets the channel to send and receive radio transmissions on.
+    ///
+    /// Takes effect next tick.
     pub fn set_radio_channel(channel: usize) {
         write_system_state(SystemState::RadioChannel, channel as f64);
     }
 
+    /// Gets the current radio channel.
     pub fn get_radio_channel() -> usize {
         read_system_state(SystemState::RadioChannel) as usize
     }
 
+    /// Sends a radio message.
+    ///
+    /// The message will be received on the next tick.
     pub fn send(data: f64) {
         write_system_state(SystemState::RadioSend, data);
     }
 
+    /// Returns the received radio message.
+    ///
+    /// A value of `0.0` means no message was received.
     pub fn receive() -> f64 {
         read_system_state(SystemState::RadioReceive)
     }
 
+    /// Returns the maximum linear acceleration (in m/s²).
     pub fn max_acceleration() -> Vec2 {
         vec2(
             read_system_state(SystemState::MaxAccelerationX),
@@ -231,23 +287,28 @@ mod api {
         )
     }
 
+    /// Returns the maximum angular acceleration (in radians/s²).
     pub fn max_angular_acceleration() -> f64 {
         read_system_state(SystemState::MaxAngularAcceleration)
     }
 
+    /// Returns the number of ticks elapsed since the simulation began.
     pub fn current_tick() -> u32 {
         read_system_state(SystemState::CurrentTick) as u32
     }
 
+    /// Returns the number of seconds elapsed since the simulation began.
     pub fn current_time() -> f64 {
         read_system_state(SystemState::CurrentTick) * TICK_LENGTH
     }
 
+    /// Returns the energy available to the ship (in Joules).
     pub fn energy() -> f64 {
         read_system_state(SystemState::Energy)
     }
 
-    // Only used in tutorials.
+    /// Returns the position of the target set by the scenario.
+    /// Only used in tutorials.
     pub fn target() -> Vec2 {
         vec2(
             read_system_state(SystemState::RadarContactPositionX),
@@ -261,12 +322,15 @@ mod api {
 pub mod dbg {
     use crate::sys::write_system_state;
     use crate::vec::*;
-    pub use oort_shared::Line;
-    pub use std::f64::consts::TAU;
+    use oort_shared::Line;
+    use std::f64::consts::TAU;
 
     static mut TEXT_BUFFER: String = String::new();
     static mut LINE_BUFFER: Vec<Line> = Vec::new();
 
+    /// Adds text to be displayed when the ship is selected by clicking on it.
+    ///
+    /// Works just like [println!].
     #[macro_export]
     macro_rules! debug {
         ($($arg:tt)*) => {
@@ -284,6 +348,10 @@ pub mod dbg {
         }
     }
 
+    /// Draws a line visible in debug mode.
+    ///
+    /// `a` and `b` are positions in world coordinates.
+    /// `color` is 24-bit RGB.
     pub fn debug_line(a: Vec2, b: Vec2, color: u32) {
         unsafe {
             LINE_BUFFER.push(Line {
@@ -296,6 +364,10 @@ pub mod dbg {
         }
     }
 
+    /// Draws a regular polygon visible in debug mode.
+    ///
+    /// `center` is a position in world coordinates.
+    /// `color` is 24-bit RGB.
     pub fn debug_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32) {
         let mut angle = angle;
         let delta_angle = TAU / sides as f64;
@@ -310,14 +382,26 @@ pub mod dbg {
         }
     }
 
+    /// Draws a triangle visible in debug mode.
+    ///
+    /// `center` is a position in world coordinates.
+    /// `color` is 24-bit RGB.
     pub fn debug_triangle(center: Vec2, radius: f64, color: u32) {
         debug_polygon(center, radius, 3, TAU / 4.0, color);
     }
 
+    /// Draws a triangle visible in debug mode.
+    ///
+    /// `center` is a position in world coordinates.
+    /// `color` is 24-bit RGB.
     pub fn debug_square(center: Vec2, radius: f64, color: u32) {
         debug_polygon(center, radius, 4, TAU / 8.0, color);
     }
 
+    /// Draws a triangle visible in debug mode.
+    ///
+    /// `center` is a position in world coordinates.
+    /// `color` is 24-bit RGB.
     pub fn debug_diamond(center: Vec2, radius: f64, color: u32) {
         debug_polygon(center, radius, 4, 0.0, color);
     }
@@ -357,6 +441,7 @@ pub mod dbg {
     }
 }
 
+/// All APIs.
 pub mod prelude {
     #[doc(inline)]
     pub use super::api::*;

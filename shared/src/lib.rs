@@ -67,6 +67,7 @@ pub enum SystemState {
     MaxSize = 128,
 }
 
+/// Identifiers for each class of ship.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Class {
     Fighter,

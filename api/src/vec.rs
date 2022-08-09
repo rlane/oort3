@@ -1,32 +1,41 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+/// A two-dimensional vector.
 #[derive(Clone, Copy, Debug)]
 pub struct Vec2 {
+    /// The X coordinate.
     pub x: f64,
+    /// The Y coordinate.
     pub y: f64,
 }
 
 impl Vec2 {
+    /// Constructs a [Vec2].
     pub fn new(x: f64, y: f64) -> Vec2 {
         Vec2 { x, y }
     }
 
+    /// Returns the length (or distance from origin).
     pub fn length(self) -> f64 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
 
+    /// Returns a normalized vector with the same direction but length of 1.
     pub fn normalize(self) -> Vec2 {
         self / self.length()
     }
 
+    /// Returns the distance to `other`.
     pub fn distance(self, other: Vec2) -> f64 {
         (self - other).length()
     }
 
+    /// Returns the dot product with `other`.
     pub fn dot(self, other: Vec2) -> f64 {
         self.x * other.x + self.y * other.y
     }
 
+    /// Returns the angle of the vector (in radians).
     pub fn angle(self) -> f64 {
         let mut a = self.y.atan2(self.x);
         if a < 0.0 {
@@ -35,6 +44,7 @@ impl Vec2 {
         a
     }
 
+    /// Returns this vector rotated by the given angle (in radians).
     pub fn rotate(self, angle: f64) -> Vec2 {
         let cos = angle.cos();
         let sin = angle.sin();
@@ -135,6 +145,7 @@ impl Neg for Vec2 {
     }
 }
 
+/// Returns a [Vec2] with the given coordinates.
 pub fn vec2(x: f64, y: f64) -> Vec2 {
     Vec2::new(x, y)
 }
