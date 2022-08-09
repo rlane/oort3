@@ -1,7 +1,8 @@
+#![doc = include_str!("../README.md")]
 mod user;
 mod vec;
 
-pub mod sys {
+mod sys {
     use oort_shared::SystemState;
 
     #[no_mangle]
@@ -19,7 +20,7 @@ pub mod sys {
     }
 }
 
-pub mod math {
+mod math {
     pub use std::f64::consts::{PI, TAU};
 
     pub fn normalize_angle(a: f64) -> f64 {
@@ -43,7 +44,7 @@ pub mod math {
     }
 }
 
-pub mod rng {
+mod rng {
     use super::api::seed;
 
     static mut RNG: Option<oorandom::Rand64> = None;
@@ -62,7 +63,7 @@ pub mod rng {
     }
 }
 
-pub mod api {
+mod api {
     use super::sys::{read_system_state, write_system_state};
     use crate::vec::*;
     use oort_shared::{Class, SystemState};
@@ -254,6 +255,7 @@ pub mod api {
     }
 }
 
+#[doc(hidden)]
 #[macro_use]
 pub mod debug {
     use crate::sys::write_system_state;
@@ -352,17 +354,25 @@ pub mod debug {
 }
 
 pub mod prelude {
+    #[doc(inline)]
     pub use super::api::*;
+    #[doc(inline)]
     pub use super::debug::*;
+    #[doc(inline)]
     pub use super::math::*;
+    #[doc(inline)]
     pub use super::rng::*;
+    #[doc(inline)]
     pub use super::vec::*;
+    #[doc(inline)]
     pub use crate::debug;
-    pub use oort_shared::*;
+    #[doc(inline)]
+    pub use oort_shared::Class;
 }
 
 static mut USER_STATE: Option<user::Ship> = None;
 
+#[doc(hidden)]
 #[no_mangle]
 pub fn export_tick() {
     unsafe {
