@@ -8,5 +8,5 @@ license = "GPL-3.0-or-later"
 repository = "http://github.com/rlane/oort3"
 
 [dependencies]
-oort_shared = { path = "../shared" }
+oort_shared = { version = "0.1.0", path = "../shared" }
 oorandom = "11.1.3"
