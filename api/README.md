@@ -1,4 +1,4 @@
-This is the API reference for [Oort](oort.rs). For more general information see
+This is the API reference for [Oort](https://oort.rs). For more general information see
 the [wiki](https://github.com/rlane/oort3/wiki).
 
 # Starter Code
