@@ -52,7 +52,7 @@ impl Radar {
     }
 
     pub fn set_width(&mut self, width: f64) {
-        self.width = width.clamp(0.0, TAU);
+        self.width = width.clamp(TAU / 360.0, TAU);
     }
 
     pub fn get_min_distance(&self) -> f64 {
