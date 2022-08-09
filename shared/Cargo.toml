@@ -3,6 +3,6 @@ name = "oort_shared"
 version = "0.1.0"
 edition = "2021"
 authors = ["Rich Lane"]
-description = "A space fleet programming game."
+description = "Shared definitions for Oort, a space fleet programming game."
 license = "GPL-3.0-or-later"
 repository = "http://github.com/rlane/oort3"
