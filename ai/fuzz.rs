@@ -14,7 +14,7 @@ impl Ship {
             if i == SystemState::Explode as u8 {
                 continue;
             }
-            crate::sys::write_system_state(unsafe { std::mem::transmute(i) }, gen());
+            oort_api::sys::write_system_state(unsafe { std::mem::transmute(i) }, gen());
         }
     }
 }

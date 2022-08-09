@@ -2,6 +2,7 @@
 
 members = [
     "ai",
+    "api",
     "shared",
 ]
 
