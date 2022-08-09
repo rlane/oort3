@@ -1,6 +1,6 @@
 // tutorial10
 // Destroy the enemy ships with your Frigate.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 

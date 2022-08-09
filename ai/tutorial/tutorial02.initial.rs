@@ -1,6 +1,6 @@
 // Tutorial 02
 // Fly through the target circle.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 

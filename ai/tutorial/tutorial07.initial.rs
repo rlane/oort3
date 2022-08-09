@@ -1,6 +1,6 @@
 // tutorial07
 // Destroy the enemy ships. They now shoot back.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 

@@ -1,7 +1,7 @@
 // Tutorial 04
 // Destroy the asteroid. The target is in a random
 // location given by the "target()" function.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 

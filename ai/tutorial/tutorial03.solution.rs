@@ -3,7 +3,7 @@
 // location given by the "target" function.
 // Hint: Look for a "position" function in the documentation, linked at
 // the top of the screen.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 

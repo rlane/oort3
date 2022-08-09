@@ -1,6 +1,6 @@
 // Tutorial 01
 // Destroy the asteroid.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 

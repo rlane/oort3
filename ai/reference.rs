@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {
     target_position: Vec2,

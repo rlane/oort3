@@ -7,7 +7,7 @@ Oort expects your code to have a `Ship` type with a `tick` method. Each
 tutorial provides some starter code which includes this:
 
 ```rust
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 
@@ -28,7 +28,7 @@ The game will call your `new` function when a ship is created and then call
 ticks. `enum Ship` works too and can be helpful when this state differs between
 ship classes.
 
-The statement `use crate::prelude::*` imports all the APIs so that you can use
+The statement `use oort_api::prelude::*` imports all the APIs so that you can use
 them simply as e.g. `position()`. See the [prelude] module documentation for
 the details on everything this imports. The important APIs are covered below.
 

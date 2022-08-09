@@ -1,7 +1,7 @@
 // Tutorial 06
 // Destroy the enemy ships. Use your radar to find them.
 // Hint: Press 'g' in-game to show where your radar is looking.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 

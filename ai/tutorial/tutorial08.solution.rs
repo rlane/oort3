@@ -1,6 +1,6 @@
 // tutorial08
 // Destroy the enemy ships. They are initially outside of your radar range.
-use crate::prelude::*;
+use oort_api::prelude::*;
 
 pub struct Ship {}
 
