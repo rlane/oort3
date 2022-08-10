@@ -20,10 +20,7 @@ pub mod built_info {
 }
 
 pub fn version() -> String {
-    let mut fragments = vec![
-        built_info::PKG_VERSION,
-        built_info::GIT_VERSION.unwrap_or("unknown"),
-    ];
+    let mut fragments = vec![built_info::GIT_VERSION.unwrap_or("unknown")];
     if built_info::GIT_DIRTY == Some(true) {
         fragments.push("dirty");
     }
