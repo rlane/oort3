@@ -9,7 +9,7 @@ impl Ship {
         Ship {}
     }
 
-    // Uncomment me, then press ctrl-Enter to upload the code.
+    // Uncomment me, then press Ctrl-Enter (Cmd-Enter on Mac) to upload the code.
     pub fn tick(&mut self) {
         // fire_gun(0);
     }

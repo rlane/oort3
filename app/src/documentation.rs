@@ -10,7 +10,7 @@ pub fn documentation() -> Html {
 
             <h2>{ "Basics" }</h2>
             { "Select a scenario from the list in the top-right of the page." }<br/>
-            { "Press Ctrl-Enter in the editor to run the scenario with a new version of your code." }<br/>
+            { "Press Ctrl-Enter in the editor (Cmd-Enter on Mac) to run the scenario with a new version of your code." }<br/>
 
             <h2>{ "Controls" }</h2>
             <ul>
