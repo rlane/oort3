@@ -10,32 +10,24 @@ pub mod telemetry;
 pub mod ui;
 pub mod userid;
 
-use chrono::NaiveDateTime;
-use rbtag::{BuildDateTime, BuildInfo};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-#[derive(BuildDateTime, BuildInfo)]
-struct BuildTag;
+pub mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
 
 pub fn version() -> String {
-    let build_time = NaiveDateTime::from_timestamp(
-        BuildTag {}
-            .get_build_timestamp()
-            .parse::<i64>()
-            .unwrap_or(0),
-        0,
-    );
-
-    let commit = BuildTag {}.get_build_commit();
-
-    if commit.contains("dirty") {
-        commit.to_string()
-    } else {
-        format!("{} {}", build_time.format("%Y%m%d.%H%M%S"), commit)
+    let mut fragments = vec![
+        built_info::PKG_VERSION,
+        built_info::GIT_VERSION.unwrap_or("unknown"),
+    ];
+    if built_info::GIT_DIRTY == Some(true) {
+        fragments.push("dirty");
     }
+    fragments.join("-")
 }
 
 #[derive(Clone, Routable, PartialEq)]
@@ -65,10 +57,10 @@ fn switch(routes: &Route) -> Html {
             name: "welcome".to_owned(),
         }),
         Route::Scenario { name } => html! {
-            <game::Game scenario={name.clone()} demo=false />
+            <game::Game scenario={name.clone()} demo=false version={version()} />
         },
         Route::Demo { name } => html! {
-            <game::Game scenario={name.clone()} demo=true />
+            <game::Game scenario={name.clone()} demo=true version={version()} />
         },
         Route::Benchmark { name } => html! {
             <benchmark::Benchmark scenario={name.clone()} />

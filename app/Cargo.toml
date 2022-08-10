@@ -2,6 +2,7 @@
 name = "oort-app"
 version = "0.2.0"
 edition = "2021"
+build = "build.rs"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -63,3 +64,6 @@ features = [
   'Request',
   'EventTarget',
 ]
+
+[build-dependencies]
+built = { version = "0.5", features = ["git2", "chrono", "semver"] }

@@ -87,6 +87,7 @@ pub struct Game {
 pub struct Props {
     pub scenario: String,
     pub demo: bool,
+    pub version: String,
 }
 
 impl Component for Game {
@@ -813,6 +814,7 @@ impl Game {
         self.ui = Some(Box::new(UI::new(
             context.link().callback(|_| Msg::RequestSnapshot),
             self.nonce,
+            context.props().version.clone(),
         )));
         self.sim_agent.send(oort_worker::Request::StartScenario {
             scenario_name: self.scenario_name.to_owned(),

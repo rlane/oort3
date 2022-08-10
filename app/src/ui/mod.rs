@@ -16,6 +16,7 @@ const SNAPSHOT_PRELOAD: usize = 5;
 const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
 
 pub struct UI {
+    version: String,
     snapshot: Option<Snapshot>,
     pending_snapshots: VecDeque<Snapshot>,
     renderer: Renderer,
@@ -45,7 +46,7 @@ pub struct UI {
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(request_snapshot: yew::Callback<()>, nonce: u32) -> Self {
+    pub fn new(request_snapshot: yew::Callback<()>, nonce: u32, version: String) -> Self {
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let status_div = document
@@ -68,6 +69,7 @@ impl UI {
         let keys_ignored = std::collections::HashSet::<String>::new();
 
         UI {
+            version,
             snapshot: None,
             pending_snapshots: VecDeque::new(),
             renderer,
@@ -216,6 +218,7 @@ impl UI {
                 }
                 status_msgs.push(format!("SNAP {}", self.pending_snapshots.len()));
             }
+            status_msgs.push(self.version.clone());
             let status_msg = status_msgs.join("; ");
             if status_msg != self.last_status_msg {
                 self.status_div.set_text_content(Some(&status_msg));
