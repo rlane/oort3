@@ -1,6 +1,6 @@
 [package]
 name = "oort_api"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Rich Lane"]
 description = "APIs for Oort, a space fleet programming game."
@@ -8,5 +8,5 @@ license = "GPL-3.0-or-later"
 repository = "http://github.com/rlane/oort3"
 
 [dependencies]
-oort_shared = { version = "0.1.0", path = "../shared" }
+oort_shared = { version = "0.2.0", path = "../shared" }
 oorandom = "11.1.3"
