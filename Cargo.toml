@@ -9,6 +9,7 @@ members = [
     "shared",
     "server",
     "api",
+    "tools",
 ]
 
 [patch.crates-io]
