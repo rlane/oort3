@@ -2898,8 +2898,7 @@ dependencies = [
 [[package]]
 name = "rand_seeder"
 version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf2890aaef0aa82719a50e808de264f9484b74b442e1a3a0e5ee38243ac40bdb"
+source = "git+https://github.com/rlane/seeder?rev=c39e58447f7c236fb98579a5d46e5668b92a3245#c39e58447f7c236fb98579a5d46e5668b92a3245"
 dependencies = [
  "rand_core 0.6.3",
 ]
