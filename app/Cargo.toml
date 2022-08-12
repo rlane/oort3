@@ -3,6 +3,7 @@ name = "oort-app"
 version = "0.2.1"
 edition = "2021"
 build = "build.rs"
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]

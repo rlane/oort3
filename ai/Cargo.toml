@@ -6,6 +6,7 @@ authors = ["Rich Lane"]
 description = "A space fleet programming game."
 license = "GPL-3.0-or-later"
 repository = "http://github.com/rlane/oort3"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]

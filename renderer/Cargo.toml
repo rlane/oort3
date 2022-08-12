@@ -2,6 +2,7 @@
 name = "oort_renderer"
 version = "0.2.1"
 edition = "2021"
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
