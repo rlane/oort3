@@ -5,11 +5,12 @@ pub fn documentation() -> Html {
     html! {
         <>
             <h1>{ "Quick Reference" }</h1>
-            { "Press Escape to close. File bugs on " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>{ ". " }
+            { "Press Escape to close. Please file bugs at " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>
+            { " and give feedback on " } <a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a>{ ". " }
             { "Also take a look at the " }<a href="https://github.com/rlane/oort3/wiki">{ "wiki" }</a>{ "." }<br/>
 
             <h2>{ "Basics" }</h2>
-            { "Select a scenario from the list in the top-right of the page." }<br/>
+            { "Select a scenario from the list in the top-right of the page (after closing the documentation overlay)." }<br/>
             { "Press Ctrl-Enter in the editor (Cmd-Enter on Mac) to run the scenario with a new version of your code." }<br/>
 
             <h2>{ "Controls" }</h2>
@@ -27,7 +28,6 @@ pub fn documentation() -> Html {
             <p>
                 { "Oort AIs are written in " }<a href="https://www.rust-lang.org/">{ "Rust" }</a>{ ". " }
                 { "For an introduction to the language check out " }<a href="https://doc.rust-lang.org/stable/rust-by-example/">{ "Rust By Example" }</a>{ ". " }
-                { "Extensive Rust knowledge is "}<em>{ "not" }</em>{ " required to play the game. High school physics and math probably is." }
             </p>
 
             <p>
@@ -137,10 +137,6 @@ pub fn documentation() -> Html {
               <li>{ "Missile: Highly maneuverable but unarmored. Explodes on contact or after an " }<code>{ "explode()" }</code>{ " call." }</li>
               <li>{ "Torpedo: Better armor, larger warhead, but less maneuverable than a missile. Explodes on contact or after an " }<code>{ "explode()" }</code>{ " call." }</li>
             </ul>
-
-            <h2>{ "Credits" }</h2>
-            { "Rich Lane" }<br/>
-            <br/>
         </>
     }
 }
