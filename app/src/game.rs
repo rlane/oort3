@@ -140,6 +140,11 @@ impl Component for Game {
                 self.render_handle = Some(request_animation_frame(move |_ts| {
                     link2.send_message(Msg::Render)
                 }));
+                // TODO: Use ResizeObserver when stable.
+                self.editor_link.with_editor(|editor| {
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    ed.layout(None);
+                });
                 self.check_status(context)
             }
             Msg::SelectScenario(scenario_name) => {
@@ -445,6 +450,13 @@ impl Component for Game {
                     options.set_minimap(Some(&minimap_options));
                     ed.update_options(&options);
                 }
+
+                js_sys::Reflect::set(
+                    &web_sys::window().unwrap(),
+                    &JsValue::from_str("editor"),
+                    editor.as_ref(),
+                )
+                .unwrap();
             });
         }
 
