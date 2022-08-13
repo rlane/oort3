@@ -2229,7 +2229,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort-app"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "bincode",
  "built",
