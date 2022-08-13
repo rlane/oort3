@@ -1,5 +1,5 @@
 use super::userid::get_userid;
-use crate::js;
+use crate::{js, userid::get_username};
 use log::warn;
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +9,7 @@ struct TelemetryMsg {
     payload: Telemetry,
     build: String,
     userid: String,
+    username: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,10 +35,13 @@ pub enum Telemetry {
 }
 
 pub fn send(payload: Telemetry) {
+    let userid = get_userid();
+    let username = get_username(&userid);
     let msg = TelemetryMsg {
         payload,
         build: crate::version(),
-        userid: get_userid(),
+        userid,
+        username,
     };
     match serde_json::to_string(&msg) {
         Ok(serialized) => js::telemetry::send_telemetry(&serialized),
