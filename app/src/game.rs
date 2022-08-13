@@ -297,6 +297,10 @@ impl Component for Game {
                     self.overlay = None;
                 }
                 self.display_errors(&[]);
+                crate::telemetry::send(Telemetry::StartScenario {
+                    scenario_name: self.scenario_name.clone(),
+                    code: code_to_string(&code),
+                });
                 let mut codes = crate::codestorage::load(&self.scenario_name);
                 codes[0] = code;
                 self.run(context, &codes);
