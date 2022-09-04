@@ -24,6 +24,7 @@ no-comment = "0.0.3"
 oort_renderer = { path = "../renderer" }
 oort_simulator = { path = "../simulator", features = ["js"], default-features = false }
 oort_worker = { path = "../worker" }
+oort_analyzer = { path = "../analyzer" }
 petname = "1.1.2"
 rand = "0.8.5"
 rand_chacha = "0.3.1"

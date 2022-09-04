@@ -370,4 +370,8 @@ impl UI {
         }
         self.renderer.set_picked_ship(self.picked_ship_id);
     }
+
+    pub fn frame(&self) -> u64 {
+        self.frame
+    }
 }

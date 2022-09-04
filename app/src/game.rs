@@ -6,6 +6,7 @@ use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
+use oort_analyzer::AnalyzerAgent;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
@@ -44,6 +45,7 @@ pub enum Msg {
     MouseEvent(web_sys::MouseEvent),
     ReceivedSimAgentResponse(oort_worker::Response),
     ReceivedBackgroundSimAgentResponse(oort_worker::Response, u32),
+    ReceivedAnalyzerAgentResponse(oort_analyzer::Response),
     RequestSnapshot,
     EditorAction(String),
     ShowDocumentation,
@@ -66,6 +68,7 @@ pub struct Game {
     render_handle: Option<AnimationFrame>,
     scenario_name: String,
     sim_agent: Box<dyn Bridge<SimAgent>>,
+    analyzer_agent: Box<dyn Bridge<AnalyzerAgent>>,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
     background_snapshots: Vec<(u32, Snapshot)>,
     editor_link: CodeEditorLink,
@@ -77,7 +80,9 @@ pub struct Game {
     last_status: Status,
     running_source_code: Code,
     running_codes: Vec<Code>,
-    current_decorations: js_sys::Array,
+    current_compiler_decorations: js_sys::Array,
+    current_analyzer_decorations: js_sys::Array,
+    last_analyzed_text: String,
     saw_slow_compile: bool,
     local_compiler: bool,
     compiler_errors: Option<String>,
@@ -103,6 +108,8 @@ impl Component for Game {
             link2.send_message(Msg::Render)
         }));
         let sim_agent = SimAgent::bridge(context.link().callback(Msg::ReceivedSimAgentResponse));
+        let analyzer_agent =
+            AnalyzerAgent::bridge(context.link().callback(Msg::ReceivedAnalyzerAgentResponse));
         let local_compiler =
             QString::from(context.link().location().unwrap().search().as_str()).has("local");
         if local_compiler {
@@ -112,6 +119,7 @@ impl Component for Game {
             render_handle,
             scenario_name: String::new(),
             sim_agent,
+            analyzer_agent,
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
             editor_link: CodeEditorLink::default(),
@@ -123,7 +131,9 @@ impl Component for Game {
             last_status: Status::Running,
             running_source_code: Code::None,
             running_codes: Vec::new(),
-            current_decorations: js_sys::Array::new(),
+            current_compiler_decorations: js_sys::Array::new(),
+            current_analyzer_decorations: js_sys::Array::new(),
+            last_analyzed_text: "".to_string(),
             saw_slow_compile: false,
             local_compiler,
             compiler_errors: None,
@@ -135,16 +145,24 @@ impl Component for Game {
             Msg::Render => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
+                    if ui.frame() % 6 == 0 {
+                        // TODO: Use ResizeObserver when stable.
+                        self.editor_link.with_editor(|editor| {
+                            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                            ed.layout(None);
+                            let text = editor.get_model().unwrap().get_value();
+                            if text != self.last_analyzed_text {
+                                self.analyzer_agent
+                                    .send(oort_analyzer::Request::Analyze(text.clone()));
+                                self.last_analyzed_text = text;
+                            }
+                        });
+                    }
                 }
                 let link2 = context.link().clone();
                 self.render_handle = Some(request_animation_frame(move |_ts| {
                     link2.send_message(Msg::Render)
                 }));
-                // TODO: Use ResizeObserver when stable.
-                self.editor_link.with_editor(|editor| {
-                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                    ed.layout(None);
-                });
                 self.check_status(context)
             }
             Msg::SelectScenario(scenario_name) => {
@@ -329,6 +347,10 @@ impl Component for Game {
                     scenario_name: self.scenario_name.clone(),
                     code: code_to_string(&self.running_source_code),
                 });
+                false
+            }
+            Msg::ReceivedAnalyzerAgentResponse(oort_analyzer::Response::AnalyzeFinished(diags)) => {
+                self.display_analyzer_diagnostics(&diags);
                 false
             }
         }
@@ -740,12 +762,63 @@ impl Game {
         for decoration in decorations {
             decorations_jsarray.push(&decoration);
         }
-        self.current_decorations = self
+        self.current_compiler_decorations = self
             .editor_link
             .with_editor(|editor| {
                 editor
                     .as_ref()
-                    .delta_decorations(&self.current_decorations, &decorations_jsarray)
+                    .delta_decorations(&self.current_compiler_decorations, &decorations_jsarray)
+            })
+            .unwrap();
+    }
+
+    pub fn display_analyzer_diagnostics(&mut self, diags: &[oort_analyzer::Diagnostic]) {
+        use monaco::sys::{
+            editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
+        };
+        let decorations: Vec<IModelDeltaDecoration> = diags
+            .iter()
+            .map(|diag| {
+                let decoration: IModelDeltaDecoration = empty().into();
+                decoration.set_range(
+                    &Range::new(
+                        diag.start_line as f64 + 1.0,
+                        diag.start_column as f64 + 1.0,
+                        diag.end_line as f64 + 1.0,
+                        diag.end_column as f64
+                            + 1.0
+                            + if diag.start_column == diag.end_column {
+                                1.0
+                            } else {
+                                0.0
+                            },
+                    )
+                    .unchecked_into(),
+                );
+                let options: IModelDecorationOptions = empty().into();
+                options.set_class_name("errorDecoration".into());
+                let hover_message: IMarkdownString = empty().into();
+                js_sys::Reflect::set(
+                    &hover_message,
+                    &JsValue::from_str("value"),
+                    &JsValue::from_str(&diag.message),
+                )
+                .unwrap();
+                options.set_hover_message(&hover_message);
+                decoration.set_options(&options);
+                decoration
+            })
+            .collect();
+        let decorations_jsarray = js_sys::Array::new();
+        for decoration in decorations {
+            decorations_jsarray.push(&decoration);
+        }
+        self.current_analyzer_decorations = self
+            .editor_link
+            .with_editor(|editor| {
+                editor
+                    .as_ref()
+                    .delta_decorations(&self.current_analyzer_decorations, &decorations_jsarray)
             })
             .unwrap();
     }
