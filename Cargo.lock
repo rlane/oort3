@@ -2270,7 +2270,7 @@ dependencies = [
 
 [[package]]
 name = "oort_ai"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "oorandom",
  "oort_api",
