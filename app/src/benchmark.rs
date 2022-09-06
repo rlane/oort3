@@ -9,7 +9,7 @@ pub enum Msg {
     ReceivedSimAgentResponse(oort_worker::Response),
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct Props {
     pub scenario: String,
 }
