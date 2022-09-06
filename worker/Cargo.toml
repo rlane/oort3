@@ -1,6 +1,6 @@
 [package]
 name = "oort_worker"
-version = "0.2.2"
+version = "0.2.5"
 edition = "2021"
 publish = false
 
