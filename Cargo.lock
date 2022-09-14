@@ -2392,7 +2392,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort-app"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "bincode",
  "built",
@@ -2434,7 +2434,7 @@ dependencies = [
 
 [[package]]
 name = "oort_ai"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "oorandom",
  "oort_api",
@@ -2443,7 +2443,7 @@ dependencies = [
 
 [[package]]
 name = "oort_analyzer"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "console_error_panic_hook",
  "console_log",
@@ -2460,7 +2460,7 @@ dependencies = [
 
 [[package]]
 name = "oort_api"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "oorandom",
  "oort_shared",
@@ -2468,7 +2468,7 @@ dependencies = [
 
 [[package]]
 name = "oort_renderer"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "getrandom 0.2.7",
  "instant",
@@ -2489,7 +2489,7 @@ dependencies = [
 
 [[package]]
 name = "oort_server"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2502,11 +2502,11 @@ dependencies = [
 
 [[package]]
 name = "oort_shared"
-version = "0.2.6"
+version = "0.3.0"
 
 [[package]]
 name = "oort_simulator"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "bincode",
  "criterion",
@@ -2542,7 +2542,7 @@ dependencies = [
 
 [[package]]
 name = "oort_tools"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "env_logger 0.9.0",
  "firestore",
@@ -2558,7 +2558,7 @@ dependencies = [
 
 [[package]]
 name = "oort_worker"
-version = "0.2.6"
+version = "0.3.0"
 dependencies = [
  "console_error_panic_hook",
  "console_log",

@@ -1,6 +1,6 @@
 [package]
 name = "oort_server"
-version = "0.2.6"
+version = "0.3.0"
 publish = false
 edition = "2021"
 
