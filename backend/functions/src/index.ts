@@ -73,9 +73,11 @@ async function makeLeaderboard(firestore: Firestore, scenarioName: string) {
     if (userid === undefined || userid in seenUsers) {
       continue;
     }
+    const username = doc.get("username");
     seenUsers[userid] = true;
     response.lowest_time.push({
       userid: userid,
+      username: username,
       time: (doc.get("ticks") * (1.0 / 60)).toFixed(2),
     });
     if (response.lowest_time.length >= 10) {
@@ -88,8 +90,13 @@ async function makeLeaderboard(firestore: Firestore, scenarioName: string) {
     if (userid === undefined || userid in seenUsers) {
       continue;
     }
+    const username = doc.get("username");
     seenUsers[userid] = true;
-    response.lowest_code_size.push({ userid, code_size: doc.get("code_size") });
+    response.lowest_code_size.push({
+      userid,
+      username: username,
+      code_size: doc.get("code_size"),
+    });
     if (response.lowest_code_size.length >= 10) {
       break;
     }

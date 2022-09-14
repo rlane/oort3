@@ -42,6 +42,7 @@ suite("Oort backend", function () {
           ticks: 100,
           type: "type",
           userid: "testuser",
+          username: "testusername",
         },
       };
       await upload(request, response);
@@ -65,6 +66,7 @@ suite("Oort backend", function () {
         type: "FinishScenario",
         scenario_name: scenario_name,
         userid: userid,
+        username: userid + "name",
         code_size: code_size,
         ticks: ticks,
       });
@@ -85,12 +87,12 @@ suite("Oort backend", function () {
       await leaderboard(request, response);
       sinon.assert.calledWith(response.json, {
         lowest_time: [
-          { userid: "user2", time: "1.33" },
-          { userid: "user1", time: "1.67" },
+          { userid: "user2", username: "user2name", time: "1.33" },
+          { userid: "user1", username: "user1name", time: "1.67" },
         ],
         lowest_code_size: [
-          { userid: "user1", code_size: 10 },
-          { userid: "user2", code_size: 11 },
+          { userid: "user1", username: "user1name", code_size: 10 },
+          { userid: "user2", username: "user2name", code_size: 11 },
         ],
       });
     });
@@ -110,28 +112,28 @@ suite("Oort backend", function () {
       await leaderboard(request, response);
       sinon.assert.calledWith(response.json, {
         lowest_time: [
-          { userid: "user0", time: "1.67" },
-          { userid: "user1", time: "1.68" },
-          { userid: "user2", time: "1.70" },
-          { userid: "user3", time: "1.72" },
-          { userid: "user4", time: "1.73" },
-          { userid: "user5", time: "1.75" },
-          { userid: "user6", time: "1.77" },
-          { userid: "user7", time: "1.78" },
-          { userid: "user8", time: "1.80" },
-          { userid: "user9", time: "1.82" },
+          { userid: "user0", username: "user0name", time: "1.67" },
+          { userid: "user1", username: "user1name", time: "1.68" },
+          { userid: "user2", username: "user2name", time: "1.70" },
+          { userid: "user3", username: "user3name", time: "1.72" },
+          { userid: "user4", username: "user4name", time: "1.73" },
+          { userid: "user5", username: "user5name", time: "1.75" },
+          { userid: "user6", username: "user6name", time: "1.77" },
+          { userid: "user7", username: "user7name", time: "1.78" },
+          { userid: "user8", username: "user8name", time: "1.80" },
+          { userid: "user9", username: "user9name", time: "1.82" },
         ],
         lowest_code_size: [
-          { userid: "user0", code_size: 10 },
-          { userid: "user1", code_size: 11 },
-          { userid: "user2", code_size: 12 },
-          { userid: "user3", code_size: 13 },
-          { userid: "user4", code_size: 14 },
-          { userid: "user5", code_size: 15 },
-          { userid: "user6", code_size: 16 },
-          { userid: "user7", code_size: 17 },
-          { userid: "user8", code_size: 18 },
-          { userid: "user9", code_size: 19 },
+          { userid: "user0", username: "user0name", code_size: 10 },
+          { userid: "user1", username: "user1name", code_size: 11 },
+          { userid: "user2", username: "user2name", code_size: 12 },
+          { userid: "user3", username: "user3name", code_size: 13 },
+          { userid: "user4", username: "user4name", code_size: 14 },
+          { userid: "user5", username: "user5name", code_size: 15 },
+          { userid: "user6", username: "user6name", code_size: 16 },
+          { userid: "user7", username: "user7name", code_size: 17 },
+          { userid: "user8", username: "user8name", code_size: 18 },
+          { userid: "user9", username: "user9name", code_size: 19 },
         ],
       });
     });
