@@ -12,12 +12,14 @@ pub struct LeaderboardData {
 #[derive(Deserialize, Debug)]
 pub struct TimeLeaderboardRow {
     userid: String,
+    username: Option<String>,
     time: String,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct CodeSizeLeaderboardRow {
     userid: String,
+    username: Option<String>,
     code_size: i64,
 }
 
@@ -90,11 +92,11 @@ impl Component for Leaderboard {
             html! { <p>{ "Fetching leaderboard..." }</p> }
         } else if let Some(ref data) = self.data {
             fn render_time_row(row: &TimeLeaderboardRow) -> Html {
-                html! { <tr><td>{ userid::get_username(&row.userid) }</td><td>{ &row.time }</td></tr> }
+                html! { <tr><td>{ row.username.clone().unwrap_or_else(|| userid::get_username(&row.userid)) }</td><td>{ &row.time }</td></tr> }
             }
 
             fn render_code_size_row(row: &CodeSizeLeaderboardRow) -> Html {
-                html! { <tr><td>{ userid::get_username(&row.userid) }</td><td>{ row.code_size }</td></tr> }
+                html! { <tr><td>{ row.username.clone().unwrap_or_else(|| userid::get_username(&row.userid)) }</td><td>{ row.code_size }</td></tr> }
             }
 
             html! {
