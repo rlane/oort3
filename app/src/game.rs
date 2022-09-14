@@ -377,7 +377,7 @@ impl Component for Game {
         let mouse_event_cb = context.link().callback(Msg::MouseEvent);
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
 
-        let username = crate::userid::get_username(&crate::userid::get_userid());
+        let username = crate::userid::get_username();
 
         let monaco_options: Rc<CodeEditorOptions> = Rc::new(make_monaco_options());
 

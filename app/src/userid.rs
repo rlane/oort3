@@ -25,7 +25,11 @@ pub fn get_userid() -> String {
     }
 }
 
-pub fn get_username(userid: &str) -> String {
+pub fn generate_username(userid: &str) -> String {
     let mut rng: rand_chacha::ChaCha8Rng = rand_seeder::Seeder::from(userid).make_rng();
     petname::Petnames::default().generate(&mut rng, 2, "-")
+}
+
+pub fn get_username() -> String {
+    generate_username(&get_userid())
 }

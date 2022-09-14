@@ -36,7 +36,7 @@ pub enum Telemetry {
 
 pub fn send(payload: Telemetry) {
     let userid = get_userid();
-    let username = get_username(&userid);
+    let username = get_username();
     let msg = TelemetryMsg {
         payload,
         build: crate::version(),

@@ -70,7 +70,7 @@ pub fn run_app() -> Result<(), JsValue> {
     log::info!("Version {}", &version());
     let userid = userid::get_userid();
     log::info!("userid {}", &userid);
-    log::info!("username {}", &userid::get_username(&userid));
+    log::info!("username {}", &userid::get_username());
     yew::start_app::<Main>();
     Ok(())
 }
