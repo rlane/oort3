@@ -19,6 +19,11 @@
   <link data-trunk rel="rust" href="../worker/Cargo.toml" data-wasm-opt="z" data-bin="oort_worker" data-type="worker" />
   <link data-trunk rel="rust" href="../analyzer/Cargo.toml" data-wasm-opt="z" data-bin="oort_analyzer" data-type="worker" />
   <link data-trunk rel="css" href="style.css" />
+  <script type="text/javascript">
+    window.set_username = function (username) {
+      localStorage.setItem("/user/name", username);
+    };
+  </script>
 </head>
 <body>
 </body>
