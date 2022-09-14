@@ -31,5 +31,24 @@ pub fn generate_username(userid: &str) -> String {
 }
 
 pub fn get_username() -> String {
-    generate_username(&get_userid())
+    let window = web_sys::window().expect("no global `window` exists");
+    let storage = window
+        .local_storage()
+        .expect("failed to get local storage")
+        .unwrap();
+    match storage.get_item("/user/name") {
+        Ok(Some(username)) => username,
+        Ok(None) => {
+            let username = generate_username(&get_userid());
+            info!("Generated username {}", &username);
+            if let Err(msg) = storage.set_item("/user/name", &username) {
+                error!("Failed to save username: {:?}", msg);
+            }
+            username
+        }
+        Err(msg) => {
+            error!("Failed read username: {:?}", msg);
+            "unknown".to_string()
+        }
+    }
 }
