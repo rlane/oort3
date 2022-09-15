@@ -24,6 +24,7 @@ pub enum Telemetry {
         code: String,
         ticks: u32,
         code_size: usize,
+        success: bool,
     },
     Crash {
         msg: String,

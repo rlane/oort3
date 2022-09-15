@@ -291,6 +291,7 @@ impl Component for Game {
                         code: code_to_string(code),
                         ticks: (summary.average_time / simulation::PHYSICS_TICK_LENGTH) as u32,
                         code_size: crate::code_size::calculate(&code_to_string(code)),
+                        success: summary.failed_seeds.is_empty(),
                     });
                 }
                 true
