@@ -69,6 +69,7 @@ suite("Oort backend", function () {
         username: userid + "name",
         code_size: code_size,
         ticks: ticks,
+        success: ticks != 0,
       });
     }
 
@@ -77,6 +78,7 @@ suite("Oort backend", function () {
         entry("scenario1", "user1", 10, 100),
         entry("scenario1", "user2", 12, 80),
         entry("scenario1", "user2", 11, 90),
+        entry("scenario1", "user3", 13, 0),
       ]);
 
       let response = mockResponse();

@@ -56,12 +56,14 @@ async function makeLeaderboard(firestore: Firestore, scenarioName: string) {
   const tickQuery = await collectionReference
     .where("type", "==", "FinishScenario")
     .where("scenario_name", "==", scenarioName)
+    .where("success", "==", true)
     .orderBy("ticks")
     .limit(100)
     .get();
   const codeSizeQuery = await collectionReference
     .where("type", "==", "FinishScenario")
     .where("scenario_name", "==", scenarioName)
+    .where("success", "==", true)
     .orderBy("code_size")
     .limit(100)
     .get();
