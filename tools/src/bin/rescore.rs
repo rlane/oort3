@@ -17,7 +17,8 @@ pub fn config_env_var(name: &str) -> Result<String, String> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("rescore=info"))
+        .init();
 
     let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
 
@@ -26,10 +27,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let docs: Vec<Document> = db
         .query_doc(
             FirestoreQueryParams::new(COLLECTION_NAME.into()).with_filter(
-                FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                    "type".into(),
-                    "FinishScenario".into(),
-                ))),
+                FirestoreQueryFilter::Composite(FirestoreQueryFilterComposite::new(vec![
+                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                        "type".into(),
+                        "FinishScenario".into(),
+                    ))),
+                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                        "success".into(),
+                        true.into(),
+                    ))),
+                ])),
             ),
         )
         .await?;
@@ -81,14 +88,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let http_client = reqwest::Client::new();
     // docid, ticks
-    let mut new_ticks: Vec<(String, u32)> = Vec::new();
+    let mut updates: Vec<(String, Option<u32>)> = Vec::new();
 
-    for ((userid, scenario_name), (ticks, docid, code)) in best_times.iter() {
+    for ((userid, scenario_name), (old_ticks, docid, code)) in best_times.iter() {
         log::info!(
-            "Running simulations for userid={} scenario_name={} ticks={} docid={}",
+            "Running simulations for userid={} scenario_name={} old_ticks={} docid={}",
             userid,
             scenario_name,
-            ticks,
+            old_ticks,
             docid
         );
 
@@ -96,26 +103,53 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             log::info!("Successfully compiled to WASM");
             let status = run_simulations(scenario_name, wasm);
             match status {
-                Some(ticks) => {
-                    log::info!("New ticks={}", ticks);
-                    new_ticks.push((docid.to_string(), ticks));
+                Some(new_ticks) => {
+                    if *old_ticks as u32 != new_ticks {
+                        log::info!("Updating ticks from {} to {}", old_ticks, new_ticks);
+                        updates.push((docid.to_string(), Some(new_ticks)));
+                    } else {
+                        log::info!("Ticks unchanged");
+                    }
                 }
-                None => log::warn!(
-                    "Simulation failed for userid={} scenario_name={} docid={}",
-                    userid,
-                    scenario_name,
-                    docid,
-                ),
+                None => {
+                    log::warn!(
+                        "Simulation failed for userid={} scenario_name={} docid={}",
+                        userid,
+                        scenario_name,
+                        docid,
+                    );
+                    updates.push((docid.to_string(), None));
+                }
             }
         }
     }
 
-    for (docid, ticks) in new_ticks {
+    log::info!("Applying {} updates", updates.len());
+
+    for (docid, ticks) in updates {
         let doc = saved_docs.get(&docid).unwrap();
         let mut map = FirestoreDb::deserialize_doc_to::<JsonMap>(doc).unwrap();
-        map.fields.insert("ticks".into(), ticks.into());
-        db.update_obj("telemetry", &docid, &map, Some(vec!["ticks".into()]))
+        if let Some(ticks) = ticks {
+            map.fields.insert("ticks".into(), ticks.into());
+            map.fields.insert("success".into(), true.into());
+            db.update_obj(
+                "telemetry",
+                &docid,
+                &map,
+                Some(vec!["ticks".into(), "success".into()]),
+            )
             .await?;
+        } else {
+            map.fields.insert("ticks".into(), 0.into());
+            map.fields.insert("success".into(), false.into());
+            db.update_obj(
+                "telemetry",
+                &docid,
+                &map,
+                Some(vec!["ticks".into(), "success".into()]),
+            )
+            .await?;
+        }
     }
 
     Ok(())
