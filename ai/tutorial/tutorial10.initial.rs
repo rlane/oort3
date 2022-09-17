@@ -15,7 +15,7 @@ impl Ship {
                 let dp = contact.position - position();
                 let dv = contact.velocity - velocity();
                 torque(20.0 * (angle_diff(heading(), dp.angle()) - 0.1 * angular_velocity()));
-                accelerate((dp + dv).rotate(-heading()));
+                accelerate_inertial(dp + dv);
                 if dp.length() < 20.0 {
                     explode();
                 }

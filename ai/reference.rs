@@ -104,9 +104,9 @@ impl Ship {
         self.turn_to(predicted_dp.angle(), 0.0);
 
         if scan_result.is_some() && dist < 1000.0 {
-            accelerate(-velocity().rotate(-heading()));
+            accelerate_inertial(-velocity());
         } else {
-            accelerate((dp - velocity()).rotate(-heading()));
+            accelerate_inertial(dp - velocity());
         }
     }
 
@@ -134,8 +134,7 @@ impl Ship {
             } else {
                 let dp = self.target_position - position();
                 self.turn_to(dp.angle(), 0.0);
-                let a = dp.rotate(-heading()).normalize() * acc;
-                accelerate(a);
+                accelerate_inertial(dp.normalize() * acc);
             }
             return;
         }
@@ -154,9 +153,9 @@ impl Ship {
         }
 
         let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
-        let a = (dp - badv * 10.0).rotate(-heading()).normalize() * acc;
-        accelerate(a);
-        self.turn_to(a.rotate(heading()).angle(), 0.0);
+        let a = (dp - badv * 10.0).normalize() * acc;
+        accelerate_inertial(a);
+        self.turn_to(a.angle(), 0.0);
 
         /* TODO
         dbg.draw_diamond(contact.position, 20.0, 0xffff00);
@@ -217,9 +216,9 @@ impl Ship {
         let pdp = predicted_position - position();
 
         let badv = -(dv - dv.dot(dp) * pdp.normalize() / pdp.length());
-        let a = (pdp - badv * 10.0).rotate(-heading()).normalize() * acc;
-        accelerate(a);
-        self.turn_to(a.rotate(heading()).angle(), 0.0);
+        let a = (pdp - badv * 10.0).normalize() * acc;
+        accelerate_inertial(a);
+        self.turn_to(a.angle(), 0.0);
 
         /*
         if no_contact_ticks > 0 {
