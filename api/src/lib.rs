@@ -108,13 +108,7 @@ mod api {
     }
 
     /// Sets the linear acceleration for the next tick (in m/s²).
-    pub fn accelerate(acceleration: Vec2) {
-        write_system_state(SystemState::AccelerateX, acceleration.x);
-        write_system_state(SystemState::AccelerateY, acceleration.y);
-    }
-
-    /// Sets the linear acceleration for the next tick (in m/s²).
-    pub fn accelerate_inertial(mut acceleration: Vec2) {
+    pub fn accelerate(mut acceleration: Vec2) {
         acceleration = acceleration.rotate(-heading());
         let max = max_acceleration();
         if acceleration.x.abs() > max.x.abs() {

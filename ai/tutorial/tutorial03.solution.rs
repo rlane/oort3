@@ -12,6 +12,6 @@ impl Ship {
 
     pub fn tick(&mut self) {
         // Hint: "target() - position()" returns a vector pointing towards the target.
-        accelerate_inertial(target() - position());
+        accelerate(target() - position());
     }
 }

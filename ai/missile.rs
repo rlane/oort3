@@ -42,7 +42,7 @@ pub fn seek(p: Vec2, v: Vec2) {
     let ay = N * closing_speed * los_rate;
     let a = vec2(ax, ay).rotate(los);
     let a = vec2(max_acceleration().x, 0.0).rotate(a.angle());
-    accelerate_inertial(a);
+    accelerate(a);
     turn_to(a.angle(), 0.0);
 }
 

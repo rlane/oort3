@@ -104,9 +104,9 @@ impl Ship {
         self.turn_to(predicted_dp.angle(), 0.0);
 
         if scan_result.is_some() && dist < 1000.0 {
-            accelerate_inertial(-velocity());
+            accelerate(-velocity());
         } else {
-            accelerate_inertial(dp - velocity());
+            accelerate(dp - velocity());
         }
     }
 
@@ -134,7 +134,7 @@ impl Ship {
             } else {
                 let dp = self.target_position - position();
                 self.turn_to(dp.angle(), 0.0);
-                accelerate_inertial(dp.normalize() * acc);
+                accelerate(dp.normalize() * acc);
             }
             return;
         }
@@ -154,7 +154,7 @@ impl Ship {
 
         let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
         let a = (dp - badv * 10.0).normalize() * acc;
-        accelerate_inertial(a);
+        accelerate(a);
         self.turn_to(a.angle(), 0.0);
 
         /* TODO
@@ -217,7 +217,7 @@ impl Ship {
 
         let badv = -(dv - dv.dot(dp) * pdp.normalize() / pdp.length());
         let a = (pdp - badv * 10.0).normalize() * acc;
-        accelerate_inertial(a);
+        accelerate(a);
         self.turn_to(a.angle(), 0.0);
 
         /*

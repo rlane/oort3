@@ -13,7 +13,7 @@ impl Ship {
     pub fn tick(&mut self) {
         set_radar_heading(radar_heading() + TAU / 6.0);
         if let Some(contact) = scan() {
-            accelerate_inertial(0.1 * (contact.position - position()));
+            accelerate(0.1 * (contact.position - position()));
             fire_gun(0);
         }
     }

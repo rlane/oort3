@@ -21,7 +21,7 @@ impl Ship {
                 + vec2(self.rng.rand_float() * 1000.0, 0.0).rotate(self.rng.rand_float() * TAU);
         }
 
-        accelerate_inertial(self.target - position() - velocity());
+        accelerate(self.target - position() - velocity());
         turn_to((self.target - position()).angle());
     }
 }

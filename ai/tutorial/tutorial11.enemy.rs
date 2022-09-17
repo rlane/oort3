@@ -25,7 +25,7 @@ impl Ship {
                 + vec2(self.rng.rand_float() * 1000.0, 0.0).rotate(self.rng.rand_float() * TAU);
         }
 
-        accelerate_inertial(self.target - position() - velocity());
+        accelerate(self.target - position() - velocity());
 
         if let Some(contact) = scan() {
             turn_to((contact.position - position()).angle(), 0.0);
@@ -51,7 +51,7 @@ impl Ship {
             set_radar_heading((contact.position - position()).angle() - heading());
             set_radar_width((10.0 * TAU / dp.length()).clamp(TAU / 30.0, TAU));
         } else {
-            accelerate_inertial(vec2(100.0, 0.0).rotate(heading()));
+            accelerate(vec2(100.0, 0.0).rotate(heading()));
             set_radar_width(TAU / 4.0);
         }
     }
@@ -67,7 +67,7 @@ pub fn seek(p: Vec2, v: Vec2) {
     const N: f64 = 4.0;
     let a = vec2(100.0, N * closing_speed * los_rate).rotate(los);
     let a = vec2(400.0, 0.0).rotate(a.angle());
-    accelerate_inertial(a);
+    accelerate(a);
     turn_to(a.angle(), 0.0);
 }
 

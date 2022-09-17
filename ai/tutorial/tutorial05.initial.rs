@@ -11,7 +11,7 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        accelerate_inertial(0.1 * (target() - position()));
+        accelerate(0.1 * (target() - position()));
         fire_gun(0);
     }
 }

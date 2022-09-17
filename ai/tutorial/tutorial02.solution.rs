@@ -11,6 +11,6 @@ impl Ship {
 
     pub fn tick(&mut self) {
         // Hint: uncomment me
-        accelerate_inertial(vec2(100.0, 0.0));
+        accelerate(vec2(100.0, 0.0));
     }
 }

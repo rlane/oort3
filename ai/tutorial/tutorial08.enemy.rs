@@ -21,7 +21,7 @@ impl Ship {
                 + vec2(self.rng.rand_float() * 500.0, 0.0).rotate(self.rng.rand_float() * TAU);
         }
 
-        accelerate_inertial(self.target - position() - velocity());
+        accelerate(self.target - position() - velocity());
 
         if let Some(contact) = scan() {
             turn_to((contact.position - position()).angle());
