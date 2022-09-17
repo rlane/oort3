@@ -289,7 +289,9 @@ impl Component for Game {
                     crate::telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario_name.clone(),
                         code: code_to_string(code),
-                        ticks: (summary.average_time / simulation::PHYSICS_TICK_LENGTH) as u32,
+                        ticks: (summary.average_time.unwrap_or(0.0)
+                            / simulation::PHYSICS_TICK_LENGTH)
+                            as u32,
                         code_size: crate::code_size::calculate(&code_to_string(code)),
                         success: summary.failed_seeds.is_empty(),
                     });
@@ -497,7 +499,7 @@ struct BackgroundSimSummary {
     count: usize,
     victory_count: usize,
     failed_seeds: Vec<u32>,
-    average_time: f64,
+    average_time: Option<f64>,
 }
 
 impl Game {
@@ -601,20 +603,26 @@ impl Game {
         }
 
         let is_victory = |status: &scenario::Status| matches!(*status, Status::Victory { team: 0 });
-        let failed_seeds: Vec<u32> = self
+        let mut failed_seeds: Vec<u32> = self
             .background_snapshots
             .iter()
             .filter(|(_, snapshot)| !is_victory(&snapshot.status))
             .map(|(seed, _)| *seed)
             .collect();
+        failed_seeds.sort();
         let victory_count = self.background_snapshots.len() - failed_seeds.len();
-        let average_time: f64 = self
-            .background_snapshots
-            .iter()
-            .filter(|(_, snapshot)| is_victory(&snapshot.status))
-            .map(|(_, snapshot)| snapshot.time)
-            .sum::<f64>()
-            / self.background_snapshots.len() as f64;
+        let average_time: Option<f64> = if victory_count > 0 {
+            Some(
+                self.background_snapshots
+                    .iter()
+                    .filter(|(_, snapshot)| is_victory(&snapshot.status))
+                    .map(|(_, snapshot)| snapshot.time)
+                    .sum::<f64>()
+                    / victory_count as f64,
+            )
+        } else {
+            None
+        };
 
         Some(BackgroundSimSummary {
             count: self.background_agents.len(),
@@ -633,22 +641,26 @@ impl Game {
         let code_size = crate::code_size::calculate(&code_to_string(&self.running_source_code));
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
-        let next_scenario_link = match next_scenario {
-            Some(scenario_name) => {
-                let next_scenario_cb = context.link().batch_callback(move |_| {
-                    vec![
-                        Msg::SelectScenario(scenario_name.clone()),
-                        Msg::DismissOverlay,
-                    ]
-                });
-                html! { <><a href="#" onclick={next_scenario_cb}>{ "Next mission" }</a><br /></> }
-            }
-            None => {
-                html! {}
-            }
-        };
 
         let background_status = if let Some(summary) = self.summarize_background_simulations() {
+            let next_scenario_link = if summary.failed_seeds.is_empty() {
+                match next_scenario {
+                    Some(scenario_name) => {
+                        let next_scenario_cb = context.link().batch_callback(move |_| {
+                            vec![
+                                Msg::SelectScenario(scenario_name.clone()),
+                                Msg::DismissOverlay,
+                            ]
+                        });
+                        html! { <><a href="#" onclick={next_scenario_cb}>{ "Next mission" }</a><br /></> }
+                    }
+                    None => {
+                        html! {}
+                    }
+                }
+            } else {
+                html! {}
+            };
             let failures = if summary.failed_seeds.is_empty() {
                 html! {}
             } else {
@@ -676,7 +688,7 @@ impl Game {
                     <>
                     <br />
                     <span>
-                        {"Failed seeds: "}
+                        <><b class="error">{ "Your solution did not pass all simulations." }</b><br />{ "Failed seeds: " }</>
                         { summary.failed_seeds.iter().cloned().map(|seed: u32| html! {
                             <><a onclick={make_cb(seed)}>{ seed }</a>{ "\u{00a0}" }</>  }).collect::<Html>() }
                     </span>
@@ -700,7 +712,16 @@ impl Game {
             html! {
                 <>
                     <span>{ "Simulations complete: " }{ summary.victory_count }{"/"}{ summary.count }{ " successful" }</span><br />
-                    <span>{ "Average time: " }{ format!("{:.2} seconds", summary.average_time) }</span><br />
+                    <span>
+                        { "Average time: " }
+                        {
+                            if let Some(average_time) = summary.average_time {
+                                format!("{:.2} seconds", average_time)
+                            } else {
+                                "none".to_string()
+                            }
+                        }
+                    </span><br />
                     { failures }
                     { submit_button }
                     { next_scenario_link }
@@ -715,7 +736,7 @@ impl Game {
         html! {
             <div class="centered">
                 <h1>{ "Mission Complete" }</h1>
-                { "Time: " }{ format!("{:.2}", time) }{ " seconds" }<br/><br/>
+                { "Time: " }{ format!("{:.2}", time) }{ " seconds" }<br/>
                 { "Code size: " }{ code_size }{ " bytes" }<br/><br/>
                 { background_status }<br/><br/>
                 <br/><br/>

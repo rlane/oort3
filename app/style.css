@@ -201,3 +201,7 @@ h1.compiling {
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
+b.error {
+  color: #f61d1d;
+}
