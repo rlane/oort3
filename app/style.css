@@ -5,6 +5,7 @@ body {
   background: black;
   color: #d4d4d4;
   font-family: "Roboto", sans-serif;
+  overflow: hidden;
 }
 
 #editor {
