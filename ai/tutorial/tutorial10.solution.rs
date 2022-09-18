@@ -34,7 +34,7 @@ impl Ship {
 
                 let dp = contact.position - position();
                 for i in [1, 2] {
-                    aim_gun(i, dp.angle() - heading());
+                    aim_gun(i, dp.angle());
                     fire_gun(i);
                 }
 

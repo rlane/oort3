@@ -129,7 +129,7 @@ mod api {
     /// Aims a turreted gun.
     ///
     /// `index` selects the gun.
-    /// `heading` (in radians) is relative to the ship's heading.
+    /// `heading` is in radians.
     pub fn aim_gun(index: usize, heading: f64) {
         let state_index = match index {
             0 => SystemState::Gun0Aim,
@@ -138,7 +138,7 @@ mod api {
             3 => SystemState::Gun3Aim,
             _ => return,
         };
-        write_system_state(state_index, heading);
+        write_system_state(state_index, heading - crate::api::heading());
     }
 
     /// Fires a gun.

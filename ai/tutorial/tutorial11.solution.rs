@@ -33,7 +33,7 @@ impl Ship {
                 launch_missile(1, 0.0);
 
                 let dp = contact.position - position();
-                aim_gun(0, dp.angle() - heading());
+                aim_gun(0, dp.angle());
                 fire_gun(0);
 
                 turn_to(dp.angle(), 0.0);

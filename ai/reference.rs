@@ -63,18 +63,18 @@ impl Ship {
                 fire_gun(0);
                 aim_gun(
                     1,
-                    (predicted_dp - vec2(0.0, 15.0).rotate(heading())).angle() - heading(),
+                    (predicted_dp - vec2(0.0, 15.0).rotate(heading())).angle(),
                 );
                 fire_gun(1);
                 aim_gun(
                     2,
-                    (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle() - heading(),
+                    (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle(),
                 );
                 fire_gun(2);
                 launch_missile(0, make_orders(contact.position));
             } else if class() == Class::Cruiser {
                 if predicted_dp.length() < 5000.0 {
-                    aim_gun(0, predicted_dp.angle() - heading());
+                    aim_gun(0, predicted_dp.angle());
                     fire_gun(0);
                 }
                 for i in 0..2 {
