@@ -18,9 +18,7 @@ impl Ship {
             }
 
             set_radar_heading(
-                (contact.position - position()).angle()
-                    - heading()
-                    - angular_velocity() * TICK_LENGTH,
+                (contact.position - position()).angle() - angular_velocity() * TICK_LENGTH,
             );
             set_radar_width((20.0 * TAU / dp.length()).clamp(TAU / 128.0, TAU));
         } else {

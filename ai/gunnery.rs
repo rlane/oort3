@@ -12,7 +12,7 @@ pub struct Ship {
 impl Ship {
     pub fn new() -> Ship {
         set_radar_width(SEARCH_RADAR_WIDTH);
-        set_radar_heading(TAU / 8.0);
+        set_radar_heading(TAU / 8.0 + heading());
         Ship {
             last_target_heading: 0.0,
             ticks_since_fired: RELOAD_TICKS,
@@ -63,16 +63,14 @@ impl Ship {
                 self.ticks_since_fired = 0;
             } else {
                 let next_tick_dp = dp + dv / 60.0;
-                set_radar_heading(
-                    next_tick_dp.angle() - heading() - angular_velocity() * TICK_LENGTH,
-                );
+                set_radar_heading(next_tick_dp.angle() - angular_velocity() * TICK_LENGTH);
                 set_radar_width((radar_width() / 2.0).max(TRACK_RADAR_WIDTH));
             }
         } else {
             set_radar_width(SEARCH_RADAR_WIDTH);
             set_radar_heading(radar_heading() - SEARCH_RADAR_WIDTH);
-            if radar_heading() < -TAU / 8.0 {
-                set_radar_heading(TAU / 8.0);
+            if radar_heading() < heading() - TAU / 8.0 {
+                set_radar_heading(heading() + TAU / 8.0);
             }
         }
     }

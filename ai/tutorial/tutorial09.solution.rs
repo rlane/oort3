@@ -20,7 +20,7 @@ impl Ship {
                     explode();
                 }
 
-                set_radar_heading((contact.position - position()).angle() - heading());
+                set_radar_heading((contact.position - position()).angle());
                 set_radar_width((10.0 * TAU / dp.length()).clamp(TAU / 30.0, TAU));
             } else {
                 accelerate(vec2(100.0, 0.0).rotate(heading()));

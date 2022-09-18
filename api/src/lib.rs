@@ -182,7 +182,7 @@ mod api {
     ///
     /// This is relative to the ship's heading.
     pub fn radar_heading() -> f64 {
-        read_system_state(SystemState::RadarHeading)
+        read_system_state(SystemState::RadarHeading) + heading()
     }
 
     /// Sets the heading to point the radar at.
@@ -190,7 +190,7 @@ mod api {
     /// This is relative to the ship's heading.
     /// It takes effect next tick.
     pub fn set_radar_heading(heading: f64) {
-        write_system_state(SystemState::RadarHeading, heading);
+        write_system_state(SystemState::RadarHeading, heading - crate::api::heading());
     }
 
     /// Returns the current radar width (in radians).

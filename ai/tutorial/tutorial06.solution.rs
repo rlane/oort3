@@ -15,7 +15,7 @@ impl Ship {
             accelerate(0.1 * (contact.position - position() - velocity()));
             turn_to((contact.position - position()).angle());
             fire_gun(0);
-            set_radar_heading((contact.position - position()).angle() - heading());
+            set_radar_heading((contact.position - position()).angle());
         } else {
             set_radar_heading(radar_heading() + TAU / 6.0);
         }

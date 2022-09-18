@@ -35,7 +35,7 @@ impl Ship {
                 set_radar_width(TAU);
             } else {
                 set_radar_width(TAU / 60.0);
-                set_radar_heading(TAU * (current_tick() as f64 * 2.0) / 60.0 - heading());
+                set_radar_heading(TAU * (current_tick() as f64 * 2.0) / 60.0);
             }
         }
 
@@ -50,7 +50,7 @@ impl Ship {
                     predicted_dp = dp + dv * predicted_dp.length() / bullet_speed;
                 }
             }
-            set_radar_heading(dp.angle() - heading());
+            set_radar_heading(dp.angle());
             self.target_position = contact.position;
             self.target_velocity = contact.velocity;
 
@@ -114,7 +114,7 @@ impl Ship {
         let acc = max_acceleration().x;
 
         if !self.has_locked {
-            set_radar_heading((self.target_position - position()).angle() - heading());
+            set_radar_heading((self.target_position - position()).angle());
             set_radar_width(TAU / 32.0);
             //dbg.draw_diamond(target_position, 20.0, 0xff0000);
         }
@@ -140,7 +140,7 @@ impl Ship {
         }
         self.has_locked = true;
         let contact = contact.unwrap();
-        set_radar_heading((contact.position - position()).angle() - heading());
+        set_radar_heading((contact.position - position()).angle());
 
         let dp = contact.position - position();
         let dv = contact.velocity - velocity();
@@ -172,8 +172,7 @@ impl Ship {
 
         let target_heading = (self.target_position - position()).angle();
         set_radar_heading(
-            target_heading - heading()
-                + rand(-PI, PI) * ((current_time() - self.last_contact_time) / 10.0),
+            target_heading + rand(-PI, PI) * ((current_time() - self.last_contact_time) / 10.0),
         );
         if (self.target_position - position()).length() < 200.0 {
             set_radar_width(PI * 2.0 / 6.0);

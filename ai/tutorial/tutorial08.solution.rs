@@ -21,7 +21,7 @@ impl Ship {
 
             turn_to(predicted_dp.angle(), 0.0);
             fire_gun(0);
-            set_radar_heading((contact.position - position()).angle() - heading());
+            set_radar_heading((contact.position - position()).angle());
         } else {
             torque(-angular_velocity());
             set_radar_heading(radar_heading() + TAU / 60.0);
