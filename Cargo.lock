@@ -2544,6 +2544,7 @@ dependencies = [
 name = "oort_tools"
 version = "0.4.0"
 dependencies = [
+ "chrono",
  "env_logger 0.9.0",
  "firestore",
  "gcloud-sdk",
