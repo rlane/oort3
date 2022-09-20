@@ -1,7 +1,23 @@
 use chrono::prelude::*;
+use clap::{Parser, Subcommand};
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
 use serde::{Deserialize, Serialize};
+
+const COLLECTION_NAME: &'static str = "telemetry";
+
+#[derive(Parser, Debug)]
+#[clap()]
+struct Arguments {
+    #[clap(subcommand)]
+    cmd: SubCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum SubCommand {
+    List,
+    Get { docid: String },
+}
 
 pub fn config_env_var(name: &str) -> Result<String, String> {
     std::env::var(name).map_err(|e| format!("{}: {}", name, e))
@@ -44,9 +60,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("telemetry=info"))
         .init();
 
-    let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
+    let args = Arguments::parse();
+    match args.cmd {
+        SubCommand::List => cmd_list().await,
+        SubCommand::Get { docid } => cmd_get(docid).await,
+    }
+}
 
-    const COLLECTION_NAME: &'static str = "telemetry";
+async fn cmd_list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
 
     let docs: Vec<Document> = db
         .query_doc(FirestoreQueryParams::new(COLLECTION_NAME.into()).clone())
@@ -85,6 +107,54 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
         }
+    }
+
+    Ok(())
+}
+
+async fn cmd_get(docid: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
+    if let Ok(msg) = db.get_obj::<TelemetryMsg>(COLLECTION_NAME, &docid).await {
+        let user = msg.username.as_ref().unwrap_or(&msg.userid);
+        match msg.payload {
+            Telemetry::StartScenario {
+                scenario_name,
+                code,
+            } => {
+                println!("// User: {}", user);
+                println!("// Scenario: {}", scenario_name);
+                println!("{}", code.trim());
+            }
+            Telemetry::FinishScenario {
+                scenario_name,
+                code,
+                ticks,
+                code_size,
+                success,
+            } => {
+                println!("// User: {}", user);
+                println!("// Scenario: {}", scenario_name);
+                println!(
+                    "// Success: {} Ticks: {} Size: {}",
+                    success.unwrap_or(false),
+                    ticks,
+                    code_size
+                );
+                println!("{}", code.trim());
+            }
+            Telemetry::Crash { msg } => println!("Crash: {msg}"),
+            Telemetry::SubmitToTournament {
+                scenario_name,
+                code,
+            } => {
+                println!("// User: {}", user);
+                println!("// Scenario: {}", scenario_name);
+                println!("{}", code.trim());
+            }
+        }
+    } else {
+        let doc = db.get_doc_by_id("", COLLECTION_NAME, &docid).await?;
+        println!("Failed to parse {:?}", doc);
     }
 
     Ok(())

@@ -16,3 +16,4 @@ oort_simulator = { path = "../simulator" }
 rayon = "1.5.3"
 serde_json ="*"
 chrono = "0.4.22"
+clap = { version = "3.2.22", features = ["derive"] }
