@@ -1,6 +1,10 @@
+use itertools::Itertools;
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
+use skillratings::{
+    config::Glicko2Config, glicko2::glicko2, outcomes::Outcomes, rating::Glicko2Rating,
+};
 use std::default::Default;
 
 #[tokio::main]
@@ -25,6 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             competitors.push(Competitor {
                 name: name.to_string(),
                 code: Code::Wasm(wasm),
+                rating: Default::default(),
             });
         } else {
             panic!("Failed to compile {:?}", src);
@@ -53,62 +58,64 @@ async fn compile(client: &reqwest::Client, name: String, code: String) -> Option
 struct Competitor {
     name: String,
     code: Code,
+    rating: Glicko2Rating,
 }
 
 fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) {
-    let mut new_competitors = vec![];
-    while competitors.len() > 1 {
-        log::info!(
-            "Running tournament iteration with {} competitors",
-            competitors.len()
+    let config = Glicko2Config::new();
+    let rounds = 10;
+    for round in 0..rounds {
+        let pairs: Vec<_> = (0..(competitors.len()))
+            .combinations(2)
+            .enumerate()
+            .collect();
+        let base_seed = (round * pairs.len()) as u32;
+        let outcomes: Vec<_> = pairs
+            .par_iter()
+            .map(|(seed, indices)| {
+                let seed = base_seed + *seed as u32;
+                let i0 = indices[0];
+                let i1 = indices[1];
+                (
+                    indices,
+                    run_simulation(scenario_name, seed, &[&competitors[i0], &competitors[i1]]),
+                )
+            })
+            .collect();
+
+        for (indices, outcome) in outcomes {
+            let i0 = indices[0];
+            let i1 = indices[1];
+            let (r0, r1) = glicko2(
+                competitors[i0].rating,
+                competitors[i1].rating,
+                outcome,
+                &config,
+            );
+            competitors[i0].rating = r0;
+            competitors[i1].rating = r1;
+        }
+    }
+
+    competitors.sort_by_key(|c| (-c.rating.rating * 1e6) as i64);
+    for competitor in &competitors {
+        println!(
+            "Name: {} Rating: {:?}",
+            competitor.name, competitor.rating.rating
         );
-        for cs in competitors.chunks(2) {
-            log::info!("Competitors: {} vs {}", cs[0].name, cs[1].name);
-            if let Some(winner) = run_simulations(scenario_name, cs, 3) {
-                log::info!("Winner: {}", winner.name);
-                new_competitors.push(winner.clone());
-            } else {
-                log::info!("Draw");
-                // TODO handle draws
-            }
-        }
-        competitors = new_competitors;
-        new_competitors = vec![];
     }
-    log::info!("Overall winner: {}", competitors[0].name);
 }
 
-fn run_simulations<'a>(
-    scenario_name: &str,
-    competitors: &'a [Competitor],
-    n: u32,
-) -> Option<&'a Competitor> {
+fn run_simulation(scenario_name: &str, seed: u32, competitors: &[&Competitor]) -> Outcomes {
     let codes: Vec<_> = competitors.iter().map(|c| c.code.clone()).collect();
-    let seed_statuses: Vec<(u32, scenario::Status)> = (0..n)
-        .into_par_iter()
-        .map(|seed| (seed, run_simulation(scenario_name, seed, &codes)))
-        .collect();
-    let mut wins = vec![];
-    wins.resize(competitors.len(), 0);
-    for (_, status) in seed_statuses {
-        match status {
-            scenario::Status::Victory { team } => wins[team as usize] += 1,
-            scenario::Status::Draw => {}
-            _ => unreachable!(),
-        }
-    }
-    let winner_index = wins.iter().enumerate().max_by_key(|x| x.1).map(|x| x.0);
-    if let Some(i) = winner_index {
-        Some(&competitors[i])
-    } else {
-        None
-    }
-}
-
-fn run_simulation(scenario_name: &str, seed: u32, codes: &[Code]) -> scenario::Status {
     let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
     while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
         sim.step();
     }
-    sim.status()
+    match sim.status() {
+        scenario::Status::Victory { team: 0 } => Outcomes::WIN,
+        scenario::Status::Victory { team: 1 } => Outcomes::LOSS,
+        scenario::Status::Draw => Outcomes::DRAW,
+        _ => unreachable!(),
+    }
 }

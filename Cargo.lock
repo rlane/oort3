@@ -1993,9 +1993,9 @@ checksum = "879d54834c8c76457ef4293a689b2a8c59b076067ad77b15efafbb05f92a592b"
 
 [[package]]
 name = "itertools"
-version = "0.10.3"
+version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9a9d19fa1e79b6215ff29b9d6880b706147f16e9b1dbb1e4e5947b5b02bc5e3"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
 dependencies = [
  "either",
 ]
@@ -2594,12 +2594,14 @@ dependencies = [
  "env_logger 0.9.0",
  "firestore",
  "gcloud-sdk",
+ "itertools",
  "log",
  "oort_simulator",
  "rayon",
  "reqwest",
  "serde",
  "serde_json",
+ "skillratings",
  "tokio",
 ]
 
@@ -4356,6 +4358,12 @@ dependencies = [
  "thiserror",
  "time 0.3.14",
 ]
+
+[[package]]
+name = "skillratings"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30b6a615a7c427917f422a31cf2af49122f6347187ff3624d756188892d75d12"
 
 [[package]]
 name = "slab"
