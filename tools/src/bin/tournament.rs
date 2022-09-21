@@ -1,3 +1,5 @@
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::Table;
 use itertools::Itertools;
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
@@ -37,7 +39,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     log::info!("Running tournament");
-    run_tournament(&scenario_name, competitors);
+    let mut competitors = run_tournament(&scenario_name, competitors);
+
+    competitors.sort_by_key(|c| (-c.rating.rating * 1e6) as i64);
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec!["Name", "Rating"]);
+    for competitor in &competitors {
+        table.add_row(vec![
+            competitor.name.clone(),
+            format!("{:.0}", competitor.rating.rating),
+        ]);
+    }
+    println!("Scenario: {}", scenario_name);
+    println!("{}", table);
+
     Ok(())
 }
 
@@ -61,7 +77,7 @@ struct Competitor {
     rating: Glicko2Rating,
 }
 
-fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) {
+fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> Vec<Competitor> {
     let config = Glicko2Config::new();
     let rounds = 10;
     for round in 0..rounds {
@@ -97,10 +113,7 @@ fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) {
         }
     }
 
-    competitors.sort_by_key(|c| (-c.rating.rating * 1e6) as i64);
-    for competitor in &competitors {
-        println!("{} {:.0}", competitor.name, competitor.rating.rating);
-    }
+    competitors
 }
 
 fn run_simulation(scenario_name: &str, seed: u32, competitors: &[&Competitor]) -> Outcomes {
