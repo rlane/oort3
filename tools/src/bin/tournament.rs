@@ -99,10 +99,7 @@ fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) {
 
     competitors.sort_by_key(|c| (-c.rating.rating * 1e6) as i64);
     for competitor in &competitors {
-        println!(
-            "Name: {} Rating: {:?}",
-            competitor.name, competitor.rating.rating
-        );
+        println!("{} {:.0}", competitor.name, competitor.rating.rating);
     }
 }
 
