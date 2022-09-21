@@ -66,7 +66,7 @@ fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) {
     let rounds = 10;
     for round in 0..rounds {
         let pairs: Vec<_> = (0..(competitors.len()))
-            .combinations(2)
+            .permutations(2)
             .enumerate()
             .collect();
         let base_seed = (round * pairs.len()) as u32;
