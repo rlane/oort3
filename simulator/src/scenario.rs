@@ -77,6 +77,13 @@ fn fighter_without_missiles(team: i32) -> ShipData {
     data
 }
 
+fn fighter_without_missiles_or_radar(team: i32) -> ShipData {
+    let mut data = fighter(team);
+    data.missile_launchers.pop();
+    data.radar = None;
+    data
+}
+
 fn target_asteroid(variant: i32) -> ShipData {
     let mut asteroid = asteroid(variant);
     asteroid.team = 1;
@@ -581,7 +588,7 @@ impl Scenario for Tutorial01 {
             vector![-1000.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            fighter_without_missiles(0),
+            fighter_without_missiles_or_radar(0),
         );
         ship::create(
             sim,
@@ -633,7 +640,7 @@ impl Scenario for Tutorial02 {
             vector![-1000.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            fighter_without_missiles(0),
+            fighter_without_missiles_or_radar(0),
         );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
@@ -725,7 +732,7 @@ impl Scenario for Tutorial03 {
             vector![0.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            fighter_without_missiles(0),
+            fighter_without_missiles_or_radar(0),
         );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
@@ -811,7 +818,7 @@ impl Scenario for Tutorial04 {
             vector![0.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            fighter_without_missiles(0),
+            fighter_without_missiles_or_radar(0),
         );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
@@ -870,7 +877,7 @@ impl Scenario for Tutorial05 {
             vector![0.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            fighter_without_missiles(0),
+            fighter_without_missiles_or_radar(0),
         ));
 
         let mut rng = new_rng(seed);
