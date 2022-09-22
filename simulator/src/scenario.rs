@@ -1,6 +1,7 @@
 use crate::rng::{new_rng, SeededRng};
 use crate::ship::{
-    asteroid, cruiser, fighter, frigate, missile, target, ShipClass, ShipData, ShipHandle,
+    asteroid, cruiser, fighter, frigate, missile, target, ShipAccessor, ShipClass, ShipData,
+    ShipHandle,
 };
 use crate::simulation::{Code, Line, Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
 use crate::{bullet, collision, ship};
@@ -32,17 +33,13 @@ fn reference_ai() -> Code {
     builtin("reference")
 }
 
-fn check_victory(sim: &Simulation) -> Status {
+fn check_victory_with_filter(sim: &Simulation, ship_filter: fn(&ShipAccessor) -> bool) -> Status {
     let mut team_health: HashMap<i32, u32> = HashMap::new();
     for &handle in sim.ships.iter() {
         let ship = sim.ship(handle);
-        if [ShipClass::Missile, ShipClass::Torpedo].contains(&ship.data().class) {
-            continue;
+        if ship_filter(&ship) {
+            *team_health.entry(ship.data().team).or_insert(0) += ship.data().health as u32;
         }
-        if ship.data().team >= 9 {
-            continue;
-        }
-        *team_health.entry(ship.data().team).or_insert(0) += ship.data().health as u32;
     }
     if team_health.is_empty() {
         Status::Draw
@@ -64,11 +61,27 @@ fn check_victory(sim: &Simulation) -> Status {
 }
 
 fn check_tutorial_victory(sim: &Simulation) -> Status {
-    match check_victory(sim) {
+    match check_victory_with_filter(sim, |ship| {
+        ![ShipClass::Missile, ShipClass::Torpedo].contains(&ship.data().class)
+    }) {
         x @ Status::Victory { team: 0 } => x,
         Status::Victory { .. } => Status::Failed,
         x => x,
     }
+}
+
+fn check_tournament_victory(sim: &Simulation) -> Status {
+    check_victory_with_filter(sim, |ship| {
+        [ShipClass::Fighter, ShipClass::Frigate, ShipClass::Cruiser].contains(&ship.data().class)
+            && ship.data().team < 2
+    })
+}
+
+fn check_capital_ship_tournament_victory(sim: &Simulation) -> Status {
+    check_victory_with_filter(sim, |ship| {
+        [ShipClass::Frigate, ShipClass::Cruiser].contains(&ship.data().class)
+            && ship.data().team < 2
+    })
 }
 
 fn fighter_without_missiles(team: i32) -> ShipData {
@@ -255,7 +268,7 @@ impl Scenario for BasicScenario {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_tournament_victory(sim)
     }
 }
 
@@ -1279,7 +1292,7 @@ impl Scenario for FighterDuel {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1327,7 +1340,7 @@ impl Scenario for FrigateDuel {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1375,7 +1388,7 @@ impl Scenario for CruiserDuel {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1423,7 +1436,7 @@ impl Scenario for FrigateVsCruiser {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1467,7 +1480,7 @@ impl Scenario for CruiserVsFrigate {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1514,7 +1527,7 @@ impl Scenario for Furball {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1594,7 +1607,7 @@ impl Scenario for Fleet {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_capital_ship_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1681,7 +1694,7 @@ impl Scenario for Belt {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_victory(sim)
+        check_capital_ship_tournament_victory(sim)
     }
 
     fn initial_code(&self) -> Vec<Code> {
