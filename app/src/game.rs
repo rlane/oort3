@@ -16,6 +16,7 @@ use qstring::QString;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
+use simulation::PHYSICS_TICK_LENGTH;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -500,6 +501,8 @@ struct BackgroundSimSummary {
     victory_count: usize,
     failed_seeds: Vec<u32>,
     average_time: Option<f64>,
+    best_seed: Option<u32>,
+    worst_seed: Option<u32>,
 }
 
 impl Game {
@@ -624,11 +627,26 @@ impl Game {
             None
         };
 
+        let mut victory_seeds_by_time: Vec<_> = self
+            .background_snapshots
+            .iter()
+            .filter(|(_, snapshot)| is_victory(&snapshot.status))
+            .map(|(seed, snapshot)| (*seed, snapshot.time))
+            .collect();
+        victory_seeds_by_time.sort_by_key(|(_, time)| (time / PHYSICS_TICK_LENGTH) as i64);
+        let best_seed = victory_seeds_by_time.first().map(|(seed, _)| *seed);
+        let mut worst_seed = victory_seeds_by_time.last().map(|(seed, _)| *seed);
+        if worst_seed == best_seed {
+            worst_seed = None;
+        }
+
         Some(BackgroundSimSummary {
             count: self.background_agents.len(),
             victory_count,
             failed_seeds,
             average_time,
+            best_seed,
+            worst_seed,
         })
     }
 
@@ -642,6 +660,28 @@ impl Game {
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
 
+        let make_seed_link_cb = |seed: u32| {
+            let history = context.link().history().unwrap();
+            let scenario_name = self.scenario_name.clone();
+            context.link().batch_callback(move |_| {
+                let mut query = std::collections::HashMap::<&str, String>::new();
+                query.insert("seed", seed.to_string());
+                history
+                    .push_with_query(
+                        crate::Route::Scenario {
+                            name: scenario_name.clone(),
+                        },
+                        query,
+                    )
+                    .unwrap();
+                vec![
+                    Msg::DismissOverlay,
+                    Msg::SelectScenario(scenario_name.clone()),
+                ]
+            })
+        };
+        let make_seed_link = |seed| html! { <a onclick={make_seed_link_cb(seed)}>{ seed }</a> };
+
         let background_status = if let Some(summary) = self.summarize_background_simulations() {
             let next_scenario_link = if summary.failed_seeds.is_empty() {
                 match next_scenario {
@@ -652,7 +692,7 @@ impl Game {
                                 Msg::DismissOverlay,
                             ]
                         });
-                        html! { <><a href="#" onclick={next_scenario_cb}>{ "Next mission" }</a><br /></> }
+                        html! { <><br /><a href="#" onclick={next_scenario_cb}>{ "Next mission" }</a></> }
                     }
                     None => {
                         html! {}
@@ -664,36 +704,26 @@ impl Game {
             let failures = if summary.failed_seeds.is_empty() {
                 html! {}
             } else {
-                let make_cb = |seed: u32| {
-                    let history = context.link().history().unwrap();
-                    let scenario_name = self.scenario_name.clone();
-                    context.link().batch_callback(move |_| {
-                        let mut query = std::collections::HashMap::<&str, String>::new();
-                        query.insert("seed", seed.to_string());
-                        history
-                            .push_with_query(
-                                crate::Route::Scenario {
-                                    name: scenario_name.clone(),
-                                },
-                                query,
-                            )
-                            .unwrap();
-                        vec![
-                            Msg::DismissOverlay,
-                            Msg::SelectScenario(scenario_name.clone()),
-                        ]
-                    })
-                };
                 html! {
                     <>
                     <br />
                     <span>
                         <><b class="error">{ "Your solution did not pass all simulations." }</b><br />{ "Failed seeds: " }</>
                         { summary.failed_seeds.iter().cloned().map(|seed: u32| html! {
-                            <><a onclick={make_cb(seed)}>{ seed }</a>{ "\u{00a0}" }</>  }).collect::<Html>() }
+                            <>{ make_seed_link(seed) }{ "\u{00a0}" }</>  }).collect::<Html>() }
                     </span>
                     </>
                 }
+            };
+
+            let best_and_worst_seeds = match (summary.best_seed, summary.worst_seed) {
+                (Some(best), Some(worst)) => html! {
+                    <><br /><span>{ "Best seed: " }{ make_seed_link(best) }{ " Worst: " }{ make_seed_link(worst) }</span></>
+                },
+                (Some(best), None) => {
+                    html! { <><br /><span>{ "Best seed: " }{ make_seed_link(best) }</span></> }
+                }
+                _ => html! {},
             };
             let submit_button = if scenario::load(&self.scenario_name).is_tournament()
                 && summary.victory_count >= (summary.count as f64 * 0.8) as usize
@@ -703,7 +733,7 @@ impl Game {
                     .batch_callback(move |_| vec![Msg::SubmitToTournament, Msg::DismissOverlay]);
                 html! {
                     <>
-                        <button onclick={cb}>{ "Submit to tournament" }</button><br/>
+                        <br /><button onclick={cb}>{ "Submit to tournament" }</button><br/>
                     </>
                 }
             } else {
@@ -721,8 +751,9 @@ impl Game {
                                 "none".to_string()
                             }
                         }
-                    </span><br />
+                    </span>
                     { failures }
+                    { best_and_worst_seeds }
                     { submit_button }
                     { next_scenario_link }
                     <br />
