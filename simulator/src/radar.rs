@@ -18,7 +18,6 @@ pub struct Radar {
     pub(crate) power: f64,
     pub(crate) rx_cross_section: f64,
     pub(crate) min_rssi: f64,
-    pub(crate) classify_rssi: f64,
     pub(crate) result: Option<ScanResult>,
 }
 
@@ -32,7 +31,6 @@ impl Default for Radar {
             power: 100e3,
             rx_cross_section: 10.0,
             min_rssi: 1e-2,
-            classify_rssi: 1e-1,
             result: None,
         }
     }
@@ -88,7 +86,6 @@ struct RadarEmitter {
     power: f64,
     rx_cross_section: f64,
     min_rssi: f64,
-    classify_rssi: f64,
     team: i32,
 }
 
@@ -102,7 +99,7 @@ struct RadarReflector {
 
 #[derive(Copy, Clone, Debug)]
 pub struct ScanResult {
-    pub class: Option<ShipClass>,
+    pub class: ShipClass,
     pub position: Vector2<f64>,
     pub velocity: Vector2<f64>,
 }
@@ -146,7 +143,6 @@ pub fn tick(sim: &mut Simulation) {
                 center: ship.position().vector.into(),
                 power: radar.power,
                 min_rssi: radar.min_rssi,
-                classify_rssi: radar.classify_rssi,
                 rx_cross_section: radar.rx_cross_section,
                 width: w,
                 start_bearing: h - 0.5 * w,
@@ -176,11 +172,7 @@ pub fn tick(sim: &mut Simulation) {
             }
 
             let result = best_reflector.map(|reflector| ScanResult {
-                class: if best_rssi > emitter.classify_rssi {
-                    Some(reflector.class)
-                } else {
-                    None
-                },
+                class: reflector.class,
                 position: reflector.position.coords + noise(&mut rng, best_rssi),
                 velocity: reflector.velocity + noise(&mut rng, best_rssi),
             });

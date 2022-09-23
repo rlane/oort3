@@ -223,14 +223,10 @@ impl ShipController for WasmShipController {
                     state.set(SystemState::RadarContactPositionY, contact.position.y);
                     state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
                     state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
-                    if let Some(class) = contact.class {
-                        state.set(
-                            SystemState::RadarContactClass,
-                            translate_class(class) as u32 as f64,
-                        );
-                    } else {
-                        state.set(SystemState::RadarContactClass, Class::Unknown as u32 as f64);
-                    }
+                    state.set(
+                        SystemState::RadarContactClass,
+                        translate_class(contact.class) as u32 as f64,
+                    );
                 } else {
                     state.set(SystemState::RadarContactFound, 0.0);
                 }
