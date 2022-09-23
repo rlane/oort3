@@ -2496,6 +2496,7 @@ dependencies = [
  "oort_simulator",
  "oort_worker",
  "petname",
+ "prettyplease",
  "qstring",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
@@ -2506,6 +2507,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.2",
+ "syn 1.0.99",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -2972,6 +2974,16 @@ checksum = "926d36b9553851b8b0005f1275891b392ee4d2d833852c417ed025477350fb9d"
 dependencies = [
  "env_logger 0.7.1",
  "log",
+]
+
+[[package]]
+name = "prettyplease"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a49e86d2c26a24059894a3afa13fd17d063419b05dfb83f06d9c3566060c3f5a"
+dependencies = [
+ "proc-macro2 1.0.43",
+ "syn 1.0.99",
 ]
 
 [[package]]

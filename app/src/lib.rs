@@ -3,6 +3,7 @@ pub mod code_size;
 pub mod codestorage;
 pub mod documentation;
 pub mod filesystem;
+pub mod format;
 pub mod game;
 pub mod js;
 pub mod leaderboard;

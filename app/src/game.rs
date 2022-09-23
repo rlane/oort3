@@ -251,6 +251,15 @@ impl Component for Game {
                 filesystem::reload(Box::new(move |text| cb.emit(text)));
                 false
             }
+            Msg::EditorAction(ref action) if action == "oort-format" => {
+                self.editor_link.with_editor(|editor| {
+                    let model = editor.get_model().unwrap();
+                    model.set_value(&crate::format::format(&model.get_value()));
+                    self.analyzer_agent
+                        .send(oort_analyzer::Request::Analyze(model.get_value()));
+                });
+                false
+            }
             Msg::EditorAction(action) => {
                 log::info!("Got unexpected editor action {}", action);
                 false
@@ -469,6 +478,14 @@ impl Component for Game {
                     "Reload from file",
                     Some(
                         monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyY as u32,
+                    ),
+                );
+
+                add_action(
+                    "oort-format",
+                    "Format code",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyE as u32,
                     ),
                 );
 
