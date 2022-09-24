@@ -5,6 +5,7 @@ pub enum Msg {}
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct SimulationWindowProps {
+    pub host: web_sys::Element,
     pub on_key_event: Callback<web_sys::KeyboardEvent>,
     pub on_wheel_event: Callback<web_sys::WheelEvent>,
     pub on_mouse_event: Callback<web_sys::MouseEvent>,
@@ -30,9 +31,6 @@ impl Component for SimulationWindow {
         let wheel_event_cb = context.props().on_wheel_event.clone();
         let mouse_event_cb = context.props().on_mouse_event.clone();
         let status_ref = context.props().status_ref.clone();
-        let host = gloo_utils::document()
-            .get_element_by_id("simulation-window")
-            .expect("a #simulation-window element");
 
         create_portal(
             html! {
@@ -47,7 +45,7 @@ impl Component for SimulationWindow {
                     <div id="picked"><pre id="picked_text"></pre></div>
                 </>
             },
-            host,
+            context.props().host.clone(),
         )
     }
 }

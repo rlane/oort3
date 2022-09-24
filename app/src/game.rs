@@ -389,9 +389,15 @@ impl Component for Game {
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
 
         // For EditorWindow
+        let editor_window_host = gloo_utils::document()
+            .get_element_by_id("editor-window")
+            .expect("a #editor-window element");
         let editor_link = self.editor_link.clone();
 
         // For SimulationWindow
+        let simulation_window_host = gloo_utils::document()
+            .get_element_by_id("simulation-window")
+            .expect("a #simulation-window element");
         let on_key_event = context.link().callback(Msg::KeyEvent);
         let on_wheel_event = context.link().callback(Msg::WheelEvent);
         let on_mouse_event = context.link().callback(Msg::MouseEvent);
@@ -400,8 +406,8 @@ impl Component for Game {
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} />
-            <EditorWindow {editor_link} />
-            <SimulationWindow {on_key_event} {on_wheel_event} {on_mouse_event} {status_ref} />
+            <EditorWindow host={editor_window_host} {editor_link} />
+            <SimulationWindow host={simulation_window_host} {on_key_event} {on_wheel_event} {on_mouse_event} {status_ref} />
             { self.render_overlay(context) }
             { self.render_compiler_errors(context) }
         </>

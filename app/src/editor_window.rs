@@ -16,6 +16,7 @@ pub enum Msg {}
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct EditorWindowProps {
+    pub host: web_sys::Element,
     pub editor_link: CodeEditorLink,
 }
 
@@ -36,9 +37,6 @@ impl Component for EditorWindow {
     fn view(&self, context: &yew::Context<Self>) -> Html {
         let monaco_options: Rc<CodeEditorOptions> = Rc::new(make_monaco_options());
         let editor_link = context.props().editor_link.clone();
-        let host = gloo_utils::document()
-            .get_element_by_id("editor-window")
-            .expect("a #editor-window element");
 
         create_portal(
             html! {
@@ -46,7 +44,7 @@ impl Component for EditorWindow {
                     <CodeEditor options={monaco_options} link={editor_link} />
                 </div>
             },
-            host,
+            context.props().host.clone(),
         )
     }
 }
