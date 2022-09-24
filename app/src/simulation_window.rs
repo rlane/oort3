@@ -47,7 +47,7 @@ impl Component for SimulationWindow {
                     <div id="picked"><pre id="picked_text"></pre></div>
                 </>
             },
-            host.into(),
+            host,
         )
     }
 }

@@ -25,7 +25,14 @@
   <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
   <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
   <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
-
+  <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="app" data-type="main" />
+  <link data-trunk rel="rust" href="../worker/Cargo.toml" data-wasm-opt="z" data-bin="oort_worker" data-type="worker" />
+  <link data-trunk rel="rust" href="../analyzer/Cargo.toml" data-wasm-opt="z" data-bin="oort_analyzer" data-type="worker" />
+</head>
+<body>
+  <div id="toolbar"></div>
+  <div id="yew"></div>
+  <div id="goldenlayout"></div>
   <script>
     var config = {
       content: [{
@@ -42,22 +49,14 @@
       }]
     };
 
-    var myLayout = new GoldenLayout( config );
+    var myLayout = new GoldenLayout(config, document.getElementById("goldenlayout"));
     myLayout.registerComponent( 'Editor', function( container, componentState ){
       container.getElement()[0].id = 'editor-window';
     });
     myLayout.registerComponent( 'Simulation', function( container, componentState ){
       container.getElement()[0].id = 'simulation-window';
     });
-
     myLayout.init();
   </script>
-
-  <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="app" data-type="main" />
-  <link data-trunk rel="rust" href="../worker/Cargo.toml" data-wasm-opt="z" data-bin="oort_worker" data-type="worker" />
-  <link data-trunk rel="rust" href="../analyzer/Cargo.toml" data-wasm-opt="z" data-bin="oort_analyzer" data-type="worker" />
-</head>
-<body>
-  <div id="yew"></yew>
 </body>
 </html>

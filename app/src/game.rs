@@ -1,12 +1,12 @@
+use crate::editor_window::EditorWindow;
 use crate::filesystem;
 use crate::leaderboard::Leaderboard;
 use crate::simulation_window::SimulationWindow;
 use crate::telemetry::Telemetry;
+use crate::toolbar::Toolbar;
 use crate::ui::UI;
 use gloo_render::{request_animation_frame, AnimationFrame};
-use monaco::{
-    api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
-};
+use monaco::yew::CodeEditorLink;
 use oort_analyzer::AnalyzerAgent;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
@@ -18,7 +18,6 @@ use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
 use simulation::PHYSICS_TICK_LENGTH;
-use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
@@ -27,13 +26,6 @@ use yew::events::Event;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 use yew_router::prelude::*;
-
-fn make_monaco_options() -> CodeEditorOptions {
-    CodeEditorOptions::default()
-        .with_language("rust".to_owned())
-        .with_value("foo".to_owned())
-        .with_builtin_theme(BuiltinTheme::VsDark)
-}
 
 fn empty() -> JsValue {
     js_sys::Object::new().into()
@@ -371,11 +363,7 @@ impl Component for Game {
     }
 
     fn view(&self, context: &yew::Context<Self>) -> Html {
-        let render_option = |name: String| {
-            let selected = name == self.scenario_name;
-            html! { <option name={name.clone()} selected={selected}>{name}</option> }
-        };
-
+        // For Toolbar
         let history = context.link().history().unwrap();
         let select_scenario_cb = context.link().callback(move |e: Event| {
             let target: EventTarget = e
@@ -385,13 +373,12 @@ impl Component for Game {
             history.push(crate::Route::Scenario { name: data.clone() });
             Msg::SelectScenario(data)
         });
-
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
 
-        let username = crate::userid::get_username();
+        // For EditorWindow
+        let editor_link = self.editor_link.clone();
 
-        let monaco_options: Rc<CodeEditorOptions> = Rc::new(make_monaco_options());
-
+        // For SimulationWindow
         let on_key_event = context.link().callback(Msg::KeyEvent);
         let on_wheel_event = context.link().callback(Msg::WheelEvent);
         let on_mouse_event = context.link().callback(Msg::MouseEvent);
@@ -399,24 +386,9 @@ impl Component for Game {
 
         html! {
         <>
+            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} />
+            <EditorWindow {editor_link} />
             <SimulationWindow {on_key_event} {on_wheel_event} {on_mouse_event} {status_ref} />
-            <div id="editor">
-                <CodeEditor options={monaco_options} link={self.editor_link.clone()} />
-            </div>
-            <div id="toolbar">
-                <div class="toolbar-elem title">{ "Oort" }</div>
-                <div class="toolbar-elem right">
-                    <select onchange={select_scenario_cb}>
-                        { for scenario::list().iter().cloned().map(render_option) }
-                    </select>
-                </div>
-                <div class="toolbar-elem right"><a href="#" onclick={show_documentation_cb}>{ "Documentation" }</a></div>
-                <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3/wiki" target="_none">{ "Wiki" }</a></div>
-                <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
-                <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
-                <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a></div>
-                <div id="username" class="toolbar-elem right" title="Your username">{ username }</div>
-            </div>
             { self.render_overlay(context) }
             { self.render_compiler_errors(context) }
         </>

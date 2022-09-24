@@ -2,6 +2,7 @@ pub mod benchmark;
 pub mod code_size;
 pub mod codestorage;
 pub mod documentation;
+pub mod editor_window;
 pub mod filesystem;
 pub mod format;
 pub mod game;
@@ -9,6 +10,7 @@ pub mod js;
 pub mod leaderboard;
 pub mod simulation_window;
 pub mod telemetry;
+pub mod toolbar;
 pub mod ui;
 pub mod userid;
 
@@ -75,8 +77,8 @@ pub fn run_app() -> Result<(), JsValue> {
     log::info!("username {}", &userid::get_username());
     yew::start_app_in_element::<Main>(
         gloo_utils::document()
-            .get_element_by_id("editor-window")
-            .expect("a #editor-window element"),
+            .get_element_by_id("yew")
+            .expect("a #yew element"),
     );
     Ok(())
 }

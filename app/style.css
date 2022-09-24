@@ -8,6 +8,13 @@ body {
   overflow: hidden;
 }
 
+#goldenlayout {
+  position: absolute;
+  top: 42px;
+  height: calc(100% - 42px);
+  width: 100%;
+}
+
 #editor {
   top: 0px;
   left: 0;
