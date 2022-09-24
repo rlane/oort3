@@ -15,16 +15,49 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
-  <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="app" data-type="main" />
-  <link data-trunk rel="rust" href="../worker/Cargo.toml" data-wasm-opt="z" data-bin="oort_worker" data-type="worker" />
-  <link data-trunk rel="rust" href="../analyzer/Cargo.toml" data-wasm-opt="z" data-bin="oort_analyzer" data-type="worker" />
   <link data-trunk rel="css" href="style.css" />
   <script type="text/javascript">
     window.set_username = function (username) {
       localStorage.setItem("/user/name", username);
     };
   </script>
+  <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
+  <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
+
+  <script>
+    var config = {
+      content: [{
+        type: 'row',
+        content:[{
+          type: 'component',
+          componentName: 'Editor',
+          componentState: {}
+        }, {
+          type: 'component',
+          componentName: 'Simulation',
+          componentState: {}
+        }]
+      }]
+    };
+
+    var myLayout = new GoldenLayout( config );
+    myLayout.registerComponent( 'Editor', function( container, componentState ){
+      container.getElement()[0].id = 'editor-window';
+    });
+    myLayout.registerComponent( 'Simulation', function( container, componentState ){
+      container.getElement()[0].id = 'simulation-window';
+    });
+
+    myLayout.init();
+  </script>
+
+  <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="app" data-type="main" />
+  <link data-trunk rel="rust" href="../worker/Cargo.toml" data-wasm-opt="z" data-bin="oort_worker" data-type="worker" />
+  <link data-trunk rel="rust" href="../analyzer/Cargo.toml" data-wasm-opt="z" data-bin="oort_analyzer" data-type="worker" />
 </head>
 <body>
+  <div id="yew"></yew>
 </body>
 </html>

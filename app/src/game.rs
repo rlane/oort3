@@ -1,5 +1,6 @@
 use crate::filesystem;
 use crate::leaderboard::Leaderboard;
+use crate::simulation_window::SimulationWindow;
 use crate::telemetry::Telemetry;
 use crate::ui::UI;
 use gloo_render::{request_animation_frame, AnimationFrame};
@@ -385,28 +386,23 @@ impl Component for Game {
             Msg::SelectScenario(data)
         });
 
-        let key_event_cb = context.link().callback(Msg::KeyEvent);
-        let wheel_event_cb = context.link().callback(Msg::WheelEvent);
-        let mouse_event_cb = context.link().callback(Msg::MouseEvent);
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
 
         let username = crate::userid::get_username();
 
         let monaco_options: Rc<CodeEditorOptions> = Rc::new(make_monaco_options());
 
+        let on_key_event = context.link().callback(Msg::KeyEvent);
+        let on_wheel_event = context.link().callback(Msg::WheelEvent);
+        let on_mouse_event = context.link().callback(Msg::MouseEvent);
+        let status_ref = self.status_ref.clone();
+
         html! {
         <>
-            <canvas id="glcanvas"
-                tabindex="1"
-                onkeydown={key_event_cb.clone()}
-                onkeyup={key_event_cb}
-                onwheel={wheel_event_cb}
-                onclick={mouse_event_cb} />
+            <SimulationWindow {on_key_event} {on_wheel_event} {on_mouse_event} {status_ref} />
             <div id="editor">
                 <CodeEditor options={monaco_options} link={self.editor_link.clone()} />
             </div>
-            <div id="status" ref={self.status_ref.clone()} />
-            <div id="picked"><pre id="picked_text"></pre></div>
             <div id="toolbar">
                 <div class="toolbar-elem title">{ "Oort" }</div>
                 <div class="toolbar-elem right">

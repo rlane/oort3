@@ -45,6 +45,7 @@ sha2 = "0.10.2"
 qstring = "0.7.2"
 prettyplease = "0.1"
 syn = { version = "1", default-features = false, features = ["full", "parsing"] }
+gloo-utils = "0.1.5"
 
 [dependencies.web-sys]
 version = "0.3.57"

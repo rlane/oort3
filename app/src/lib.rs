@@ -7,6 +7,7 @@ pub mod format;
 pub mod game;
 pub mod js;
 pub mod leaderboard;
+pub mod simulation_window;
 pub mod telemetry;
 pub mod ui;
 pub mod userid;
@@ -72,6 +73,10 @@ pub fn run_app() -> Result<(), JsValue> {
     let userid = userid::get_userid();
     log::info!("userid {}", &userid);
     log::info!("username {}", &userid::get_username());
-    yew::start_app::<Main>();
+    yew::start_app_in_element::<Main>(
+        gloo_utils::document()
+            .get_element_by_id("editor-window")
+            .expect("a #editor-window element"),
+    );
     Ok(())
 }
