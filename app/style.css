@@ -10,7 +10,7 @@ body {
 
 #goldenlayout {
   position: absolute;
-  top: 42px;
+  top: 41px;
   height: calc(100% - 42px);
   width: 100%;
 }
@@ -210,4 +210,29 @@ h1.compiling {
 
 b.error {
   color: #f61d1d;
+}
+
+/* GoldenLayout */
+.lm_header {
+  background-color: #1e1e1e;
+  height: 24px;
+}
+
+.lm_header .lm_tab {
+  box-shadow: none;
+  font-family: Roboto;
+  font-size: 16px;
+  margin-top: 0;
+  padding-top: 0;
+  height: 18px;
+}
+
+.lm_header .lm_tab.lm_active {
+  background-color: #162f17;
+  box-shadow: none;
+  padding-bottom: 2px;
+}
+
+.lm_maximised .lm_header {
+  background-color: #1e1e1e;
 }
