@@ -80,6 +80,7 @@ pub struct Game {
     saw_slow_compile: bool,
     local_compiler: bool,
     compiler_errors: Option<String>,
+    frame: u64,
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -131,28 +132,33 @@ impl Component for Game {
             saw_slow_compile: false,
             local_compiler,
             compiler_errors: None,
+            frame: 0,
         }
     }
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Render => {
+                if self.frame % 6 == 0 {
+                    // TODO: Use ResizeObserver when stable.
+                    self.editor_link.with_editor(|editor| {
+                        let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                        ed.layout(None);
+                        let text = editor.get_model().unwrap().get_value();
+                        if text != self.last_analyzed_text {
+                            self.analyzer_agent
+                                .send(oort_analyzer::Request::Analyze(text.clone()));
+                            self.last_analyzed_text = text;
+                        }
+                    });
+                    crate::js::golden_layout::update_size();
+                }
+                self.frame += 1;
+
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
-                    if ui.frame() % 6 == 0 {
-                        // TODO: Use ResizeObserver when stable.
-                        self.editor_link.with_editor(|editor| {
-                            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                            ed.layout(None);
-                            let text = editor.get_model().unwrap().get_value();
-                            if text != self.last_analyzed_text {
-                                self.analyzer_agent
-                                    .send(oort_analyzer::Request::Analyze(text.clone()));
-                                self.last_analyzed_text = text;
-                            }
-                        });
-                    }
                 }
+
                 let link2 = context.link().clone();
                 self.render_handle = Some(request_animation_frame(move |_ts| {
                     link2.send_message(Msg::Render)

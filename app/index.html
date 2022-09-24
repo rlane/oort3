@@ -28,37 +28,6 @@
   <div id="toolbar"></div>
   <div id="yew"></div>
   <div id="goldenlayout"></div>
-  <script>
-    var config = {
-      settings: {
-        showPopoutIcon: false,
-        showCloseIcon: false
-      },
-      content: [{
-        type: 'row',
-        content:[{
-          type: 'component',
-          componentName: 'Editor',
-          componentState: {},
-          isClosable: false
-        }, {
-          type: 'component',
-          componentName: 'Simulation',
-          componentState: {},
-          isClosable: false
-        }]
-      }]
-    };
-
-    var myLayout = new GoldenLayout(config, document.getElementById("goldenlayout"));
-    myLayout.registerComponent( 'Editor', function( container, componentState ){
-      container.getElement()[0].id = 'editor-window';
-    });
-    myLayout.registerComponent( 'Simulation', function( container, componentState ){
-      container.getElement()[0].id = 'simulation-window';
-    });
-    myLayout.init();
-  </script>
   <script type="text/javascript">
     window.set_username = function (username) {
       localStorage.setItem("/user/name", username);

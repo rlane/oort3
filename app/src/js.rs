@@ -19,3 +19,13 @@ pub mod filesystem {
         pub async fn reload_file() -> Result<JsValue, JsValue>;
     }
 }
+
+pub mod golden_layout {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(module = "/js/golden_layout.js")]
+    extern "C" {
+        pub fn init();
+        pub fn update_size();
+    }
+}
