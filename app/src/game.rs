@@ -81,6 +81,7 @@ pub struct Game {
     local_compiler: bool,
     compiler_errors: Option<String>,
     frame: u64,
+    last_window_size: (i32, i32),
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -133,6 +134,7 @@ impl Component for Game {
             local_compiler,
             compiler_errors: None,
             frame: 0,
+            last_window_size: (0, 0),
         }
     }
 
@@ -141,17 +143,22 @@ impl Component for Game {
             Msg::Render => {
                 if self.frame % 6 == 0 {
                     // TODO: Use ResizeObserver when stable.
-                    self.editor_link.with_editor(|editor| {
-                        let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                        ed.layout(None);
-                        let text = editor.get_model().unwrap().get_value();
-                        if text != self.last_analyzed_text {
-                            self.analyzer_agent
-                                .send(oort_analyzer::Request::Analyze(text.clone()));
-                            self.last_analyzed_text = text;
-                        }
-                    });
-                    crate::js::golden_layout::update_size();
+                    let root = gloo_utils::document().document_element().unwrap();
+                    let new_size = (root.client_width(), root.client_height());
+                    if new_size != self.last_window_size {
+                        crate::js::golden_layout::update_size();
+                        self.editor_link.with_editor(|editor| {
+                            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                            ed.layout(None);
+                            let text = editor.get_model().unwrap().get_value();
+                            if text != self.last_analyzed_text {
+                                self.analyzer_agent
+                                    .send(oort_analyzer::Request::Analyze(text.clone()));
+                                self.last_analyzed_text = text;
+                            }
+                        });
+                        self.last_window_size = new_size;
+                    }
                 }
                 self.frame += 1;
 
