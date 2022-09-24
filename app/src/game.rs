@@ -147,18 +147,18 @@ impl Component for Game {
                     let new_size = (root.client_width(), root.client_height());
                     if new_size != self.last_window_size {
                         crate::js::golden_layout::update_size();
-                        self.editor_link.with_editor(|editor| {
-                            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                            ed.layout(None);
-                            let text = editor.get_model().unwrap().get_value();
-                            if text != self.last_analyzed_text {
-                                self.analyzer_agent
-                                    .send(oort_analyzer::Request::Analyze(text.clone()));
-                                self.last_analyzed_text = text;
-                            }
-                        });
                         self.last_window_size = new_size;
                     }
+                    self.editor_link.with_editor(|editor| {
+                        let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                        ed.layout(None);
+                        let text = editor.get_model().unwrap().get_value();
+                        if text != self.last_analyzed_text {
+                            self.analyzer_agent
+                                .send(oort_analyzer::Request::Analyze(text.clone()));
+                            self.last_analyzed_text = text;
+                        }
+                    });
                 }
                 self.frame += 1;
 
