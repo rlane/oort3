@@ -41,6 +41,9 @@ impl Ship {
             } else {
                 set_radar_heading(radar_heading() + TAU / 32.0);
             }
+            if angular_velocity() < 1.0 {
+                torque(max_angular_acceleration());
+            }
         }
     }
 }

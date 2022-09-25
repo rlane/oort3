@@ -1,12 +1,14 @@
 use oort_api::prelude::*;
 
-const TRACK_RADAR_WIDTH: f64 = TAU / 4096.0;
-const SEARCH_RADAR_WIDTH: f64 = TAU / 256.0;
+const TRACK_RADAR_WIDTH: f64 = TAU / 360.0;
+const SEARCH_RADAR_WIDTH: f64 = TAU / 120.0;
 const RELOAD_TICKS: i64 = 60;
+const TARGET_VELOCITY_EWMA_WEIGHT: f64 = 1.0 / 8.0;
 
 pub struct Ship {
     last_target_heading: f64,
     ticks_since_fired: i64,
+    target_velocity_ewma: Vec2,
 }
 
 impl Ship {
@@ -16,6 +18,7 @@ impl Ship {
         Ship {
             last_target_heading: 0.0,
             ticks_since_fired: RELOAD_TICKS,
+            target_velocity_ewma: vec2(0.0, 0.0),
         }
     }
 
@@ -25,8 +28,12 @@ impl Ship {
             let bullet_speed = 4000.0;
             let bullet_offset = 40.0;
 
+            self.target_velocity_ewma = (1.0 - TARGET_VELOCITY_EWMA_WEIGHT)
+                * self.target_velocity_ewma
+                + TARGET_VELOCITY_EWMA_WEIGHT * contact.velocity;
+
             let dp = contact.position - position();
-            let dv = contact.velocity - velocity();
+            let dv = self.target_velocity_ewma - velocity();
             let mut predicted_dp = dp;
             let mut iterations = 0;
             for _ in 0..100 {
@@ -58,8 +65,10 @@ impl Ship {
             {
                 debug!("shot");
                 fire_gun(0);
-                set_radar_width(SEARCH_RADAR_WIDTH);
-                set_radar_heading(radar_heading() - SEARCH_RADAR_WIDTH);
+                if current_time() < 10.0 {
+                    set_radar_width(SEARCH_RADAR_WIDTH);
+                    set_radar_heading(radar_heading() - SEARCH_RADAR_WIDTH);
+                }
                 self.ticks_since_fired = 0;
             } else {
                 let next_tick_dp = dp + dv / 60.0;
