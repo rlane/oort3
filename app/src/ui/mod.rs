@@ -203,6 +203,9 @@ impl UI {
             Status::Victory { .. } | Status::Failed => {
                 status_msgs.push("DEFEAT".to_string());
             }
+            Status::Draw => {
+                status_msgs.push("DRAW".to_string());
+            }
             _ if self.paused => {
                 status_msgs.push("PAUSED".to_string());
             }
