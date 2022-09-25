@@ -4,7 +4,6 @@ use crate::leaderboard::Leaderboard;
 use crate::simulation_window::SimulationWindow;
 use crate::telemetry::Telemetry;
 use crate::toolbar::Toolbar;
-use crate::ui::UI;
 use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
 use oort_analyzer::AnalyzerAgent;
@@ -23,6 +22,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::{EventTarget, HtmlInputElement};
 use yew::events::Event;
+use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 use yew_router::prelude::*;
@@ -33,14 +33,11 @@ fn empty() -> JsValue {
 
 pub enum Msg {
     Render,
+    RegisterSimulationWindowLink(Scope<SimulationWindow>),
     SelectScenario(String),
-    KeyEvent(web_sys::KeyboardEvent),
-    WheelEvent(web_sys::WheelEvent),
-    MouseEvent(web_sys::MouseEvent),
-    ReceivedSimAgentResponse(oort_worker::Response),
+    SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_worker::Response, u32),
     ReceivedAnalyzerAgentResponse(oort_analyzer::Response),
-    RequestSnapshot,
     EditorAction(String),
     ShowDocumentation,
     DismissOverlay,
@@ -61,17 +58,12 @@ enum Overlay {
 pub struct Game {
     render_handle: Option<AnimationFrame>,
     scenario_name: String,
-    sim_agent: Box<dyn Bridge<SimAgent>>,
     analyzer_agent: Box<dyn Bridge<AnalyzerAgent>>,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
     background_snapshots: Vec<(u32, Snapshot)>,
     editor_link: CodeEditorLink,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
-    ui: Option<Box<UI>>,
-    nonce: u32,
-    status_ref: NodeRef,
-    last_status: Status,
     running_source_code: Code,
     running_codes: Vec<Code>,
     current_compiler_decorations: js_sys::Array,
@@ -82,6 +74,8 @@ pub struct Game {
     compiler_errors: Option<String>,
     frame: u64,
     last_window_size: (i32, i32),
+    last_snapshot: Option<Snapshot>,
+    simulation_window_link: Option<Scope<SimulationWindow>>,
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -96,14 +90,10 @@ impl Component for Game {
     type Properties = Props;
 
     fn create(context: &yew::Context<Self>) -> Self {
-        context
-            .link()
-            .send_message(Msg::SelectScenario(context.props().scenario.clone()));
         let link2 = context.link().clone();
         let render_handle = Some(request_animation_frame(move |_ts| {
             link2.send_message(Msg::Render)
         }));
-        let sim_agent = SimAgent::bridge(context.link().callback(Msg::ReceivedSimAgentResponse));
         let analyzer_agent =
             AnalyzerAgent::bridge(context.link().callback(Msg::ReceivedAnalyzerAgentResponse));
         let local_compiler =
@@ -114,17 +104,12 @@ impl Component for Game {
         Self {
             render_handle,
             scenario_name: String::new(),
-            sim_agent,
             analyzer_agent,
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
             editor_link: CodeEditorLink::default(),
             overlay: None,
             overlay_ref: NodeRef::default(),
-            ui: None,
-            nonce: 0,
-            status_ref: NodeRef::default(),
-            last_status: Status::Running,
             running_source_code: Code::None,
             running_codes: Vec::new(),
             current_compiler_decorations: js_sys::Array::new(),
@@ -135,6 +120,8 @@ impl Component for Game {
             compiler_errors: None,
             frame: 0,
             last_window_size: (0, 0),
+            last_snapshot: None,
+            simulation_window_link: None,
         }
     }
 
@@ -162,15 +149,23 @@ impl Component for Game {
                 }
                 self.frame += 1;
 
-                if let Some(ui) = self.ui.as_mut() {
-                    ui.render();
+                if let Some(link) = self.simulation_window_link.as_ref() {
+                    link.send_message(crate::simulation_window::Msg::Render);
                 }
 
                 let link2 = context.link().clone();
                 self.render_handle = Some(request_animation_frame(move |_ts| {
                     link2.send_message(Msg::Render)
                 }));
-                self.check_status(context)
+
+                false
+            }
+            Msg::RegisterSimulationWindowLink(link) => {
+                self.simulation_window_link = Some(link);
+                context
+                    .link()
+                    .send_message(Msg::SelectScenario(context.props().scenario.clone()));
+                false
             }
             Msg::SelectScenario(scenario_name) => {
                 crate::codestorage::save(
@@ -210,6 +205,10 @@ impl Component for Game {
                 };
                 self.run(context, &codes);
                 true
+            }
+            Msg::SimulationFinished(snapshot) => {
+                self.on_simulation_finished(context, snapshot);
+                false
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
                 let code = self
@@ -270,31 +269,6 @@ impl Component for Game {
                 log::info!("Got unexpected editor action {}", action);
                 false
             }
-            Msg::KeyEvent(e) => {
-                if let Some(ui) = self.ui.as_mut() {
-                    ui.on_key_event(e);
-                }
-                false
-            }
-            Msg::WheelEvent(e) => {
-                if let Some(ui) = self.ui.as_mut() {
-                    ui.on_wheel_event(e);
-                }
-                false
-            }
-            Msg::MouseEvent(e) => {
-                if let Some(ui) = self.ui.as_mut() {
-                    ui.on_mouse_event(e);
-                }
-                false
-            }
-            Msg::ReceivedSimAgentResponse(oort_worker::Response::Snapshot { snapshot }) => {
-                self.display_errors(&snapshot.errors);
-                if let Some(ui) = self.ui.as_mut() {
-                    ui.on_snapshot(snapshot);
-                }
-                false
-            }
             Msg::ReceivedBackgroundSimAgentResponse(
                 oort_worker::Response::Snapshot { snapshot },
                 seed,
@@ -313,11 +287,6 @@ impl Component for Game {
                     });
                 }
                 true
-            }
-            Msg::RequestSnapshot => {
-                self.sim_agent
-                    .send(oort_worker::Request::Snapshot { nonce: self.nonce });
-                false
             }
             Msg::ShowDocumentation => {
                 self.overlay = Some(Overlay::Documentation);
@@ -398,16 +367,15 @@ impl Component for Game {
         let simulation_window_host = gloo_utils::document()
             .get_element_by_id("simulation-window")
             .expect("a #simulation-window element");
-        let on_key_event = context.link().callback(Msg::KeyEvent);
-        let on_wheel_event = context.link().callback(Msg::WheelEvent);
-        let on_mouse_event = context.link().callback(Msg::MouseEvent);
-        let status_ref = self.status_ref.clone();
+        let on_simulation_finished = context.link().callback(Msg::SimulationFinished);
+        let register_link = context.link().callback(Msg::RegisterSimulationWindowLink);
+        let version = context.props().version.clone();
 
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} />
             <EditorWindow host={editor_window_host} {editor_link} />
-            <SimulationWindow host={simulation_window_host} {on_key_event} {on_wheel_event} {on_mouse_event} {status_ref} />
+            <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} />
             { self.render_overlay(context) }
             { self.render_compiler_errors(context) }
         </>
@@ -510,41 +478,39 @@ struct BackgroundSimSummary {
 }
 
 impl Game {
-    fn check_status(&mut self, context: &Context<Self>) -> bool {
-        if let Some(ui) = self.ui.as_ref() {
-            if self.last_status == ui.status() {
-                return false;
-            }
-            self.last_status = ui.status();
-            if context.props().demo && ui.status() != Status::Running {
-                context
-                    .link()
-                    .send_message(Msg::SelectScenario(context.props().scenario.clone()));
-                return true;
-            }
+    fn on_simulation_finished(&mut self, context: &yew::Context<Self>, snapshot: Snapshot) {
+        let status = snapshot.status;
 
-            if let Status::Victory { team: 0 } = ui.status() {
-                self.background_agents.clear();
-                self.background_snapshots.clear();
-                for seed in 0..10 {
-                    let mut sim_agent =
-                        SimAgent::bridge(context.link().callback(move |msg| {
-                            Msg::ReceivedBackgroundSimAgentResponse(msg, seed)
-                        }));
-                    sim_agent.send(oort_worker::Request::RunScenario {
-                        scenario_name: self.scenario_name.to_owned(),
-                        seed,
-                        codes: self.running_codes.clone(),
-                    });
-                    self.background_agents.push(sim_agent);
-                }
-
-                self.overlay = Some(Overlay::MissionComplete);
-                return true;
-            }
+        if context.props().demo && status != Status::Running {
+            context
+                .link()
+                .send_message(Msg::SelectScenario(context.props().scenario.clone()));
+            return;
         }
 
-        false
+        self.display_errors(&snapshot.errors);
+
+        if let Status::Victory { team: 0 } = status {
+            self.background_agents.clear();
+            self.background_snapshots.clear();
+            for seed in 0..10 {
+                let mut sim_agent = SimAgent::bridge(
+                    context
+                        .link()
+                        .callback(move |msg| Msg::ReceivedBackgroundSimAgentResponse(msg, seed)),
+                );
+                sim_agent.send(oort_worker::Request::RunScenario {
+                    scenario_name: self.scenario_name.to_owned(),
+                    seed,
+                    codes: self.running_codes.clone(),
+                });
+                self.background_agents.push(sim_agent);
+            }
+
+            self.overlay = Some(Overlay::MissionComplete);
+        }
+
+        self.last_snapshot = Some(snapshot);
     }
 
     fn render_overlay(&self, context: &yew::Context<Self>) -> Html {
@@ -655,8 +621,8 @@ impl Game {
     }
 
     fn render_mission_complete_overlay(&self, context: &yew::Context<Self>) -> Html {
-        let time = if let Some(ui) = self.ui.as_ref() {
-            ui.snapshot().unwrap().time
+        let time = if let Some(snapshot) = self.last_snapshot.as_ref() {
+            snapshot.time
         } else {
             0.0
         };
@@ -881,9 +847,7 @@ impl Game {
     }
 
     pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
-        self.ui = None;
         self.compiler_errors = None;
-        self.nonce = rand::thread_rng().gen();
         self.running_source_code = code.clone();
         let success_callback = context.link().callback(Msg::CompileSucceeded);
         let failure_callback = context.link().callback(Msg::CompileFailed);
@@ -957,17 +921,15 @@ impl Game {
             .get("seed")
             .and_then(|x| x.parse().ok())
             .unwrap_or_else(|| rand::thread_rng().gen());
-        self.ui = Some(Box::new(UI::new(
-            context.link().callback(|_| Msg::RequestSnapshot),
-            self.nonce,
-            context.props().version.clone(),
-        )));
-        self.sim_agent.send(oort_worker::Request::StartScenario {
-            scenario_name: self.scenario_name.to_owned(),
-            seed,
-            codes: codes.to_vec(),
-            nonce: self.nonce,
-        });
+        if let Some(link) = self.simulation_window_link.as_ref() {
+            link.send_message(crate::simulation_window::Msg::StartSimulation {
+                scenario_name: self.scenario_name.clone(),
+                seed,
+                codes: codes.to_vec(),
+            });
+        } else {
+            log::error!("Missing SimulationWindow");
+        }
         self.background_agents.clear();
         self.background_snapshots.clear();
     }
