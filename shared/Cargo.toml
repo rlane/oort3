@@ -1,6 +1,6 @@
 [package]
 name = "oort_shared"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2021"
 authors = ["Rich Lane"]
 description = "Shared definitions for Oort, a space fleet programming game."
