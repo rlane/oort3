@@ -31,40 +31,40 @@ pub fn version() -> String {
     fragments.join("-")
 }
 
-#[derive(Clone, Routable, PartialEq)]
-enum Route {
+#[derive(Clone, Routable, PartialEq, Eq)]
+pub enum Route {
     #[at("/")]
     Home,
-    #[at("/scenario/:name")]
-    Scenario { name: String },
-    #[at("/demo/:name")]
-    Demo { name: String },
-    #[at("/benchmark/:name")]
-    Benchmark { name: String },
+    #[at("/scenario/:scenario")]
+    Scenario { scenario: String },
+    #[at("/demo/:scenario")]
+    Demo { scenario: String },
+    #[at("/benchmark/:scenario")]
+    Benchmark { scenario: String },
 }
 
 #[function_component(Main)]
 fn app() -> Html {
     html! {
         <BrowserRouter>
-            <Switch<Route> render={Switch::render(switch)} />
+            <Switch<Route> render={switch} />
         </BrowserRouter>
     }
 }
 
-fn switch(routes: &Route) -> Html {
+fn switch(routes: Route) -> Html {
     match routes {
-        Route::Home => switch(&Route::Scenario {
-            name: "welcome".to_owned(),
+        Route::Home => switch(Route::Scenario {
+            scenario: "welcome".to_owned(),
         }),
-        Route::Scenario { name } => html! {
-            <game::Game scenario={name.clone()} demo=false version={version()} />
+        Route::Scenario { scenario } => html! {
+            <game::Game scenario={scenario} demo=false version={version()} />
         },
-        Route::Demo { name } => html! {
-            <game::Game scenario={name.clone()} demo=true version={version()} />
+        Route::Demo { scenario } => html! {
+            <game::Game scenario={scenario} demo=true version={version()} />
         },
-        Route::Benchmark { name } => html! {
-            <benchmark::Benchmark scenario={name.clone()} />
+        Route::Benchmark { scenario } => html! {
+            <benchmark::Benchmark scenario={scenario} />
         },
     }
 }
@@ -76,10 +76,11 @@ pub fn run_app() -> Result<(), JsValue> {
     log::info!("userid {}", &userid);
     log::info!("username {}", &userid::get_username());
     js::golden_layout::init();
-    yew::start_app_in_element::<Main>(
+    yew::Renderer::<Main>::with_root(
         gloo_utils::document()
             .get_element_by_id("yew")
             .expect("a #yew element"),
-    );
+    )
+    .render();
     Ok(())
 }

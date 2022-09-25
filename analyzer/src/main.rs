@@ -1,5 +1,5 @@
 use oort_analyzer::AnalyzerAgent;
-use yew_agent::PrivateAgent;
+use yew_agent::PrivateWorker;
 
 fn main() {
     console_error_panic_hook::set_once();

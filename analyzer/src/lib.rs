@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::sync::Arc;
-use yew_agent::{Agent, AgentLink, HandlerId, Private};
+use yew_agent::{HandlerId, Private, WorkerLink};
 
 use cfg::CfgOptions;
 use ide::{
@@ -58,17 +58,17 @@ pub fn create_crate(crate_graph: &mut CrateGraph, f: FileId) -> CrateId {
 }
 
 pub struct AnalyzerAgent {
-    link: AgentLink<AnalyzerAgent>,
+    link: WorkerLink<AnalyzerAgent>,
     analysis_host: ide::AnalysisHost,
 }
 
-impl Agent for AnalyzerAgent {
+impl yew_agent::Worker for AnalyzerAgent {
     type Reach = Private<Self>;
     type Message = ();
     type Input = Request;
     type Output = Response;
 
-    fn create(link: AgentLink<Self>) -> Self {
+    fn create(link: WorkerLink<Self>) -> Self {
         let text = "".to_string();
         let fake_std = "".to_string();
         let fake_core = "".to_string();

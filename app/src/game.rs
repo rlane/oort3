@@ -12,11 +12,12 @@ use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{simulation, vm};
 use oort_worker::SimAgent;
-use qstring::QString;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
+use serde::Deserialize;
 use simulation::PHYSICS_TICK_LENGTH;
+use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::{EventTarget, HtmlInputElement};
@@ -52,6 +53,13 @@ enum Overlay {
     #[allow(dead_code)]
     MissionComplete,
     Compiling,
+}
+
+#[derive(Deserialize, Debug, Default)]
+struct QueryParams {
+    pub seed: Option<u32>,
+    #[serde(default)]
+    pub local: bool,
 }
 
 pub struct Game {
@@ -93,10 +101,13 @@ impl Component for Game {
         let render_handle = Some(request_animation_frame(move |_ts| {
             link2.send_message(Msg::Render)
         }));
-        let analyzer_agent =
-            AnalyzerAgent::bridge(context.link().callback(Msg::ReceivedAnalyzerAgentResponse));
-        let local_compiler =
-            QString::from(context.link().location().unwrap().search().as_str()).has("local");
+        let cb = {
+            let link = context.link().clone();
+            move |e| link.send_message(Msg::ReceivedAnalyzerAgentResponse(e))
+        };
+        let analyzer_agent = AnalyzerAgent::bridge(Rc::new(cb));
+        let q = parse_query_params(context);
+        let local_compiler = q.local;
         if local_compiler {
             log::info!("Using local compiler");
         }
@@ -316,13 +327,15 @@ impl Component for Game {
 
     fn view(&self, context: &yew::Context<Self>) -> Html {
         // For Toolbar
-        let history = context.link().history().unwrap();
+        let navigator = context.link().navigator().unwrap();
         let select_scenario_cb = context.link().callback(move |e: Event| {
             let target: EventTarget = e
                 .target()
                 .expect("Event should have a target when dispatched");
             let data = target.unchecked_into::<HtmlInputElement>().value();
-            history.push(crate::Route::Scenario { name: data.clone() });
+            navigator.push(&crate::Route::Scenario {
+                scenario: data.clone(),
+            });
             Msg::SelectScenario(data)
         });
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
@@ -386,11 +399,11 @@ impl Game {
             self.background_agents.clear();
             self.background_snapshots.clear();
             for seed in 0..10 {
-                let mut sim_agent = SimAgent::bridge(
-                    context
-                        .link()
-                        .callback(move |msg| Msg::ReceivedBackgroundSimAgentResponse(msg, seed)),
-                );
+                let cb = {
+                    let link = context.link().clone();
+                    move |e| link.send_message(Msg::ReceivedBackgroundSimAgentResponse(e, seed))
+                };
+                let mut sim_agent = SimAgent::bridge(Rc::new(cb));
                 sim_agent.send(oort_worker::Request::RunScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
@@ -523,17 +536,17 @@ impl Game {
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
 
         let make_seed_link_cb = |seed: u32| {
-            let history = context.link().history().unwrap();
+            let navigator = context.link().navigator().unwrap();
             let scenario_name = self.scenario_name.clone();
             context.link().batch_callback(move |_| {
                 let mut query = std::collections::HashMap::<&str, String>::new();
                 query.insert("seed", seed.to_string());
-                history
+                navigator
                     .push_with_query(
-                        crate::Route::Scenario {
-                            name: scenario_name.clone(),
+                        &crate::Route::Scenario {
+                            scenario: scenario_name.clone(),
                         },
-                        query,
+                        &query,
                     )
                     .unwrap();
                 vec![
@@ -809,10 +822,10 @@ impl Game {
     pub fn run(&mut self, context: &Context<Self>, codes: &[Code]) {
         self.compiler_errors = None;
         self.running_codes = codes.to_vec();
-        let seed: u32 = QString::from(context.link().location().unwrap().search().as_str())
-            .get("seed")
-            .and_then(|x| x.parse().ok())
-            .unwrap_or_else(|| rand::thread_rng().gen());
+
+        let q = parse_query_params(context);
+        let seed = q.seed.unwrap_or_else(|| rand::thread_rng().gen());
+
         if let Some(link) = self.simulation_window_link.as_ref() {
             link.send_message(crate::simulation_window::Msg::StartSimulation {
                 scenario_name: self.scenario_name.clone(),
@@ -858,5 +871,16 @@ pub fn str_to_code(s: &str) -> Code {
         Code::Builtin(m[1].to_string())
     } else {
         Code::Rust(s.to_string())
+    }
+}
+
+fn parse_query_params(context: &Context<Game>) -> QueryParams {
+    let location = context.link().location().unwrap();
+    match location.query::<QueryParams>() {
+        Ok(q) => q,
+        Err(e) => {
+            log::info!("Failed to parse query params: {:?}", e);
+            Default::default()
+        }
     }
 }

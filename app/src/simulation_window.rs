@@ -2,6 +2,7 @@ use crate::ui::UI;
 use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
 use oort_worker::SimAgent;
 use rand::Rng;
+use std::rc::Rc;
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -45,7 +46,11 @@ impl Component for SimulationWindow {
 
     fn create(context: &yew::Context<Self>) -> Self {
         context.props().register_link.emit(context.link().clone());
-        let sim_agent = SimAgent::bridge(context.link().callback(Msg::ReceivedSimAgentResponse));
+        let cb = {
+            let link = context.link().clone();
+            move |e| link.send_message(Msg::ReceivedSimAgentResponse(e))
+        };
+        let sim_agent = SimAgent::bridge(Rc::new(cb));
         Self {
             ui: None,
             nonce: 0,

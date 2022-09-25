@@ -3,7 +3,7 @@ use oort_simulator::simulation::Code;
 use oort_simulator::simulation::Simulation;
 use oort_simulator::snapshot::Snapshot;
 use serde::{Deserialize, Serialize};
-use yew_agent::{Agent, AgentLink, HandlerId, Private};
+use yew_agent::{HandlerId, Private, WorkerLink};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
@@ -29,18 +29,18 @@ pub enum Response {
 }
 
 pub struct SimAgent {
-    link: AgentLink<SimAgent>,
+    link: WorkerLink<Self>,
     sim: Option<Box<Simulation>>,
     errored: bool,
 }
 
-impl Agent for SimAgent {
+impl yew_agent::Worker for SimAgent {
     type Reach = Private<Self>;
     type Message = ();
     type Input = Request;
     type Output = Response;
 
-    fn create(link: AgentLink<Self>) -> Self {
+    fn create(link: WorkerLink<Self>) -> Self {
         Self {
             link,
             sim: None,

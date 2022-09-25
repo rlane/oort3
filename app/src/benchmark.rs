@@ -2,6 +2,7 @@ use oort_simulator::snapshot::{Snapshot, Timing};
 use oort_worker::SimAgent;
 use rand::Rng;
 use sha2::{Digest, Sha256};
+use std::rc::Rc;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 
@@ -36,8 +37,11 @@ impl Component for Benchmark {
         let scenario = oort_simulator::scenario::load(&scenario_name);
         let mut codes = scenario.initial_code();
         codes[0] = scenario.solution();
-        let mut sim_agent =
-            SimAgent::bridge(context.link().callback(Msg::ReceivedSimAgentResponse));
+        let cb = {
+            let link = context.link().clone();
+            move |e| link.send_message(Msg::ReceivedSimAgentResponse(e))
+        };
+        let mut sim_agent = SimAgent::bridge(Rc::new(cb));
         sim_agent.send(oort_worker::Request::StartScenario {
             scenario_name: scenario_name.clone(),
             seed,
