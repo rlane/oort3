@@ -730,9 +730,10 @@ impl Scenario for Tutorial03 {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let size = 500.0;
-        let range = -size..size;
-        self.target = Some(point![rng.gen_range(range.clone()), rng.gen_range(range)]);
+        self.target = Some(
+            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                .transform_point(&point![rng.gen_range(100.0..500.0), 0.0]),
+        );
         add_walls(sim);
         ship::create(
             sim,
@@ -817,9 +818,8 @@ impl Scenario for Tutorial04 {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         let mut rng = new_rng(seed);
-        let size = 500.0;
-        let range = -size..size;
-        let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
+        let target = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+            .transform_point(&point![rng.gen_range(100.0..500.0), 0.0]);
         ship::create(
             sim,
             vector![0.0, 0.0],
