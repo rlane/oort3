@@ -149,13 +149,12 @@ impl SimulationWindow {
     fn check_status(&mut self, context: &Context<Self>) -> bool {
         if let Some(ui) = self.ui.as_ref() {
             let status = ui.status();
-            if self.last_status == status || status == scenario::Status::Running {
-                return false;
+            if self.last_status != status && status != scenario::Status::Running {
+                context
+                    .props()
+                    .on_simulation_finished
+                    .emit(ui.snapshot().unwrap());
             }
-            context
-                .props()
-                .on_simulation_finished
-                .emit(ui.snapshot().unwrap());
             self.last_status = status;
         }
         false
