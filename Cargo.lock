@@ -1599,9 +1599,9 @@ dependencies = [
 
 [[package]]
 name = "gloo"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03e691526c3972d1fda35453f6df29925edea014dc75a2dede7661527e9439f0"
+checksum = "3a4bef6b277b3ab073253d4bca60761240cf8d6998f4bd142211957b69a61b20"
 dependencies = [
  "gloo-console",
  "gloo-dialogs",
@@ -1613,7 +1613,7 @@ dependencies = [
  "gloo-storage",
  "gloo-timers",
  "gloo-utils",
- "gloo-worker",
+ "gloo-worker 0.2.1",
 ]
 
 [[package]]
@@ -1782,6 +1782,23 @@ dependencies = [
  "serde",
  "slab",
  "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "gloo-worker"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13471584da78061a28306d1359dd0178d8d6fc1c7c80e5e35d27260346e0516a"
+dependencies = [
+ "anymap2",
+ "bincode",
+ "gloo-console",
+ "gloo-utils",
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -2057,9 +2074,9 @@ dependencies = [
 
 [[package]]
 name = "implicit-clone"
-version = "0.2.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f8ff6b5d0fe4647f83163bf062b521fc780f40be1ecda5ed395376d1baab6d4"
+checksum = "a937e630d3907d421944abd8edb5288936f1fde83aaaf1a8c6c89bb4222f0677"
 dependencies = [
  "indexmap",
 ]
@@ -4920,6 +4937,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -5713,17 +5731,21 @@ dependencies = [
 [[package]]
 name = "yew"
 version = "0.19.3"
-source = "git+https://github.com/yewstack/yew?rev=f82af86#f82af86c66d6c55fc4ac2906963b58bf94ecc1f8"
+source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
 dependencies = [
  "console_error_panic_hook",
+ "futures",
  "gloo",
- "gloo-utils",
  "implicit-clone",
  "indexmap",
  "js-sys",
+ "once_cell",
  "serde",
  "slab",
  "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tracing",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -5733,16 +5755,16 @@ dependencies = [
 [[package]]
 name = "yew-agent"
 version = "0.1.0"
-source = "git+https://github.com/yewstack/yew?rev=f82af86#f82af86c66d6c55fc4ac2906963b58bf94ecc1f8"
+source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
 dependencies = [
- "gloo-worker",
+ "gloo-worker 0.1.2",
  "yew",
 ]
 
 [[package]]
 name = "yew-macro"
 version = "0.19.3"
-source = "git+https://github.com/yewstack/yew?rev=f82af86#f82af86c66d6c55fc4ac2906963b58bf94ecc1f8"
+source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
 dependencies = [
  "boolinator",
  "once_cell",
@@ -5756,13 +5778,14 @@ dependencies = [
 [[package]]
 name = "yew-router"
 version = "0.16.0"
-source = "git+https://github.com/yewstack/yew?rev=f82af86#f82af86c66d6c55fc4ac2906963b58bf94ecc1f8"
+source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
 dependencies = [
  "gloo",
  "js-sys",
  "route-recognizer",
  "serde",
  "serde_urlencoded",
+ "tracing",
  "wasm-bindgen",
  "web-sys",
  "yew",
@@ -5772,7 +5795,7 @@ dependencies = [
 [[package]]
 name = "yew-router-macro"
 version = "0.16.0"
-source = "git+https://github.com/yewstack/yew?rev=f82af86#f82af86c66d6c55fc4ac2906963b58bf94ecc1f8"
+source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
 dependencies = [
  "proc-macro2 1.0.43",
  "quote 1.0.21",
