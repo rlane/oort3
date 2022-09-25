@@ -17,7 +17,6 @@ use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
 use simulation::PHYSICS_TICK_LENGTH;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::{EventTarget, HtmlInputElement};
@@ -333,6 +332,7 @@ impl Component for Game {
             .get_element_by_id("editor-window")
             .expect("a #editor-window element");
         let editor_link = self.editor_link.clone();
+        let on_editor_action = context.link().callback(Msg::EditorAction);
 
         // For SimulationWindow
         let simulation_window_host = gloo_utils::document()
@@ -345,7 +345,7 @@ impl Component for Game {
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} />
-            <EditorWindow host={editor_window_host} {editor_link} />
+            <EditorWindow host={editor_window_host} {editor_link} {on_editor_action} />
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} />
             { self.render_overlay(context) }
             { self.render_compiler_errors(context) }
@@ -353,86 +353,7 @@ impl Component for Game {
         }
     }
 
-    fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
-        if first_render {
-            self.editor_link.with_editor(|editor| {
-                let add_action = |id: &'static str, label, key: Option<u32>| {
-                    let cb = context.link().callback(Msg::EditorAction);
-                    let closure =
-                        Closure::wrap(Box::new(move |_: JsValue| cb.emit(id.to_string()))
-                            as Box<dyn FnMut(_)>);
-
-                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                    let action = monaco::sys::editor::IActionDescriptor::from(empty());
-                    action.set_id(id);
-                    action.set_label(label);
-                    action.set_context_menu_group_id(Some("navigation"));
-                    action.set_context_menu_order(Some(1.5));
-                    js_sys::Reflect::set(
-                        &action,
-                        &JsValue::from_str("run"),
-                        &closure.into_js_value(),
-                    )
-                    .unwrap();
-                    if let Some(key) = key {
-                        js_sys::Reflect::set(
-                            &action,
-                            &JsValue::from_str("keybindings"),
-                            &js_sys::JSON::parse(&format!("[{}]", key)).unwrap(),
-                        )
-                        .unwrap();
-                    }
-                    ed.add_action(&action);
-                };
-
-                add_action(
-                    "oort-execute",
-                    "Execute",
-                    Some(
-                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::Enter as u32,
-                    ),
-                );
-
-                add_action("oort-restore-initial-code", "Restore initial code", None);
-
-                add_action("oort-load-solution", "Load solution", None);
-
-                add_action("oort-load-file", "Load from a file", None);
-
-                add_action(
-                    "oort-reload-file",
-                    "Reload from file",
-                    Some(
-                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyY as u32,
-                    ),
-                );
-
-                add_action(
-                    "oort-format",
-                    "Format code",
-                    Some(
-                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyE as u32,
-                    ),
-                );
-
-                {
-                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                    let options = monaco::sys::editor::IEditorOptions::from(empty());
-                    let minimap_options = monaco::sys::editor::IEditorMinimapOptions::from(empty());
-                    minimap_options.set_enabled(Some(false));
-                    options.set_minimap(Some(&minimap_options));
-                    ed.update_options(&options);
-                }
-
-                js_sys::Reflect::set(
-                    &web_sys::window().unwrap(),
-                    &JsValue::from_str("editor"),
-                    editor.as_ref(),
-                )
-                .unwrap();
-            });
-        }
-
+    fn rendered(&mut self, _context: &yew::Context<Self>, _first_render: bool) {
         if self.overlay.is_some() {
             self.focus_overlay();
         }
