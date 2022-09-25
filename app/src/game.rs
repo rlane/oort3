@@ -139,13 +139,14 @@ impl Component for Game {
                     self.editor_link.with_editor(|editor| {
                         let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
                         ed.layout(None);
-                        let text = editor.get_model().unwrap().get_value();
-                        if text != self.last_analyzed_text {
-                            self.analyzer_agent
-                                .send(oort_analyzer::Request::Analyze(text.clone()));
-                            self.last_analyzed_text = text;
-                        }
                     });
+
+                    let text = self.get_editor_text();
+                    if text != self.last_analyzed_text {
+                        self.analyzer_agent
+                            .send(oort_analyzer::Request::Analyze(text.clone()));
+                        self.last_analyzed_text = text;
+                    }
                 }
                 self.frame += 1;
 
@@ -168,15 +169,7 @@ impl Component for Game {
                 false
             }
             Msg::SelectScenario(scenario_name) => {
-                crate::codestorage::save(
-                    &self.scenario_name,
-                    &str_to_code(
-                        &self
-                            .editor_link
-                            .with_editor(|editor| editor.get_model().unwrap().get_value())
-                            .unwrap(),
-                    ),
-                );
+                crate::codestorage::save(&self.scenario_name, &self.get_editor_code());
                 self.scenario_name = scenario_name;
                 let mut codes = crate::codestorage::load(&self.scenario_name);
                 let displayed_code = if self.scenario_name == "welcome" {
@@ -192,12 +185,7 @@ impl Component for Game {
                 } else {
                     codes[0].clone()
                 };
-                self.editor_link.with_editor(|editor| {
-                    editor
-                        .get_model()
-                        .unwrap()
-                        .set_value(&code_to_string(&displayed_code));
-                });
+                self.set_editor_text(&code_to_string(&displayed_code));
                 codes[0] = if context.props().demo || self.scenario_name == "welcome" {
                     oort_simulator::scenario::load(&self.scenario_name).solution()
                 } else {
@@ -211,11 +199,7 @@ impl Component for Game {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
-                let code = self
-                    .editor_link
-                    .with_editor(|editor| editor.get_model().unwrap().get_value())
-                    .unwrap();
-                let code = str_to_code(&code);
+                let code = self.get_editor_code();
                 crate::codestorage::save(&self.scenario_name, &code);
                 self.start_compile(context, code);
                 true
@@ -225,12 +209,7 @@ impl Component for Game {
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
-                self.editor_link.with_editor(|editor| {
-                    editor
-                        .get_model()
-                        .unwrap()
-                        .set_value(&code_to_string(&code));
-                });
+                self.set_editor_text(&code_to_string(&code));
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-load-solution" => {
@@ -238,12 +217,7 @@ impl Component for Game {
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
-                self.editor_link.with_editor(|editor| {
-                    editor
-                        .get_model()
-                        .unwrap()
-                        .set_value(&code_to_string(&code));
-                });
+                self.set_editor_text(&code_to_string(&code));
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-load-file" => {
@@ -257,12 +231,11 @@ impl Component for Game {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-format" => {
-                self.editor_link.with_editor(|editor| {
-                    let model = editor.get_model().unwrap();
-                    model.set_value(&crate::format::format(&model.get_value()));
-                    self.analyzer_agent
-                        .send(oort_analyzer::Request::Analyze(model.get_value()));
-                });
+                let text = self.get_editor_text();
+                let text = crate::format::format(&text);
+                self.set_editor_text(&text);
+                self.analyzer_agent
+                    .send(oort_analyzer::Request::Analyze(text));
                 false
             }
             Msg::EditorAction(action) => {
@@ -325,9 +298,7 @@ impl Component for Game {
                 false
             }
             Msg::LoadedCodeFromDisk(text) => {
-                self.editor_link.with_editor(|editor| {
-                    editor.get_model().unwrap().set_value(&text);
-                });
+                self.set_editor_text(&text);
                 false
             }
             Msg::SubmitToTournament => {
@@ -932,6 +903,22 @@ impl Game {
         }
         self.background_agents.clear();
         self.background_snapshots.clear();
+    }
+
+    pub fn get_editor_text(&self) -> String {
+        self.editor_link
+            .with_editor(|editor| editor.get_model().unwrap().get_value())
+            .unwrap()
+    }
+
+    pub fn get_editor_code(&self) -> Code {
+        str_to_code(&self.get_editor_text())
+    }
+
+    pub fn set_editor_text(&self, text: &str) {
+        self.editor_link.with_editor(|editor| {
+            editor.get_model().unwrap().set_value(text);
+        });
     }
 }
 
