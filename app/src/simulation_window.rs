@@ -34,6 +34,9 @@ pub struct SimulationWindow {
     nonce: u32,
     sim_agent: Box<dyn Bridge<SimAgent>>,
     last_status: scenario::Status,
+    canvas_ref: NodeRef,
+    status_ref: NodeRef,
+    picked_ref: NodeRef,
 }
 
 impl Component for SimulationWindow {
@@ -48,6 +51,9 @@ impl Component for SimulationWindow {
             nonce: 0,
             sim_agent,
             last_status: scenario::Status::Running,
+            canvas_ref: NodeRef::default(),
+            status_ref: NodeRef::default(),
+            picked_ref: NodeRef::default(),
         }
     }
 
@@ -63,6 +69,9 @@ impl Component for SimulationWindow {
                     context.link().callback(|_| Msg::RequestSnapshot),
                     self.nonce,
                     context.props().version.clone(),
+                    self.canvas_ref.clone(),
+                    self.status_ref.clone(),
+                    self.picked_ref.clone(),
                 )));
                 self.sim_agent.send(oort_worker::Request::StartScenario {
                     scenario_name,
@@ -118,14 +127,17 @@ impl Component for SimulationWindow {
         create_portal(
             html! {
                 <>
-                    <canvas id="glcanvas"
+                    <canvas class="glcanvas"
+                        ref={self.canvas_ref.clone()}
                         tabindex="1"
                         onkeydown={key_event_cb.clone()}
                         onkeyup={key_event_cb}
                         onwheel={wheel_event_cb}
                         onclick={mouse_event_cb} />
-                    <div id="status" />
-                    <div id="picked"><pre id="picked_text"></pre></div>
+                    <div class="status" ref={self.status_ref.clone()} />
+                    <div class="picked">
+                        <pre ref={self.picked_ref.clone()}></pre>
+                    </div>
                 </>
             },
             context.props().host.clone(),

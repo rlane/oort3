@@ -41,11 +41,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new() -> Result<Self, JsValue> {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document.get_element_by_id("glcanvas").unwrap();
-        let canvas = canvas.dyn_into::<HtmlCanvasElement>()?;
-
+    pub fn new(canvas: HtmlCanvasElement) -> Result<Self, JsValue> {
         let context = canvas
             .get_context("webgl2")?
             .expect("Failed to get webgl2 context")

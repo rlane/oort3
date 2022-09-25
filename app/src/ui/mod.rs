@@ -8,6 +8,8 @@ use oort_simulator::scenario::Status;
 use oort_simulator::simulation;
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
 use std::collections::VecDeque;
+use web_sys::{Element, HtmlCanvasElement};
+use yew::NodeRef;
 
 const MIN_ZOOM: f32 = 5e-5;
 const MAX_ZOOM: f32 = 1e-2;
@@ -29,7 +31,6 @@ pub struct UI {
     paused: bool,
     keys_down: std::collections::HashSet<String>,
     keys_ignored: std::collections::HashSet<String>,
-    status_div: web_sys::Element,
     frame: u64,
     last_render_time: f64,
     physics_time: f64,
@@ -40,24 +41,29 @@ pub struct UI {
     nonce: u32,
     request_snapshot: yew::Callback<()>,
     picked_ship_id: Option<u64>,
-    picked_text: web_sys::Element,
+    status_ref: NodeRef,
+    picked_ref: NodeRef,
 }
 
 unsafe impl Send for UI {}
 
 impl UI {
-    pub fn new(request_snapshot: yew::Callback<()>, nonce: u32, version: String) -> Self {
-        let window = web_sys::window().expect("no global `window` exists");
-        let document = window.document().expect("should have a document on window");
-        let status_div = document
-            .get_element_by_id("status")
-            .expect("should have a status div");
-        status_div.set_inner_html("LOADING...");
-        let picked_text = document
-            .get_element_by_id("picked_text")
-            .expect("should have a picked_text element");
+    pub fn new(
+        request_snapshot: yew::Callback<()>,
+        nonce: u32,
+        version: String,
+        canvas_ref: NodeRef,
+        status_ref: NodeRef,
+        picked_ref: NodeRef,
+    ) -> Self {
+        if let Some(elem) = status_ref.cast::<Element>() {
+            elem.set_text_content(Some("LOADING..."));
+        }
 
-        let mut renderer = Renderer::new().expect("Failed to create renderer");
+        let canvas = canvas_ref
+            .cast::<HtmlCanvasElement>()
+            .expect("canvas element");
+        let mut renderer = Renderer::new(canvas).expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
         renderer.set_view(zoom, point![camera_target.x, camera_target.y]);
@@ -82,7 +88,6 @@ impl UI {
             paused,
             keys_down,
             keys_ignored,
-            status_div,
             frame: 0,
             last_render_time: instant::now(),
             physics_time: instant::now(),
@@ -93,7 +98,8 @@ impl UI {
             nonce,
             request_snapshot,
             picked_ship_id: None,
-            picked_text,
+            status_ref,
+            picked_ref,
         }
     }
 
@@ -146,7 +152,7 @@ impl UI {
             self.renderer.set_debug(self.debug);
         }
         if self.keys_down.contains("q") {
-            self.status_div.set_text_content(Some("Exited"));
+            self.set_status_message("EXITED");
             self.quit = true;
         }
         let fast_forward = self.keys_down.contains("f");
@@ -221,7 +227,7 @@ impl UI {
             status_msgs.push(self.version.clone());
             let status_msg = status_msgs.join("; ");
             if status_msg != self.last_status_msg {
-                self.status_div.set_text_content(Some(&status_msg));
+                self.set_status_message(&status_msg);
                 self.last_status_msg = status_msg;
             }
 
@@ -362,13 +368,21 @@ impl UI {
                 .and_then(|s| s.debug_text.get(&self.picked_ship_id.unwrap()))
                 .cloned()
                 .unwrap_or_default();
-            self.picked_text.set_text_content(Some(&format!(
+            if let Some(elem) = self.picked_ref.cast::<Element>() {
+                elem.set_text_content(Some(&format!(
                 "{class:?}\nTeam: {team:?}\nHealth: {health:.0} Energy: {energy:.0} MJ\n{debug_text}"
             )));
-        } else {
-            self.picked_text.set_text_content(Some(""));
+            }
+        } else if let Some(elem) = self.picked_ref.cast::<Element>() {
+            elem.set_text_content(Some(""));
         }
         self.renderer.set_picked_ship(self.picked_ship_id);
+    }
+
+    pub fn set_status_message(&self, text: &str) {
+        if let Some(elem) = self.status_ref.cast::<Element>() {
+            elem.set_text_content(Some(text));
+        }
     }
 
     pub fn frame(&self) -> u64 {
