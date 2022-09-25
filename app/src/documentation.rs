@@ -126,6 +126,7 @@ pub fn documentation() -> Html {
               <li><code>{ "angle_diff(a: f64, b: f64) → f64" }</code>{ ": Returns the shortest (possibly negative) distance between two angles." }</li>
               <li><code>{ "rand(low: f64, high: f64) → f64" }</code>{ ": Get a random number." }</li>
               <li><code>{ "orders() → f64" }</code>{ ": Returns the orders passed to "}<code>{ "launch_missile" }</code>{ "." }</li>
+              <li><code>{ "target() → Vec2" }</code>{ ": Used in some scenarios, returns the location of the target." }</li>
               <li><code>{ "seed() → u128" }</code>{ ": Returns a seed useful for initializing a random number generator." }</li>
             </ul>
 
