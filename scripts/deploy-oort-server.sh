@@ -13,7 +13,7 @@ gcloud run deploy oortserver \
   --timeout 20s \
   --concurrency 1 \
   --max-instances 3
+gcloud compute ssh server-1 --command="docker image prune --force" || true
 gcloud compute instances update-container \
   server-1 \
   --container-image $CONTAINER_IMAGE
-gcloud compute ssh server-1 --command="docker image prune --force" || true
