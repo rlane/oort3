@@ -15,7 +15,7 @@ body {
   width: 100%;
 }
 
-#editor {
+.editor {
   top: 0px;
   left: 0;
   bottom: 0px;

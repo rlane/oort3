@@ -40,7 +40,7 @@ impl Component for EditorWindow {
 
         create_portal(
             html! {
-                <div id="editor">
+                <div class="editor">
                     <CodeEditor options={monaco_options} link={editor_link} />
                 </div>
             },
