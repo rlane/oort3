@@ -48,7 +48,6 @@ fn check_victory_with_filter(sim: &Simulation, ship_filter: fn(&ShipAccessor) ->
             team: *team_health.iter().next().unwrap().0,
         }
     } else if sim.tick() >= MAX_TICKS - 1 {
-        log::info!("draw after reaching max ticks");
         Status::Draw
     } else {
         Status::Running
