@@ -82,6 +82,7 @@ pub struct Game {
 pub struct Team {
     editor_link: CodeEditorLink,
     initial_source_code: Code,
+    initial_compiled_code: Code,
     running_source_code: Code,
     running_compiled_code: Code,
     current_compiler_decorations: js_sys::Array,
@@ -717,7 +718,13 @@ impl Game {
             .teams
             .iter()
             .map(|team| {
-                if let Some(compiled_code) = self.compilation_cache.get(&team.running_source_code) {
+                if team.running_source_code == team.initial_source_code
+                    && team.initial_compiled_code != Code::None
+                {
+                    team.initial_compiled_code.clone()
+                } else if let Some(compiled_code) =
+                    self.compilation_cache.get(&team.running_source_code)
+                {
                     compiled_code.clone()
                 } else {
                     team.running_source_code.clone()
@@ -783,6 +790,7 @@ impl Game {
         let mut enemy_team = Team::new(self.editor_links[1].clone());
         enemy_team.initial_source_code = to_source_code(&codes[1]);
         enemy_team.running_source_code = to_source_code(&codes[1]);
+        enemy_team.initial_compiled_code = codes[1].clone();
         enemy_team.running_compiled_code = codes[1].clone();
 
         if context.props().demo || self.scenario_name == "welcome" {
@@ -827,6 +835,7 @@ impl Team {
             editor_link,
             initial_source_code: Code::None,
             running_source_code: Code::None,
+            initial_compiled_code: Code::None,
             running_compiled_code: Code::None,
             current_compiler_decorations: js_sys::Array::new(),
         }
