@@ -262,6 +262,9 @@ impl Component for Game {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
+                if self.compilation_cache.len() > 10 {
+                    self.compilation_cache.clear();
+                }
                 for (team, result) in results.iter().enumerate() {
                     match result {
                         Ok(code) => {
