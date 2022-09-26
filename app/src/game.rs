@@ -16,6 +16,7 @@ use regex::Regex;
 use reqwasm::http::Request;
 use serde::Deserialize;
 use simulation::PHYSICS_TICK_LENGTH;
+use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
@@ -39,8 +40,7 @@ pub enum Msg {
     EditorAction { team: usize, action: String },
     ShowDocumentation,
     DismissOverlay,
-    CompileSucceeded { team: usize, code: Code },
-    CompileFailed { team: usize, error: String },
+    CompileFinished(Vec<Result<Code, String>>),
     CompileSlow,
     LoadedCodeFromDisk { team: usize, text: String },
     SubmitToTournament,
@@ -76,6 +76,7 @@ pub struct Game {
     simulation_window_link: Option<Scope<SimulationWindow>>,
     teams: Vec<Team>,
     editor_links: Vec<CodeEditorLink>,
+    compilation_cache: HashMap<Code, Code>,
 }
 
 pub struct Team {
@@ -107,6 +108,9 @@ impl Component for Game {
         if local_compiler {
             log::info!("Using local compiler");
         }
+
+        let compilation_cache = HashMap::new();
+
         Self {
             render_handle,
             scenario_name: String::new(),
@@ -123,6 +127,7 @@ impl Component for Game {
             simulation_window_link: None,
             teams: Vec::new(),
             editor_links: vec![CodeEditorLink::default(), CodeEditorLink::default()],
+            compilation_cache,
         }
     }
 
@@ -169,12 +174,18 @@ impl Component for Game {
                 true
             }
             Msg::SimulationFinished(snapshot) => self.on_simulation_finished(context, snapshot),
-            Msg::EditorAction { team, ref action } if action == "oort-execute" => {
-                let code = self.team(team).get_editor_code();
-                if team == 0 {
-                    crate::codestorage::save(&self.scenario_name, &code);
+            Msg::EditorAction {
+                team: _,
+                ref action,
+            } if action == "oort-execute" => {
+                crate::codestorage::save(
+                    &self.scenario_name,
+                    &self.player_team().get_editor_code(),
+                );
+                for team in self.teams.iter_mut() {
+                    team.running_source_code = team.get_editor_code();
                 }
-                self.start_compile(context, team, code);
+                self.start_compile(context);
                 true
             }
             Msg::EditorAction { team, ref action } if action == "oort-restore-initial-code" => {
@@ -246,28 +257,38 @@ impl Component for Game {
                 self.background_snapshots.clear();
                 true
             }
-            Msg::CompileSucceeded { team, code } => {
+            Msg::CompileFinished(results) => {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
-                self.team_mut(team).display_compiler_errors(&[]);
-                if team == 0 {
-                    crate::telemetry::send(Telemetry::StartScenario {
-                        scenario_name: self.scenario_name.clone(),
-                        code: code_to_string(&self.player_team().running_source_code),
-                    });
+                for (team, result) in results.iter().enumerate() {
+                    match result {
+                        Ok(code) => {
+                            self.team_mut(team).display_compiler_errors(&[]);
+                            self.team_mut(team).running_compiled_code = code.clone();
+                            self.compilation_cache
+                                .insert(self.team(team).running_source_code.clone(), code.clone());
+                        }
+                        Err(error) => {
+                            self.team_mut(team)
+                                .display_compiler_errors(&make_editor_errors(error));
+                            self.team_mut(team).running_compiled_code = Code::None;
+                        }
+                    }
                 }
-                self.team_mut(team).running_compiled_code = code;
+                let errors: Vec<_> = results
+                    .iter()
+                    .filter_map(|x| x.as_ref().err())
+                    .cloned()
+                    .collect();
+                if !errors.is_empty() {
+                    self.compiler_errors = Some(errors.join("\n"));
+                }
+                crate::telemetry::send(Telemetry::StartScenario {
+                    scenario_name: self.scenario_name.clone(),
+                    code: code_to_string(&self.player_team().running_source_code),
+                });
                 self.run(context);
-                true
-            }
-            Msg::CompileFailed { team, error } => {
-                if matches!(self.overlay, Some(Overlay::Compiling)) {
-                    self.overlay = None;
-                }
-                self.team_mut(team)
-                    .display_compiler_errors(&make_editor_errors(&error));
-                self.compiler_errors = Some(error);
                 true
             }
             Msg::CompileSlow => {
@@ -635,76 +656,87 @@ impl Game {
         }
     }
 
-    pub fn start_compile(&mut self, context: &Context<Self>, team: usize, code: Code) {
+    pub fn start_compile(&mut self, context: &Context<Self>) {
         self.compiler_errors = None;
-        self.team_mut(team).running_source_code = code.clone();
-        let success_callback = context
-            .link()
-            .callback(move |code| Msg::CompileSucceeded { team, code });
-        let failure_callback = context
-            .link()
-            .callback(move |error| Msg::CompileFailed { team, error });
-        let compile_slow_callback = context.link().callback(|_| Msg::CompileSlow);
-        match code {
-            Code::Rust(src_code) => {
-                let saw_slow_compile = self.saw_slow_compile;
-                let url = if self.local_compiler {
-                    "http://localhost:8081/compile"
-                } else if saw_slow_compile {
-                    "https://api.oort.rs/compile"
-                } else {
-                    "https://api-vm.oort.rs/compile"
-                };
+        self.overlay = Some(Overlay::Compiling);
 
-                wasm_bindgen_futures::spawn_local(async move {
-                    let start_time = instant::Instant::now();
-                    let check_compile_time = || {
-                        let elapsed = instant::Instant::now() - start_time;
-                        if !saw_slow_compile && elapsed > std::time::Duration::from_millis(3000) {
-                            log::info!("Compilation was slow, switching backend to serverless");
-                            compile_slow_callback.emit(());
-                        }
-                    };
+        let finished_callback = context.link().callback(Msg::CompileFinished);
+        let slow_compile_callback = context.link().callback(|_| Msg::CompileSlow);
 
-                    let result = Request::post(url).body(src_code).send().await;
-                    if let Err(e) = result {
-                        log::error!("Compile error: {}", e);
-                        failure_callback.emit(e.to_string());
-                        check_compile_time();
-                        return;
-                    }
+        let url = if self.local_compiler {
+            "http://localhost:8081/compile"
+        } else if self.saw_slow_compile {
+            "https://api.oort.rs/compile"
+        } else {
+            "https://api-vm.oort.rs/compile"
+        };
 
-                    let response = result.unwrap();
-                    if !response.ok() {
-                        let error = response.text().await.unwrap();
-                        log::error!("Compile error: {}", error);
-                        failure_callback.emit(error);
-                        check_compile_time();
-                        return;
-                    }
+        async fn compile(
+            url: &str,
+            text: String,
+            slow_compile_cb: Callback<()>,
+        ) -> Result<Code, String> {
+            let start_time = instant::Instant::now();
+            let check_compile_time = || {
+                let elapsed = instant::Instant::now() - start_time;
+                if elapsed > std::time::Duration::from_millis(3000) {
+                    log::info!("Compilation was slow, switching backend to serverless");
+                    slow_compile_cb.emit(());
+                }
+            };
 
-                    let wasm = response.binary().await;
-                    if let Err(e) = wasm {
-                        log::error!("Compile error: {}", e);
-                        failure_callback.emit(e.to_string());
-                        check_compile_time();
-                        return;
-                    }
-
-                    let elapsed = instant::Instant::now() - start_time;
-                    log::info!("Compile succeeded in {:?}", elapsed);
-                    check_compile_time();
-                    success_callback.emit(Code::Wasm(wasm.unwrap()));
-                });
-
-                self.overlay = Some(Overlay::Compiling);
+            let result = Request::post(url).body(text).send().await;
+            if let Err(e) = result {
+                log::error!("Compile error: {}", e);
+                check_compile_time();
+                return Err(e.to_string());
             }
-            Code::Builtin(name) => match oort_simulator::vm::builtin::load_compiled(&name) {
-                Ok(code) => success_callback.emit(code),
-                Err(e) => failure_callback.emit(e),
-            },
-            _ => unreachable!(),
+
+            let response = result.unwrap();
+            if !response.ok() {
+                let error = response.text().await.unwrap();
+                log::error!("Compile error: {}", error);
+                check_compile_time();
+                return Err(error);
+            }
+
+            let wasm = response.binary().await;
+            if let Err(e) = wasm {
+                log::error!("Compile error: {}", e);
+                check_compile_time();
+                return Err(e.to_string());
+            }
+
+            let elapsed = instant::Instant::now() - start_time;
+            log::info!("Compile succeeded in {:?}", elapsed);
+            check_compile_time();
+            Ok(Code::Wasm(wasm.unwrap()))
         }
+
+        let source_codes: Vec<_> = self
+            .teams
+            .iter()
+            .map(|team| {
+                if let Some(compiled_code) = self.compilation_cache.get(&team.running_source_code) {
+                    compiled_code.clone()
+                } else {
+                    team.running_source_code.clone()
+                }
+            })
+            .collect();
+
+        wasm_bindgen_futures::spawn_local(async move {
+            let mut results = vec![];
+            for source_code in source_codes {
+                let result = match source_code {
+                    Code::Rust(text) => compile(url, text, slow_compile_callback.clone()).await,
+                    Code::Builtin(name) => oort_simulator::vm::builtin::load_compiled(&name),
+                    other => Ok(other),
+                };
+                results.push(result);
+            }
+            finished_callback.emit(results);
+        });
     }
 
     pub fn run(&mut self, context: &Context<Self>) {

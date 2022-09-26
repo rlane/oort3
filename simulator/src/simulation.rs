@@ -22,7 +22,7 @@ use std::rc::Rc;
 pub const WORLD_SIZE: f64 = 20000.0;
 pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Eq, Hash, PartialEq)]
 pub enum Code {
     None,
     Rust(String),
