@@ -168,10 +168,7 @@ impl Component for Game {
                 self.change_scenario(context, &scenario_name);
                 true
             }
-            Msg::SimulationFinished(snapshot) => {
-                self.on_simulation_finished(context, snapshot);
-                false
-            }
+            Msg::SimulationFinished(snapshot) => self.on_simulation_finished(context, snapshot),
             Msg::EditorAction { team, ref action } if action == "oort-execute" => {
                 let code = self.team(team).get_editor_code();
                 if team == 0 {
@@ -361,18 +358,20 @@ struct BackgroundSimSummary {
 }
 
 impl Game {
-    fn on_simulation_finished(&mut self, context: &yew::Context<Self>, snapshot: Snapshot) {
+    fn on_simulation_finished(&mut self, context: &yew::Context<Self>, snapshot: Snapshot) -> bool {
         let status = snapshot.status;
+
+        if !snapshot.errors.is_empty() {
+            self.compiler_errors = Some(format!("Simulation errors: {:?}", snapshot.errors));
+            return true;
+        }
 
         if context.props().demo && status != Status::Running {
             context
                 .link()
                 .send_message(Msg::SelectScenario(context.props().scenario.clone()));
-            return;
+            return false;
         }
-
-        self.player_team_mut()
-            .display_compiler_errors(&snapshot.errors);
 
         if let Status::Victory { team: 0 } = status {
             self.background_agents.clear();
@@ -400,6 +399,7 @@ impl Game {
         }
 
         self.last_snapshot = Some(snapshot);
+        false
     }
 
     fn render_overlay(&self, context: &yew::Context<Self>) -> Html {
@@ -786,10 +786,6 @@ impl Game {
 
     pub fn player_team(&self) -> &Team {
         self.team(0)
-    }
-
-    pub fn player_team_mut(&mut self) -> &mut Team {
-        self.team_mut(0)
     }
 }
 
