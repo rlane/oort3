@@ -15,7 +15,7 @@ export function init() {
             content: [
               {
                 type: "component",
-                title: "Editor 0",
+                title: "Editor (Player)",
                 componentName: "Editor",
                 componentState: { team: 0 },
                 isClosable: false,
@@ -23,7 +23,7 @@ export function init() {
               {
                 type: "component",
                 componentName: "Editor",
-                title: "Editor 1",
+                title: "Editor (Opponent)",
                 componentState: { team: 1 },
                 isClosable: false,
               },
