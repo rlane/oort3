@@ -38,13 +38,13 @@ pub enum Msg {
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_worker::Response, u32),
     ReceivedAnalyzerAgentResponse(oort_analyzer::Response),
-    EditorAction(String),
+    EditorAction { team: usize, action: String },
     ShowDocumentation,
     DismissOverlay,
-    CompileSucceeded(Code),
-    CompileFailed(String),
+    CompileSucceeded { team: usize, code: Code },
+    CompileFailed { team: usize, error: String },
     CompileSlow,
-    LoadedCodeFromDisk(String),
+    LoadedCodeFromDisk { team: usize, text: String },
     SubmitToTournament,
 }
 
@@ -190,47 +190,53 @@ impl Component for Game {
                 self.on_simulation_finished(context, snapshot);
                 false
             }
-            Msg::EditorAction(ref action) if action == "oort-execute" => {
-                let code = self.player_team().get_editor_code();
-                crate::codestorage::save(&self.scenario_name, &code);
-                self.start_compile(context, code);
+            Msg::EditorAction { team, ref action } if action == "oort-execute" => {
+                let code = self.team(team).get_editor_code();
+                if team == 0 {
+                    crate::codestorage::save(&self.scenario_name, &code);
+                }
+                self.start_compile(context, team, code);
                 true
             }
-            Msg::EditorAction(ref action) if action == "oort-restore-initial-code" => {
-                let mut code = scenario::load(&self.scenario_name).initial_code()[0].clone();
+            Msg::EditorAction { team, ref action } if action == "oort-restore-initial-code" => {
+                let mut code = scenario::load(&self.scenario_name).initial_code()[team].clone();
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
-                self.player_team().set_editor_text(&code_to_string(&code));
+                self.team(team).set_editor_text(&code_to_string(&code));
                 false
             }
-            Msg::EditorAction(ref action) if action == "oort-load-solution" => {
+            Msg::EditorAction { team, ref action } if action == "oort-load-solution" => {
                 let mut code = scenario::load(&self.scenario_name).solution();
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
-                self.player_team().set_editor_text(&code_to_string(&code));
+                self.team(team).set_editor_text(&code_to_string(&code));
                 false
             }
-            Msg::EditorAction(ref action) if action == "oort-load-file" => {
-                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
+            Msg::EditorAction { team, ref action } if action == "oort-load-file" => {
+                let cb = context
+                    .link()
+                    .callback(move |text| Msg::LoadedCodeFromDisk { team, text });
                 filesystem::load(Box::new(move |text| cb.emit(text)));
                 false
             }
-            Msg::EditorAction(ref action) if action == "oort-reload-file" => {
-                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
+            Msg::EditorAction { team, ref action } if action == "oort-reload-file" => {
+                let cb = context
+                    .link()
+                    .callback(move |text| Msg::LoadedCodeFromDisk { team, text });
                 filesystem::reload(Box::new(move |text| cb.emit(text)));
                 false
             }
-            Msg::EditorAction(ref action) if action == "oort-format" => {
-                let text = self.player_team().get_editor_text();
+            Msg::EditorAction { team, ref action } if action == "oort-format" => {
+                let text = self.team(team).get_editor_text();
                 let text = crate::format::format(&text);
-                self.player_team().set_editor_text(&text);
+                self.team(team).set_editor_text(&text);
                 self.analyzer_agent
                     .send(oort_analyzer::Request::Analyze(text));
                 false
             }
-            Msg::EditorAction(action) => {
+            Msg::EditorAction { team: _, action } => {
                 log::info!("Got unexpected editor action {}", action);
                 false
             }
@@ -263,24 +269,26 @@ impl Component for Game {
                 self.background_snapshots.clear();
                 true
             }
-            Msg::CompileSucceeded(code) => {
+            Msg::CompileSucceeded { team, code } => {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
-                self.player_team_mut().display_compiler_errors(&[]);
-                crate::telemetry::send(Telemetry::StartScenario {
-                    scenario_name: self.scenario_name.clone(),
-                    code: code_to_string(&self.player_team().running_source_code),
-                });
-                self.player_team_mut().running_compiled_code = code;
+                self.team_mut(team).display_compiler_errors(&[]);
+                if team == 0 {
+                    crate::telemetry::send(Telemetry::StartScenario {
+                        scenario_name: self.scenario_name.clone(),
+                        code: code_to_string(&self.player_team().running_source_code),
+                    });
+                }
+                self.team_mut(team).running_compiled_code = code;
                 self.run(context);
                 true
             }
-            Msg::CompileFailed(error) => {
+            Msg::CompileFailed { team, error } => {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
-                self.player_team_mut()
+                self.team_mut(team)
                     .display_compiler_errors(&make_editor_errors(&error));
                 self.compiler_errors = Some(error);
                 true
@@ -289,8 +297,8 @@ impl Component for Game {
                 self.saw_slow_compile = true;
                 false
             }
-            Msg::LoadedCodeFromDisk(text) => {
-                self.player_team().set_editor_text(&text);
+            Msg::LoadedCodeFromDisk { team, text } => {
+                self.team(team).set_editor_text(&text);
                 false
             }
             Msg::SubmitToTournament => {
@@ -327,14 +335,18 @@ impl Component for Game {
             .get_element_by_id("editor-window-0")
             .expect("a #editor-window element");
         let editor0_link = self.editor_links[0].clone();
-        let on_editor0_action = context.link().callback(Msg::EditorAction);
+        let on_editor0_action = context
+            .link()
+            .callback(|action| Msg::EditorAction { team: 0, action });
 
         // For EditorWindow 1
         let editor_window1_host = gloo_utils::document()
             .get_element_by_id("editor-window-1")
             .expect("a #editor-window element");
         let editor1_link = self.editor_links[1].clone();
-        let on_editor1_action = context.link().callback(Msg::EditorAction);
+        let on_editor1_action = context
+            .link()
+            .callback(|action| Msg::EditorAction { team: 1, action });
 
         // For SimulationWindow
         let simulation_window_host = gloo_utils::document()
@@ -647,11 +659,15 @@ impl Game {
         }
     }
 
-    pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
+    pub fn start_compile(&mut self, context: &Context<Self>, team: usize, code: Code) {
         self.compiler_errors = None;
-        self.player_team_mut().running_source_code = code.clone();
-        let success_callback = context.link().callback(Msg::CompileSucceeded);
-        let failure_callback = context.link().callback(Msg::CompileFailed);
+        self.team_mut(team).running_source_code = code.clone();
+        let success_callback = context
+            .link()
+            .callback(move |code| Msg::CompileSucceeded { team, code });
+        let failure_callback = context
+            .link()
+            .callback(move |error| Msg::CompileFailed { team, error });
         let compile_slow_callback = context.link().callback(|_| Msg::CompileSlow);
         match code {
             Code::Rust(src_code) => {
