@@ -398,29 +398,31 @@ impl Game {
             return false;
         }
 
-        if let Status::Victory { team: 0 } = status {
-            self.background_agents.clear();
-            self.background_snapshots.clear();
-            let codes: Vec<_> = self
-                .teams
-                .iter()
-                .map(|x| x.running_compiled_code.clone())
-                .collect();
-            for seed in 0..10 {
-                let cb = {
-                    let link = context.link().clone();
-                    move |e| link.send_message(Msg::ReceivedBackgroundSimAgentResponse(e, seed))
-                };
-                let mut sim_agent = SimAgent::bridge(Rc::new(cb));
-                sim_agent.send(oort_worker::Request::RunScenario {
-                    scenario_name: self.scenario_name.to_owned(),
-                    seed,
-                    codes: codes.clone(),
-                });
-                self.background_agents.push(sim_agent);
-            }
+        if self.leaderboard_eligible() {
+            if let Status::Victory { team: 0 } = status {
+                self.background_agents.clear();
+                self.background_snapshots.clear();
+                let codes: Vec<_> = self
+                    .teams
+                    .iter()
+                    .map(|x| x.running_compiled_code.clone())
+                    .collect();
+                for seed in 0..10 {
+                    let cb = {
+                        let link = context.link().clone();
+                        move |e| link.send_message(Msg::ReceivedBackgroundSimAgentResponse(e, seed))
+                    };
+                    let mut sim_agent = SimAgent::bridge(Rc::new(cb));
+                    sim_agent.send(oort_worker::Request::RunScenario {
+                        scenario_name: self.scenario_name.to_owned(),
+                        seed,
+                        codes: codes.clone(),
+                    });
+                    self.background_agents.push(sim_agent);
+                }
 
-            self.overlay = Some(Overlay::MissionComplete);
+                self.overlay = Some(Overlay::MissionComplete);
+            }
         }
 
         self.last_snapshot = Some(snapshot);
@@ -829,6 +831,16 @@ impl Game {
 
     pub fn player_team(&self) -> &Team {
         self.team(0)
+    }
+
+    pub fn leaderboard_eligible(&self) -> bool {
+        for team in &self.teams.as_slice()[1..] {
+            if team.running_source_code != team.initial_source_code {
+                log::info!("Not eligible for leaderboard due to modified opponent code");
+                return false;
+            }
+        }
+        true
     }
 }
 
