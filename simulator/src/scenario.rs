@@ -185,6 +185,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
         "tutorial10" => Box::new(Tutorial10::new()),
         "tutorial11" => Box::new(Tutorial11::new()),
         // Tournament
+        "primitive_duel" => Box::new(PrimitiveDuel::new()),
         "fighter_duel" => Box::new(FighterDuel::new()),
         "frigate_duel" => Box::new(FrigateDuel::new()),
         "cruiser_duel" => Box::new(CruiserDuel::new()),
@@ -1251,6 +1252,76 @@ impl Scenario for Tutorial11 {
 
     fn solution(&self) -> Code {
         builtin("tutorial/tutorial11.solution")
+    }
+}
+
+struct PrimitiveDuel {
+    ship0: Option<ShipHandle>,
+    ship1: Option<ShipHandle>,
+}
+
+impl PrimitiveDuel {
+    fn new() -> Self {
+        Self {
+            ship0: None,
+            ship1: None,
+        }
+    }
+}
+
+impl Scenario for PrimitiveDuel {
+    fn name(&self) -> String {
+        "primitive_duel".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+        add_walls(sim);
+        self.ship0 = Some(ship::create(
+            sim,
+            vector![-1000.0, -500.0],
+            vector![0.0, 0.0],
+            0.0,
+            fighter_without_missiles_or_radar(0),
+        ));
+        self.ship1 = Some(ship::create(
+            sim,
+            vector![1000.0, 500.0],
+            vector![0.0, 0.0],
+            std::f64::consts::PI,
+            fighter_without_missiles_or_radar(1),
+        ));
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tournament_victory(sim)
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
+    }
+
+    fn solution(&self) -> Code {
+        reference_ai()
+    }
+
+    fn is_tournament(&self) -> bool {
+        true
+    }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        if !sim.ships.contains(self.ship0.unwrap()) || !sim.ships.contains(self.ship1.unwrap()) {
+            return;
+        }
+
+        let ship0_position = sim.ship(self.ship0.unwrap()).position().vector;
+        let ship1_position = sim.ship(self.ship1.unwrap()).position().vector;
+
+        if let Some(c) = sim.ship_controllers.get_mut(&self.ship0.unwrap()) {
+            c.write_target(ship1_position);
+        }
+        if let Some(c) = sim.ship_controllers.get_mut(&self.ship1.unwrap()) {
+            c.write_target(ship0_position);
+        }
     }
 }
 
