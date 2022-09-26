@@ -68,14 +68,8 @@ pub struct Game {
     analyzer_agent: Box<dyn Bridge<AnalyzerAgent>>,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
     background_snapshots: Vec<(u32, Snapshot)>,
-    editor_link: CodeEditorLink,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
-    running_source_code: Code,
-    running_codes: Vec<Code>,
-    current_compiler_decorations: js_sys::Array,
-    current_analyzer_decorations: js_sys::Array,
-    last_analyzed_text: String,
     saw_slow_compile: bool,
     local_compiler: bool,
     compiler_errors: Option<String>,
@@ -83,6 +77,17 @@ pub struct Game {
     last_window_size: (i32, i32),
     last_snapshot: Option<Snapshot>,
     simulation_window_link: Option<Scope<SimulationWindow>>,
+    teams: Vec<Team>,
+    editor_links: Vec<CodeEditorLink>,
+}
+
+pub struct Team {
+    initial_source_code: Code,
+    running_source_code: Code,
+    running_compiled_code: Code,
+    current_compiler_decorations: js_sys::Array,
+    current_analyzer_decorations: js_sys::Array,
+    last_analyzed_text: String,
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -117,14 +122,8 @@ impl Component for Game {
             analyzer_agent,
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
-            editor_link: CodeEditorLink::default(),
             overlay: None,
             overlay_ref: NodeRef::default(),
-            running_source_code: Code::None,
-            running_codes: Vec::new(),
-            current_compiler_decorations: js_sys::Array::new(),
-            current_analyzer_decorations: js_sys::Array::new(),
-            last_analyzed_text: "".to_string(),
             saw_slow_compile: false,
             local_compiler,
             compiler_errors: None,
@@ -132,6 +131,8 @@ impl Component for Game {
             last_window_size: (0, 0),
             last_snapshot: None,
             simulation_window_link: None,
+            teams: Vec::new(),
+            editor_links: vec![CodeEditorLink::default()],
         }
     }
 
@@ -146,16 +147,18 @@ impl Component for Game {
                         crate::js::golden_layout::update_size();
                         self.last_window_size = new_size;
                     }
-                    self.editor_link.with_editor(|editor| {
-                        let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                        ed.layout(None);
-                    });
+                    for editor_link in &self.editor_links {
+                        editor_link.with_editor(|editor| {
+                            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                            ed.layout(None);
+                        });
+                    }
 
                     let text = self.get_editor_text();
-                    if text != self.last_analyzed_text {
+                    if text != self.player_team().last_analyzed_text {
                         self.analyzer_agent
                             .send(oort_analyzer::Request::Analyze(text.clone()));
-                        self.last_analyzed_text = text;
+                        self.player_team_mut().last_analyzed_text = text;
                     }
                 }
                 self.frame += 1;
@@ -179,29 +182,7 @@ impl Component for Game {
                 false
             }
             Msg::SelectScenario(scenario_name) => {
-                crate::codestorage::save(&self.scenario_name, &self.get_editor_code());
-                self.scenario_name = scenario_name;
-                let mut codes = crate::codestorage::load(&self.scenario_name);
-                let displayed_code = if self.scenario_name == "welcome" {
-                    Code::Rust(
-                        "\
-// Welcome to Oort.
-// Select a scenario from the list in the top-right of the page.
-// If you're new, start with \"tutorial01\"."
-                            .to_string(),
-                    )
-                } else if let Code::Builtin(name) = &codes[0] {
-                    oort_simulator::vm::builtin::load_source(name).unwrap()
-                } else {
-                    codes[0].clone()
-                };
-                self.set_editor_text(&code_to_string(&displayed_code));
-                codes[0] = if context.props().demo || self.scenario_name == "welcome" {
-                    oort_simulator::scenario::load(&self.scenario_name).solution()
-                } else {
-                    Code::None
-                };
-                self.run(context, &codes);
+                self.change_scenario(context, &scenario_name);
                 true
             }
             Msg::SimulationFinished(snapshot) => {
@@ -258,14 +239,14 @@ impl Component for Game {
             ) => {
                 self.background_snapshots.push((seed, snapshot));
                 if let Some(summary) = self.summarize_background_simulations() {
-                    let code = &self.running_source_code;
+                    let code = self.player_team().running_source_code.clone();
                     crate::telemetry::send(Telemetry::FinishScenario {
                         scenario_name: self.scenario_name.clone(),
-                        code: code_to_string(code),
+                        code: code_to_string(&code),
                         ticks: (summary.average_time.unwrap_or(0.0)
                             / simulation::PHYSICS_TICK_LENGTH)
                             as u32,
-                        code_size: crate::code_size::calculate(&code_to_string(code)),
+                        code_size: crate::code_size::calculate(&code_to_string(&code)),
                         success: summary.failed_seeds.is_empty(),
                     });
                 }
@@ -288,7 +269,7 @@ impl Component for Game {
                 self.display_errors(&[]);
                 crate::telemetry::send(Telemetry::StartScenario {
                     scenario_name: self.scenario_name.clone(),
-                    code: code_to_string(&self.running_source_code),
+                    code: code_to_string(&self.player_team().running_source_code),
                 });
                 let mut codes = crate::codestorage::load(&self.scenario_name);
                 codes[0] = code;
@@ -314,7 +295,7 @@ impl Component for Game {
             Msg::SubmitToTournament => {
                 crate::telemetry::send(Telemetry::SubmitToTournament {
                     scenario_name: self.scenario_name.clone(),
-                    code: code_to_string(&self.running_source_code),
+                    code: code_to_string(&self.player_team().running_source_code),
                 });
                 false
             }
@@ -344,7 +325,7 @@ impl Component for Game {
         let editor_window_host = gloo_utils::document()
             .get_element_by_id("editor-window")
             .expect("a #editor-window element");
-        let editor_link = self.editor_link.clone();
+        let editor_link = self.editor_links[0].clone();
         let on_editor_action = context.link().callback(Msg::EditorAction);
 
         // For SimulationWindow
@@ -398,6 +379,11 @@ impl Game {
         if let Status::Victory { team: 0 } = status {
             self.background_agents.clear();
             self.background_snapshots.clear();
+            let codes: Vec<_> = self
+                .teams
+                .iter()
+                .map(|x| x.running_compiled_code.clone())
+                .collect();
             for seed in 0..10 {
                 let cb = {
                     let link = context.link().clone();
@@ -407,7 +393,7 @@ impl Game {
                 sim_agent.send(oort_worker::Request::RunScenario {
                     scenario_name: self.scenario_name.to_owned(),
                     seed,
-                    codes: self.running_codes.clone(),
+                    codes: codes.clone(),
                 });
                 self.background_agents.push(sim_agent);
             }
@@ -531,7 +517,8 @@ impl Game {
         } else {
             0.0
         };
-        let code_size = crate::code_size::calculate(&code_to_string(&self.running_source_code));
+        let code_size =
+            crate::code_size::calculate(&code_to_string(&self.player_team().running_source_code));
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
 
@@ -690,12 +677,12 @@ impl Game {
         for decoration in decorations {
             decorations_jsarray.push(&decoration);
         }
-        self.current_compiler_decorations = self
-            .editor_link
+        self.player_team_mut().current_compiler_decorations = self.editor_links[0]
             .with_editor(|editor| {
-                editor
-                    .as_ref()
-                    .delta_decorations(&self.current_compiler_decorations, &decorations_jsarray)
+                editor.as_ref().delta_decorations(
+                    &self.player_team().current_compiler_decorations,
+                    &decorations_jsarray,
+                )
             })
             .unwrap();
     }
@@ -741,19 +728,19 @@ impl Game {
         for decoration in decorations {
             decorations_jsarray.push(&decoration);
         }
-        self.current_analyzer_decorations = self
-            .editor_link
+        self.player_team_mut().current_analyzer_decorations = self.editor_links[0]
             .with_editor(|editor| {
-                editor
-                    .as_ref()
-                    .delta_decorations(&self.current_analyzer_decorations, &decorations_jsarray)
+                editor.as_ref().delta_decorations(
+                    &self.player_team().current_analyzer_decorations,
+                    &decorations_jsarray,
+                )
             })
             .unwrap();
     }
 
     pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
         self.compiler_errors = None;
-        self.running_source_code = code.clone();
+        self.player_team_mut().running_source_code = code.clone();
         let success_callback = context.link().callback(Msg::CompileSucceeded);
         let failure_callback = context.link().callback(Msg::CompileFailed);
         let compile_slow_callback = context.link().callback(|_| Msg::CompileSlow);
@@ -821,7 +808,9 @@ impl Game {
 
     pub fn run(&mut self, context: &Context<Self>, codes: &[Code]) {
         self.compiler_errors = None;
-        self.running_codes = codes.to_vec();
+        for (i, code) in codes.iter().enumerate() {
+            self.teams[i].running_compiled_code = code.clone();
+        }
 
         let q = parse_query_params(context);
         let seed = q.seed.unwrap_or_else(|| rand::thread_rng().gen());
@@ -840,7 +829,7 @@ impl Game {
     }
 
     pub fn get_editor_text(&self) -> String {
-        self.editor_link
+        self.editor_links[0]
             .with_editor(|editor| editor.get_model().unwrap().get_value())
             .unwrap()
     }
@@ -849,10 +838,74 @@ impl Game {
         str_to_code(&self.get_editor_text())
     }
 
-    pub fn set_editor_text(&self, text: &str) {
-        self.editor_link.with_editor(|editor| {
+    pub fn set_editor_text(&mut self, text: &str) {
+        self.editor_links[0].with_editor(|editor| {
             editor.get_model().unwrap().set_value(text);
         });
+    }
+
+    pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str) {
+        crate::codestorage::save(&self.scenario_name, &self.get_editor_code());
+        self.scenario_name = scenario_name.to_string();
+        let codes = crate::codestorage::load(&self.scenario_name);
+        let scenario = oort_simulator::scenario::load(&self.scenario_name);
+
+        let to_source_code = |code: &Code| match code {
+            Code::Builtin(name) => oort_simulator::vm::builtin::load_source(name).unwrap(),
+            _ => code.clone(),
+        };
+
+        let mut player_team = Team {
+            initial_source_code: to_source_code(&codes[0]),
+            running_source_code: Code::None,
+            running_compiled_code: Code::None,
+            current_compiler_decorations: js_sys::Array::new(),
+            current_analyzer_decorations: js_sys::Array::new(),
+            last_analyzed_text: "".to_string(),
+        };
+
+        let enemy_team = Team {
+            initial_source_code: to_source_code(&codes[1]),
+            running_source_code: to_source_code(&codes[1]),
+            running_compiled_code: codes[1].clone(),
+            current_compiler_decorations: js_sys::Array::new(),
+            current_analyzer_decorations: js_sys::Array::new(),
+            last_analyzed_text: "".to_string(),
+        };
+
+        if context.props().demo || self.scenario_name == "welcome" {
+            let solution = scenario.solution();
+            player_team.initial_source_code = to_source_code(&solution);
+            player_team.running_source_code = player_team.initial_source_code.clone();
+            player_team.running_compiled_code = solution;
+        };
+
+        if self.scenario_name == "welcome" {
+            player_team.initial_source_code = Code::Rust(
+                "\
+// Welcome to Oort.
+// Select a scenario from the list in the top-right of the page.
+// If you're new, start with \"tutorial01\"."
+                    .to_string(),
+            );
+        }
+
+        self.set_editor_text(&code_to_string(&player_team.initial_source_code));
+        self.teams = vec![player_team, enemy_team];
+        let codes: Vec<_> = self
+            .teams
+            .iter()
+            .map(|x| x.running_compiled_code.clone())
+            .collect();
+        self.run(context, &codes);
+    }
+
+    pub fn player_team(&self) -> &Team {
+        &self.teams[0]
+    }
+
+    pub fn player_team_mut(&mut self) -> &mut Team {
+        &mut self.teams[0]
     }
 }
 
