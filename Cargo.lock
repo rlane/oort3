@@ -4936,7 +4936,6 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]
@@ -5730,7 +5729,7 @@ dependencies = [
 [[package]]
 name = "yew"
 version = "0.19.3"
-source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
+source = "git+https://github.com/yewstack/yew?rev=73d9c04782b5bb6103ac82431396970b5893fc31#73d9c04782b5bb6103ac82431396970b5893fc31"
 dependencies = [
  "console_error_panic_hook",
  "futures",
@@ -5739,11 +5738,10 @@ dependencies = [
  "indexmap",
  "js-sys",
  "once_cell",
+ "pin-project 1.0.12",
  "serde",
  "slab",
  "thiserror",
- "tokio",
- "tokio-stream",
  "tracing",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -5754,7 +5752,7 @@ dependencies = [
 [[package]]
 name = "yew-agent"
 version = "0.1.0"
-source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
+source = "git+https://github.com/yewstack/yew?rev=73d9c04782b5bb6103ac82431396970b5893fc31#73d9c04782b5bb6103ac82431396970b5893fc31"
 dependencies = [
  "gloo-worker 0.1.2",
  "yew",
@@ -5763,7 +5761,7 @@ dependencies = [
 [[package]]
 name = "yew-macro"
 version = "0.19.3"
-source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
+source = "git+https://github.com/yewstack/yew?rev=73d9c04782b5bb6103ac82431396970b5893fc31#73d9c04782b5bb6103ac82431396970b5893fc31"
 dependencies = [
  "boolinator",
  "once_cell",
@@ -5777,7 +5775,7 @@ dependencies = [
 [[package]]
 name = "yew-router"
 version = "0.16.0"
-source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
+source = "git+https://github.com/yewstack/yew?rev=73d9c04782b5bb6103ac82431396970b5893fc31#73d9c04782b5bb6103ac82431396970b5893fc31"
 dependencies = [
  "gloo",
  "js-sys",
@@ -5794,7 +5792,7 @@ dependencies = [
 [[package]]
 name = "yew-router-macro"
 version = "0.16.0"
-source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
+source = "git+https://github.com/yewstack/yew?rev=73d9c04782b5bb6103ac82431396970b5893fc31#73d9c04782b5bb6103ac82431396970b5893fc31"
 dependencies = [
  "proc-macro2 1.0.43",
  "quote 1.0.21",
