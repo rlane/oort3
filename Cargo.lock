@@ -2353,8 +2353,7 @@ dependencies = [
 [[package]]
 name = "monaco"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1b882423fc90db4603ce73a57e64dd568a66ee6776ac09a91bb05622cf6c1e3"
+source = "git+https://github.com/rlane/rust-monaco?rev=09ff7c17ad31b1c0f94f8441c6f092050edbec95#09ff7c17ad31b1c0f94f8441c6f092050edbec95"
 dependencies = [
  "js-sys",
  "paste",
@@ -5731,7 +5730,7 @@ dependencies = [
 [[package]]
 name = "yew"
 version = "0.19.3"
-source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
+source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
 dependencies = [
  "console_error_panic_hook",
  "futures",
@@ -5755,7 +5754,7 @@ dependencies = [
 [[package]]
 name = "yew-agent"
 version = "0.1.0"
-source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
+source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
 dependencies = [
  "gloo-worker 0.1.2",
  "yew",
@@ -5764,7 +5763,7 @@ dependencies = [
 [[package]]
 name = "yew-macro"
 version = "0.19.3"
-source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
+source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
 dependencies = [
  "boolinator",
  "once_cell",
@@ -5778,7 +5777,7 @@ dependencies = [
 [[package]]
 name = "yew-router"
 version = "0.16.0"
-source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
+source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
 dependencies = [
  "gloo",
  "js-sys",
@@ -5795,7 +5794,7 @@ dependencies = [
 [[package]]
 name = "yew-router-macro"
 version = "0.16.0"
-source = "git+https://github.com/yewstack/yew?rev=7c12a6bf32a66bae14fdf74e6394bfe91d088ec1#7c12a6bf32a66bae14fdf74e6394bfe91d088ec1"
+source = "git+https://github.com/yewstack/yew?rev=c7b4029e1b66998f285b62ffe9a3ef283eedbf53#c7b4029e1b66998f285b62ffe9a3ef283eedbf53"
 dependencies = [
  "proc-macro2 1.0.43",
  "quote 1.0.21",

@@ -15,13 +15,14 @@ members = [
 ]
 
 [patch.crates-io]
-yew = { git = "https://github.com/yewstack/yew", rev = "7c12a6bf32a66bae14fdf74e6394bfe91d088ec1" }
-yew-agent = { git = "https://github.com/yewstack/yew", rev = "7c12a6bf32a66bae14fdf74e6394bfe91d088ec1" }
-yew-router = { git = "https://github.com/yewstack/yew", rev = "7c12a6bf32a66bae14fdf74e6394bfe91d088ec1" }
+yew = { git = "https://github.com/yewstack/yew", rev = "c7b4029e1b66998f285b62ffe9a3ef283eedbf53" }
+yew-agent = { git = "https://github.com/yewstack/yew", rev = "c7b4029e1b66998f285b62ffe9a3ef283eedbf53" }
+yew-router = { git = "https://github.com/yewstack/yew", rev = "c7b4029e1b66998f285b62ffe9a3ef283eedbf53" }
 wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
 wasmer-compiler = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
 wasmer-compiler-cranelift = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
 rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
+monaco = { git = "https://github.com/rlane/rust-monaco", rev = "09ff7c17ad31b1c0f94f8441c6f092050edbec95" }
 
 [profile.dev.package.'*']
 opt-level = 3
