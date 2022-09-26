@@ -132,7 +132,7 @@ impl Component for Game {
             last_snapshot: None,
             simulation_window_link: None,
             teams: Vec::new(),
-            editor_links: vec![CodeEditorLink::default()],
+            editor_links: vec![CodeEditorLink::default(), CodeEditorLink::default()],
         }
     }
 
@@ -321,12 +321,19 @@ impl Component for Game {
         });
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
 
-        // For EditorWindow
-        let editor_window_host = gloo_utils::document()
-            .get_element_by_id("editor-window")
+        // For EditorWindow 0
+        let editor_window0_host = gloo_utils::document()
+            .get_element_by_id("editor-window-0")
             .expect("a #editor-window element");
-        let editor_link = self.editor_links[0].clone();
-        let on_editor_action = context.link().callback(Msg::EditorAction);
+        let editor0_link = self.editor_links[0].clone();
+        let on_editor0_action = context.link().callback(Msg::EditorAction);
+
+        // For EditorWindow 1
+        let editor_window1_host = gloo_utils::document()
+            .get_element_by_id("editor-window-1")
+            .expect("a #editor-window element");
+        let editor1_link = self.editor_links[1].clone();
+        let on_editor1_action = context.link().callback(Msg::EditorAction);
 
         // For SimulationWindow
         let simulation_window_host = gloo_utils::document()
@@ -339,7 +346,8 @@ impl Component for Game {
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} />
-            <EditorWindow host={editor_window_host} {editor_link} {on_editor_action} />
+            <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} />
+            <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} />
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} />
             { self.render_overlay(context) }
             { self.render_compiler_errors(context) }

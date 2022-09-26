@@ -11,10 +11,23 @@ export function init() {
         type: "row",
         content: [
           {
-            type: "component",
-            componentName: "Editor",
-            componentState: {},
-            isClosable: false,
+            type: "stack",
+            content: [
+              {
+                type: "component",
+                title: "Editor 0",
+                componentName: "Editor",
+                componentState: { team: 0 },
+                isClosable: false,
+              },
+              {
+                type: "component",
+                componentName: "Editor",
+                title: "Editor 1",
+                componentState: { team: 1 },
+                isClosable: false,
+              },
+            ],
           },
           {
             type: "component",
@@ -34,7 +47,7 @@ export function init() {
   goldenLayout.registerComponent(
     "Editor",
     function (container, componentState) {
-      container.getElement()[0].id = "editor-window";
+      container.getElement()[0].id = "editor-window-" + componentState.team;
     }
   );
   goldenLayout.registerComponent(
