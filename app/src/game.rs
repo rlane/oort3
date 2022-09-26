@@ -82,6 +82,7 @@ pub struct Game {
 }
 
 pub struct Team {
+    editor_link: CodeEditorLink,
     initial_source_code: Code,
     running_source_code: Code,
     running_compiled_code: Code,
@@ -154,7 +155,7 @@ impl Component for Game {
                         });
                     }
 
-                    let text = self.get_editor_text();
+                    let text = self.player_team().get_editor_text();
                     if text != self.player_team().last_analyzed_text {
                         self.analyzer_agent
                             .send(oort_analyzer::Request::Analyze(text.clone()));
@@ -190,7 +191,7 @@ impl Component for Game {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-execute" => {
-                let code = self.get_editor_code();
+                let code = self.player_team().get_editor_code();
                 crate::codestorage::save(&self.scenario_name, &code);
                 self.start_compile(context, code);
                 true
@@ -200,7 +201,7 @@ impl Component for Game {
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
-                self.set_editor_text(&code_to_string(&code));
+                self.player_team().set_editor_text(&code_to_string(&code));
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-load-solution" => {
@@ -208,7 +209,7 @@ impl Component for Game {
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
-                self.set_editor_text(&code_to_string(&code));
+                self.player_team().set_editor_text(&code_to_string(&code));
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-load-file" => {
@@ -222,9 +223,9 @@ impl Component for Game {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-format" => {
-                let text = self.get_editor_text();
+                let text = self.player_team().get_editor_text();
                 let text = crate::format::format(&text);
-                self.set_editor_text(&text);
+                self.player_team().set_editor_text(&text);
                 self.analyzer_agent
                     .send(oort_analyzer::Request::Analyze(text));
                 false
@@ -266,21 +267,21 @@ impl Component for Game {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
-                self.display_errors(&[]);
+                self.player_team_mut().display_compiler_errors(&[]);
                 crate::telemetry::send(Telemetry::StartScenario {
                     scenario_name: self.scenario_name.clone(),
                     code: code_to_string(&self.player_team().running_source_code),
                 });
-                let mut codes = crate::codestorage::load(&self.scenario_name);
-                codes[0] = code;
-                self.run(context, &codes);
+                self.player_team_mut().running_compiled_code = code;
+                self.run(context);
                 true
             }
             Msg::CompileFailed(error) => {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
-                self.display_errors(&Self::make_editor_errors(&error));
+                self.player_team_mut()
+                    .display_compiler_errors(&make_editor_errors(&error));
                 self.compiler_errors = Some(error);
                 true
             }
@@ -289,7 +290,7 @@ impl Component for Game {
                 false
             }
             Msg::LoadedCodeFromDisk(text) => {
-                self.set_editor_text(&text);
+                self.player_team().set_editor_text(&text);
                 false
             }
             Msg::SubmitToTournament => {
@@ -300,7 +301,7 @@ impl Component for Game {
                 false
             }
             Msg::ReceivedAnalyzerAgentResponse(oort_analyzer::Response::AnalyzeFinished(diags)) => {
-                self.display_analyzer_diagnostics(&diags);
+                self.player_team_mut().display_analyzer_diagnostics(&diags);
                 false
             }
         }
@@ -382,7 +383,8 @@ impl Game {
             return;
         }
 
-        self.display_errors(&snapshot.errors);
+        self.player_team_mut()
+            .display_compiler_errors(&snapshot.errors);
 
         if let Status::Victory { team: 0 } = status {
             self.background_agents.clear();
@@ -645,107 +647,6 @@ impl Game {
         }
     }
 
-    pub fn make_editor_errors(error: &str) -> Vec<vm::Error> {
-        let re = Regex::new(r"(?m)error.*?: (.*?)$\n.*?ai/src/user.rs:(\d+):").unwrap();
-        re.captures_iter(error)
-            .map(|m| vm::Error {
-                line: m[2].parse().unwrap(),
-                msg: m[1].to_string(),
-            })
-            .collect()
-    }
-
-    pub fn display_errors(&mut self, errors: &[vm::Error]) {
-        use monaco::sys::{
-            editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
-        };
-        let decorations: Vec<IModelDeltaDecoration> = errors
-            .iter()
-            .map(|error| {
-                let decoration: IModelDeltaDecoration = empty().into();
-                decoration.set_range(
-                    &Range::new(error.line as f64, 1.0, error.line as f64, 1.0).unchecked_into(),
-                );
-                let options: IModelDecorationOptions = empty().into();
-                options.set_is_whole_line(Some(true));
-                options.set_class_name("errorDecoration".into());
-                let hover_message: IMarkdownString = empty().into();
-                js_sys::Reflect::set(
-                    &hover_message,
-                    &JsValue::from_str("value"),
-                    &JsValue::from_str(&error.msg),
-                )
-                .unwrap();
-                options.set_hover_message(&hover_message);
-                decoration.set_options(&options);
-                decoration
-            })
-            .collect();
-        let decorations_jsarray = js_sys::Array::new();
-        for decoration in decorations {
-            decorations_jsarray.push(&decoration);
-        }
-        self.player_team_mut().current_compiler_decorations = self.editor_links[0]
-            .with_editor(|editor| {
-                editor.as_ref().delta_decorations(
-                    &self.player_team().current_compiler_decorations,
-                    &decorations_jsarray,
-                )
-            })
-            .unwrap();
-    }
-
-    pub fn display_analyzer_diagnostics(&mut self, diags: &[oort_analyzer::Diagnostic]) {
-        use monaco::sys::{
-            editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
-        };
-        let decorations: Vec<IModelDeltaDecoration> = diags
-            .iter()
-            .map(|diag| {
-                let decoration: IModelDeltaDecoration = empty().into();
-                decoration.set_range(
-                    &Range::new(
-                        diag.start_line as f64 + 1.0,
-                        diag.start_column as f64 + 1.0,
-                        diag.end_line as f64 + 1.0,
-                        diag.end_column as f64
-                            + 1.0
-                            + if diag.start_column == diag.end_column {
-                                1.0
-                            } else {
-                                0.0
-                            },
-                    )
-                    .unchecked_into(),
-                );
-                let options: IModelDecorationOptions = empty().into();
-                options.set_class_name("errorDecoration".into());
-                let hover_message: IMarkdownString = empty().into();
-                js_sys::Reflect::set(
-                    &hover_message,
-                    &JsValue::from_str("value"),
-                    &JsValue::from_str(&diag.message),
-                )
-                .unwrap();
-                options.set_hover_message(&hover_message);
-                decoration.set_options(&options);
-                decoration
-            })
-            .collect();
-        let decorations_jsarray = js_sys::Array::new();
-        for decoration in decorations {
-            decorations_jsarray.push(&decoration);
-        }
-        self.player_team_mut().current_analyzer_decorations = self.editor_links[0]
-            .with_editor(|editor| {
-                editor.as_ref().delta_decorations(
-                    &self.player_team().current_analyzer_decorations,
-                    &decorations_jsarray,
-                )
-            })
-            .unwrap();
-    }
-
     pub fn start_compile(&mut self, context: &Context<Self>, code: Code) {
         self.compiler_errors = None;
         self.player_team_mut().running_source_code = code.clone();
@@ -814,11 +715,14 @@ impl Game {
         }
     }
 
-    pub fn run(&mut self, context: &Context<Self>, codes: &[Code]) {
+    pub fn run(&mut self, context: &Context<Self>) {
         self.compiler_errors = None;
-        for (i, code) in codes.iter().enumerate() {
-            self.teams[i].running_compiled_code = code.clone();
-        }
+
+        let codes: Vec<_> = self
+            .teams
+            .iter()
+            .map(|x| x.running_compiled_code.clone())
+            .collect();
 
         let q = parse_query_params(context);
         let seed = q.seed.unwrap_or_else(|| rand::thread_rng().gen());
@@ -836,24 +740,10 @@ impl Game {
         self.background_snapshots.clear();
     }
 
-    pub fn get_editor_text(&self) -> String {
-        self.editor_links[0]
-            .with_editor(|editor| editor.get_model().unwrap().get_value())
-            .unwrap()
-    }
-
-    pub fn get_editor_code(&self) -> Code {
-        str_to_code(&self.get_editor_text())
-    }
-
-    pub fn set_editor_text(&mut self, text: &str) {
-        self.editor_links[0].with_editor(|editor| {
-            editor.get_model().unwrap().set_value(text);
-        });
-    }
-
     pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str) {
-        crate::codestorage::save(&self.scenario_name, &self.get_editor_code());
+        if !self.teams.is_empty() {
+            crate::codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
+        }
         self.scenario_name = scenario_name.to_string();
         let codes = crate::codestorage::load(&self.scenario_name);
         let scenario = oort_simulator::scenario::load(&self.scenario_name);
@@ -864,6 +754,7 @@ impl Game {
         };
 
         let mut player_team = Team {
+            editor_link: self.editor_links[0].clone(),
             initial_source_code: to_source_code(&codes[0]),
             running_source_code: Code::None,
             running_compiled_code: Code::None,
@@ -873,6 +764,7 @@ impl Game {
         };
 
         let enemy_team = Team {
+            editor_link: self.editor_links[1].clone(),
             initial_source_code: to_source_code(&codes[1]),
             running_source_code: to_source_code(&codes[1]),
             running_compiled_code: codes[1].clone(),
@@ -898,22 +790,135 @@ impl Game {
             );
         }
 
-        self.set_editor_text(&code_to_string(&player_team.initial_source_code));
+        player_team.set_editor_text(&code_to_string(&player_team.initial_source_code));
+        enemy_team.set_editor_text(&code_to_string(&enemy_team.initial_source_code));
         self.teams = vec![player_team, enemy_team];
-        let codes: Vec<_> = self
-            .teams
-            .iter()
-            .map(|x| x.running_compiled_code.clone())
-            .collect();
-        self.run(context, &codes);
+        self.run(context);
+    }
+
+    pub fn team(&self, index: usize) -> &Team {
+        self.teams.get(index).expect("Invalid team")
+    }
+
+    pub fn team_mut(&mut self, index: usize) -> &mut Team {
+        self.teams.get_mut(index).expect("Invalid team")
     }
 
     pub fn player_team(&self) -> &Team {
-        &self.teams[0]
+        self.team(0)
     }
 
     pub fn player_team_mut(&mut self) -> &mut Team {
-        &mut self.teams[0]
+        self.team_mut(0)
+    }
+}
+
+impl Team {
+    pub fn get_editor_text(&self) -> String {
+        self.editor_link
+            .with_editor(|editor| editor.get_model().unwrap().get_value())
+            .unwrap()
+    }
+
+    pub fn get_editor_code(&self) -> Code {
+        str_to_code(&self.get_editor_text())
+    }
+
+    pub fn set_editor_text(&self, text: &str) {
+        self.editor_link.with_editor(|editor| {
+            editor.get_model().unwrap().set_value(text);
+        });
+    }
+
+    pub fn display_compiler_errors(&mut self, errors: &[vm::Error]) {
+        use monaco::sys::{
+            editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
+        };
+        let decorations: Vec<IModelDeltaDecoration> = errors
+            .iter()
+            .map(|error| {
+                let decoration: IModelDeltaDecoration = empty().into();
+                decoration.set_range(
+                    &Range::new(error.line as f64, 1.0, error.line as f64, 1.0).unchecked_into(),
+                );
+                let options: IModelDecorationOptions = empty().into();
+                options.set_is_whole_line(Some(true));
+                options.set_class_name("errorDecoration".into());
+                let hover_message: IMarkdownString = empty().into();
+                js_sys::Reflect::set(
+                    &hover_message,
+                    &JsValue::from_str("value"),
+                    &JsValue::from_str(&error.msg),
+                )
+                .unwrap();
+                options.set_hover_message(&hover_message);
+                decoration.set_options(&options);
+                decoration
+            })
+            .collect();
+        let decorations_jsarray = js_sys::Array::new();
+        for decoration in decorations {
+            decorations_jsarray.push(&decoration);
+        }
+        self.current_compiler_decorations = self
+            .editor_link
+            .with_editor(|editor| {
+                editor
+                    .as_ref()
+                    .delta_decorations(&self.current_compiler_decorations, &decorations_jsarray)
+            })
+            .unwrap();
+    }
+
+    pub fn display_analyzer_diagnostics(&mut self, diags: &[oort_analyzer::Diagnostic]) {
+        use monaco::sys::{
+            editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
+        };
+        let decorations: Vec<IModelDeltaDecoration> = diags
+            .iter()
+            .map(|diag| {
+                let decoration: IModelDeltaDecoration = empty().into();
+                decoration.set_range(
+                    &Range::new(
+                        diag.start_line as f64 + 1.0,
+                        diag.start_column as f64 + 1.0,
+                        diag.end_line as f64 + 1.0,
+                        diag.end_column as f64
+                            + 1.0
+                            + if diag.start_column == diag.end_column {
+                                1.0
+                            } else {
+                                0.0
+                            },
+                    )
+                    .unchecked_into(),
+                );
+                let options: IModelDecorationOptions = empty().into();
+                options.set_class_name("errorDecoration".into());
+                let hover_message: IMarkdownString = empty().into();
+                js_sys::Reflect::set(
+                    &hover_message,
+                    &JsValue::from_str("value"),
+                    &JsValue::from_str(&diag.message),
+                )
+                .unwrap();
+                options.set_hover_message(&hover_message);
+                decoration.set_options(&options);
+                decoration
+            })
+            .collect();
+        let decorations_jsarray = js_sys::Array::new();
+        for decoration in decorations {
+            decorations_jsarray.push(&decoration);
+        }
+        self.current_analyzer_decorations = self
+            .editor_link
+            .with_editor(|editor| {
+                editor
+                    .as_ref()
+                    .delta_decorations(&self.current_analyzer_decorations, &decorations_jsarray)
+            })
+            .unwrap();
     }
 }
 
@@ -944,4 +949,14 @@ fn parse_query_params(context: &Context<Game>) -> QueryParams {
             Default::default()
         }
     }
+}
+
+fn make_editor_errors(error: &str) -> Vec<vm::Error> {
+    let re = Regex::new(r"(?m)error.*?: (.*?)$\n.*?ai/src/user.rs:(\d+):").unwrap();
+    re.captures_iter(error)
+        .map(|m| vm::Error {
+            line: m[2].parse().unwrap(),
+            msg: m[1].to_string(),
+        })
+        .collect()
 }
