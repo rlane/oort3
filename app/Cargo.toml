@@ -46,6 +46,7 @@ qstring = "0.7.2"
 prettyplease = "0.1"
 syn = { version = "1", default-features = false, features = ["full", "parsing"] }
 gloo-utils = "0.1.5"
+gloo-timers = "0.2.4"
 
 [dependencies.web-sys]
 version = "0.3.57"

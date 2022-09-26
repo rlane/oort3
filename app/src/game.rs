@@ -6,7 +6,6 @@ use crate::telemetry::Telemetry;
 use crate::toolbar::Toolbar;
 use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
-use oort_analyzer::AnalyzerAgent;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
@@ -37,7 +36,6 @@ pub enum Msg {
     SelectScenario(String),
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_worker::Response, u32),
-    ReceivedAnalyzerAgentResponse(oort_analyzer::Response),
     EditorAction { team: usize, action: String },
     ShowDocumentation,
     DismissOverlay,
@@ -65,7 +63,6 @@ struct QueryParams {
 pub struct Game {
     render_handle: Option<AnimationFrame>,
     scenario_name: String,
-    analyzer_agent: Box<dyn Bridge<AnalyzerAgent>>,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
     background_snapshots: Vec<(u32, Snapshot)>,
     overlay: Option<Overlay>,
@@ -87,8 +84,6 @@ pub struct Team {
     running_source_code: Code,
     running_compiled_code: Code,
     current_compiler_decorations: js_sys::Array,
-    current_analyzer_decorations: js_sys::Array,
-    last_analyzed_text: String,
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -107,11 +102,6 @@ impl Component for Game {
         let render_handle = Some(request_animation_frame(move |_ts| {
             link2.send_message(Msg::Render)
         }));
-        let cb = {
-            let link = context.link().clone();
-            move |e| link.send_message(Msg::ReceivedAnalyzerAgentResponse(e))
-        };
-        let analyzer_agent = AnalyzerAgent::bridge(Rc::new(cb));
         let q = parse_query_params(context);
         let local_compiler = q.local;
         if local_compiler {
@@ -120,7 +110,6 @@ impl Component for Game {
         Self {
             render_handle,
             scenario_name: String::new(),
-            analyzer_agent,
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
             overlay: None,
@@ -153,13 +142,6 @@ impl Component for Game {
                             let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
                             ed.layout(None);
                         });
-                    }
-
-                    let text = self.player_team().get_editor_text();
-                    if text != self.player_team().last_analyzed_text {
-                        self.analyzer_agent
-                            .send(oort_analyzer::Request::Analyze(text.clone()));
-                        self.player_team_mut().last_analyzed_text = text;
                     }
                 }
                 self.frame += 1;
@@ -232,8 +214,6 @@ impl Component for Game {
                 let text = self.team(team).get_editor_text();
                 let text = crate::format::format(&text);
                 self.team(team).set_editor_text(&text);
-                self.analyzer_agent
-                    .send(oort_analyzer::Request::Analyze(text));
                 false
             }
             Msg::EditorAction { team: _, action } => {
@@ -306,10 +286,6 @@ impl Component for Game {
                     scenario_name: self.scenario_name.clone(),
                     code: code_to_string(&self.player_team().running_source_code),
                 });
-                false
-            }
-            Msg::ReceivedAnalyzerAgentResponse(oort_analyzer::Response::AnalyzeFinished(diags)) => {
-                self.player_team_mut().display_analyzer_diagnostics(&diags);
                 false
             }
         }
@@ -769,25 +745,13 @@ impl Game {
             _ => code.clone(),
         };
 
-        let mut player_team = Team {
-            editor_link: self.editor_links[0].clone(),
-            initial_source_code: to_source_code(&codes[0]),
-            running_source_code: Code::None,
-            running_compiled_code: Code::None,
-            current_compiler_decorations: js_sys::Array::new(),
-            current_analyzer_decorations: js_sys::Array::new(),
-            last_analyzed_text: "".to_string(),
-        };
+        let mut player_team = Team::new(self.editor_links[0].clone());
+        player_team.initial_source_code = to_source_code(&codes[0]);
 
-        let enemy_team = Team {
-            editor_link: self.editor_links[1].clone(),
-            initial_source_code: to_source_code(&codes[1]),
-            running_source_code: to_source_code(&codes[1]),
-            running_compiled_code: codes[1].clone(),
-            current_compiler_decorations: js_sys::Array::new(),
-            current_analyzer_decorations: js_sys::Array::new(),
-            last_analyzed_text: "".to_string(),
-        };
+        let mut enemy_team = Team::new(self.editor_links[1].clone());
+        enemy_team.initial_source_code = to_source_code(&codes[1]);
+        enemy_team.running_source_code = to_source_code(&codes[1]);
+        enemy_team.running_compiled_code = codes[1].clone();
 
         if context.props().demo || self.scenario_name == "welcome" {
             let solution = scenario.solution();
@@ -830,6 +794,16 @@ impl Game {
 }
 
 impl Team {
+    pub fn new(editor_link: CodeEditorLink) -> Self {
+        Self {
+            editor_link,
+            initial_source_code: Code::None,
+            running_source_code: Code::None,
+            running_compiled_code: Code::None,
+            current_compiler_decorations: js_sys::Array::new(),
+        }
+    }
+
     pub fn get_editor_text(&self) -> String {
         self.editor_link
             .with_editor(|editor| editor.get_model().unwrap().get_value())
@@ -844,6 +818,7 @@ impl Team {
         self.editor_link.with_editor(|editor| {
             editor.get_model().unwrap().set_value(text);
         });
+        // TODO trigger analyzer run
     }
 
     pub fn display_compiler_errors(&mut self, errors: &[vm::Error]) {
@@ -882,57 +857,6 @@ impl Team {
                 editor
                     .as_ref()
                     .delta_decorations(&self.current_compiler_decorations, &decorations_jsarray)
-            })
-            .unwrap();
-    }
-
-    pub fn display_analyzer_diagnostics(&mut self, diags: &[oort_analyzer::Diagnostic]) {
-        use monaco::sys::{
-            editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
-        };
-        let decorations: Vec<IModelDeltaDecoration> = diags
-            .iter()
-            .map(|diag| {
-                let decoration: IModelDeltaDecoration = empty().into();
-                decoration.set_range(
-                    &Range::new(
-                        diag.start_line as f64 + 1.0,
-                        diag.start_column as f64 + 1.0,
-                        diag.end_line as f64 + 1.0,
-                        diag.end_column as f64
-                            + 1.0
-                            + if diag.start_column == diag.end_column {
-                                1.0
-                            } else {
-                                0.0
-                            },
-                    )
-                    .unchecked_into(),
-                );
-                let options: IModelDecorationOptions = empty().into();
-                options.set_class_name("errorDecoration".into());
-                let hover_message: IMarkdownString = empty().into();
-                js_sys::Reflect::set(
-                    &hover_message,
-                    &JsValue::from_str("value"),
-                    &JsValue::from_str(&diag.message),
-                )
-                .unwrap();
-                options.set_hover_message(&hover_message);
-                decoration.set_options(&options);
-                decoration
-            })
-            .collect();
-        let decorations_jsarray = js_sys::Array::new();
-        for decoration in decorations {
-            decorations_jsarray.push(&decoration);
-        }
-        self.current_analyzer_decorations = self
-            .editor_link
-            .with_editor(|editor| {
-                editor
-                    .as_ref()
-                    .delta_decorations(&self.current_analyzer_decorations, &decorations_jsarray)
             })
             .unwrap();
     }

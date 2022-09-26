@@ -2565,6 +2565,7 @@ dependencies = [
  "flate2",
  "getrandom 0.2.7",
  "gloo-render",
+ "gloo-timers",
  "gloo-utils",
  "instant",
  "js-sys",
