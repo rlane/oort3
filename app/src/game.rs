@@ -285,14 +285,15 @@ impl Component for Game {
                     .filter_map(|x| x.as_ref().err())
                     .cloned()
                     .collect();
-                if !errors.is_empty() {
+                if errors.is_empty() {
+                    crate::telemetry::send(Telemetry::StartScenario {
+                        scenario_name: self.scenario_name.clone(),
+                        code: code_to_string(&self.player_team().running_source_code),
+                    });
+                    self.run(context);
+                } else {
                     self.compiler_errors = Some(errors.join("\n"));
                 }
-                crate::telemetry::send(Telemetry::StartScenario {
-                    scenario_name: self.scenario_name.clone(),
-                    code: code_to_string(&self.player_team().running_source_code),
-                });
-                self.run(context);
                 true
             }
             Msg::CompileSlow => {
@@ -353,15 +354,15 @@ impl Component for Game {
         let on_simulation_finished = context.link().callback(Msg::SimulationFinished);
         let register_link = context.link().callback(Msg::RegisterSimulationWindowLink);
         let version = context.props().version.clone();
+        let compiler_errors = self.compiler_errors.clone();
 
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} />
             <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} />
             <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} />
-            <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} />
+            <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} {compiler_errors} />
             { self.render_overlay(context) }
-            { self.render_compiler_errors(context) }
         </>
         }
     }
@@ -462,21 +463,6 @@ impl Game {
                     }
                 }</div>
             </div>
-        }
-    }
-
-    fn render_compiler_errors(&self, _context: &yew::Context<Self>) -> Html {
-        if let Some(e) = self.compiler_errors.as_ref() {
-            html! {
-                <div id="compiler-errors">
-                    <pre>
-                        <h1>{ "Compile error" }</h1>
-                        { e }
-                    </pre>
-                </div>
-            }
-        } else {
-            html! {}
         }
     }
 

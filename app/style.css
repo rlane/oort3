@@ -149,14 +149,22 @@ a:hover {
 
 #compiler-errors {
   position: absolute;
-  top: 100px;
-  left: calc(80ch + 50px);
-  width: calc(100% - 80ch - 100px);
-  height: calc(100% - 200px);
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
 
   overflow: auto;
   background-color: #1e1e1e;
   border: 1px solid rgba(191, 191, 191, 0.4);
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+.visible {
+  visibility: visible;
 }
 
 #compiler-errors pre {
