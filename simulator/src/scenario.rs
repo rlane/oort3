@@ -1165,6 +1165,10 @@ impl Scenario for Tutorial09 {
     fn solution(&self) -> Code {
         builtin("tutorial/tutorial09.solution")
     }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial10".to_string())
+    }
 }
 
 struct Tutorial10 {}
@@ -1208,6 +1212,10 @@ impl Scenario for Tutorial10 {
 
     fn solution(&self) -> Code {
         builtin("tutorial/tutorial10.solution")
+    }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial11".to_string())
     }
 }
 
