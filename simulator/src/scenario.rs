@@ -612,7 +612,7 @@ impl Scenario for Tutorial01 {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial01.initial"), Code::None]
+        vec![builtin("tutorial/tutorial01.initial")]
     }
 
     fn solution(&self) -> Code {
@@ -847,7 +847,7 @@ impl Scenario for Tutorial04 {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial04.initial"), Code::None]
+        vec![builtin("tutorial/tutorial04.initial")]
     }
 
     fn solution(&self) -> Code {

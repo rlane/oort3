@@ -668,6 +668,10 @@ impl Game {
             text: String,
             slow_compile_cb: Callback<()>,
         ) -> Result<Code, String> {
+            if text.trim().is_empty() {
+                return Ok(Code::None);
+            }
+
             let start_time = instant::Instant::now();
             let check_compile_time = || {
                 let elapsed = instant::Instant::now() - start_time;
@@ -709,7 +713,9 @@ impl Game {
             .teams
             .iter()
             .map(|team| {
-                if team.running_source_code == team.initial_source_code
+                if team.running_source_code == Code::Rust("".to_string()) {
+                    Code::None
+                } else if team.running_source_code == team.initial_source_code
                     && team.initial_compiled_code != Code::None
                 {
                     team.initial_compiled_code.clone()
@@ -778,12 +784,6 @@ impl Game {
         let mut player_team = Team::new(self.editor_links[0].clone());
         player_team.initial_source_code = to_source_code(&codes[0]);
 
-        let mut enemy_team = Team::new(self.editor_links[1].clone());
-        enemy_team.initial_source_code = to_source_code(&codes[1]);
-        enemy_team.running_source_code = to_source_code(&codes[1]);
-        enemy_team.initial_compiled_code = codes[1].clone();
-        enemy_team.running_compiled_code = codes[1].clone();
-
         if context.props().demo || self.scenario_name == "welcome" {
             let solution = scenario.solution();
             player_team.initial_source_code = to_source_code(&solution);
@@ -802,8 +802,18 @@ impl Game {
         }
 
         player_team.set_editor_text(&code_to_string(&player_team.initial_source_code));
-        enemy_team.set_editor_text(&code_to_string(&enemy_team.initial_source_code));
-        self.teams = vec![player_team, enemy_team];
+        self.teams = vec![player_team];
+
+        if codes.len() > 1 {
+            let mut enemy_team = Team::new(self.editor_links[1].clone());
+            enemy_team.initial_source_code = to_source_code(&codes[1]);
+            enemy_team.running_source_code = to_source_code(&codes[1]);
+            enemy_team.initial_compiled_code = codes[1].clone();
+            enemy_team.running_compiled_code = codes[1].clone();
+            enemy_team.set_editor_text(&code_to_string(&enemy_team.initial_source_code));
+            self.teams.push(enemy_team);
+        }
+
         self.run(context);
     }
 
@@ -823,6 +833,8 @@ impl Game {
         for team in &self.teams.as_slice()[1..] {
             if team.running_source_code != team.initial_source_code {
                 log::info!("Not eligible for leaderboard due to modified opponent code");
+                log::info!("Initial: {:?}", team.initial_source_code);
+                log::info!("Running: {:?}", team.running_source_code);
                 return false;
             }
         }
