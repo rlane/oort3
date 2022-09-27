@@ -9,6 +9,9 @@ const COLLECTION_NAME: &'static str = "telemetry";
 #[derive(Parser, Debug)]
 #[clap()]
 struct Arguments {
+    #[clap(short, long, value_parser, default_value_t = String::from("oort-319301"))]
+    project_id: String,
+
     #[clap(subcommand)]
     cmd: SubCommand,
 }
@@ -22,10 +25,6 @@ enum SubCommand {
     Get {
         docid: String,
     },
-}
-
-pub fn config_env_var(name: &str) -> Result<String, String> {
-    std::env::var(name).map_err(|e| format!("{}: {}", name, e))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -67,15 +66,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let args = Arguments::parse();
     match args.cmd {
-        SubCommand::List { user } => cmd_list(user).await,
-        SubCommand::Get { docid } => cmd_get(docid).await,
+        SubCommand::List { user } => cmd_list(&args.project_id, user).await,
+        SubCommand::Get { docid } => cmd_get(&args.project_id, docid).await,
     }
 }
 
 async fn cmd_list(
+    project_id: &str,
     user_filter: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
+    let db = FirestoreDb::new(project_id).await?;
 
     let docs: Vec<Document> = db
         .query_doc(FirestoreQueryParams::new(COLLECTION_NAME.into()).clone())
@@ -124,8 +124,11 @@ async fn cmd_list(
     Ok(())
 }
 
-async fn cmd_get(docid: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
+async fn cmd_get(
+    project_id: &str,
+    docid: String,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let db = FirestoreDb::new(project_id).await?;
     if let Ok(msg) = db.get_obj::<TelemetryMsg>(COLLECTION_NAME, &docid).await {
         let user = msg.username.as_ref().unwrap_or(&msg.userid);
         match msg.payload {
