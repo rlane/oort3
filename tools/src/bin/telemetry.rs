@@ -1,8 +1,11 @@
 use chrono::prelude::*;
 use clap::{Parser, Subcommand};
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::Table;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 const COLLECTION_NAME: &'static str = "telemetry";
 
@@ -25,9 +28,12 @@ enum SubCommand {
     Get {
         docid: String,
     },
+    Top {
+        scenario: String,
+    },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct TelemetryMsg {
     #[serde(flatten)]
     payload: Telemetry,
@@ -36,7 +42,7 @@ struct TelemetryMsg {
     username: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Telemetry {
     StartScenario {
@@ -68,6 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match args.cmd {
         SubCommand::List { user } => cmd_list(&args.project_id, user).await,
         SubCommand::Get { docid } => cmd_get(&args.project_id, docid).await,
+        SubCommand::Top { scenario } => cmd_top(&args.project_id, scenario).await,
     }
 }
 
@@ -171,6 +178,93 @@ async fn cmd_get(
         let doc = db.get_doc_by_id("", COLLECTION_NAME, &docid).await?;
         println!("Failed to parse {:?}", doc);
     }
+
+    Ok(())
+}
+
+async fn cmd_top(
+    project_id: &str,
+    scenario: String,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let db = FirestoreDb::new(project_id).await?;
+
+    let docs: Vec<Document> = db
+        .query_doc(
+            FirestoreQueryParams::new(COLLECTION_NAME.into()).with_filter(
+                FirestoreQueryFilter::Composite(FirestoreQueryFilterComposite::new(vec![
+                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                        "type".into(),
+                        "FinishScenario".into(),
+                    ))),
+                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                        "success".into(),
+                        true.into(),
+                    ))),
+                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                        "scenario_name".into(),
+                        scenario.clone().into(),
+                    ))),
+                ])),
+            ),
+        )
+        .await?;
+
+    // userid -> (ticks, creation_time, docid, msg)
+    let mut best_times: HashMap<String, (u32, DateTime<Local>, String, TelemetryMsg)> =
+        HashMap::new();
+
+    for doc in &docs {
+        if let Ok(msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
+            let (_, docid) = doc.name.rsplit_once("/").unwrap();
+            let epoch_time = doc.create_time.clone().map(|x| x.seconds).unwrap_or(0);
+            let creation_time = Local.timestamp(epoch_time, 0);
+            match &msg.payload {
+                Telemetry::FinishScenario { ticks, .. } => {
+                    let insert = if let Some((ref old_ticks, _, _, _)) = best_times.get(&msg.userid)
+                    {
+                        old_ticks > ticks
+                    } else {
+                        true
+                    };
+                    if insert {
+                        best_times.insert(
+                            msg.userid.clone(),
+                            (*ticks, creation_time, docid.to_owned(), msg.clone()),
+                        );
+                    }
+                }
+                _ => unreachable!(),
+            }
+        } else {
+            log::error!("Failed to deserialize doc {}", doc.name);
+        }
+    }
+
+    let mut top: Vec<_> = best_times.into_values().collect();
+    top.sort_by_key(|x| x.0);
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec!["Rank", "User", "Time", "Docid", "Created"]);
+
+    for (i, (_, creation_time, docid, msg)) in top.iter().take(10).enumerate() {
+        let user = msg.username.as_ref().unwrap_or(&msg.userid);
+        match &msg.payload {
+            Telemetry::FinishScenario { ticks, .. } => {
+                table.add_row(vec![
+                    format!("{}", i + 1),
+                    user.to_owned(),
+                    format!("{:.2}s", *ticks as f64 / 60.0),
+                    docid.to_owned(),
+                    creation_time.format("%Y-%m-%d %H:%M:%S").to_string(),
+                ]);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    println!("Scenario: {}", scenario);
+    println!("{}", table);
 
     Ok(())
 }
