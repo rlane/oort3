@@ -15,8 +15,13 @@ struct Arguments {
 
 #[derive(Subcommand, Debug)]
 enum SubCommand {
-    List,
-    Get { docid: String },
+    List {
+        #[clap(short, long, value_parser)]
+        user: Option<String>,
+    },
+    Get {
+        docid: String,
+    },
 }
 
 pub fn config_env_var(name: &str) -> Result<String, String> {
@@ -62,12 +67,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let args = Arguments::parse();
     match args.cmd {
-        SubCommand::List => cmd_list().await,
+        SubCommand::List { user } => cmd_list(user).await,
         SubCommand::Get { docid } => cmd_get(docid).await,
     }
 }
 
-async fn cmd_list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn cmd_list(
+    user_filter: Option<String>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
 
     let docs: Vec<Document> = db
@@ -77,6 +84,11 @@ async fn cmd_list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
             let (_, docid) = doc.name.rsplit_once("/").unwrap();
             let user = msg.username.as_ref().unwrap_or(&msg.userid);
+            if let Some(u) = user_filter.as_ref() {
+                if user != u {
+                    continue;
+                }
+            }
             let epoch_time = doc.create_time.clone().map(|x| x.seconds).unwrap_or(0);
             let time = Local.timestamp(epoch_time, 0);
             let prefix = format!("{docid} {}", time.format("%Y-%m-%d %H:%M:%S"));
