@@ -30,6 +30,8 @@ enum SubCommand {
     },
     Top {
         scenario: String,
+        #[clap(short, long, value_parser)]
+        out_dir: Option<String>,
     },
 }
 
@@ -74,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match args.cmd {
         SubCommand::List { user } => cmd_list(&args.project_id, user).await,
         SubCommand::Get { docid } => cmd_get(&args.project_id, docid).await,
-        SubCommand::Top { scenario } => cmd_top(&args.project_id, scenario).await,
+        SubCommand::Top { scenario, out_dir } => cmd_top(&args.project_id, scenario, out_dir).await,
     }
 }
 
@@ -185,6 +187,7 @@ async fn cmd_get(
 async fn cmd_top(
     project_id: &str,
     scenario: String,
+    out_dir: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = FirestoreDb::new(project_id).await?;
 
@@ -247,10 +250,12 @@ async fn cmd_top(
     table.load_preset(UTF8_FULL);
     table.set_header(vec!["Rank", "User", "Time", "Docid", "Created"]);
 
+    let mut outputs: Vec<(String, String)> = Vec::new();
+
     for (i, (_, creation_time, docid, msg)) in top.iter().take(10).enumerate() {
         let user = msg.username.as_ref().unwrap_or(&msg.userid);
         match &msg.payload {
-            Telemetry::FinishScenario { ticks, .. } => {
+            Telemetry::FinishScenario { ticks, code, .. } => {
                 table.add_row(vec![
                     format!("{}", i + 1),
                     user.to_owned(),
@@ -258,6 +263,7 @@ async fn cmd_top(
                     docid.to_owned(),
                     creation_time.format("%Y-%m-%d %H:%M:%S").to_string(),
                 ]);
+                outputs.push((user.to_owned(), code.to_owned()));
             }
             _ => unreachable!(),
         }
@@ -265,6 +271,13 @@ async fn cmd_top(
 
     println!("Scenario: {}", scenario);
     println!("{}", table);
+
+    if let Some(out_dir) = out_dir {
+        std::fs::create_dir_all(&out_dir).unwrap();
+        for (user, code) in outputs.iter() {
+            std::fs::write(format!("{}/{}.rs", &out_dir, user), code).unwrap();
+        }
+    }
 
     Ok(())
 }
