@@ -213,6 +213,7 @@ pub fn list() -> Vec<String> {
         "tutorial10",
         "tutorial11",
         "gunnery",
+        "primitive_duel",
         "fighter_duel",
         "frigate_duel",
         "cruiser_duel",
@@ -1282,18 +1283,24 @@ impl Scenario for PrimitiveDuel {
         "primitive_duel".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
+
+        let mut rng = new_rng(seed);
+        let angle = rng.gen_range(0.0..TAU);
+        let rot = Rotation2::new(angle);
+        let distance = rng.gen_range(2000.0..4000.0);
+
         self.ship0 = Some(ship::create(
             sim,
-            vector![-1000.0, -500.0],
+            rot.transform_vector(&vector![-0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),
         ));
         self.ship1 = Some(ship::create(
             sim,
-            vector![1000.0, 500.0],
+            rot.transform_vector(&vector![0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             std::f64::consts::PI,
             fighter_without_missiles_or_radar(1),
@@ -1346,18 +1353,24 @@ impl Scenario for FighterDuel {
         "fighter_duel".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
+
+        let mut rng = new_rng(seed);
+        let angle = rng.gen_range(0.0..TAU);
+        let rot = Rotation2::new(angle);
+        let distance = rng.gen_range(2000.0..4000.0);
+
         ship::create(
             sim,
-            vector![-1000.0, -500.0],
+            rot.transform_vector(&vector![-0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             0.0,
             fighter(0),
         );
         ship::create(
             sim,
-            vector![1000.0, 500.0],
+            rot.transform_vector(&vector![0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             std::f64::consts::PI,
             fighter(1),
@@ -1394,18 +1407,24 @@ impl Scenario for FrigateDuel {
         "frigate_duel".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
+
+        let mut rng = new_rng(seed);
+        let angle = rng.gen_range(0.0..TAU);
+        let rot = Rotation2::new(angle);
+        let distance = rng.gen_range(4000.0..8000.0);
+
         ship::create(
             sim,
-            vector![-1000.0, -500.0],
+            rot.transform_vector(&vector![-0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             0.0,
             frigate(0),
         );
         ship::create(
             sim,
-            vector![1000.0, 500.0],
+            rot.transform_vector(&vector![0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             std::f64::consts::PI,
             frigate(1),
@@ -1442,18 +1461,24 @@ impl Scenario for CruiserDuel {
         "cruiser_duel".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
+
+        let mut rng = new_rng(seed);
+        let angle = rng.gen_range(0.0..TAU);
+        let rot = Rotation2::new(angle);
+        let distance = rng.gen_range(5000.0..10000.0);
+
         ship::create(
             sim,
-            vector![-4000.0, -500.0],
+            rot.transform_vector(&vector![-0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             0.0,
             cruiser(0),
         );
         ship::create(
             sim,
-            vector![4000.0, 500.0],
+            rot.transform_vector(&vector![0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             std::f64::consts::PI,
             cruiser(1),
