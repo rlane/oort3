@@ -1,3 +1,4 @@
+use clap::Parser;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::{value::ValueType, Document};
 use oort_simulator::{scenario, simulation};
@@ -5,14 +6,25 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+const COLLECTION_NAME: &'static str = "telemetry";
+
+#[derive(Parser, Debug)]
+#[clap()]
+struct Arguments {
+    #[clap(long, value_parser, default_value_t = String::from("oort-319301"))]
+    project_id: String,
+
+    #[clap(short = 'n', long, value_parser, default_value_t = false)]
+    dry_run: bool,
+
+    #[clap(short, long, value_parser)]
+    scenario: Option<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 struct JsonMap {
     #[serde(flatten)]
     fields: HashMap<String, serde_json::Value>,
-}
-
-pub fn config_env_var(name: &str) -> Result<String, String> {
-    std::env::var(name).map_err(|e| format!("{}: {}", name, e))
 }
 
 #[tokio::main]
@@ -20,9 +32,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("rescore=info"))
         .init();
 
-    let db = FirestoreDb::new(&config_env_var("PROJECT_ID")?).await?;
+    let args = Arguments::parse();
 
-    const COLLECTION_NAME: &'static str = "telemetry";
+    let db = FirestoreDb::new(&args.project_id).await?;
 
     let docs: Vec<Document> = db
         .query_doc(
@@ -72,6 +84,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let docid = doc.name.rsplit_once('/').unwrap().1.to_string();
         let userid = get_string(doc, "userid");
         let scenario_name = get_string(doc, "scenario_name");
+        if let Some(scenario) = args.scenario.as_ref() {
+            if *scenario != scenario_name {
+                continue;
+            }
+        }
         let ticks = get_int(doc, "ticks");
         let code = get_string(doc, "code");
         let key = (userid.clone(), scenario_name.clone());
@@ -122,6 +139,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 }
             }
         }
+    }
+
+    if args.dry_run {
+        log::info!("Dry run, would have applied {} updates", updates.len());
+        return Ok(());
     }
 
     log::info!("Applying {} updates", updates.len());
