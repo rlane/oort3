@@ -22,6 +22,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let scenario_name = args[1].clone();
     let srcs = args[2..].to_vec();
 
+    scenario::load_safe(&scenario_name).expect("Unknown scenario");
+
     let http_client = reqwest::Client::new();
     let mut competitors = vec![];
     for src in &srcs {

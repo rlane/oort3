@@ -158,44 +158,53 @@ pub fn add_walls(sim: &mut Simulation) {
     make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
 }
 
-pub fn load(name: &str) -> Box<dyn Scenario> {
-    let scenario: Box<dyn Scenario> = match name {
+pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
+    let scenario: Option<Box<dyn Scenario>> = match name {
         // Testing
-        "test" => Box::new(TestScenario {}),
-        "basic" => Box::new(BasicScenario {}),
-        "gunnery" => Box::new(GunneryScenario {}),
-        "missile_test" => Box::new(MissileTest::new()),
-        "asteroid-stress" => Box::new(AsteroidStressScenario {}),
-        "bullet-stress" => Box::new(BulletStressScenario {}),
-        "missile-stress" => Box::new(MissileStressScenario {}),
-        "welcome" => Box::new(WelcomeScenario::new()),
-        "frigate_vs_cruiser" => Box::new(FrigateVsCruiser::new()),
-        "cruiser_vs_frigate" => Box::new(CruiserVsFrigate::new()),
-        "frigate_point_defense" => Box::new(FrigatePointDefense {}),
+        "test" => Some(Box::new(TestScenario {})),
+        "basic" => Some(Box::new(BasicScenario {})),
+        "gunnery" => Some(Box::new(GunneryScenario {})),
+        "missile_test" => Some(Box::new(MissileTest::new())),
+        "asteroid-stress" => Some(Box::new(AsteroidStressScenario {})),
+        "bullet-stress" => Some(Box::new(BulletStressScenario {})),
+        "missile-stress" => Some(Box::new(MissileStressScenario {})),
+        "welcome" => Some(Box::new(WelcomeScenario::new())),
+        "frigate_vs_cruiser" => Some(Box::new(FrigateVsCruiser::new())),
+        "cruiser_vs_frigate" => Some(Box::new(CruiserVsFrigate::new())),
+        "frigate_point_defense" => Some(Box::new(FrigatePointDefense {})),
         // Tutorials
-        "tutorial01" => Box::new(Tutorial01 {}),
-        "tutorial02" => Box::new(Tutorial02::new()),
-        "tutorial03" => Box::new(Tutorial03::new()),
-        "tutorial04" => Box::new(Tutorial04::new()),
-        "tutorial05" => Box::new(Tutorial05::new()),
-        "tutorial06" => Box::new(Tutorial06::new()),
-        "tutorial07" => Box::new(Tutorial07::new()),
-        "tutorial08" => Box::new(Tutorial08::new()),
-        "tutorial09" => Box::new(Tutorial09::new()),
-        "tutorial10" => Box::new(Tutorial10::new()),
-        "tutorial11" => Box::new(Tutorial11::new()),
+        "tutorial01" => Some(Box::new(Tutorial01 {})),
+        "tutorial02" => Some(Box::new(Tutorial02::new())),
+        "tutorial03" => Some(Box::new(Tutorial03::new())),
+        "tutorial04" => Some(Box::new(Tutorial04::new())),
+        "tutorial05" => Some(Box::new(Tutorial05::new())),
+        "tutorial06" => Some(Box::new(Tutorial06::new())),
+        "tutorial07" => Some(Box::new(Tutorial07::new())),
+        "tutorial08" => Some(Box::new(Tutorial08::new())),
+        "tutorial09" => Some(Box::new(Tutorial09::new())),
+        "tutorial10" => Some(Box::new(Tutorial10::new())),
+        "tutorial11" => Some(Box::new(Tutorial11::new())),
         // Tournament
-        "primitive_duel" => Box::new(PrimitiveDuel::new()),
-        "fighter_duel" => Box::new(FighterDuel::new()),
-        "frigate_duel" => Box::new(FrigateDuel::new()),
-        "cruiser_duel" => Box::new(CruiserDuel::new()),
-        "furball" => Box::new(Furball::new()),
-        "fleet" => Box::new(Fleet::new()),
-        "belt" => Box::new(Belt::new()),
-        _ => panic!("Unknown scenario"),
+        "primitive_duel" => Some(Box::new(PrimitiveDuel::new())),
+        "fighter_duel" => Some(Box::new(FighterDuel::new())),
+        "frigate_duel" => Some(Box::new(FrigateDuel::new())),
+        "cruiser_duel" => Some(Box::new(CruiserDuel::new())),
+        "furball" => Some(Box::new(Furball::new())),
+        "fleet" => Some(Box::new(Fleet::new())),
+        "belt" => Some(Box::new(Belt::new())),
+        _ => None,
     };
-    assert_eq!(scenario.name(), name);
+    if let Some(scenario) = scenario.as_ref() {
+        assert_eq!(scenario.name(), name);
+    }
     scenario
+}
+
+pub fn load(name: &str) -> Box<dyn Scenario> {
+    match load_safe(name) {
+        Some(scenario) => scenario,
+        None => panic!("Unknown scenario"),
+    }
 }
 
 pub fn list() -> Vec<String> {
