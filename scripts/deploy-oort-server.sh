@@ -12,7 +12,8 @@ gcloud run deploy oortserver \
   --memory 1G \
   --timeout 20s \
   --concurrency 1 \
-  --max-instances 3
+  --max-instances 3 \
+  --service-account=oortserver@oort-319301.iam.gserviceaccount.com
 gcloud compute ssh server-1 --command="docker image prune --force" || true
 gcloud compute instances update-container \
   server-1 \
