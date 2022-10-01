@@ -6,6 +6,6 @@ cd $(realpath $(dirname $0))/../app
 trunk serve --watch .. "$@" &
 trap "kill $! || true" exit
 
-cd ../backend
+cd ../firebase
 fnm use
 npx firebase emulators:start "$@"

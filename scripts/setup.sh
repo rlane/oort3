@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 eval "$(fnm env)"
 
-cd ../backend
+cd ../firebase
 fnm use
 npm install

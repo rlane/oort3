@@ -5,12 +5,8 @@ set -x
 
 cd app
 rm -rf dist
-if [ ! -z ${REMOTE_BUILD:-} ]; then
-  ../scripts/remote-build.sh --release
-else
-  trunk build --release
-fi
+trunk build --release
 
-cd ../backend
+cd ../firebase
 fnm use
 npx firebase deploy "$@"
