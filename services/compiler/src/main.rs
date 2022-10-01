@@ -62,6 +62,7 @@ async fn main() {
     let cors_handler = Cors::builder()
         .allow_any_origin()
         .allow_methods(vec!["POST", "OPTIONS"])
+        .allow_header("content-type")
         .build();
 
     let router = Router::with_hoop(cors_handler)
