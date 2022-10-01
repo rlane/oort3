@@ -4,7 +4,7 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
-use serde::{Deserialize, Serialize};
+use oort_telemetry_proto::{Telemetry, TelemetryMsg};
 use std::collections::HashMap;
 
 const COLLECTION_NAME: &'static str = "telemetry";
@@ -32,38 +32,6 @@ enum SubCommand {
         scenario: String,
         #[clap(short, long, value_parser)]
         out_dir: Option<String>,
-    },
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct TelemetryMsg {
-    #[serde(flatten)]
-    payload: Telemetry,
-    build: String,
-    userid: String,
-    username: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
-pub enum Telemetry {
-    StartScenario {
-        scenario_name: String,
-        code: String,
-    },
-    FinishScenario {
-        scenario_name: String,
-        code: String,
-        ticks: u32,
-        code_size: usize,
-        success: Option<bool>,
-    },
-    Crash {
-        msg: String,
-    },
-    SubmitToTournament {
-        scenario_name: String,
-        code: String,
     },
 }
 

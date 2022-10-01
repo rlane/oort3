@@ -47,6 +47,7 @@ prettyplease = "0.1"
 syn = { version = "1", default-features = false, features = ["full", "parsing"] }
 gloo-utils = "0.1.5"
 gloo-timers = "0.2.4"
+oort_telemetry_proto = { path = "../telemetry_proto" }
 
 [dependencies.web-sys]
 version = "0.3.57"

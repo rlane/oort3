@@ -2,7 +2,6 @@ use crate::editor_window::EditorWindow;
 use crate::filesystem;
 use crate::leaderboard::Leaderboard;
 use crate::simulation_window::SimulationWindow;
-use crate::telemetry::Telemetry;
 use crate::toolbar::Toolbar;
 use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
@@ -10,6 +9,7 @@ use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{simulation, vm};
+use oort_telemetry_proto::Telemetry;
 use oort_worker::SimAgent;
 use rand::Rng;
 use regex::Regex;
@@ -243,7 +243,7 @@ impl Component for Game {
                             / simulation::PHYSICS_TICK_LENGTH)
                             as u32,
                         code_size: crate::code_size::calculate(&code_to_string(&code)),
-                        success: summary.failed_seeds.is_empty(),
+                        success: Some(summary.failed_seeds.is_empty()),
                     });
                 }
                 true

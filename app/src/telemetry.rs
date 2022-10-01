@@ -1,39 +1,7 @@
 use super::userid::get_userid;
 use crate::{js, userid::get_username};
 use log::warn;
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-struct TelemetryMsg {
-    #[serde(flatten)]
-    payload: Telemetry,
-    build: String,
-    userid: String,
-    username: String,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum Telemetry {
-    StartScenario {
-        scenario_name: String,
-        code: String,
-    },
-    FinishScenario {
-        scenario_name: String,
-        code: String,
-        ticks: u32,
-        code_size: usize,
-        success: bool,
-    },
-    Crash {
-        msg: String,
-    },
-    SubmitToTournament {
-        scenario_name: String,
-        code: String,
-    },
-}
+use oort_telemetry_proto::{Telemetry, TelemetryMsg};
 
 pub fn send(payload: Telemetry) {
     let userid = get_userid();
@@ -42,7 +10,7 @@ pub fn send(payload: Telemetry) {
         payload,
         build: crate::version(),
         userid,
-        username,
+        username: Some(username),
     };
     match serde_json::to_string(&msg) {
         Ok(serialized) => js::telemetry::send_telemetry(&serialized),

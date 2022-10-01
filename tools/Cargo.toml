@@ -20,3 +20,4 @@ clap = { version = "3.2.22", features = ["derive"] }
 skillratings = "0.12.0"
 itertools = "0.10.5"
 comfy-table = "6.1.0"
+oort_telemetry_proto = { path = "../telemetry_proto" }

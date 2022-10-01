@@ -11,6 +11,7 @@ members = [
     "api",
     "tools",
     "analyzer",
+    "telemetry_proto",
     "services/compiler",
     "services/telemetry",
 ]

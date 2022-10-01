@@ -2577,6 +2577,7 @@ dependencies = [
  "oort_analyzer",
  "oort_renderer",
  "oort_simulator",
+ "oort_telemetry_proto",
  "oort_worker",
  "petname",
  "prettyplease",
@@ -2708,6 +2709,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_telemetry_proto"
+version = "0.6.1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "oort_telemetry_service"
 version = "0.6.1"
 dependencies = [
@@ -2716,6 +2724,7 @@ dependencies = [
  "firestore",
  "gcloud-sdk",
  "log",
+ "oort_telemetry_proto",
  "rand 0.8.5",
  "salvo",
  "salvo_extra",
@@ -2738,6 +2747,7 @@ dependencies = [
  "itertools",
  "log",
  "oort_simulator",
+ "oort_telemetry_proto",
  "rayon",
  "reqwest",
  "serde",
