@@ -1,6 +1,7 @@
 **/.git
 **/node_modules
 target
+target.*
 app/dist
 backend
 perf.data*
