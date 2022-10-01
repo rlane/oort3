@@ -3,7 +3,7 @@ use oort_telemetry_proto::TelemetryMsg;
 use salvo::prelude::*;
 use salvo_extra::cors::CorsHandler;
 
-const COLLECTION_NAME: &'static str = "telemetry_test";
+const COLLECTION_NAME: &'static str = "telemetry";
 const PROJECT_ID: &'static str = "oort-319301";
 
 fn generate_docid() -> String {
