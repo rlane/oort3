@@ -1,7 +1,7 @@
 use firestore::*;
 use oort_telemetry_proto::TelemetryMsg;
 use salvo::prelude::*;
-use salvo_extra::cors::CorsHandler;
+use salvo_extra::cors::Cors;
 
 const COLLECTION_NAME: &'static str = "telemetry";
 const PROJECT_ID: &'static str = "oort-319301";
@@ -34,13 +34,18 @@ async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<
     Ok(())
 }
 
-#[fn_handler]
+#[handler]
 async fn post(req: &mut Request, res: &mut Response) {
     if let Err(e) = post_internal(req, res).await {
         log::error!("error: {}", e);
         res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
         res.render(e.to_string().to_string());
     }
+}
+
+#[handler]
+async fn nop(_req: &mut Request, res: &mut Response) {
+    res.render("");
 }
 
 #[tokio::main]
@@ -60,9 +65,14 @@ async fn main() {
         Err(_e) => {}
     };
 
-    let cors_handler = CorsHandler::builder().with_allow_any_origin().build();
+    let cors_handler = Cors::builder()
+        .allow_any_origin()
+        .allow_methods(vec!["POST", "OPTIONS"])
+        .build();
 
-    let router = Router::with_path("post").hoop(cors_handler).post(post);
+    let router =
+        Router::with_hoop(cors_handler).push(Router::with_path("/post").post(post).options(nop));
+
     log::info!("Starting oort_telemetry_service");
     Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
         .serve(router)

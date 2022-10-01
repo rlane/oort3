@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use salvo::prelude::*;
-use salvo_extra::cors::CorsHandler;
+use salvo_extra::cors::Cors;
 use tokio::process::Command;
 
 async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
@@ -28,13 +28,18 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
     Ok(())
 }
 
-#[fn_handler]
+#[handler]
 async fn compile(req: &mut Request, res: &mut Response) {
     if let Err(e) = compile_internal(req, res).await {
         log::error!("compile request error: {}", e);
         res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
         res.render(e.to_string().to_string());
     }
+}
+
+#[handler]
+async fn nop(_req: &mut Request, res: &mut Response) {
+    res.render("");
 }
 
 #[tokio::main]
@@ -54,11 +59,13 @@ async fn main() {
         Err(_e) => {}
     };
 
-    let cors_handler = CorsHandler::builder().with_allow_any_origin().build();
+    let cors_handler = Cors::builder()
+        .allow_any_origin()
+        .allow_methods(vec!["POST", "OPTIONS"])
+        .build();
 
-    let router = Router::with_path("compile")
-        .hoop(cors_handler)
-        .post(compile);
+    let router = Router::with_hoop(cors_handler)
+        .push(Router::with_path("/compile").post(compile).options(nop));
     log::info!("Starting oort_compiler_service v1");
     Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
         .serve(router)

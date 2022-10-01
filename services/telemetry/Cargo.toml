@@ -5,8 +5,8 @@ publish = false
 edition = "2021"
 
 [dependencies]
-salvo = "0.25"
-salvo_extra = { version="0.25", features=["cors"] }
+salvo = "0.36"
+salvo_extra = { version="0.36", features=["cors"] }
 tokio = { version = "1", features = ["macros", "process"] }
 anyhow = "1.0"
 bytes = "1.1"
