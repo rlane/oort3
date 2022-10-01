@@ -8,10 +8,10 @@ members = [
     "renderer",
     "ai",
     "shared",
-    "server",
     "api",
     "tools",
     "analyzer",
+    "services/compiler",
 ]
 
 [patch.crates-io]

@@ -2634,6 +2634,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_compiler_service"
+version = "0.6.1"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "log",
+ "salvo",
+ "salvo_extra",
+ "stackdriver_logger",
+ "tokio",
+]
+
+[[package]]
 name = "oort_renderer"
 version = "0.6.1"
 dependencies = [
@@ -2652,19 +2665,6 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "oort_server"
-version = "0.6.1"
-dependencies = [
- "anyhow",
- "bytes",
- "log",
- "salvo",
- "salvo_extra",
- "stackdriver_logger",
- "tokio",
 ]
 
 [[package]]
