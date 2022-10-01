@@ -20,12 +20,3 @@ for PKG in app worker; do
     )
   fi
 done
-
-if ! git diff --cached --quiet --diff-filter=ACM -- backend/functions; then
-  (
-    cd backend/functions
-    set +x; eval "$(fnm env)"; set -x
-    fnm use
-    npm test
-  )
-fi
