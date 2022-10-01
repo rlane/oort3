@@ -14,6 +14,7 @@ members = [
     "telemetry_proto",
     "services/compiler",
     "services/telemetry",
+    "services/leaderboard",
 ]
 
 [patch.crates-io]

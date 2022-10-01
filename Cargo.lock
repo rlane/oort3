@@ -2604,6 +2604,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_leaderboard_service"
+version = "0.6.1"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "chrono",
+ "firestore",
+ "gcloud-sdk",
+ "log",
+ "oort_telemetry_proto",
+ "rand 0.8.5",
+ "salvo",
+ "salvo_extra",
+ "serde",
+ "serde_json",
+ "stackdriver_logger",
+ "tokio",
+]
+
+[[package]]
 name = "oort_renderer"
 version = "0.6.1"
 dependencies = [

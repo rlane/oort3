@@ -1,27 +1,7 @@
 use crate::userid;
+use oort_telemetry_proto::{CodeSizeLeaderboardRow, LeaderboardData, TimeLeaderboardRow};
 use reqwasm::http::Request;
-use serde::Deserialize;
 use yew::prelude::*;
-
-#[derive(Deserialize, Debug)]
-pub struct LeaderboardData {
-    lowest_time: Vec<TimeLeaderboardRow>,
-    lowest_code_size: Vec<CodeSizeLeaderboardRow>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct TimeLeaderboardRow {
-    userid: String,
-    username: Option<String>,
-    time: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct CodeSizeLeaderboardRow {
-    userid: String,
-    username: Option<String>,
-    code_size: i64,
-}
 
 #[derive(Debug)]
 pub enum Msg {
@@ -58,7 +38,10 @@ impl Component for Leaderboard {
 
         match msg {
             SendRequest => {
-                let url = format!("https://us-central1-oort-319301.cloudfunctions.net/leaderboard?scenario_name={}", &context.props().scenario_name);
+                let url = format!(
+                    "https://leaderboard.oort.rs/leaderboard?scenario_name={}",
+                    &context.props().scenario_name
+                );
                 let callback =
                     context
                         .link()
