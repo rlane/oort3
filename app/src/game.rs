@@ -658,9 +658,9 @@ impl Game {
         let url = if self.local_compiler {
             "http://localhost:8081/compile"
         } else if self.saw_slow_compile {
-            "https://api.oort.rs/compile"
+            "https://compiler.oort.rs/compile"
         } else {
-            "https://api-vm.oort.rs/compile"
+            "https://compiler-vm.oort.rs/compile"
         };
 
         async fn compile(
