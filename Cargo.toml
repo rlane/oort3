@@ -12,6 +12,7 @@ members = [
     "tools",
     "analyzer",
     "services/compiler",
+    "services/telemetry",
 ]
 
 [patch.crates-io]

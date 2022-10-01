@@ -2708,6 +2708,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_telemetry_service"
+version = "0.6.1"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "firestore",
+ "gcloud-sdk",
+ "log",
+ "rand 0.8.5",
+ "salvo",
+ "salvo_extra",
+ "serde",
+ "serde_json",
+ "stackdriver_logger",
+ "tokio",
+]
+
+[[package]]
 name = "oort_tools"
 version = "0.6.1"
 dependencies = [
