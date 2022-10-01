@@ -1,4 +1,4 @@
-FROM rust:1.61-slim-buster as builder
+FROM rust:1.64-slim-buster as builder
 WORKDIR /usr/src/app
 COPY . .
 RUN \
@@ -7,7 +7,7 @@ RUN \
   --mount=type=cache,target=/usr/src/app/target \
   cd services/compiler && cargo install --locked --path . && cp -a /usr/local/cargo/registry /registry
 
-FROM rust:1.61-slim-buster
+FROM rust:1.64-slim-buster
 RUN rustup target add wasm32-unknown-unknown
 WORKDIR /usr/src/app
 COPY Cargo.toml.user Cargo.toml
