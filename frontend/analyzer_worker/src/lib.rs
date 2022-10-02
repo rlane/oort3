@@ -167,7 +167,7 @@ impl yew_agent::Worker for AnalyzerAgent {
     }
 
     fn name_of_resource() -> &'static str {
-        "oort_analyzer.js"
+        "oort_analyzer_worker.js"
     }
 }
 

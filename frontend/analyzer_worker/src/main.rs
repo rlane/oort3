@@ -1,4 +1,4 @@
-use oort_analyzer::AnalyzerAgent;
+use oort_analyzer_worker::AnalyzerAgent;
 use yew_agent::PrivateWorker;
 
 fn main() {

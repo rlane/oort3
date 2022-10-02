@@ -10,7 +10,7 @@ use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{simulation, vm};
 use oort_telemetry_proto::Telemetry;
-use oort_worker::SimAgent;
+use oort_simulation_worker::SimAgent;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
@@ -36,7 +36,7 @@ pub enum Msg {
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
     SelectScenario(String),
     SimulationFinished(Snapshot),
-    ReceivedBackgroundSimAgentResponse(oort_worker::Response, u32),
+    ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
     ShowDocumentation,
     DismissOverlay,
@@ -230,7 +230,7 @@ impl Component for Game {
                 false
             }
             Msg::ReceivedBackgroundSimAgentResponse(
-                oort_worker::Response::Snapshot { snapshot },
+                oort_simulation_worker::Response::Snapshot { snapshot },
                 seed,
             ) => {
                 self.background_snapshots.push((seed, snapshot));
@@ -414,7 +414,7 @@ impl Game {
                         move |e| link.send_message(Msg::ReceivedBackgroundSimAgentResponse(e, seed))
                     };
                     let mut sim_agent = SimAgent::bridge(Rc::new(cb));
-                    sim_agent.send(oort_worker::Request::RunScenario {
+                    sim_agent.send(oort_simulation_worker::Request::RunScenario {
                         scenario_name: self.scenario_name.to_owned(),
                         seed,
                         codes: codes.clone(),

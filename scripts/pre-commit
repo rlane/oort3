@@ -10,7 +10,7 @@ if ! git diff --cached --quiet --diff-filter=ACM -- simulator; then
   )
 fi
 
-for PKG in app worker analyzer; do
+for PKG in frontend/app frontend/simulation_worker frontend/analyzer_worker; do
   if ! git diff --cached --quiet --diff-filter=ACM -- $PKG; then
     (
       cd $PKG

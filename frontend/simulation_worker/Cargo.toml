@@ -1,11 +1,11 @@
 [package]
-name = "oort_worker"
+name = "oort_simulation_worker"
 version = "0.6.1"
 edition = "2021"
 publish = false
 
 [dependencies]
-oort_simulator = { path = "../simulator", features = ["js"], default-features = false }
+oort_simulator = { path = "../../simulator", features = ["js"], default-features = false }
 yew = "0.19.3"
 yew-agent = "0.1.0"
 serde = "1.0.137"

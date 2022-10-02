@@ -2,7 +2,7 @@ use gloo_timers::callback::Interval;
 use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
-use oort_analyzer::AnalyzerAgent;
+use oort_analyzer_worker::AnalyzerAgent;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -24,7 +24,7 @@ fn make_monaco_options() -> CodeEditorOptions {
 #[derive(Debug)]
 pub enum Msg {
     RequestAnalyzer,
-    AnalyzerResponse(oort_analyzer::Response),
+    AnalyzerResponse(oort_analyzer_worker::Response),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -75,12 +75,12 @@ impl Component for EditorWindow {
                     .unwrap();
                 if text != self.last_analyzed_text {
                     self.analyzer_agent
-                        .send(oort_analyzer::Request::Analyze(text.clone()));
+                        .send(oort_analyzer_worker::Request::Analyze(text.clone()));
                     self.last_analyzed_text = text;
                 }
                 false
             }
-            Msg::AnalyzerResponse(oort_analyzer::Response::AnalyzeFinished(diags)) => {
+            Msg::AnalyzerResponse(oort_analyzer_worker::Response::AnalyzeFinished(diags)) => {
                 self.display_analyzer_diagnostics(context, &diags);
                 false
             }
@@ -188,7 +188,7 @@ impl EditorWindow {
     pub fn display_analyzer_diagnostics(
         &mut self,
         _context: &Context<Self>,
-        diags: &[oort_analyzer::Diagnostic],
+        diags: &[oort_analyzer_worker::Diagnostic],
     ) {
         use monaco::sys::{
             editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,

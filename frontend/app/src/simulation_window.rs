@@ -1,6 +1,6 @@
 use crate::ui::UI;
+use oort_simulation_worker::SimAgent;
 use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
-use oort_worker::SimAgent;
 use rand::Rng;
 use std::rc::Rc;
 use yew::html::Scope;
@@ -19,7 +19,7 @@ pub enum Msg {
     WheelEvent(web_sys::WheelEvent),
     MouseEvent(web_sys::MouseEvent),
     RequestSnapshot,
-    ReceivedSimAgentResponse(oort_worker::Response),
+    ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -79,7 +79,7 @@ impl Component for SimulationWindow {
                     self.status_ref.clone(),
                     self.picked_ref.clone(),
                 )));
-                self.sim_agent.send(oort_worker::Request::StartScenario {
+                self.sim_agent.send(oort_simulation_worker::Request::StartScenario {
                     scenario_name,
                     seed,
                     codes: codes.to_vec(),
@@ -95,7 +95,7 @@ impl Component for SimulationWindow {
             }
             Msg::RequestSnapshot => {
                 self.sim_agent
-                    .send(oort_worker::Request::Snapshot { nonce: self.nonce });
+                    .send(oort_simulation_worker::Request::Snapshot { nonce: self.nonce });
                 false
             }
             Msg::KeyEvent(e) => {
@@ -116,7 +116,7 @@ impl Component for SimulationWindow {
                 }
                 false
             }
-            Msg::ReceivedSimAgentResponse(oort_worker::Response::Snapshot { snapshot }) => {
+            Msg::ReceivedSimAgentResponse(oort_simulation_worker::Response::Snapshot { snapshot }) => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.on_snapshot(snapshot);
                 }

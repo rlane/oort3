@@ -3,17 +3,17 @@ resolver = "2"
 
 members = [
     "simulator",
-    "worker",
-    "app",
-    "renderer",
     "ai",
     "api",
-    "tools",
-    "analyzer",
     "telemetry_proto",
+    "frontend/app",
+    "frontend/renderer",
+    "frontend/simulation_worker",
+    "frontend/analyzer_worker",
     "services/compiler",
     "services/telemetry",
     "services/leaderboard",
+    "tools",
 ]
 
 [patch.crates-io]
@@ -35,7 +35,7 @@ opt-level = 1
 [profile.dev.package.oort_simulator]
 opt-level = 1
 
-[profile.dev.package.oort_worker]
+[profile.dev.package.oort_simulation_worker]
 opt-level = 1
 
 [profile.dev.package.oort-app]

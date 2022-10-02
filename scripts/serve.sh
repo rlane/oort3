@@ -2,5 +2,5 @@
 eval "$(fnm env)"
 set -x
 
-cd $(realpath $(dirname $0))/../app
-trunk serve --watch .. --ignore ../ai/src --ignore ../scratch "$@"
+cd $(realpath $(dirname $0))/../frontend/app
+trunk serve --watch .. --watch ../../simulator --watch ../../api --watch ../../ai/builtin-ai.tar.gz "$@"

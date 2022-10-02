@@ -2530,11 +2530,11 @@ dependencies = [
  "monaco",
  "nalgebra",
  "no-comment",
- "oort_analyzer",
+ "oort_analyzer_worker",
  "oort_renderer",
+ "oort_simulation_worker",
  "oort_simulator",
  "oort_telemetry_proto",
- "oort_worker",
  "petname",
  "prettyplease",
  "qstring",
@@ -2565,7 +2565,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_analyzer"
+name = "oort_analyzer_worker"
 version = "0.6.1"
 dependencies = [
  "console_error_panic_hook",
@@ -2640,6 +2640,19 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "oort_simulation_worker"
+version = "0.6.1"
+dependencies = [
+ "console_error_panic_hook",
+ "console_log",
+ "log",
+ "oort_simulator",
+ "serde",
+ "yew",
+ "yew-agent",
 ]
 
 [[package]]
@@ -2724,19 +2737,6 @@ dependencies = [
  "serde_json",
  "skillratings",
  "tokio",
-]
-
-[[package]]
-name = "oort_worker"
-version = "0.6.1"
-dependencies = [
- "console_error_panic_hook",
- "console_log",
- "log",
- "oort_simulator",
- "serde",
- "yew",
- "yew-agent",
 ]
 
 [[package]]

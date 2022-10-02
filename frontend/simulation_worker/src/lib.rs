@@ -93,7 +93,7 @@ impl yew_agent::Worker for SimAgent {
     }
 
     fn name_of_resource() -> &'static str {
-        "oort_worker.js"
+        "oort_simulation_worker.js"
     }
 }
 

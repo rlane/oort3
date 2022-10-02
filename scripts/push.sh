@@ -3,10 +3,10 @@ cd $(realpath $(dirname $0))/..
 eval "$(fnm env)"
 set -x
 
-cd app
+cd frontend/app
 rm -rf dist
 trunk build --release
 
-cd ../firebase
+cd ../../firebase
 fnm use
 npx firebase deploy "$@"

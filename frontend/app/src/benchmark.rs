@@ -1,5 +1,5 @@
 use oort_simulator::snapshot::{Snapshot, Timing};
-use oort_worker::SimAgent;
+use oort_simulation_worker::SimAgent;
 use rand::Rng;
 use sha2::{Digest, Sha256};
 use std::rc::Rc;
@@ -7,7 +7,7 @@ use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 
 pub enum Msg {
-    ReceivedSimAgentResponse(oort_worker::Response),
+    ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -42,14 +42,14 @@ impl Component for Benchmark {
             move |e| link.send_message(Msg::ReceivedSimAgentResponse(e))
         };
         let mut sim_agent = SimAgent::bridge(Rc::new(cb));
-        sim_agent.send(oort_worker::Request::StartScenario {
+        sim_agent.send(oort_simulation_worker::Request::StartScenario {
             scenario_name: scenario_name.clone(),
             seed,
             codes,
             nonce,
         });
         for _ in 0..5 {
-            sim_agent.send(oort_worker::Request::Snapshot { nonce: 0 });
+            sim_agent.send(oort_simulation_worker::Request::Snapshot { nonce: 0 });
         }
         Self {
             scenario_name,
@@ -65,7 +65,7 @@ impl Component for Benchmark {
 
     fn update(&mut self, _context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::ReceivedSimAgentResponse(oort_worker::Response::Snapshot { snapshot }) => {
+            Msg::ReceivedSimAgentResponse(oort_simulation_worker::Response::Snapshot { snapshot }) => {
                 if snapshot.status == oort_simulator::scenario::Status::Running {
                     self.time = snapshot.time;
                     self.ticks += 1;
@@ -80,7 +80,7 @@ impl Component for Benchmark {
                     }
                     self.cumulative_timing += snapshot.timing;
                     self.sim_agent
-                        .send(oort_worker::Request::Snapshot { nonce: 0 });
+                        .send(oort_simulation_worker::Request::Snapshot { nonce: 0 });
                     self.ticks % 10 == 0
                 } else {
                     if self.hash.is_none() {

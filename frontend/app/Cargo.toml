@@ -9,6 +9,11 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+oort_renderer = { path = "../renderer" }
+oort_simulation_worker = { path = "../simulation_worker" }
+oort_analyzer_worker = { path = "../analyzer_worker" }
+oort_simulator = { path = "../../simulator", features = ["js"], default-features = false }
+oort_telemetry_proto = { path = "../../telemetry_proto" }
 bincode = "1.3.3"
 chrono = "0.4.19"
 console_error_panic_hook = "0.1.7"
@@ -21,10 +26,6 @@ log = "0.4.17"
 memoffset = "0.6.5"
 nalgebra = { version = "0.31.0", features = ["serde-serialize"] }
 no-comment = "0.0.3"
-oort_renderer = { path = "../renderer" }
-oort_simulator = { path = "../simulator", features = ["js"], default-features = false }
-oort_worker = { path = "../worker" }
-oort_analyzer = { path = "../analyzer" }
 petname = "1.1.2"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
@@ -47,7 +48,6 @@ prettyplease = "0.1"
 syn = { version = "1", default-features = false, features = ["full", "parsing"] }
 gloo-utils = "0.1.5"
 gloo-timers = "0.2.4"
-oort_telemetry_proto = { path = "../telemetry_proto" }
 
 [dependencies.web-sys]
 version = "0.3.57"
