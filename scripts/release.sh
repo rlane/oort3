@@ -29,9 +29,26 @@ while getopts "wctshl" option; do
    esac
 done
 
-if [[ $BUMP_VERSION -eq 1 ]]; then
-  cargo workspaces publish --all --no-individual-tags --force='*'
+if ! git diff HEAD --quiet; then
+  echo "Uncommitted changes, halting release"
+  git diff HEAD
+  exit 1
 fi
+
+if [[ $BUMP_VERSION -eq 1 ]]; then
+  (cd frontend && cargo workspaces version --all --force='*' --no-git-commit --yes)
+  VERSION=$(egrep '^version = ".*"$' frontend/app/Cargo.toml | head -n1 | egrep -o '[0-9][^"]*')
+  for WS in tools shared services; do
+    (cd $WS && cargo workspaces version --all --force='*' --no-git-commit --yes custom $VERSION)
+  done
+  for WS in frontend tools shared services; do
+    (cd $WS && cargo update -w)
+  done
+  git commit -a -m "bump version to $VERSION"
+  git tag v$VERSION
+fi
+
+exit 0
 
 if [[ $PUSH_ALL -eq 1 || $PUSH_COMPILER_SERVICE  -eq 1 ]]; then
   scripts/build-compiler-service-docker-image.sh
