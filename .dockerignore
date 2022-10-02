@@ -1,9 +1,8 @@
 **/.git
 **/node_modules
-target
-target.*
-app/dist
-backend
+**/target
+frontend/app/dist
+firebase
 perf.data*
 scratch
 wbindgen

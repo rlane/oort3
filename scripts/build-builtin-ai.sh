@@ -4,7 +4,7 @@ rm -rf scratch/builtin_ai_sandbox
 mkdir -p scratch/builtin_ai_sandbox
 cp Cargo.toml.user scratch/builtin_ai_sandbox/Cargo.toml
 cp Cargo.lock.user scratch/builtin_ai_sandbox/Cargo.lock
-cp -a ai api scratch/builtin_ai_sandbox
+cp -a shared/ai shared/api scratch/builtin_ai_sandbox
 mkdir scratch/builtin_ai_sandbox/scripts
 cp scripts/build-ai.sh scripts/build-ai-fast.sh scratch/builtin_ai_sandbox/scripts/
 cd scratch/builtin_ai_sandbox
@@ -24,4 +24,4 @@ done
 WASMS=$( (find -path ./src -prune -o -name '*.wasm' -printf '%P\n') )
 
 tar -czf builtin-ai.tar.gz $SRCS $WASMS
-cp builtin-ai.tar.gz ../../../ai/builtin-ai.tar.gz
+cp builtin-ai.tar.gz ../../../shared/ai/builtin-ai.tar.gz

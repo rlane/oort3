@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-oort_simulator = { path = "../../simulator", features = ["js"], default-features = false }
+oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
 yew = "0.19.3"
 yew-agent = "0.1.0"
 serde = "1.0.137"

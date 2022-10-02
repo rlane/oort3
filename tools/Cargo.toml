@@ -3,8 +3,11 @@ name = "oort_tools"
 version = "0.6.1"
 publish = false
 edition = "2021"
+resolver = "2"
 
 [dependencies]
+oort_telemetry_proto = { path = "../shared/telemetry_proto" }
+oort_simulator = { path = "../shared/simulator" }
 firestore = "0.6.1"
 gcloud-sdk = "0.18.1"
 serde = { version = "1.0", features = ["derive"] }
@@ -12,7 +15,6 @@ tokio = { version = "1.20", features = ["full"] }
 log = "0.4.17"
 env_logger = "0.9.0"
 reqwest = "0.11.11"
-oort_simulator = { path = "../simulator" }
 rayon = "1.5.3"
 serde_json = "1.0"
 chrono = "0.4.22"
@@ -20,4 +22,23 @@ clap = { version = "3.2.22", features = ["derive"] }
 skillratings = "0.12.0"
 itertools = "0.10.5"
 comfy-table = "6.1.0"
-oort_telemetry_proto = { path = "../telemetry_proto" }
+
+[patch.crates-io]
+wasmer = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
+wasmer-compiler = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
+wasmer-compiler-cranelift = { git = "https://github.com/wasmerio/wasmer", rev = "a3daf3d1130be9b04d95911f28efd56ad23ad3eb" }
+rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
+
+[profile.dev.package.'*']
+opt-level = 3
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+debug = true
+lto = true
+
+[profile.bench]
+debug = true
+lto = false

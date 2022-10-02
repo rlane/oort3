@@ -12,8 +12,8 @@ crate-type = ["cdylib", "rlib"]
 oort_renderer = { path = "../renderer" }
 oort_simulation_worker = { path = "../simulation_worker" }
 oort_analyzer_worker = { path = "../analyzer_worker" }
-oort_simulator = { path = "../../simulator", features = ["js"], default-features = false }
-oort_telemetry_proto = { path = "../../telemetry_proto" }
+oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
+oort_telemetry_proto = { path = "../../shared/telemetry_proto" }
 bincode = "1.3.3"
 chrono = "0.4.19"
 console_error_panic_hook = "0.1.7"

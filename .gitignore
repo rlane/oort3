@@ -1,5 +1,4 @@
-/target
-/target.tools
+target/
 /wbindgen
 /pkg
 /flamegraph.svg
