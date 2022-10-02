@@ -14,7 +14,6 @@ version = "0.1.0"
 dependencies = [
  "oorandom",
  "oort_api",
- "oort_shared",
 ]
 
 [[package]]
@@ -22,9 +21,4 @@ name = "oort_api"
 version = "0.1.0"
 dependencies = [
  "oorandom",
- "oort_shared",
 ]
-
-[[package]]
-name = "oort_shared"
-version = "0.1.0"

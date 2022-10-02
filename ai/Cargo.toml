@@ -12,6 +12,5 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-oort_shared = { path = "../shared" }
 oort_api = { path = "../api" }
 oorandom = "11.1.3"

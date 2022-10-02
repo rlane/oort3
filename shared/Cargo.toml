@@ -1,8 +1,0 @@
-[package]
-name = "oort_shared"
-version = "0.6.1"
-edition = "2021"
-authors = ["Rich Lane"]
-description = "Shared definitions for Oort, a space fleet programming game."
-license = "GPL-3.0-or-later"
-repository = "http://github.com/rlane/oort3"

@@ -2,10 +2,120 @@
 #![warn(missing_docs)]
 mod vec;
 
+#[allow(missing_docs)]
+#[derive(Copy, Clone)]
+pub enum SystemState {
+    Class,
+    Seed,
+    Orders,
+    PositionX,
+    PositionY,
+    VelocityX,
+    VelocityY,
+    Heading,
+    AngularVelocity,
+
+    AccelerateX,
+    AccelerateY,
+    Torque,
+
+    Gun0Aim,
+    Gun0Fire,
+    Gun1Aim,
+    Gun1Fire,
+    Gun2Aim,
+    Gun2Fire,
+    Gun3Aim,
+    Gun3Fire,
+
+    Missile0Launch,
+    Missile0Orders,
+    Missile1Launch,
+    Missile1Orders,
+    Missile2Launch,
+    Missile2Orders,
+    Missile3Launch,
+    Missile3Orders,
+
+    Explode,
+
+    RadarHeading,
+    RadarWidth,
+    RadarContactFound,
+    RadarContactClass,
+    RadarContactPositionX,
+    RadarContactPositionY,
+    RadarContactVelocityX,
+    RadarContactVelocityY,
+
+    DebugTextPointer,
+    DebugTextLength,
+
+    MaxAccelerationX,
+    MaxAccelerationY,
+    MaxAngularAcceleration,
+
+    RadioChannel,
+    RadioSend,
+    RadioReceive,
+
+    DebugLinesPointer,
+    DebugLinesLength,
+
+    RadarMinDistance,
+    RadarMaxDistance,
+
+    CurrentTick,
+    Energy,
+
+    Size,
+    MaxSize = 128,
+}
+
+/// Identifiers for each class of ship.
+#[allow(missing_docs)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Class {
+    Fighter,
+    Frigate,
+    Cruiser,
+    Asteroid,
+    Target,
+    Missile,
+    Torpedo,
+    Unknown,
+}
+
+impl Class {
+    #[allow(missing_docs)]
+    pub fn from_f64(v: f64) -> Class {
+        match v as u32 {
+            0 => Class::Fighter,
+            1 => Class::Frigate,
+            2 => Class::Cruiser,
+            3 => Class::Asteroid,
+            4 => Class::Target,
+            5 => Class::Missile,
+            6 => Class::Torpedo,
+            _ => Class::Unknown,
+        }
+    }
+}
+
+#[allow(missing_docs)]
+#[derive(Default, Clone)]
+pub struct Line {
+    pub x0: f64,
+    pub y0: f64,
+    pub x1: f64,
+    pub y1: f64,
+    pub color: u32,
+}
+
 // Public for fuzzer.
 #[doc(hidden)]
 pub mod sys {
-    use oort_shared::SystemState;
+    use super::SystemState;
 
     #[no_mangle]
     pub static mut SYSTEM_STATE: [f64; SystemState::MaxSize as usize] =
@@ -60,8 +170,8 @@ mod rng {
 
 mod api {
     use super::sys::{read_system_state, write_system_state};
+    use super::{Class, SystemState};
     use crate::vec::*;
-    use oort_shared::{Class, SystemState};
 
     /// The time between each simulation tick.
     pub const TICK_LENGTH: f64 = 1.0 / 60.0;
@@ -73,12 +183,12 @@ mod api {
 
     /// Returns a random number useful for initializing a random number generator.
     pub fn seed() -> u128 {
-        read_system_state(oort_shared::SystemState::Seed) as u128
+        read_system_state(super::SystemState::Seed) as u128
     }
 
     /// Returns the value passed from the parent ship when launching a missile.
     pub fn orders() -> f64 {
-        read_system_state(oort_shared::SystemState::Orders)
+        read_system_state(super::SystemState::Orders)
     }
 
     /// Returns the current position (in meters).
@@ -328,9 +438,9 @@ mod api {
 #[doc(hidden)]
 #[macro_use]
 pub mod dbg {
+    use super::Line;
     use crate::sys::write_system_state;
     use crate::vec::*;
-    use oort_shared::Line;
     use std::f64::consts::TAU;
 
     static mut TEXT_BUFFER: String = String::new();
@@ -419,22 +529,22 @@ pub mod dbg {
         {
             let slice = unsafe { TEXT_BUFFER.as_bytes() };
             write_system_state(
-                oort_shared::SystemState::DebugTextPointer,
+                super::SystemState::DebugTextPointer,
                 slice.as_ptr() as u32 as f64,
             );
             write_system_state(
-                oort_shared::SystemState::DebugTextLength,
+                super::SystemState::DebugTextLength,
                 slice.len() as u32 as f64,
             );
         }
         {
             let slice = unsafe { LINE_BUFFER.as_slice() };
             write_system_state(
-                oort_shared::SystemState::DebugLinesPointer,
+                super::SystemState::DebugLinesPointer,
                 slice.as_ptr() as u32 as f64,
             );
             write_system_state(
-                oort_shared::SystemState::DebugLinesLength,
+                super::SystemState::DebugLinesLength,
                 slice.len() as u32 as f64,
             );
         }
@@ -462,7 +572,7 @@ pub mod prelude {
     #[doc(inline)]
     pub use super::vec::*;
     #[doc(inline)]
-    pub use crate::debug;
+    pub use super::Class;
     #[doc(inline)]
-    pub use oort_shared::Class;
+    pub use crate::debug;
 }

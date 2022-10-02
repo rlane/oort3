@@ -2562,7 +2562,6 @@ version = "0.6.1"
 dependencies = [
  "oorandom",
  "oort_api",
- "oort_shared",
 ]
 
 [[package]]
@@ -2587,7 +2586,6 @@ name = "oort_api"
 version = "0.6.1"
 dependencies = [
  "oorandom",
- "oort_shared",
 ]
 
 [[package]]
@@ -2645,10 +2643,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_shared"
-version = "0.6.1"
-
-[[package]]
 name = "oort_simulator"
 version = "0.6.1"
 dependencies = [
@@ -2664,7 +2658,7 @@ dependencies = [
  "log",
  "nalgebra",
  "oorandom",
- "oort_shared",
+ "oort_api",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rand_distr",

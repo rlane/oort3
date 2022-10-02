@@ -5,7 +5,7 @@ use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Simulation};
 use nalgebra::point;
 use nalgebra::Vector2;
-use oort_shared::*;
+use oort_api::{Class, Line, SystemState};
 use serde::{Deserialize, Serialize};
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 

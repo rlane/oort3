@@ -8,7 +8,6 @@ exec rustc --crate-name oort_ai \
   -C strip=debuginfo \
   -L dependency=target/wasm32-unknown-unknown/release/deps \
   --extern oorandom=$(echo target/wasm32-unknown-unknown/release/deps/liboorandom-*.rlib) \
-  --extern oort_shared=$(echo target/wasm32-unknown-unknown/release/deps/liboort_shared-*.rlib) \
   --extern oort_api=$(echo target/wasm32-unknown-unknown/release/deps/liboort_api-*.rlib) \
   --extern wee_alloc=$(echo target/wasm32-unknown-unknown/release/deps/libwee_alloc-*.rlib) \
   -C opt-level=s \

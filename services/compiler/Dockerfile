@@ -17,7 +17,6 @@ COPY --from=builder /registry /usr/local/cargo/registry
 COPY --from=builder /usr/local/cargo/bin/oort_compiler_service /usr/local/bin/oort_compiler_service
 COPY ai ai
 COPY api api
-COPY shared shared
 RUN cargo fetch
 RUN ./scripts/build-ai.sh
 ENV PORT 8080

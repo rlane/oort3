@@ -27,7 +27,7 @@ regex = "1.5.6"
 serde = { version = "1.0.137", features = ["derive"] }
 smartstring = "1.0.1"
 instant = "0.1.12"
-oort_shared = { path = "../shared" }
+oort_api = { path = "../api" }
 wasmer = { version = "2.3.0", default-features = false }
 wasmer-compiler = { version = "2.3.0", features = ["universal_engine"] }
 wasmer-compiler-cranelift = { version = "2.3.0" }

@@ -1,5 +1,5 @@
 use oort_api::prelude::*;
-use oort_shared::SystemState;
+use oort_api::SystemState;
 
 pub struct Ship {}
 
