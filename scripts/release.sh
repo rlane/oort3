@@ -48,8 +48,6 @@ if [[ $BUMP_VERSION -eq 1 ]]; then
   git tag v$VERSION
 fi
 
-exit 0
-
 if [[ $PUSH_ALL -eq 1 || $PUSH_COMPILER_SERVICE  -eq 1 ]]; then
   scripts/build-compiler-service-docker-image.sh
   scripts/deploy-compiler-service.sh
