@@ -35,7 +35,6 @@ pub enum Telemetry {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct LeaderboardData {
     pub lowest_time: Vec<TimeLeaderboardRow>,
-    pub lowest_code_size: Vec<CodeSizeLeaderboardRow>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -43,11 +42,4 @@ pub struct TimeLeaderboardRow {
     pub userid: String,
     pub username: Option<String>,
     pub time: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct CodeSizeLeaderboardRow {
-    pub userid: String,
-    pub username: Option<String>,
-    pub code_size: i64,
 }

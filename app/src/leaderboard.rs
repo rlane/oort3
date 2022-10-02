@@ -1,5 +1,5 @@
 use crate::userid;
-use oort_telemetry_proto::{CodeSizeLeaderboardRow, LeaderboardData, TimeLeaderboardRow};
+use oort_telemetry_proto::{LeaderboardData, TimeLeaderboardRow};
 use reqwasm::http::Request;
 use yew::prelude::*;
 
@@ -78,26 +78,13 @@ impl Component for Leaderboard {
                 html! { <tr><td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td><td>{ &row.time }</td></tr> }
             }
 
-            fn render_code_size_row(row: &CodeSizeLeaderboardRow) -> Html {
-                html! { <tr><td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td><td>{ row.code_size }</td></tr> }
-            }
-
             html! {
-                <div id="leaderboards">
-                    <div class="leaderboard" id="time-leaderboard">
-                        <table>
-                            <tr><th colspan=2>{ "Top By Time" }</th></tr>
-                            <tr><th>{ "User" }</th><th>{ "Time (seconds)" }</th></tr>
-                            <tbody>{ for data.lowest_time.iter().map(render_time_row) }</tbody>
-                        </table>
-                    </div>
-                    <div class="leaderboard" id="code-size-leaderboard">
-                        <table>
-                            <tr><th colspan=2>{ "Top By Size" }</th></tr>
-                            <tr><th>{ "User" }</th><th>{ "Size (bytes)" }</th></tr>
-                            <tbody>{ for data.lowest_code_size.iter().map(render_code_size_row) }</tbody>
-                        </table>
-                    </div>
+                <div class="leaderboard">
+                    <table>
+                        <tr><th colspan=2>{ "Leaderboard" }</th></tr>
+                        <tr><th>{ "User" }</th><th>{ "Time" }</th></tr>
+                        <tbody>{ for data.lowest_time.iter().map(render_time_row) }</tbody>
+                    </table>
                 </div>
             }
         } else {

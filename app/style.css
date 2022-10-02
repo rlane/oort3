@@ -178,6 +178,17 @@ a:hover {
   text-align: center;
 }
 
+div.leaderboard {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.leaderboard table {
+  margin-top: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .leaderboard table,
 th,
 td {
@@ -187,21 +198,10 @@ td {
 
 .leaderboard th,
 td {
-  padding: 10px;
-}
-
-#leaderboards {
-  margin-left: auto;
-  margin-right: auto;
-  width: 50%;
-}
-
-#time-leaderboard {
-  float: left;
-}
-
-#code-size-leaderboard {
-  float: right;
+  padding-left: 40px;
+  padding-right: 40px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .errorDecoration {
