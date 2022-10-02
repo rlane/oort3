@@ -8,15 +8,17 @@ members = [
 ]
 
 [profile.dev.package.'*']
-opt-level = 3
+opt-level = "s"
 
 [profile.dev]
 opt-level = 0
 
 [profile.release]
-debug = true
-lto = true
+debug = false
+lto = false
+opt-level = "s"
 
 [profile.bench]
 debug = true
 lto = false
+opt-level = "s"
