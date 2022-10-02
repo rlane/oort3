@@ -3,7 +3,9 @@ cd $(realpath $(dirname $0))/..
 eval "$(fnm env)"
 set -x
 
-cd frontend/app
+cd frontend
+cargo build --release --bins --target wasm32-unknown-unknown
+cd app
 rm -rf dist
 trunk build --release
 
