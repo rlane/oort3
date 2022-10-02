@@ -7,7 +7,7 @@ COPY . .
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/target \
+  --mount=type=cache,target=/usr/src/app/services/target \
   cd services/leaderboard && cargo install --target x86_64-unknown-linux-musl --locked --path .
 
 FROM scratch

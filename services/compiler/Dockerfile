@@ -4,7 +4,7 @@ COPY . .
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/target \
+  --mount=type=cache,target=/usr/src/app/services/target \
   cd services/compiler && cargo install --locked --path . && cp -a /usr/local/cargo/registry /registry
 
 FROM rust:1.64-slim-buster
