@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         log::info!("Compiling {:?}", src);
         let path = Path::new(src);
         let name = path.file_stem().unwrap().to_str().unwrap();
-        let src_code = std::fs::read_to_string(src.to_string()).unwrap();
+        let src_code = std::fs::read_to_string(src).unwrap();
         if let Some(wasm) = compile(&http_client, src.to_string(), src_code).await {
             competitors.push(Competitor {
                 name: name.to_string(),

@@ -33,7 +33,7 @@ async fn compile(req: &mut Request, res: &mut Response) {
     if let Err(e) = compile_internal(req, res).await {
         log::error!("compile request error: {}", e);
         res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string().to_string());
+        res.render(e.to_string());
     }
 }
 

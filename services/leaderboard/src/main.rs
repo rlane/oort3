@@ -5,8 +5,8 @@ use oort_telemetry_proto::{LeaderboardData, Telemetry, TelemetryMsg, TimeLeaderb
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 
-const COLLECTION_NAME: &'static str = "telemetry";
-const PROJECT_ID: &'static str = "oort-319301";
+const COLLECTION_NAME: &str = "telemetry";
+const PROJECT_ID: &str = "oort-319301";
 
 async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
     let db = FirestoreDb::new(PROJECT_ID).await?;
@@ -14,7 +14,7 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
 
     let scenario_name: String = req
         .query("scenario_name")
-        .ok_or(anyhow!("missing scenario_name parameter"))?;
+        .ok_or_else(|| anyhow!("missing scenario_name parameter"))?;
 
     let docs: Vec<Document> = db
         .query_doc(
@@ -77,7 +77,7 @@ async fn get_leaderboard(req: &mut Request, res: &mut Response) {
     if let Err(e) = get_leaderboard_internal(req, res).await {
         log::error!("error: {}", e);
         res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string().to_string());
+        res.render(e.to_string());
     }
 }
 

@@ -10,13 +10,24 @@ if ! git diff --cached --quiet --diff-filter=ACM -- simulator; then
   )
 fi
 
-for PKG in app worker; do
+for PKG in app worker analyzer; do
   if ! git diff --cached --quiet --diff-filter=ACM -- $PKG; then
     (
       cd $PKG
       cargo check -q --target wasm32-unknown-unknown
       cargo clippy -q --target wasm32-unknown-unknown -- -Dwarnings
       cargo build -q --target wasm32-unknown-unknown
+    )
+  fi
+done
+
+for PKG in tools services/compiler services/telemetry services/leaderboard; do
+  if ! git diff --cached --quiet --diff-filter=ACM -- $PKG; then
+    (
+      cd $PKG
+      cargo check -q
+      cargo clippy -q -- -Dwarnings
+      cargo build -q
     )
   fi
 done

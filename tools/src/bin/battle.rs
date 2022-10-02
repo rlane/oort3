@@ -1,5 +1,5 @@
-use oort_simulator::{scenario, simulation};
 use oort_simulator::simulation::Code;
+use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
 use std::default::Default;
 
@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut codes = vec![];
     for src in &srcs {
         log::info!("Compiling {:?}", src);
-        let src_code = std::fs::read_to_string(src.to_string()).unwrap();
+        let src_code = std::fs::read_to_string(src).unwrap();
         if let Some(wasm) = compile(&http_client, src.to_string(), src_code).await {
             codes.push(Code::Wasm(wasm));
         } else {
@@ -30,12 +30,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     log::info!("Running simulations");
     let results = run_simulations(&scenario_name, codes);
     log::info!("Results: {:?}", results);
-    if results.team0_wins.len() > results.team1_wins.len() {
-        log::info!("Team 0 ({:?}) wins", srcs[0]);
-    } else if results.team1_wins.len() > results.team0_wins.len() {
-        log::info!("Team 1 ({:?}) wins", srcs[1]);
-    } else {
-        log::info!("Draw");
+    match results.team0_wins.len().cmp(&results.team1_wins.len()) {
+        std::cmp::Ordering::Greater => log::info!("Team 0 ({:?}) wins", srcs[0]),
+        std::cmp::Ordering::Less => log::info!("Team 1 ({:?}) wins", srcs[1]),
+        _ => log::info!("Draw"),
     }
     Ok(())
 }
@@ -65,19 +63,19 @@ fn run_simulations(scenario_name: &str, codes: Vec<Code>) -> Results {
         .into_par_iter()
         .map(|seed| (seed, run_simulation(scenario_name, seed, codes.clone())))
         .collect();
-    let mut results : Results = Default::default();
+    let mut results: Results = Default::default();
     for (seed, status) in seed_statuses {
         match status {
             scenario::Status::Victory { team: 0 } => results.team0_wins.push(seed),
             scenario::Status::Victory { team: 1 } => results.team1_wins.push(seed),
             scenario::Status::Draw => results.draws.push(seed),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
     results
 }
 
-fn run_simulation(scenario_name: &str, seed: u32, codes: Vec<Code> ) -> scenario::Status {
+fn run_simulation(scenario_name: &str, seed: u32, codes: Vec<Code>) -> scenario::Status {
     let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
     while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
         sim.step();

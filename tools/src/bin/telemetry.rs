@@ -7,7 +7,7 @@ use gcloud_sdk::google::firestore::v1::Document;
 use oort_telemetry_proto::{Telemetry, TelemetryMsg};
 use std::collections::HashMap;
 
-const COLLECTION_NAME: &'static str = "telemetry";
+const COLLECTION_NAME: &str = "telemetry";
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -59,7 +59,7 @@ async fn cmd_list(
         .await?;
     for doc in &docs {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
-            let (_, docid) = doc.name.rsplit_once("/").unwrap();
+            let (_, docid) = doc.name.rsplit_once('/').unwrap();
             let user = msg.username.as_ref().unwrap_or(&msg.userid);
             if let Some(u) = user_filter.as_ref() {
                 if user != u {
@@ -186,7 +186,7 @@ async fn cmd_top(
 
     for doc in &docs {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
-            let (_, docid) = doc.name.rsplit_once("/").unwrap();
+            let (_, docid) = doc.name.rsplit_once('/').unwrap();
             let epoch_time = doc.create_time.clone().map(|x| x.seconds).unwrap_or(0);
             let creation_time = Local.timestamp(epoch_time, 0);
             match &msg.payload {

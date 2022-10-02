@@ -3,8 +3,8 @@ use oort_telemetry_proto::TelemetryMsg;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 
-const COLLECTION_NAME: &'static str = "telemetry";
-const PROJECT_ID: &'static str = "oort-319301";
+const COLLECTION_NAME: &str = "telemetry";
+const PROJECT_ID: &str = "oort-319301";
 
 fn generate_docid() -> String {
     use rand::Rng;
@@ -26,7 +26,7 @@ async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<
     log::debug!("Got request {:?}", req);
     let payload = req.payload().await?;
     log::debug!("Got payload {:?}", payload);
-    let obj: TelemetryMsg = serde_json::from_slice(&payload)?;
+    let obj: TelemetryMsg = serde_json::from_slice(payload)?;
     log::debug!("Got request obj {:?}", obj);
     db.create_obj(COLLECTION_NAME, &generate_docid(), &obj)
         .await?;
@@ -39,7 +39,7 @@ async fn post(req: &mut Request, res: &mut Response) {
     if let Err(e) = post_internal(req, res).await {
         log::error!("error: {}", e);
         res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string().to_string());
+        res.render(e.to_string());
     }
 }
 

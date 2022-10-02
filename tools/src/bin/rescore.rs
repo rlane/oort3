@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-const COLLECTION_NAME: &'static str = "telemetry";
+const COLLECTION_NAME: &str = "telemetry";
 
 #[derive(Parser, Debug)]
 #[clap()]
