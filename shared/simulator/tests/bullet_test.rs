@@ -1,6 +1,6 @@
 use nalgebra::vector;
 use oort_simulator::ship;
-use oort_simulator::ship::{fighter, target};
+use oort_simulator::ship::{fighter, frigate, target};
 use oort_simulator::simulation::{self, Code};
 use test_log::test;
 
@@ -74,4 +74,42 @@ fn test_destroyed() {
 
     assert!(sim.ships.contains(ship0));
     assert!(!sim.ships.contains(ship1));
+}
+
+#[test]
+fn test_penetration() {
+    let mut sim = simulation::Simulation::new("test", 0, &[Code::None, Code::None]);
+
+    let ship0 = ship::create(
+        &mut sim,
+        vector![-100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        frigate(0),
+    );
+    let ship1 = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.1,
+        target(1),
+    );
+
+    assert!(sim.ships.contains(ship0));
+    assert!(sim.ships.contains(ship1));
+
+    sim.ship_mut(ship0).fire_gun(0);
+    let bullet = *sim.bullets.iter().next().unwrap();
+    let initial_bullet_mass = sim.bullet(bullet).data().mass;
+    let initial_velocity = sim.bullet(bullet).body().linvel().clone();
+
+    for _ in 0..100 {
+        sim.step();
+    }
+
+    assert!(sim.bullets.iter().len() == 1);
+    assert!(sim.ships.contains(ship0));
+    assert!(!sim.ships.contains(ship1));
+    assert_ne!(sim.bullet(bullet).data().mass, initial_bullet_mass);
+    assert_ne!(*sim.bullet(bullet).body().linvel(), initial_velocity);
 }

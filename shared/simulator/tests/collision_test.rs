@@ -194,7 +194,7 @@ fn test_missile_bullet_collision_different_team() {
     }
 
     assert_eq!(sim.ships.len(), 0);
-    assert_eq!(sim.bullets.len(), 0);
+    assert_eq!(sim.bullets.len(), 1);
 }
 
 #[test]
@@ -272,7 +272,7 @@ fn test_bullet_continuous_collision_detection() {
                 mass: 10.0,
                 team: 1,
                 color: BULLET_COLOR,
-                ttl: 5.0,
+                ttl: 1.5,
             },
         );
 

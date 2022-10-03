@@ -75,6 +75,13 @@ pub struct BulletAccessorMut<'a> {
 }
 
 impl<'a: 'b, 'b> BulletAccessorMut<'a> {
+    pub fn body(&'a mut self) -> &'a mut RigidBody {
+        self.simulation
+            .bodies
+            .get_mut(RigidBodyHandle(self.handle.index()))
+            .unwrap()
+    }
+
     pub fn data_mut(&mut self) -> &mut BulletData {
         self.simulation.bullet_data.get_mut(&self.handle).unwrap()
     }

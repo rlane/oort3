@@ -12,7 +12,9 @@ use crate::vm;
 use crate::vm::{ShipController, TeamController};
 use crossbeam::channel::Sender;
 use instant::Instant;
-use nalgebra::Vector2;
+use nalgebra::{UnitComplex, Vector2};
+use rand::Rng;
+use rand_chacha::ChaCha8Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -57,6 +59,7 @@ pub struct Simulation {
     pub cheats: bool,
     seed: u32,
     timing: Timing,
+    rng: ChaCha8Rng,
 }
 
 impl Simulation {
@@ -92,6 +95,7 @@ impl Simulation {
             cheats: false,
             seed,
             timing: Default::default(),
+            rng: crate::rng::new_rng(seed),
         });
 
         for (team, code) in codes.iter().enumerate() {
@@ -184,6 +188,9 @@ impl Simulation {
                     let dv = sim.bullet(bullet).body().linvel() - sim.ship(ship).velocity();
                     let energy = 0.5 * sim.bullet(bullet).data().mass * dv.magnitude_squared();
                     let damage = energy * DAMAGE_FACTOR;
+                    sim.events
+                        .hits
+                        .push(sim.bullet(bullet).body().position().translation.vector);
                     let ship_destroyed = {
                         let ship_data = sim.ship_data.get_mut(&ship).unwrap();
                         ship_data.health -= damage;
@@ -194,11 +201,16 @@ impl Simulation {
                             .ships_destroyed
                             .push(sim.ship(ship).body().position().translation.vector);
                         sim.ship_mut(ship).data_mut().destroyed = true;
+                        sim.bullet_mut(bullet).data_mut().mass *= 0.5;
+                        let rotation = UnitComplex::new(sim.rng.gen_range(-0.1..0.1));
+                        let new_velocity =
+                            rotation.transform_vector(sim.bullet(bullet).body().linvel());
+                        sim.bullet_mut(bullet)
+                            .body()
+                            .set_linvel(new_velocity, false);
+                    } else {
+                        sim.bullet_mut(bullet).destroy();
                     }
-                    sim.events
-                        .hits
-                        .push(sim.bullet(bullet).body().position().translation.vector);
-                    sim.bullet_mut(bullet).destroy();
                 };
                 if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
                     if self.ships.contains(ShipHandle(idx1))
