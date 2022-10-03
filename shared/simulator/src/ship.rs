@@ -217,7 +217,7 @@ pub fn frigate(team: i32) -> ShipData {
         max_angular_acceleration: TAU / 8.0,
         guns: vec![
             Gun {
-                reload_time: 1.0,
+                reload_time: 2.0,
                 speed: 4000.0,
                 offset: vector![40.0, 0.0],
                 energy_required: 400e6,
@@ -280,7 +280,7 @@ pub fn cruiser(team: i32) -> ShipData {
             offset: vector![0.0, 0.0],
             max_angle: TAU,
             inaccuracy: 0.02,
-            burst_size: 3,
+            burst_size: 6,
             ttl: 1.0,
             energy_required: 20e6,
             bullet_mass: 0.1,
