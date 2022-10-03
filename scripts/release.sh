@@ -44,7 +44,7 @@ if [[ $BUMP_VERSION -eq 1 ]]; then
   for WS in frontend tools shared services; do
     (cd $WS && cargo update -w)
   done
-  git commit -a -m "bump version to $VERSION"
+  git commit -n -a -m "bump version to $VERSION"
   git tag v$VERSION
 fi
 
