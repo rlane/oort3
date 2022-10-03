@@ -89,8 +89,8 @@ fn test_fighter_bullet_collision_same_team() {
         vector![0.0, 0.0],
         vector![1000.0, 0.0],
         bullet::BulletData {
+            mass: 0.1,
             team: 0,
-            damage: 10.0,
             color: BULLET_COLOR,
             ttl: 5.0,
         },
@@ -120,8 +120,8 @@ fn test_fighter_bullet_collision_different_team() {
         vector![0.0, 0.0],
         vector![1000.0, 0.0],
         bullet::BulletData {
+            mass: 0.1,
             team: 1,
-            damage: 10.0,
             color: BULLET_COLOR,
             ttl: 5.0,
         },
@@ -151,8 +151,8 @@ fn test_missile_bullet_collision_same_team() {
         vector![0.0, 0.0],
         vector![1000.0, 0.0],
         bullet::BulletData {
+            mass: 0.1,
             team: 0,
-            damage: 10.0,
             color: BULLET_COLOR,
             ttl: 5.0,
         },
@@ -182,8 +182,8 @@ fn test_missile_bullet_collision_different_team() {
         vector![0.0, 0.0],
         vector![1000.0, 0.0],
         bullet::BulletData {
+            mass: 10.0,
             team: 1,
-            damage: 100.0,
             color: BULLET_COLOR,
             ttl: 5.0,
         },
@@ -269,8 +269,8 @@ fn test_bullet_continuous_collision_detection() {
             vector![0.0, -1000.0 + offset],
             vector![0.0, 1000.0],
             bullet::BulletData {
+                mass: 10.0,
                 team: 1,
-                damage: 100.0,
                 color: BULLET_COLOR,
                 ttl: 5.0,
             },

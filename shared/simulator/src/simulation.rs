@@ -21,6 +21,7 @@ use std::rc::Rc;
 
 pub const WORLD_SIZE: f64 = 20000.0;
 pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
+const DAMAGE_FACTOR: f64 = 0.00014;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Eq, Hash, PartialEq)]
 pub enum Code {
@@ -180,7 +181,9 @@ impl Simulation {
                         sim.bullet_mut(bullet).destroy();
                         return;
                     }
-                    let damage = sim.bullet(bullet).data().damage;
+                    let dv = sim.bullet(bullet).body().linvel() - sim.ship(ship).velocity();
+                    let energy = 0.5 * sim.bullet(bullet).data().mass * dv.magnitude_squared();
+                    let damage = energy * DAMAGE_FACTOR;
                     let ship_destroyed = {
                         let ship_data = sim.ship_data.get_mut(&ship).unwrap();
                         ship_data.health -= damage;

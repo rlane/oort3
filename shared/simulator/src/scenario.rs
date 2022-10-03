@@ -475,7 +475,7 @@ impl Scenario for BulletStressScenario {
                 vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
                 vector![rng.gen_range(-s..s), rng.gen_range(-s..s)],
                 BulletData {
-                    damage: 10.0,
+                    mass: 0.1,
                     team: 0,
                     color: vector![1.00, 0.63, 0.00, 0.30],
                     ttl: 100.0,

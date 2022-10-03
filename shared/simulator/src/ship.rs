@@ -61,7 +61,6 @@ impl ShipClass {
 pub struct Gun {
     pub reload_time: f64,
     pub reload_time_remaining: f64,
-    pub damage: f64,
     pub speed: f64,
     pub speed_error: f64,
     pub offset: Vector2<f64>,
@@ -72,6 +71,7 @@ pub struct Gun {
     pub burst_size: i32,
     pub ttl: f32,
     pub energy_required: f64,
+    pub bullet_mass: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -135,7 +135,6 @@ impl Default for Gun {
         Gun {
             reload_time: 1.0,
             reload_time_remaining: 0.0,
-            damage: 20.0,
             speed: 1000.0,
             speed_error: 0.0,
             offset: vector![00.0, 0.0],
@@ -146,6 +145,7 @@ impl Default for Gun {
             burst_size: 1,
             ttl: 5.0,
             energy_required: 1e8,
+            bullet_mass: 1.0,
         }
     }
 }
@@ -165,10 +165,10 @@ fn radio() -> Radio {
 pub fn vulcan_gun() -> Gun {
     Gun {
         reload_time: PHYSICS_TICK_LENGTH * 4.0,
-        damage: 7.0,
         speed: 1000.0,
         inaccuracy: 0.0025,
         energy_required: 6e6,
+        bullet_mass: 0.1,
         ..Default::default()
     }
 }
@@ -218,10 +218,10 @@ pub fn frigate(team: i32) -> ShipData {
         guns: vec![
             Gun {
                 reload_time: 1.0,
-                damage: 1000.0,
                 speed: 4000.0,
                 offset: vector![40.0, 0.0],
                 energy_required: 400e6,
+                bullet_mass: 1.0,
                 ..Default::default()
             },
             Gun {
@@ -275,7 +275,6 @@ pub fn cruiser(team: i32) -> ShipData {
         max_angular_acceleration: TAU / 16.0,
         guns: vec![Gun {
             reload_time: 0.4,
-            damage: 7.0,
             speed: 1000.0,
             speed_error: 50.0,
             offset: vector![0.0, 0.0],
@@ -284,6 +283,7 @@ pub fn cruiser(team: i32) -> ShipData {
             burst_size: 3,
             ttl: 1.0,
             energy_required: 20e6,
+            bullet_mass: 0.1,
             ..Default::default()
         }],
         missile_launchers: vec![
@@ -541,7 +541,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let team = ship_data.team;
         let gun = {
             let gun = &mut ship_data.guns[index as usize];
-            if gun.reload_time_remaining > 0.0 || ship_data.energy < gun.energy_required {
+            if gun.reload_time_remaining > 1e-6 || ship_data.energy < gun.energy_required {
                 return;
             }
             gun.reload_time_remaining += gun.reload_time;
@@ -551,7 +551,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         let mut rng =
             rng::new_rng(self.simulation.tick() ^ u64::from(self.handle) as u32 ^ index as u32);
-        let alpha = ((gun.damage as f32).log(10.0) / 3.0).clamp(0.5, 1.0);
+        let alpha = (gun.bullet_mass as f32).clamp(0.5, 1.0);
         let color = vector![1.00, 0.63, 0.00, alpha];
         let mut t = 0.0;
         let dt = simulation::PHYSICS_TICK_LENGTH / gun.burst_size as f64;
@@ -578,7 +578,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 p,
                 v,
                 BulletData {
-                    damage: gun.damage,
+                    mass: gun.bullet_mass,
                     team,
                     color,
                     ttl: gun.ttl + t as f32,
@@ -644,10 +644,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
         self.data_mut().destroyed = true;
 
-        let (damage, num) = match self.data().class {
-            ShipClass::Missile => (15.0, 20),
-            ShipClass::Torpedo => (100.0, 50),
-            _ => (20.0, 25),
+        let (mass, num) = match self.data().class {
+            ShipClass::Missile => (0.25, 20),
+            ShipClass::Torpedo => (1.5, 50),
+            _ => (0.2, 20),
         };
 
         let team = self.data().team;
@@ -666,7 +666,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 p + offset,
                 v,
                 BulletData {
-                    damage,
+                    mass,
                     team,
                     color,
                     ttl,

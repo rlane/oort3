@@ -17,7 +17,7 @@ impl HasIndex for BulletHandle {
 }
 
 pub struct BulletData {
-    pub damage: f64,
+    pub mass: f64,
     pub team: i32,
     pub ttl: f32,
     pub color: Vector4<f32>,
