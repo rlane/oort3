@@ -59,8 +59,11 @@ impl ShipClass {
 
 #[derive(Debug, Clone)]
 pub struct Gun {
+    pub magazine_size: i32,
+    pub magazine_remaining: i32,
+    pub cycle_time: f64,
+    pub cycle_time_remaining: f64,
     pub reload_time: f64,
-    pub reload_time_remaining: f64,
     pub speed: f64,
     pub speed_error: f64,
     pub offset: Vector2<f64>,
@@ -70,7 +73,6 @@ pub struct Gun {
     pub inaccuracy: f64,
     pub burst_size: i32,
     pub ttl: f32,
-    pub energy_required: f64,
     pub bullet_mass: f64,
 }
 
@@ -133,8 +135,11 @@ impl Default for ShipData {
 impl Default for Gun {
     fn default() -> Gun {
         Gun {
+            magazine_size: 10,
+            magazine_remaining: 0,
+            cycle_time: 1.0,
             reload_time: 1.0,
-            reload_time_remaining: 0.0,
+            cycle_time_remaining: 0.0,
             speed: 1000.0,
             speed_error: 0.0,
             offset: vector![00.0, 0.0],
@@ -144,7 +149,6 @@ impl Default for Gun {
             inaccuracy: 0.0,
             burst_size: 1,
             ttl: 5.0,
-            energy_required: 1e8,
             bullet_mass: 1.0,
         }
     }
@@ -164,10 +168,11 @@ fn radio() -> Radio {
 
 pub fn vulcan_gun() -> Gun {
     Gun {
-        reload_time: PHYSICS_TICK_LENGTH * 4.0,
+        magazine_size: 30,
+        cycle_time: PHYSICS_TICK_LENGTH * 4.0,
+        reload_time: 1.0,
         speed: 1000.0,
         inaccuracy: 0.0025,
-        energy_required: 6e6,
         bullet_mass: 0.1,
         ..Default::default()
     }
@@ -217,10 +222,11 @@ pub fn frigate(team: i32) -> ShipData {
         max_angular_acceleration: TAU / 8.0,
         guns: vec![
             Gun {
-                reload_time: 2.0,
+                magazine_size: 1,
+                cycle_time: 2.0,
+                reload_time: 0.0,
                 speed: 4000.0,
                 offset: vector![40.0, 0.0],
-                energy_required: 400e6,
                 bullet_mass: 1.0,
                 ..Default::default()
             },
@@ -274,7 +280,9 @@ pub fn cruiser(team: i32) -> ShipData {
         max_acceleration: vector![5.0, 2.5],
         max_angular_acceleration: TAU / 16.0,
         guns: vec![Gun {
-            reload_time: 0.4,
+            magazine_size: 30,
+            cycle_time: 0.4,
+            reload_time: 1.0,
             speed: 1000.0,
             speed_error: 50.0,
             offset: vector![0.0, 0.0],
@@ -282,7 +290,6 @@ pub fn cruiser(team: i32) -> ShipData {
             inaccuracy: 0.02,
             burst_size: 6,
             ttl: 1.0,
-            energy_required: 20e6,
             bullet_mass: 0.1,
             ..Default::default()
         }],
@@ -414,6 +421,10 @@ pub fn create(
     sim.colliders
         .insert_with_parent(collider, body_handle, &mut sim.bodies);
 
+    for gun in data.guns.iter_mut() {
+        gun.magazine_remaining = gun.magazine_size;
+    }
+
     sim.ships.insert(handle);
     sim.ship_data.insert(handle, data);
 
@@ -536,11 +547,15 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let team = ship_data.team;
         let gun = {
             let gun = &mut ship_data.guns[index as usize];
-            if gun.reload_time_remaining > 1e-6 || ship_data.energy < gun.energy_required {
+            if gun.cycle_time_remaining > 1e-6 {
                 return;
             }
-            gun.reload_time_remaining += gun.reload_time;
-            ship_data.energy -= gun.energy_required;
+            gun.cycle_time_remaining = gun.cycle_time;
+            gun.magazine_remaining -= gun.burst_size;
+            if gun.magazine_remaining <= 0 {
+                gun.magazine_remaining = gun.magazine_size;
+                gun.cycle_time_remaining += gun.reload_time;
+            }
             gun.clone()
         };
 
@@ -682,8 +697,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         {
             let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
             for gun in ship_data.guns.iter_mut() {
-                gun.reload_time_remaining =
-                    (gun.reload_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
+                gun.cycle_time_remaining =
+                    (gun.cycle_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
             }
 
             for missile_launcher in ship_data.missile_launchers.iter_mut() {

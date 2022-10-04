@@ -58,9 +58,8 @@ Engine limits:
 - [`max_acceleration() -> Vec2`](prelude::max_acceleration): Maximum linear acceleration.
 - [`max_angular_acceleration() -> f64`](prelude::max_angular_acceleration): Maximum angular acceleration.
 
-Energy is required for nearly everything including accelerating, firing
-weapons, and scanning with radar. It's replenished steadily by the ship's
-reactor.
+Energy is required for many things including accelerating and scanning with
+radar. It's replenished steadily by the ship's reactor.
 
 - [`energy() -> f64`](prelude::energy): Available energy in Joules.
 

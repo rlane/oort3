@@ -57,9 +57,9 @@ fn find_gun_dps(mut ship_data: ship::ShipData, gun: i64) -> f64 {
 
 #[test]
 fn test_dps() {
-    approx::assert_abs_diff_eq!(find_gun_dps(fighter(0), 0), 105.0, epsilon = 1.0);
+    approx::assert_abs_diff_eq!(find_gun_dps(fighter(0), 0), 73.5, epsilon = 1.0);
     approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 0), 560.0, epsilon = 1.0);
-    approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 1), 105.0, epsilon = 1.0);
-    approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 2), 105.0, epsilon = 1.0);
-    approx::assert_abs_diff_eq!(find_gun_dps(cruiser(0), 0), 106.0, epsilon = 1.0);
+    approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 1), 73.5, epsilon = 1.0);
+    approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 2), 73.5, epsilon = 1.0);
+    approx::assert_abs_diff_eq!(find_gun_dps(cruiser(0), 0), 75.7, epsilon = 1.0);
 }
