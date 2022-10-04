@@ -9,7 +9,7 @@ pub struct Ship {
 
 impl Ship {
     pub fn new() -> Ship {
-        let target_position = parse_orders(orders());
+        let target_position = parse_orders(receive());
         let target_velocity = Vec2::new(0.0, 0.0);
         Ship {
             target_position,
@@ -58,7 +58,8 @@ impl Ship {
                 if predicted_dp.length() < 5000.0 {
                     fire_gun(0);
                 }
-                launch_missile(0, make_orders(contact.position));
+                send(make_orders(contact.position));
+                launch_missile(0);
             } else if class() == Class::Frigate {
                 fire_gun(0);
                 aim_gun(
@@ -71,17 +72,20 @@ impl Ship {
                     (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle(),
                 );
                 fire_gun(2);
-                launch_missile(0, make_orders(contact.position));
+                send(make_orders(contact.position));
+                launch_missile(0);
             } else if class() == Class::Cruiser {
                 if predicted_dp.length() < 5000.0 {
                     aim_gun(0, predicted_dp.angle());
                     fire_gun(0);
                 }
                 for i in 0..2 {
-                    launch_missile(i, make_orders(contact.position));
+                    send(make_orders(contact.position));
+                    launch_missile(i);
                 }
                 if contact.class == Class::Frigate || contact.class == Class::Cruiser {
-                    launch_missile(2, make_orders(contact.position));
+                    send(make_orders(contact.position));
+                    launch_missile(2);
                 }
                 //dbg.draw_diamond(contact.position, 30.0, 0xffff00);
             }

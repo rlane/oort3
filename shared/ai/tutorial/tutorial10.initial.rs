@@ -26,7 +26,7 @@ impl Ship {
             fire_gun(1);
             aim_gun(2, heading() - TAU / 4.0);
             fire_gun(2);
-            launch_missile(0, 0.0);
+            launch_missile(0);
         }
     }
 }

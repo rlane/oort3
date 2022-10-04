@@ -73,7 +73,7 @@ Guns:
 
 Missiles:
 
-- [`launch_missile(index: usize, orders: f64)`](prelude::launch_missile): Launch a missile.
+- [`launch_missile(index: usize)`](prelude::launch_missile): Launch a missile.
 - [`explode()`](prelude::explode): Self-destruct.
 
 ## Radar
@@ -164,7 +164,6 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 - [`current_time() → f64`](prelude::current_time): Returns the number of seconds elapsed since the simulation started.
 - [`angle_diff(a: f64, b: f64) → f64`](prelude::angle_diff): Returns the shortest (possibly negative) distance between two angles.
 - [`rand(low: f64, high: f64) → f64`](prelude::rand): Get a random number.
-- [`orders() → f64`](prelude::orders): Returns the orders passed to [`launch_missile`](prelude::launch_missile).
 - [`seed() → u128`](prelude::seed): Returns a seed useful for initializing a random number generator.
 
 ## Ship Classes

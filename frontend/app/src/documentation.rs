@@ -59,7 +59,7 @@ pub fn documentation() -> Html {
             <ul>
               <li><code>{ "fire_gun(index: usize)" }</code>{ ": Fire a gun." }</li>
               <li><code>{ "aim_gun(index: usize, angle: f64)" }</code>{ ": Aim a gun (for guns on a turret)." }</li>
-              <li><code>{ "launch_missile(index: usize, orders: f64)" }</code>{ ": Launch a missile." }</li>
+              <li><code>{ "launch_missile(index: usize)" }</code>{ ": Launch a missile." }</li>
               <li><code>{ "explode()" }</code>{ ": Self-destruct." }</li>
             </ul>
 
@@ -125,7 +125,6 @@ pub fn documentation() -> Html {
               <li><code>{ "current_time() → f64" }</code>{ ": Returns the number of seconds elapsed since the simulation started." }</li>
               <li><code>{ "angle_diff(a: f64, b: f64) → f64" }</code>{ ": Returns the shortest (possibly negative) distance between two angles." }</li>
               <li><code>{ "rand(low: f64, high: f64) → f64" }</code>{ ": Get a random number." }</li>
-              <li><code>{ "orders() → f64" }</code>{ ": Returns the orders passed to "}<code>{ "launch_missile" }</code>{ "." }</li>
               <li><code>{ "target() → Vec2" }</code>{ ": Used in some scenarios, returns the location of the target." }</li>
               <li><code>{ "seed() → u128" }</code>{ ": Returns a seed useful for initializing a random number generator." }</li>
             </ul>

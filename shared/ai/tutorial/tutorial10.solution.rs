@@ -30,7 +30,7 @@ impl Ship {
             set_radar_width(TAU / 32.0);
             if let Some(contact) = scan() {
                 fire_gun(0);
-                launch_missile(0, 0.0);
+                launch_missile(0);
 
                 let dp = contact.position - position();
                 for i in [1, 2] {

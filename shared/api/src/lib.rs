@@ -7,7 +7,6 @@ mod vec;
 pub enum SystemState {
     Class,
     Seed,
-    Orders,
     PositionX,
     PositionY,
     VelocityX,
@@ -29,13 +28,9 @@ pub enum SystemState {
     Gun3Fire,
 
     Missile0Launch,
-    Missile0Orders,
     Missile1Launch,
-    Missile1Orders,
     Missile2Launch,
-    Missile2Orders,
     Missile3Launch,
-    Missile3Orders,
 
     Explode,
 
@@ -186,11 +181,6 @@ mod api {
         read_system_state(super::SystemState::Seed) as u128
     }
 
-    /// Returns the value passed from the parent ship when launching a missile.
-    pub fn orders() -> f64 {
-        read_system_state(super::SystemState::Orders)
-    }
-
     /// Returns the current position (in meters).
     pub fn position() -> Vec2 {
         vec2(
@@ -268,17 +258,15 @@ mod api {
     /// Launches a missile.
     ///
     /// `index` selects the missile launcher.
-    /// `orders` is passed to the missile and will be available from [`orders`].
-    pub fn launch_missile(index: usize, orders: f64) {
-        let (state_index, orders_index) = match index {
-            0 => (SystemState::Missile0Launch, SystemState::Missile0Orders),
-            1 => (SystemState::Missile1Launch, SystemState::Missile1Orders),
-            2 => (SystemState::Missile2Launch, SystemState::Missile2Orders),
-            3 => (SystemState::Missile3Launch, SystemState::Missile3Orders),
+    pub fn launch_missile(index: usize) {
+        let state_index = match index {
+            0 => SystemState::Missile0Launch,
+            1 => SystemState::Missile1Launch,
+            2 => SystemState::Missile2Launch,
+            3 => SystemState::Missile3Launch,
             _ => return,
         };
         write_system_state(state_index, 1.0);
-        write_system_state(orders_index, orders);
     }
 
     /// Self-destructs, producing a damaging explosion.

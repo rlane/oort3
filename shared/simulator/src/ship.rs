@@ -383,18 +383,7 @@ pub fn create(
     position: Vector2<f64>,
     velocity: Vector2<f64>,
     heading: f64,
-    data: ShipData,
-) -> ShipHandle {
-    create_with_orders(sim, position, velocity, heading, data, "".to_string())
-}
-
-pub fn create_with_orders(
-    sim: &mut Simulation,
-    position: Vector2<f64>,
-    velocity: Vector2<f64>,
-    heading: f64,
     mut data: ShipData,
-    orders: String,
 ) -> ShipHandle {
     data.energy = data.max_energy;
 
@@ -429,10 +418,7 @@ pub fn create_with_orders(
     sim.ship_data.insert(handle, data);
 
     if let Some(team_ctrl) = sim.get_team_controller(team) {
-        match team_ctrl
-            .borrow_mut()
-            .create_ship_controller(handle, sim, orders)
-        {
+        match team_ctrl.borrow_mut().create_ship_controller(handle, sim) {
             Ok(ship_ctrl) => {
                 sim.ship_controllers.insert(handle, ship_ctrl);
             }
@@ -588,7 +574,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
     }
 
-    pub fn launch_missile(&mut self, index: i64, orders: String) {
+    pub fn launch_missile(&mut self, index: i64) {
         let missile_launcher = {
             let ship_data = self.data_mut();
             if let Some(missile_launcher) =
@@ -615,7 +601,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let rot2 = rot * UnitComplex::new(missile_launcher.angle);
         let v = body.linvel() + rot2.transform_vector(&vector![speed, 0.0]);
         let team = self.data().team;
-        create_with_orders(
+        create(
             self.simulation,
             p,
             v,
@@ -625,7 +611,6 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 ShipClass::Torpedo => torpedo(team),
                 _ => unimplemented!(),
             },
-            orders,
         );
     }
 

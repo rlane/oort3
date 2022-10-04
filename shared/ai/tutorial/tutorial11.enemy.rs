@@ -32,7 +32,7 @@ impl Ship {
             if (contact.position - position()).length() < 1000.0 {
                 fire_gun(0);
             }
-            launch_missile(0, 0.0);
+            launch_missile(0);
         } else {
             turn_to((self.target - position()).angle(), 0.0);
         }
