@@ -18,19 +18,15 @@ pub enum SystemState {
     AccelerateY,
     Torque,
 
-    Gun0Aim,
-    Gun0Fire,
-    Gun1Aim,
-    Gun1Fire,
-    Gun2Aim,
-    Gun2Fire,
-    Gun3Aim,
-    Gun3Fire,
+    Aim0,
+    Aim1,
+    Aim2,
+    Aim3,
 
-    Missile0Launch,
-    Missile1Launch,
-    Missile2Launch,
-    Missile3Launch,
+    Fire0,
+    Fire1,
+    Fire2,
+    Fire3,
 
     Explode,
 
@@ -232,10 +228,10 @@ mod api {
     /// `heading` is in radians.
     pub fn aim(index: usize, heading: f64) {
         let state_index = match index {
-            0 => SystemState::Gun0Aim,
-            1 => SystemState::Gun1Aim,
-            2 => SystemState::Gun2Aim,
-            3 => SystemState::Gun3Aim,
+            0 => SystemState::Aim0,
+            1 => SystemState::Aim1,
+            2 => SystemState::Aim2,
+            3 => SystemState::Aim3,
             _ => return,
         };
         write_system_state(state_index, heading - crate::api::heading());
@@ -245,21 +241,11 @@ mod api {
     ///
     /// `index` selects the weapon.
     pub fn fire(index: usize) {
-        use super::Class::*;
-        let state_index = match (class(), index) {
-            (Fighter, 0) => SystemState::Gun0Fire,
-            (Fighter, 1) => SystemState::Missile0Launch,
-
-            (Frigate, 0) => SystemState::Gun0Fire,
-            (Frigate, 1) => SystemState::Gun1Fire,
-            (Frigate, 2) => SystemState::Gun2Fire,
-            (Frigate, 3) => SystemState::Missile0Launch,
-
-            (Cruiser, 0) => SystemState::Gun0Fire,
-            (Cruiser, 1) => SystemState::Missile0Launch,
-            (Cruiser, 2) => SystemState::Missile1Launch,
-            (Cruiser, 3) => SystemState::Missile2Launch,
-
+        let state_index = match index {
+            0 => SystemState::Fire0,
+            1 => SystemState::Fire1,
+            2 => SystemState::Fire2,
+            3 => SystemState::Fire3,
             _ => return,
         };
         write_system_state(state_index, 1.0);
@@ -273,14 +259,7 @@ mod api {
     /// TODO Remove this.
     #[deprecated]
     pub fn aim_gun(index: usize, heading: f64) {
-        let state_index = match index {
-            0 => SystemState::Gun0Aim,
-            1 => SystemState::Gun1Aim,
-            2 => SystemState::Gun2Aim,
-            3 => SystemState::Gun3Aim,
-            _ => return,
-        };
-        write_system_state(state_index, heading - crate::api::heading());
+        aim(index, heading);
     }
 
     /// Fires a gun.
@@ -290,14 +269,7 @@ mod api {
     /// TODO Remove this.
     #[deprecated]
     pub fn fire_gun(index: usize) {
-        let state_index = match index {
-            0 => SystemState::Gun0Fire,
-            1 => SystemState::Gun1Fire,
-            2 => SystemState::Gun2Fire,
-            3 => SystemState::Gun3Fire,
-            _ => return,
-        };
-        write_system_state(state_index, 1.0);
+        fire(index);
     }
 
     /// Launches a missile.
@@ -307,11 +279,16 @@ mod api {
     /// TODO Remove this.
     #[deprecated]
     pub fn launch_missile(index: usize) {
-        let state_index = match index {
-            0 => SystemState::Missile0Launch,
-            1 => SystemState::Missile1Launch,
-            2 => SystemState::Missile2Launch,
-            3 => SystemState::Missile3Launch,
+        use super::Class::*;
+        let state_index = match (class(), index) {
+            (Fighter, 0) => SystemState::Fire1,
+
+            (Frigate, 0) => SystemState::Fire3,
+
+            (Cruiser, 0) => SystemState::Fire1,
+            (Cruiser, 1) => SystemState::Fire2,
+            (Cruiser, 2) => SystemState::Fire3,
+
             _ => return,
         };
         write_system_state(state_index, 1.0);

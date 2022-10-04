@@ -271,33 +271,18 @@ impl ShipController for WasmShipController {
             state.set(SystemState::Torque, 0.0);
 
             for (i, (aim, fire)) in [
-                (SystemState::Gun0Aim, SystemState::Gun0Fire),
-                (SystemState::Gun1Aim, SystemState::Gun1Fire),
-                (SystemState::Gun2Aim, SystemState::Gun2Fire),
-                (SystemState::Gun3Aim, SystemState::Gun3Fire),
+                (SystemState::Aim0, SystemState::Fire0),
+                (SystemState::Aim1, SystemState::Fire1),
+                (SystemState::Aim2, SystemState::Fire2),
+                (SystemState::Aim3, SystemState::Fire3),
             ]
             .iter()
             .enumerate()
             {
                 if state.get(*fire) > 0.0 {
-                    sim.ship_mut(self.handle).aim_gun(i as i64, state.get(*aim));
-                    sim.ship_mut(self.handle).fire_gun(i as i64);
+                    sim.ship_mut(self.handle).aim(i as i64, state.get(*aim));
+                    sim.ship_mut(self.handle).fire(i as i64);
                     state.set(*fire, 0.0);
-                }
-            }
-
-            for (i, launch) in [
-                SystemState::Missile0Launch,
-                SystemState::Missile1Launch,
-                SystemState::Missile2Launch,
-                SystemState::Missile3Launch,
-            ]
-            .iter()
-            .enumerate()
-            {
-                if state.get(*launch) > 0.0 {
-                    sim.ship_mut(self.handle).launch_missile(i as i64);
-                    state.set(*launch, 0.0);
                 }
             }
 

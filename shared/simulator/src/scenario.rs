@@ -1147,7 +1147,7 @@ impl Scenario for Tutorial09 {
         add_walls(sim);
 
         let mut shipdata = fighter(0);
-        shipdata.guns.clear();
+        shipdata.guns[0].reload_time_remaining = 1e9;
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, shipdata);
 
         let mut rng = new_rng(seed);

@@ -519,6 +519,15 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         self.data_mut().angular_acceleration = clamped_angular_acceleration;
     }
 
+    pub fn fire(&mut self, index: i64) {
+        let num_guns = self.data().guns.len() as i64;
+        if index >= num_guns {
+            self.launch_missile(index - num_guns);
+        } else {
+            self.fire_gun(index);
+        }
+    }
+
     pub fn fire_gun(&mut self, index: i64) {
         let ship_data = self.data_mut();
         if index as usize >= ship_data.guns.len() {
@@ -614,7 +623,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         );
     }
 
-    pub fn aim_gun(&mut self, index: i64, angle: f64) {
+    pub fn aim(&mut self, index: i64, angle: f64) {
         let ship_data = self.data_mut();
         if index as usize >= ship_data.guns.len() {
             return;
