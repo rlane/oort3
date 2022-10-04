@@ -62,6 +62,9 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
                     time: format!("{:.2}s", time),
                 })
             }
+            if leaderboard.lowest_time.len() >= 20 {
+                break;
+            }
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
         }
