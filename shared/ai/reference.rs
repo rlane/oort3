@@ -56,36 +56,36 @@ impl Ship {
 
             if class() == Class::Fighter {
                 if predicted_dp.length() < 5000.0 {
-                    fire_gun(0);
+                    fire(0);
                 }
                 send(make_orders(contact.position));
-                launch_missile(0);
+                fire(1);
             } else if class() == Class::Frigate {
-                fire_gun(0);
-                aim_gun(
+                fire(0);
+                aim(
                     1,
                     (predicted_dp - vec2(0.0, 15.0).rotate(heading())).angle(),
                 );
-                fire_gun(1);
-                aim_gun(
+                fire(1);
+                aim(
                     2,
                     (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle(),
                 );
-                fire_gun(2);
+                fire(2);
                 send(make_orders(contact.position));
-                launch_missile(0);
+                fire(3);
             } else if class() == Class::Cruiser {
                 if predicted_dp.length() < 5000.0 {
-                    aim_gun(0, predicted_dp.angle());
-                    fire_gun(0);
+                    aim(0, predicted_dp.angle());
+                    fire(0);
                 }
-                for i in 0..2 {
+                for i in [1, 2] {
                     send(make_orders(contact.position));
-                    launch_missile(i);
+                    fire(i);
                 }
                 if contact.class == Class::Frigate || contact.class == Class::Cruiser {
                     send(make_orders(contact.position));
-                    launch_missile(2);
+                    fire(3);
                 }
                 //dbg.draw_diamond(contact.position, 30.0, 0xffff00);
             }

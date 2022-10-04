@@ -68,12 +68,8 @@ reactor.
 
 Guns:
 
-- [`fire_gun(index: usize)`](prelude::fire_gun): Fire a gun.
-- [`aim_gun(index: usize, angle: f64)`](prelude::aim_gun): Aim a gun (for guns on a turret).
-
-Missiles:
-
-- [`launch_missile(index: usize)`](prelude::launch_missile): Launch a missile.
+- [`fire(index: usize)`](prelude::fire): Fire a weapon (gun or missile).
+- [`aim(index: usize, angle: f64)`](prelude::aim): Aim a weapon (for weapons on a turret).
 - [`explode()`](prelude::explode): Self-destruct.
 
 ## Radar
@@ -171,22 +167,22 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 - [`Fighter`](prelude::Class::Fighter): Small, fast, and lightly armored.
   - Health: 100
   - Acceleration: Forward/Reverse: 60 m/s², Lateral: 30 m/s², Angular: 2π rad/s²
-  - Gun 0: Damage: 7, Speed: 1000 m/s, Reload: 66ms
-  - Missile 0: Reload: 5s
+  - Weapon 0: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms
+  - Weapon 1: Torpedo, Reload: 5s
 - [`Frigate`](prelude::Class::Frigate): Medium size with heavy armor and an extremely powerful main gun.
   - Health: 10000
   - Acceleration: Forward/Reverse: 10 m/s², Lateral: 5 m/s², Angular: π/4 rad/s²
-  - Gun 0: Damage: 1000, Speed: 4000 m/s, Reload: 1 second
-  - Gun 1: Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted
-  - Gun 2: Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted
-  - Missile 0: Reload: 2s
+  - Weapon 0: Gun, Damage: 1000, Speed: 4000 m/s, Reload: 1 second
+  - Weapon 1: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted
+  - Weapon 2: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted
+  - Weapon 3: Missile, Reload: 2s
 - [`Cruiser`](prelude::Class::Cruiser): Large, slow, and heavily armored. Rapid fire missile launchers and devastating torpedos.
   - Health: 20000
   - Acceleration: Forward/Reverse: 5 m/s², Lateral: 2.5 m/s², Angular: π/8 rad/s²
-  - Gun 0: Damage: 3×7, Speed: 1000 m/s, Reload: 0.4s, Turreted
-  - Missile 0: Reload: 1.2s
-  - Missile 1: Reload: 1.2s
-  - Torpedo 2: Reload: 3s
+  - Weapon 0: Gun, Damage: 6×7, Speed: 1000 m/s, Reload: 0.4s, Turreted
+  - Weapon 1: Missile, Reload: 1.2s
+  - Weapon 2: Missile, Reload: 1.2s
+  - Weapon 3: Torpedo, Reload: 3s
 - [`Missile`](prelude::Class::Missile): Highly maneuverable but unarmored. Explodes on contact or after an [`explode`](prelude::explode) call.
   - Health: 20
   - Acceleration: Forward/Reverse: 200 m/s², Lateral: 50 m/s², Angular: 4π rad/s²

@@ -226,10 +226,52 @@ mod api {
         write_system_state(SystemState::Torque, angular_acceleration);
     }
 
+    /// Aims a turreted weapon.
+    ///
+    /// `index` selects the weapon.
+    /// `heading` is in radians.
+    pub fn aim(index: usize, heading: f64) {
+        let state_index = match index {
+            0 => SystemState::Gun0Aim,
+            1 => SystemState::Gun1Aim,
+            2 => SystemState::Gun2Aim,
+            3 => SystemState::Gun3Aim,
+            _ => return,
+        };
+        write_system_state(state_index, heading - crate::api::heading());
+    }
+
+    /// Fires a weapon.
+    ///
+    /// `index` selects the weapon.
+    pub fn fire(index: usize) {
+        use super::Class::*;
+        let state_index = match (class(), index) {
+            (Fighter, 0) => SystemState::Gun0Fire,
+            (Fighter, 1) => SystemState::Missile0Launch,
+
+            (Frigate, 0) => SystemState::Gun0Fire,
+            (Frigate, 1) => SystemState::Gun1Fire,
+            (Frigate, 2) => SystemState::Gun2Fire,
+            (Frigate, 3) => SystemState::Missile0Launch,
+
+            (Cruiser, 0) => SystemState::Gun0Fire,
+            (Cruiser, 1) => SystemState::Missile0Launch,
+            (Cruiser, 2) => SystemState::Missile1Launch,
+            (Cruiser, 3) => SystemState::Missile2Launch,
+
+            _ => return,
+        };
+        write_system_state(state_index, 1.0);
+    }
+
     /// Aims a turreted gun.
     ///
     /// `index` selects the gun.
     /// `heading` is in radians.
+    ///
+    /// TODO Remove this.
+    #[deprecated]
     pub fn aim_gun(index: usize, heading: f64) {
         let state_index = match index {
             0 => SystemState::Gun0Aim,
@@ -244,6 +286,9 @@ mod api {
     /// Fires a gun.
     ///
     /// `index` selects the gun.
+    ///
+    /// TODO Remove this.
+    #[deprecated]
     pub fn fire_gun(index: usize) {
         let state_index = match index {
             0 => SystemState::Gun0Fire,
@@ -258,6 +303,9 @@ mod api {
     /// Launches a missile.
     ///
     /// `index` selects the missile launcher.
+    ///
+    /// TODO Remove this.
+    #[deprecated]
     pub fn launch_missile(index: usize) {
         let state_index = match index {
             0 => SystemState::Missile0Launch,

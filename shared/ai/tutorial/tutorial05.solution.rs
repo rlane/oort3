@@ -13,7 +13,7 @@ impl Ship {
     pub fn tick(&mut self) {
         accelerate(0.1 * (target() - position() - velocity()));
         turn_to((target() - position()).angle());
-        fire_gun(0);
+        fire(0);
     }
 }
 

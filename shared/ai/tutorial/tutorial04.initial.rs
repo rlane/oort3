@@ -14,6 +14,6 @@ impl Ship {
         // Hint: "angle_diff(heading(), target().angle())" returns the direction
         // your ship needs to turn to face the target.
         torque(1.0);
-        fire_gun(0);
+        fire(0);
     }
 }

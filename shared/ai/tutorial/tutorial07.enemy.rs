@@ -21,7 +21,7 @@ impl Ship {
 
         accelerate(self.target - position() - velocity());
         turn_to((self.target - position()).angle());
-        fire_gun(0);
+        fire(0);
     }
 }
 

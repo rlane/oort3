@@ -21,10 +21,14 @@ impl Ship {
                 }
             }
         } else {
-            aim_gun(0, 0.0);
-            fire_gun(0);
-            launch_missile(0);
-            launch_missile(1);
+            // Flak gun
+            aim(0, 0.0);
+            fire(0);
+            // Missile launcher
+            fire(1);
+            fire(2);
+            // Torpedo launcher
+            fire(3);
         }
     }
 }

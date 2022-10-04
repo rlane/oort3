@@ -32,7 +32,7 @@ impl Ship {
                 torque(1.0);
             }
             if let Some(_) = scan() {
-                launch_missile(0);
+                fire(1);
             }
         }
     }

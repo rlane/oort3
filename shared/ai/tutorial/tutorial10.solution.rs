@@ -29,13 +29,13 @@ impl Ship {
         } else {
             set_radar_width(TAU / 32.0);
             if let Some(contact) = scan() {
-                fire_gun(0);
-                launch_missile(0);
+                fire(0);
+                fire(3);
 
                 let dp = contact.position - position();
                 for i in [1, 2] {
-                    aim_gun(i, dp.angle());
-                    fire_gun(i);
+                    aim(i, dp.angle());
+                    fire(i);
                 }
 
                 turn_to(dp.angle(), 0.0);

@@ -26,7 +26,7 @@ impl Ship {
         if let Some(contact) = scan() {
             turn_to((contact.position - position()).angle());
             if (contact.position - position()).length() < 1000.0 {
-                fire_gun(0);
+                fire(0);
             }
         } else {
             turn_to((self.target - position()).angle());

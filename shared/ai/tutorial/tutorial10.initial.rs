@@ -21,12 +21,15 @@ impl Ship {
                 }
             }
         } else {
-            fire_gun(0);
-            aim_gun(1, heading() + TAU / 4.0);
-            fire_gun(1);
-            aim_gun(2, heading() - TAU / 4.0);
-            fire_gun(2);
-            launch_missile(0);
+            // Main gun
+            fire(0);
+            // Turreted guns
+            aim(1, heading() + TAU / 4.0);
+            fire(1);
+            aim(2, heading() - TAU / 4.0);
+            fire(2);
+            // Missile launcher
+            fire(3);
         }
     }
 }

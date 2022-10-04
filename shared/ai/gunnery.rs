@@ -64,7 +64,7 @@ impl Ship {
                 && self.ticks_since_fired >= RELOAD_TICKS
             {
                 debug!("shot");
-                fire_gun(0);
+                fire(0);
                 if current_time() < 10.0 {
                     set_radar_width(SEARCH_RADAR_WIDTH);
                     set_radar_heading(radar_heading() - SEARCH_RADAR_WIDTH);

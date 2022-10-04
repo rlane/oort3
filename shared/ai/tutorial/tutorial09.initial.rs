@@ -21,7 +21,7 @@ impl Ship {
                 }
             }
         } else {
-            launch_missile(0);
+            fire(1);
         }
     }
 }

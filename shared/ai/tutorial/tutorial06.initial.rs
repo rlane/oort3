@@ -14,7 +14,7 @@ impl Ship {
         set_radar_heading(radar_heading() + TAU / 6.0);
         if let Some(contact) = scan() {
             accelerate(0.1 * (contact.position - position()));
-            fire_gun(0);
+            fire(0);
         }
     }
 }

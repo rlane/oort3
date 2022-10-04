@@ -15,6 +15,6 @@ impl Ship {
         // your ship needs to turn to face the target.
         let heading_error = angle_diff(heading(), target().angle());
         torque(heading_error - angular_velocity());
-        fire_gun(0);
+        fire(0);
     }
 }

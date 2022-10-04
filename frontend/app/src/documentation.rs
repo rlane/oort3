@@ -57,9 +57,8 @@ pub fn documentation() -> Html {
 
             <h2>{ "Weapons" }</h2>
             <ul>
-              <li><code>{ "fire_gun(index: usize)" }</code>{ ": Fire a gun." }</li>
-              <li><code>{ "aim_gun(index: usize, angle: f64)" }</code>{ ": Aim a gun (for guns on a turret)." }</li>
-              <li><code>{ "launch_missile(index: usize)" }</code>{ ": Launch a missile." }</li>
+              <li><code>{ "fire(index: usize)" }</code>{ ": Fire a weapon (gun or missile launcher)." }</li>
+              <li><code>{ "aim(index: usize, angle: f64)" }</code>{ ": Aim a weapon (for weapons on a turret)." }</li>
               <li><code>{ "explode()" }</code>{ ": Self-destruct." }</li>
             </ul>
 
