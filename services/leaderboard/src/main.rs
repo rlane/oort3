@@ -53,7 +53,10 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
                 continue;
             }
             seen.insert(msg.userid.clone());
-            let user = msg.username.as_ref().unwrap_or(&msg.userid);
+            if msg.username.is_none() {
+                continue;
+            }
+            let user = msg.username.unwrap();
             if let Telemetry::FinishScenario { ticks, .. } = &msg.payload {
                 let time = *ticks as f64 / 60.0;
                 leaderboard.lowest_time.push(TimeLeaderboardRow {
