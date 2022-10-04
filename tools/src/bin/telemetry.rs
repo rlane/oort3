@@ -54,9 +54,10 @@ async fn cmd_list(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = FirestoreDb::new(project_id).await?;
 
-    let docs: Vec<Document> = db
+    let mut docs: Vec<Document> = db
         .query_doc(FirestoreQueryParams::new(COLLECTION_NAME.into()).clone())
         .await?;
+    docs.sort_by_key(|doc| doc.create_time.clone().map(|x| x.seconds).unwrap_or(0));
     for doc in &docs {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
             let (_, docid) = doc.name.rsplit_once('/').unwrap();
