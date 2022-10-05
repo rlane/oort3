@@ -251,49 +251,6 @@ mod api {
         write_system_state(state_index, 1.0);
     }
 
-    /// Aims a turreted gun.
-    ///
-    /// `index` selects the gun.
-    /// `heading` is in radians.
-    ///
-    /// TODO Remove this.
-    #[deprecated]
-    pub fn aim_gun(index: usize, heading: f64) {
-        aim(index, heading);
-    }
-
-    /// Fires a gun.
-    ///
-    /// `index` selects the gun.
-    ///
-    /// TODO Remove this.
-    #[deprecated]
-    pub fn fire_gun(index: usize) {
-        fire(index);
-    }
-
-    /// Launches a missile.
-    ///
-    /// `index` selects the missile launcher.
-    ///
-    /// TODO Remove this.
-    #[deprecated]
-    pub fn launch_missile(index: usize) {
-        use super::Class::*;
-        let state_index = match (class(), index) {
-            (Fighter, 0) => SystemState::Fire1,
-
-            (Frigate, 0) => SystemState::Fire3,
-
-            (Cruiser, 0) => SystemState::Fire1,
-            (Cruiser, 1) => SystemState::Fire2,
-            (Cruiser, 2) => SystemState::Fire3,
-
-            _ => return,
-        };
-        write_system_state(state_index, 1.0);
-    }
-
     /// Self-destructs, producing a damaging explosion.
     ///
     /// This is commonly used by missiles.
@@ -572,12 +529,56 @@ pub mod dbg {
     }
 }
 
+mod deprecated {
+    use super::api::*;
+    use super::sys::write_system_state;
+    use super::SystemState;
+
+    /// TODO Remove this.
+    #[deprecated]
+    pub fn aim_gun(index: usize, heading: f64) {
+        aim(index, heading);
+    }
+
+    /// TODO Remove this.
+    #[deprecated]
+    pub fn fire_gun(index: usize) {
+        fire(index);
+    }
+
+    /// TODO Remove this.
+    #[deprecated]
+    pub fn launch_missile(index: usize, _unused: f64) {
+        use super::Class::*;
+        let state_index = match (class(), index) {
+            (Fighter, 0) => SystemState::Fire1,
+
+            (Frigate, 0) => SystemState::Fire3,
+
+            (Cruiser, 0) => SystemState::Fire1,
+            (Cruiser, 1) => SystemState::Fire2,
+            (Cruiser, 2) => SystemState::Fire3,
+
+            _ => return,
+        };
+        write_system_state(state_index, 1.0);
+    }
+
+    /// TODO Remove this.
+    #[deprecated]
+    pub fn orders() -> f64 {
+        0.0
+    }
+}
+
 /// All APIs.
 pub mod prelude {
     #[doc(inline)]
     pub use super::api::*;
     #[doc(inline)]
     pub use super::dbg::*;
+    #[doc(hidden)]
+    pub use super::deprecated::*;
     #[doc(inline)]
     pub use super::math::*;
     #[doc(inline)]
