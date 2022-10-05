@@ -17,6 +17,7 @@ PUSH_ALL=1
 PUSH_APP=0
 PUSH_COMPILER_SERVICE=0
 PUSH_TELEMETRY_SERVICE=0
+PUSH_LEADERBOARD_SERVICE=0
 while getopts "wctshl" option; do
    case $option in
       w) PUSH_ALL=0; PUSH_APP=1;;
