@@ -36,7 +36,7 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
                     ]),
                 ))
                 .with_order_by(vec![FirestoreQueryOrder::new(
-                    "ticks".to_owned(),
+                    "time".to_owned(),
                     FirestoreQueryDirection::Ascending,
                 )])
                 .with_limit(100),
@@ -57,12 +57,11 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
                 continue;
             }
             let user = msg.username.unwrap();
-            if let Telemetry::FinishScenario { ticks, .. } = &msg.payload {
-                let time = *ticks as f64 / 60.0;
+            if let Telemetry::FinishScenario { time, .. } = &msg.payload {
                 leaderboard.lowest_time.push(TimeLeaderboardRow {
                     userid: msg.userid.clone(),
                     username: Some(user.clone()),
-                    time: format!("{:.2}s", time),
+                    time: format!("{:.2}s", time.unwrap_or_default()),
                 })
             }
             if leaderboard.lowest_time.len() >= 20 {
