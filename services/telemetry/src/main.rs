@@ -1,3 +1,4 @@
+use chrono::prelude::*;
 use firestore::*;
 use oort_telemetry_proto::TelemetryMsg;
 use salvo::prelude::*;
@@ -26,7 +27,8 @@ async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<
     log::debug!("Got request {:?}", req);
     let payload = req.payload().await?;
     log::debug!("Got payload {:?}", payload);
-    let obj: TelemetryMsg = serde_json::from_slice(payload)?;
+    let mut obj: TelemetryMsg = serde_json::from_slice(payload)?;
+    obj.timestamp = Utc::now();
     log::debug!("Got request obj {:?}", obj);
     db.create_obj(COLLECTION_NAME, &generate_docid(), &obj)
         .await?;
