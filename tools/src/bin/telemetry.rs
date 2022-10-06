@@ -24,6 +24,8 @@ enum SubCommand {
     List {
         #[clap(short, long, value_parser)]
         user: Option<String>,
+        #[clap(short = 'n', long, value_parser, default_value_t = 100)]
+        limit: usize,
     },
     Get {
         docid: String,
@@ -42,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let args = Arguments::parse();
     match args.cmd {
-        SubCommand::List { user } => cmd_list(&args.project_id, user).await,
+        SubCommand::List { user, limit } => cmd_list(&args.project_id, user, limit).await,
         SubCommand::Get { docid } => cmd_get(&args.project_id, docid).await,
         SubCommand::Top { scenario, out_dir } => cmd_top(&args.project_id, scenario, out_dir).await,
     }
@@ -51,11 +53,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 async fn cmd_list(
     project_id: &str,
     user_filter: Option<String>,
+    limit: usize,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = FirestoreDb::new(project_id).await?;
 
     let mut docs: Vec<Document> = db
-        .query_doc(FirestoreQueryParams::new(COLLECTION_NAME.into()).clone())
+        .query_doc(
+            FirestoreQueryParams::new(COLLECTION_NAME.into())
+                .with_order_by(vec![FirestoreQueryOrder::new(
+                    "timestamp".to_owned(),
+                    FirestoreQueryDirection::Descending,
+                )])
+                .with_limit(limit as u32)
+                .clone(),
+        )
         .await?;
     docs.sort_by_key(|doc| doc.create_time.clone().map(|x| x.seconds).unwrap_or(0));
     for doc in &docs {
@@ -67,9 +78,8 @@ async fn cmd_list(
                     continue;
                 }
             }
-            let epoch_time = doc.create_time.clone().map(|x| x.seconds).unwrap_or(0);
-            let time = Local.timestamp(epoch_time, 0);
-            let prefix = format!("{docid} {}", time.format("%Y-%m-%d %H:%M:%S"));
+            let datetime: DateTime<Local> = DateTime::from(msg.timestamp.unwrap());
+            let prefix = format!("{docid} {}", datetime.format("%Y-%m-%d %H:%M:%S"));
             match &msg.payload {
                 Telemetry::StartScenario { scenario_name, .. } => {
                     println!("{prefix} StartScenario user={user} scenario={scenario_name}")
@@ -77,16 +87,16 @@ async fn cmd_list(
                 Telemetry::FinishScenario {
                     scenario_name,
                     success,
-                    ticks,
+                    time,
                     ..
                 } => {
-                    let ticks = if success.unwrap_or(false) {
-                        ticks.to_string()
+                    let time = if success.unwrap_or(false) {
+                        format!("{:.2}s", time.unwrap_or_default())
                     } else {
                         "failed".to_string()
                     };
                     println!(
-                        "{prefix} FinishScenario user={user} scenario={scenario_name} ticks={ticks}"
+                        "{prefix} FinishScenario user={user} scenario={scenario_name} time={time}"
                     );
                 }
                 Telemetry::Crash { .. } => println!("{prefix} Crash user={user}"),
@@ -121,7 +131,7 @@ async fn cmd_get(
             Telemetry::FinishScenario {
                 scenario_name,
                 code,
-                ticks,
+                time,
                 code_size,
                 success,
                 ..
@@ -129,9 +139,9 @@ async fn cmd_get(
                 println!("// User: {}", user);
                 println!("// Scenario: {}", scenario_name);
                 println!(
-                    "// Success: {} Ticks: {} Size: {}",
+                    "// Success: {} Time: {:.2}s Size: {}",
                     success.unwrap_or(false),
-                    ticks,
+                    time.unwrap_or_default(),
                     code_size
                 );
                 println!("{}", code.trim());
@@ -182,27 +192,30 @@ async fn cmd_top(
         )
         .await?;
 
-    // userid -> (ticks, creation_time, docid, msg)
-    let mut best_times: HashMap<String, (u32, DateTime<Local>, String, TelemetryMsg)> =
+    // userid -> (time, timestamp, docid, msg)
+    let mut best_times: HashMap<String, (f64, DateTime<Utc>, String, TelemetryMsg)> =
         HashMap::new();
 
     for doc in &docs {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
             let (_, docid) = doc.name.rsplit_once('/').unwrap();
-            let epoch_time = doc.create_time.clone().map(|x| x.seconds).unwrap_or(0);
-            let creation_time = Local.timestamp(epoch_time, 0);
             match &msg.payload {
-                Telemetry::FinishScenario { ticks, .. } => {
-                    let insert = if let Some((ref old_ticks, _, _, _)) = best_times.get(&msg.userid)
+                Telemetry::FinishScenario { time, .. } => {
+                    let insert = if let Some((ref old_time, _, _, _)) = best_times.get(&msg.userid)
                     {
-                        old_ticks > ticks
+                        *old_time > time.unwrap_or_default()
                     } else {
                         true
                     };
                     if insert {
                         best_times.insert(
                             msg.userid.clone(),
-                            (*ticks, creation_time, docid.to_owned(), msg.clone()),
+                            (
+                                time.unwrap_or_default(),
+                                msg.timestamp.unwrap_or_default(),
+                                docid.to_owned(),
+                                msg.clone(),
+                            ),
                         );
                     }
                 }
@@ -214,7 +227,7 @@ async fn cmd_top(
     }
 
     let mut top: Vec<_> = best_times.into_values().collect();
-    top.sort_by_key(|x| x.0);
+    top.sort_by_key(|x| (x.0 * 1000.0) as i64);
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
@@ -222,16 +235,17 @@ async fn cmd_top(
 
     let mut outputs: Vec<(String, String)> = Vec::new();
 
-    for (i, (_, creation_time, docid, msg)) in top.iter().take(10).enumerate() {
+    for (i, (_, timestamp, docid, msg)) in top.iter().take(10).enumerate() {
         let user = msg.username.as_ref().unwrap_or(&msg.userid);
+        let datetime: DateTime<Local> = DateTime::from(*timestamp);
         match &msg.payload {
-            Telemetry::FinishScenario { ticks, code, .. } => {
+            Telemetry::FinishScenario { time, code, .. } => {
                 table.add_row(vec![
                     format!("{}", i + 1),
                     user.to_owned(),
-                    format!("{:.2}s", *ticks as f64 / 60.0),
+                    format!("{:.2}s", time.unwrap_or_default()),
                     docid.to_owned(),
-                    creation_time.format("%Y-%m-%d %H:%M:%S").to_string(),
+                    datetime.format("%Y-%m-%d %H:%M:%S").to_string(),
                 ]);
                 outputs.push((user.to_owned(), code.to_owned()));
             }
