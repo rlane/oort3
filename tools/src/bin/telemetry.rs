@@ -72,13 +72,13 @@ async fn cmd_list(
     for doc in &docs {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
             let (_, docid) = doc.name.rsplit_once('/').unwrap();
-            let user = msg.username.as_ref().unwrap_or(&msg.userid);
+            let user = &msg.username;
             if let Some(u) = user_filter.as_ref() {
                 if user != u {
                     continue;
                 }
             }
-            let datetime: DateTime<Local> = DateTime::from(msg.timestamp.unwrap());
+            let datetime: DateTime<Local> = DateTime::from(msg.timestamp);
             let prefix = format!("{docid} {}", datetime.format("%Y-%m-%d %H:%M:%S"));
             match &msg.payload {
                 Telemetry::StartScenario { scenario_name, .. } => {
@@ -90,7 +90,7 @@ async fn cmd_list(
                     time,
                     ..
                 } => {
-                    let time = if success.unwrap_or(false) {
+                    let time = if *success {
                         format!("{:.2}s", time.unwrap_or_default())
                     } else {
                         "failed".to_string()
@@ -118,7 +118,7 @@ async fn cmd_get(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = FirestoreDb::new(project_id).await?;
     if let Ok(msg) = db.get_obj::<TelemetryMsg>(COLLECTION_NAME, &docid).await {
-        let user = msg.username.as_ref().unwrap_or(&msg.userid);
+        let user = &msg.username;
         match msg.payload {
             Telemetry::StartScenario {
                 scenario_name,
@@ -140,7 +140,7 @@ async fn cmd_get(
                 println!("// Scenario: {}", scenario_name);
                 println!(
                     "// Success: {} Time: {:.2}s Size: {}",
-                    success.unwrap_or(false),
+                    success,
                     time.unwrap_or_default(),
                     code_size
                 );
@@ -212,7 +212,7 @@ async fn cmd_top(
                             msg.userid.clone(),
                             (
                                 time.unwrap_or_default(),
-                                msg.timestamp.unwrap_or_default(),
+                                msg.timestamp,
                                 docid.to_owned(),
                                 msg.clone(),
                             ),
@@ -236,7 +236,7 @@ async fn cmd_top(
     let mut outputs: Vec<(String, String)> = Vec::new();
 
     for (i, (_, timestamp, docid, msg)) in top.iter().take(10).enumerate() {
-        let user = msg.username.as_ref().unwrap_or(&msg.userid);
+        let user = &msg.username;
         let datetime: DateTime<Local> = DateTime::from(*timestamp);
         match &msg.payload {
             Telemetry::FinishScenario { time, code, .. } => {

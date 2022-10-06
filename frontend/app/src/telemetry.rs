@@ -8,11 +8,11 @@ pub fn send(payload: Telemetry) {
     let userid = get_userid();
     let username = get_username();
     let msg = TelemetryMsg {
-        timestamp: Some(Utc::now()),
+        timestamp: Utc::now(),
         payload,
         build: crate::version(),
         userid,
-        username: Some(username),
+        username,
     };
     match serde_json::to_string(&msg) {
         Ok(serialized) => js::telemetry::send_telemetry(&serialized),

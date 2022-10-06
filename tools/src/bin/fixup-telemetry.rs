@@ -1,4 +1,3 @@
-use chrono::prelude::*;
 use clap::Parser;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
@@ -35,32 +34,9 @@ async fn run(args: &Arguments) -> Result<(), Box<dyn std::error::Error + Send + 
     for doc in &docs {
         if let Ok(original_msg) = FirestoreDb::deserialize_doc_to::<TelemetryMsg>(doc) {
             let mut msg = original_msg.clone();
-            if msg.timestamp.is_none() {
-                let epoch_time = doc.create_time.clone().map(|x| x.seconds).unwrap_or(0);
-                msg.timestamp = Some(Utc.timestamp(epoch_time, 0));
-                log::info!("Set timestamp to {:?}", msg.timestamp);
-            }
-            if msg.username.is_none() {
-                msg.username = Some(generate_username(&msg.userid));
-                log::info!("Set username to {:?}", msg.username);
-            }
             match &mut msg.payload {
                 Telemetry::StartScenario { .. } => {}
-                Telemetry::FinishScenario {
-                    success,
-                    ticks,
-                    time,
-                    ..
-                } => {
-                    if success.is_none() {
-                        *success = Some(false);
-                        log::info!("Set success to false");
-                    }
-                    if time.is_none() {
-                        *time = Some(*ticks as f64 / 60.0);
-                        log::info!("Set time to {:?}", time);
-                    }
-                }
+                Telemetry::FinishScenario { .. } => {}
                 Telemetry::Crash { .. } => {}
                 Telemetry::SubmitToTournament { .. } => {}
             }

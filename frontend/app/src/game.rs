@@ -243,7 +243,7 @@ impl Component for Game {
                             / simulation::PHYSICS_TICK_LENGTH)
                             as u32,
                         code_size: crate::code_size::calculate(&code_to_string(&code)),
-                        success: Some(summary.failed_seeds.is_empty()),
+                        success: summary.failed_seeds.is_empty(),
                         time: summary.average_time,
                     });
                 }

@@ -53,10 +53,7 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
                 continue;
             }
             seen.insert(msg.userid.clone());
-            if msg.username.is_none() {
-                continue;
-            }
-            let user = msg.username.unwrap();
+            let user = &msg.username;
             if let Telemetry::FinishScenario { time, .. } = &msg.payload {
                 leaderboard.lowest_time.push(TimeLeaderboardRow {
                     userid: msg.userid.clone(),
