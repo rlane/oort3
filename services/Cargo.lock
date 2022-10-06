@@ -1265,6 +1265,7 @@ dependencies = [
 name = "oort_telemetry_proto"
 version = "0.9.0"
 dependencies = [
+ "chrono",
  "serde",
 ]
 

@@ -124,6 +124,7 @@ async fn cmd_get(
                 ticks,
                 code_size,
                 success,
+                ..
             } => {
                 println!("// User: {}", user);
                 println!("// Scenario: {}", scenario_name);

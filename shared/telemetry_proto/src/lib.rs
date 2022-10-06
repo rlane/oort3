@@ -1,3 +1,5 @@
+use chrono::serde::ts_milliseconds_option;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -7,6 +9,9 @@ pub struct TelemetryMsg {
     pub build: String,
     pub userid: String,
     pub username: Option<String>,
+    #[serde(default)]
+    #[serde(with = "ts_milliseconds_option")]
+    pub timestamp: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -22,6 +27,7 @@ pub enum Telemetry {
         ticks: u32,
         code_size: usize,
         success: Option<bool>,
+        time: Option<f64>,
     },
     Crash {
         msg: String,
