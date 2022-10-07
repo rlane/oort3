@@ -5,7 +5,7 @@ members = [
     "simulator",
     "ai",
     "api",
-    "telemetry_proto",
+    "proto",
 ]
 
 [patch.crates-io]

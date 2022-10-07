@@ -1,6 +1,6 @@
 use chrono::prelude::*;
 use firestore::*;
-use oort_telemetry_proto::TelemetryMsg;
+use oort_proto::TelemetryMsg;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 

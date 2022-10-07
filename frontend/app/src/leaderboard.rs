@@ -1,5 +1,5 @@
 use crate::userid;
-use oort_telemetry_proto::{LeaderboardData, TimeLeaderboardRow};
+use oort_proto::{LeaderboardData, TimeLeaderboardRow};
 use reqwasm::http::Request;
 use yew::prelude::*;
 

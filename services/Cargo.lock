@@ -1251,7 +1251,7 @@ dependencies = [
  "firestore",
  "gcloud-sdk",
  "log",
- "oort_telemetry_proto",
+ "oort_proto",
  "rand 0.8.5",
  "salvo",
  "salvo_extra",
@@ -1262,7 +1262,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_telemetry_proto"
+name = "oort_proto"
 version = "0.9.1"
 dependencies = [
  "chrono",
@@ -1279,7 +1279,7 @@ dependencies = [
  "firestore",
  "gcloud-sdk",
  "log",
- "oort_telemetry_proto",
+ "oort_proto",
  "rand 0.8.5",
  "salvo",
  "salvo_extra",

@@ -4,7 +4,7 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
-use oort_telemetry_proto::{Telemetry, TelemetryMsg};
+use oort_proto::{Telemetry, TelemetryMsg};
 use std::collections::HashMap;
 
 const COLLECTION_NAME: &str = "telemetry";

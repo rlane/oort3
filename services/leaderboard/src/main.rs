@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
-use oort_telemetry_proto::{LeaderboardData, Telemetry, TelemetryMsg, TimeLeaderboardRow};
+use oort_proto::{LeaderboardData, Telemetry, TelemetryMsg, TimeLeaderboardRow};
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 

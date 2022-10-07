@@ -1441,6 +1441,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_proto"
+version = "0.9.1"
+dependencies = [
+ "chrono",
+ "serde",
+]
+
+[[package]]
 name = "oort_simulator"
 version = "0.9.1"
 dependencies = [
@@ -1471,14 +1479,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_telemetry_proto"
-version = "0.9.1"
-dependencies = [
- "chrono",
- "serde",
-]
-
-[[package]]
 name = "oort_tools"
 version = "0.9.1"
 dependencies = [
@@ -1490,8 +1490,8 @@ dependencies = [
  "gcloud-sdk",
  "itertools",
  "log",
+ "oort_proto",
  "oort_simulator",
- "oort_telemetry_proto",
  "petname",
  "rand",
  "rand_chacha",

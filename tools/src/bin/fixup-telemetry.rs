@@ -1,7 +1,7 @@
 use clap::Parser;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
-use oort_telemetry_proto::{Telemetry, TelemetryMsg};
+use oort_proto::{Telemetry, TelemetryMsg};
 
 const COLLECTION_NAME: &str = "telemetry";
 

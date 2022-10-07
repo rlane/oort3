@@ -6,7 +6,7 @@ edition = "2021"
 resolver = "2"
 
 [dependencies]
-oort_telemetry_proto = { path = "../shared/telemetry_proto" }
+oort_proto = { path = "../shared/proto" }
 oort_simulator = { path = "../shared/simulator" }
 firestore = "0.6.1"
 gcloud-sdk = "0.18.1"

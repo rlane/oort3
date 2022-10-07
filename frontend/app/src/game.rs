@@ -10,7 +10,7 @@ use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{simulation, vm};
-use oort_telemetry_proto::Telemetry;
+use oort_proto::Telemetry;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;

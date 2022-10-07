@@ -5,7 +5,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-oort_telemetry_proto = { path = "../../shared/telemetry_proto" }
+oort_proto = { path = "../../shared/proto" }
 salvo = "0.36"
 salvo_extra = { version="0.36", features=["cors"] }
 tokio = { version = "1", features = ["macros", "process"] }

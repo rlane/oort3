@@ -1492,10 +1492,10 @@ dependencies = [
  "nalgebra",
  "no-comment",
  "oort_analyzer_worker",
+ "oort_proto",
  "oort_renderer",
  "oort_simulation_worker",
  "oort_simulator",
- "oort_telemetry_proto",
  "petname",
  "prettyplease",
  "qstring",
@@ -1539,6 +1539,14 @@ name = "oort_api"
 version = "0.9.1"
 dependencies = [
  "oorandom",
+]
+
+[[package]]
+name = "oort_proto"
+version = "0.9.1"
+dependencies = [
+ "chrono",
+ "serde",
 ]
 
 [[package]]
@@ -1603,14 +1611,6 @@ dependencies = [
  "wasmer",
  "wasmer-compiler",
  "wasmer-compiler-cranelift",
-]
-
-[[package]]
-name = "oort_telemetry_proto"
-version = "0.9.1"
-dependencies = [
- "chrono",
- "serde",
 ]
 
 [[package]]
