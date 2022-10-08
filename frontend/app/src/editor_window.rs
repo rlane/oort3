@@ -75,12 +75,12 @@ impl Component for EditorWindow {
                     .unwrap();
                 if text != self.last_analyzed_text {
                     self.analyzer_agent
-                        .send(oort_analyzer_worker::Request::Analyze(text.clone()));
+                        .send(oort_analyzer_worker::Request::Diagnostics(text.clone()));
                     self.last_analyzed_text = text;
                 }
                 false
             }
-            Msg::AnalyzerResponse(oort_analyzer_worker::Response::AnalyzeFinished(diags)) => {
+            Msg::AnalyzerResponse(oort_analyzer_worker::Response::Diagnostics(diags)) => {
                 self.display_analyzer_diagnostics(context, &diags);
                 false
             }

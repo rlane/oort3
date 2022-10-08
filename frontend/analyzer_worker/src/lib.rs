@@ -21,12 +21,12 @@ pub struct Diagnostic {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
-    Analyze(String),
+    Diagnostics(String),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
-    AnalyzeFinished(Vec<Diagnostic>),
+    Diagnostics(Vec<Diagnostic>),
 }
 
 pub fn create_source_root(name: &str, f: FileId) -> SourceRoot {
@@ -135,39 +135,47 @@ impl yew_agent::Worker for AnalyzerAgent {
 
     fn handle_input(&mut self, request: Self::Input, who: HandlerId) {
         log::info!("AnalyzerAgent got message: {:?}", request);
-        match request {
-            Request::Analyze(text) => {
-                let file_id = ide::FileId(0);
-                let mut change = ide::Change::new();
-                change.change_file(file_id, Some(Arc::new(text)));
-                self.analysis_host.apply_change(change);
-                let analysis = self.analysis_host.analysis();
-                let line_index = analysis.file_line_index(file_id).unwrap();
-                let diagnostics = analysis.diagnostics(
-                    &DiagnosticsConfig::test_sample(),
-                    ide::AssistResolveStrategy::None,
-                    ide::FileId(0),
-                );
-                match diagnostics {
-                    Ok(diags) => {
-                        log::info!("Diagnostics: {:?}", diags);
-                        let diags = diags
-                            .iter()
-                            .map(|diag| translate_diagnostic(diag, line_index.as_ref()))
-                            .collect();
-                        log::info!("Translated diagnostics: {:?}", diags);
-                        self.link.respond(who, Response::AnalyzeFinished(diags));
-                    }
-                    Err(e) => {
-                        log::error!("Error getting diagnostics: {:?}", e);
-                    }
-                }
-            }
+        let response = match request {
+            Request::Diagnostics(text) => self.diagnostics(text),
+        };
+        if let Some(msg) = response {
+            self.link.respond(who, msg);
         }
     }
 
     fn name_of_resource() -> &'static str {
         "oort_analyzer_worker.js"
+    }
+}
+
+impl AnalyzerAgent {
+    fn diagnostics(&mut self, text: String) -> Option<Response> {
+        let file_id = ide::FileId(0);
+        let mut change = ide::Change::new();
+        change.change_file(file_id, Some(Arc::new(text)));
+        self.analysis_host.apply_change(change);
+        let analysis = self.analysis_host.analysis();
+        let line_index = analysis.file_line_index(file_id).unwrap();
+        let diagnostics = analysis.diagnostics(
+            &DiagnosticsConfig::test_sample(),
+            ide::AssistResolveStrategy::None,
+            file_id,
+        );
+        match diagnostics {
+            Ok(diags) => {
+                log::info!("Diagnostics: {:?}", diags);
+                let diags = diags
+                    .iter()
+                    .map(|diag| translate_diagnostic(diag, line_index.as_ref()))
+                    .collect();
+                log::info!("Translated diagnostics: {:?}", diags);
+                Some(Response::Diagnostics(diags))
+            }
+            Err(e) => {
+                log::error!("Error getting diagnostics: {:?}", e);
+                None
+            }
+        }
     }
 }
 
