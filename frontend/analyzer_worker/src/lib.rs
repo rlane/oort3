@@ -73,7 +73,7 @@ impl yew_agent::Worker for AnalyzerAgent {
         let fake_std = "".to_string();
         let fake_core = "".to_string();
         let fake_alloc = "".to_string();
-        let fake_oort_api = "pub mod prelude {}".to_string();
+        let fake_oort_api = include_str!("../../../shared/api/src/lib.rs").to_string();
 
         let mut host = AnalysisHost::default();
         let file_id = FileId(0);
