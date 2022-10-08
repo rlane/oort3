@@ -9,14 +9,11 @@ use salvo_extra::cors::Cors;
 const LEADERBOARD_COLLECTION_NAME: &str = "leaderboard";
 const PROJECT_ID: &str = "oort-319301";
 
-async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(PROJECT_ID).await?;
-    log::debug!("Got request {:?}", req);
-
-    let scenario_name: String = req
-        .query("scenario_name")
-        .ok_or_else(|| anyhow!("missing scenario_name parameter"))?;
-
+async fn render_leaderboard(
+    db: &FirestoreDb,
+    scenario_name: &str,
+    res: &mut Response,
+) -> anyhow::Result<()> {
     let docs: Vec<Document> = db
         .query_doc(
             FirestoreQueryParams::new(LEADERBOARD_COLLECTION_NAME.into())
@@ -24,7 +21,7 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
                     FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
                         FirestoreQueryFilterCompare::Equal(
                             "scenario_name".into(),
-                            scenario_name.clone().into(),
+                            scenario_name.into(),
                         ),
                     ))]),
                 ))
@@ -56,6 +53,17 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
     res.render(&serde_json::to_string_pretty(&leaderboard)?);
 
     Ok(())
+}
+
+async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+    let db = FirestoreDb::new(PROJECT_ID).await?;
+    log::debug!("Got request {:?}", req);
+
+    let scenario_name: String = req
+        .query("scenario_name")
+        .ok_or_else(|| anyhow!("missing scenario_name parameter"))?;
+
+    render_leaderboard(&db, &scenario_name, res).await
 }
 
 #[handler]
@@ -91,8 +99,8 @@ async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> any
 
     db.update_obj(LEADERBOARD_COLLECTION_NAME, &path, &obj, None)
         .await?;
-    res.render("");
-    Ok(())
+
+    render_leaderboard(&db, &obj.scenario_name, res).await
 }
 
 #[handler]
