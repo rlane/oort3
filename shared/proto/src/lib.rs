@@ -49,3 +49,16 @@ pub struct TimeLeaderboardRow {
     pub username: Option<String>,
     pub time: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct LeaderboardSubmission {
+    pub scenario_name: String,
+    pub userid: String,
+    pub username: String,
+    #[serde(default)]
+    #[serde(with = "ts_milliseconds")]
+    pub timestamp: DateTime<Utc>,
+    pub time: f64,
+    pub code_size: usize,
+    pub code: String,
+}

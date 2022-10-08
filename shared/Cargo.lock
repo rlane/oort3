@@ -911,6 +911,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_proto"
+version = "0.9.1"
+dependencies = [
+ "chrono",
+ "serde",
+]
+
+[[package]]
 name = "oort_simulator"
 version = "0.9.1"
 dependencies = [
@@ -945,14 +953,6 @@ dependencies = [
  "wasmer",
  "wasmer-compiler",
  "wasmer-compiler-cranelift",
-]
-
-[[package]]
-name = "oort_proto"
-version = "0.9.1"
-dependencies = [
- "chrono",
- "serde",
 ]
 
 [[package]]
