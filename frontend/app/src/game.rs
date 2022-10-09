@@ -3,14 +3,15 @@ use crate::filesystem;
 use crate::leaderboard::Leaderboard;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
+use crate::userid;
 use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
+use oort_proto::{LeaderboardSubmission, Telemetry};
 use oort_simulation_worker::SimAgent;
 use oort_simulator::scenario::{self, Status};
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{simulation, vm};
-use oort_proto::Telemetry;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
@@ -246,6 +247,28 @@ impl Component for Game {
                         success: summary.failed_seeds.is_empty(),
                         time: summary.average_time,
                     });
+
+                    // Submit to leaderboard
+                    if summary.failed_seeds.is_empty() {
+                        let msg = LeaderboardSubmission {
+                            userid: userid::get_userid(),
+                            username: userid::get_username(),
+                            timestamp: chrono::Utc::now(),
+                            scenario_name: self.scenario_name.clone(),
+                            code: code_to_string(&code),
+                            code_size: crate::code_size::calculate(&code_to_string(&code)),
+                            time: summary.average_time.unwrap(),
+                        };
+                        wasm_bindgen_futures::spawn_local(async move {
+                            let url = "https://leaderboard.oort.rs/leaderboard";
+                            let body = serde_json::to_string(&msg).unwrap();
+                            let result = Request::post(url).body(body).send().await;
+                            if let Err(e) = result {
+                                log::warn!("error posting to leaderboard: {:?}", e);
+                            }
+                            // TODO refresh displayed leaderboard
+                        });
+                    }
                 }
                 true
             }
