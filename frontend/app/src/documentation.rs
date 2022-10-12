@@ -84,6 +84,16 @@ pub fn documentation() -> Html {
               <li><code>{ "receive() -> f64" }</code>{ ": Receive a message from the channel. The message with the strongest signal is returned." }</li>
             </ul>
 
+            <h2>{ "Special Abilities" }</h2>
+            <ul>
+              <li><code>{ "activate_ability(ability: Ability)" }</code>{ ": Activates a ship's special ability." }</li>
+              <li>{ "Available abilities:" }
+                <ul>
+                  <li><code>{ "Ability::Boost" }</code>{ ": Fighter only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s." }</li>
+                </ul>
+              </li>
+            </ul>
+
             <h2>{ "Scalar Math" }</h2>
             <ul>
               <li><code>{ "PI, TAU" }</code>{ ": Constants."}</li>

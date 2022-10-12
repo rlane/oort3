@@ -59,6 +59,8 @@ pub enum SystemState {
     CurrentTick,
     Energy,
 
+    ActivateAbility,
+
     Size,
     MaxSize = 128,
 }
@@ -91,6 +93,15 @@ impl Class {
             _ => Class::Unknown,
         }
     }
+}
+
+/// Special abilities available to different ship classes.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Ability {
+    /// No-op.
+    None,
+    /// Fighter only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s.
+    Boost,
 }
 
 #[allow(missing_docs)]
@@ -161,7 +172,7 @@ mod rng {
 
 mod api {
     use super::sys::{read_system_state, write_system_state};
-    use super::{Class, SystemState};
+    use super::{Ability, Class, SystemState};
     use crate::vec::*;
 
     /// The time between each simulation tick.
@@ -395,6 +406,11 @@ mod api {
         read_system_state(SystemState::Energy)
     }
 
+    /// Activates a special ability.
+    pub fn activate_ability(ability: Ability) {
+        write_system_state(SystemState::ActivateAbility, ability as u32 as f64);
+    }
+
     /// Returns the position of the target set by the scenario.
     /// Only used in tutorials.
     pub fn target() -> Vec2 {
@@ -586,7 +602,7 @@ pub mod prelude {
     #[doc(inline)]
     pub use super::vec::*;
     #[doc(inline)]
-    pub use super::Class;
+    pub use super::{Ability, Class};
     #[doc(inline)]
     pub use crate::debug;
 }

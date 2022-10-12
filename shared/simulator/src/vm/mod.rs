@@ -5,7 +5,7 @@ use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Simulation};
 use nalgebra::point;
 use nalgebra::Vector2;
-use oort_api::{Class, Line, SystemState};
+use oort_api::{Ability, Class, Line, SystemState};
 use serde::{Deserialize, Serialize};
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
@@ -251,10 +251,11 @@ impl ShipController for WasmShipController {
             {
                 let ship = sim.ship(self.handle);
                 let data = ship.data();
+                let max_acceleration = data.max_acceleration;
                 self.state
-                    .set(SystemState::MaxAccelerationX, data.max_acceleration.x);
+                    .set(SystemState::MaxAccelerationX, max_acceleration.x);
                 self.state
-                    .set(SystemState::MaxAccelerationY, data.max_acceleration.y);
+                    .set(SystemState::MaxAccelerationY, max_acceleration.y);
                 self.state.set(
                     SystemState::MaxAngularAcceleration,
                     data.max_angular_acceleration,
@@ -322,6 +323,12 @@ impl ShipController for WasmShipController {
                 radar.set_width(self.state.get(SystemState::RadarWidth));
                 radar.set_min_distance(self.state.get(SystemState::RadarMinDistance));
                 radar.set_max_distance(self.state.get(SystemState::RadarMaxDistance));
+            }
+
+            if let Some(ability) = translate_ability(self.state.get(SystemState::ActivateAbility)) {
+                if ability != Ability::None {
+                    sim.ship_mut(self.handle).activate_ability(ability);
+                }
             }
 
             if self.state.get(SystemState::Explode) > 0.0 {
@@ -408,6 +415,17 @@ fn translate_class(class: ShipClass) -> Class {
         ShipClass::Target => Class::Target,
         ShipClass::Missile => Class::Missile,
         ShipClass::Torpedo => Class::Torpedo,
+    }
+}
+
+fn translate_ability(v: f64) -> Option<Ability> {
+    let v = v as u32;
+    if v == Ability::None as u32 {
+        Some(Ability::None)
+    } else if v == Ability::Boost as u32 {
+        Some(Ability::Boost)
+    } else {
+        None
     }
 }
 

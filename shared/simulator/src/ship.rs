@@ -9,6 +9,7 @@ use crate::simulation::{self, PHYSICS_TICK_LENGTH};
 use crate::{bullet, collision};
 use bullet::BulletData;
 use nalgebra::{vector, Rotation2, UnitComplex, Vector2};
+use oort_api::Ability;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -106,6 +107,9 @@ pub struct ShipData {
     pub radar: Option<Radar>,
     pub radar_cross_section: f64,
     pub radio: Option<Radio>,
+    pub active_ability: oort_api::Ability,
+    pub ability_time_remaining: f64,
+    pub ability_reload_time_remaining: f64,
 }
 
 impl Default for ShipData {
@@ -128,6 +132,9 @@ impl Default for ShipData {
             radar: None,
             radar_cross_section: 10.0,
             radio: None,
+            active_ability: Ability::None,
+            ability_time_remaining: 0.0,
+            ability_reload_time_remaining: 0.0,
         }
     }
 }
@@ -494,6 +501,13 @@ pub struct ShipAccessorMut<'a> {
 }
 
 impl<'a: 'b, 'b> ShipAccessorMut<'a> {
+    pub fn readonly(&self) -> ShipAccessor {
+        ShipAccessor {
+            simulation: self.simulation,
+            handle: self.handle,
+        }
+    }
+
     pub fn body(&'b mut self) -> &'b mut RigidBody {
         self.simulation
             .bodies
@@ -684,6 +698,21 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
     }
 
+    pub fn activate_ability(&mut self, ability: oort_api::Ability) {
+        if self.data().ability_reload_time_remaining > 0.0 {
+            return;
+        }
+        let r = match (self.data().class, ability) {
+            (ShipClass::Fighter, Ability::Boost) => Some((2.0, 10.0)),
+            _ => None,
+        };
+        if let Some((time, reload)) = r {
+            self.data_mut().active_ability = ability;
+            self.data_mut().ability_time_remaining = time - PHYSICS_TICK_LENGTH;
+            self.data_mut().ability_reload_time_remaining = reload;
+        }
+    }
+
     pub fn tick(&mut self) {
         // Energy
         {
@@ -735,6 +764,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                         ),
                     );
                 }
+                if self.data().active_ability == Ability::Boost {
+                    self.body()
+                        .add_force(rotation_matrix * vector![100.0, 0.0] * mass, true);
+                }
             }
             self.data_mut().acceleration = vector![0.0, 0.0];
         }
@@ -754,6 +787,20 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 self.data_mut().ttl = Some(ttl - 1);
                 if self.data().ttl.unwrap() == 0 {
                     self.explode();
+                }
+            }
+        }
+
+        // Special abilities.
+        {
+            let data = self.data_mut();
+            data.ability_reload_time_remaining =
+                (data.ability_reload_time_remaining - PHYSICS_TICK_LENGTH).max(0.0);
+            if data.active_ability != Ability::None {
+                data.ability_time_remaining =
+                    (data.ability_time_remaining - PHYSICS_TICK_LENGTH).max(0.0);
+                if data.ability_time_remaining <= 0.0 {
+                    data.active_ability = Ability::None;
                 }
             }
         }

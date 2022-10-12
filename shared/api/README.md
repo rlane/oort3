@@ -112,6 +112,14 @@ channels available (0 to 9), shared between all teams.
 - [`send(data: f64)`](prelude::send): Send a message on a channel.
 - [`receive() -> f64`](prelude::receive): Receive a message from the channel. The message with the strongest signal is returned.
 
+## Special Abilities
+
+Some ship classes have a unique special ability. These abilities are activated for a certain time and then need to reload.
+
+- [`activate_ability(ability: Ability)`](prelude::activate_ability): Activates a special ability.
+- Available abilities:
+  - [`Ability::Boost`](prelude::Ability::Boost): Fighter only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s.
+
 ## Scalar Math
 
 - [`PI`](prelude::PI), [`TAU`](prelude::TAU): Constants.
