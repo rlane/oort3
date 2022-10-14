@@ -424,6 +424,8 @@ fn translate_ability(v: f64) -> Option<Ability> {
         Some(Ability::None)
     } else if v == Ability::Boost as u32 {
         Some(Ability::Boost)
+    } else if v == Ability::ShapedCharge as u32 {
+        Some(Ability::ShapedCharge)
     } else {
         None
     }

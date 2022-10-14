@@ -678,9 +678,16 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             self.body().position().translation.vector - self.body().linvel() * PHYSICS_TICK_LENGTH;
         let color = vector![0.5, 0.5, 0.5, 0.30];
         let ttl = 0.5;
+        let h = if self.data().active_ability == Ability::ShapedCharge {
+            0.1
+        } else if self.data().class == ShipClass::Torpedo {
+            0.5
+        } else {
+            TAU
+        };
         let mut rng = new_rng(0);
         for _ in 0..num {
-            let rot = Rotation2::new(rng.gen_range(0.0..TAU));
+            let rot = self.body().rotation() * Rotation2::new(rng.gen_range((-h / 2.0)..(h / 2.0)));
             let speed = 2000.0 * rng.gen_range(0.0..1.0);
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
@@ -704,6 +711,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
         let r = match (self.data().class, ability) {
             (ShipClass::Fighter, Ability::Boost) => Some((2.0, 10.0)),
+            (ShipClass::Missile, Ability::ShapedCharge) => Some((1.0, 0.5)),
             _ => None,
         };
         if let Some((time, reload)) = r {

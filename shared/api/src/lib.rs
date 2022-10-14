@@ -102,6 +102,8 @@ pub enum Ability {
     None,
     /// Fighter only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s.
     Boost,
+    /// Missile only. `explode()` will create a jet of shrapnel instead of a circle.
+    ShapedCharge,
 }
 
 #[allow(missing_docs)]
