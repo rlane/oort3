@@ -81,3 +81,16 @@ pub fn send_telemetry(payload: Telemetry) {
         }
     });
 }
+
+pub fn format(text: String, cb: yew::Callback<String>) {
+    wasm_bindgen_futures::spawn_local(async move {
+        let url = format!("{}/format", compiler_url());
+        let result = Request::post(&url).body(text).send().await;
+        match result {
+            Ok(response) => cb.emit(response.text().await.unwrap()),
+            Err(e) => {
+                log::warn!("Error formatting code: {:?}", e);
+            }
+        }
+    });
+}

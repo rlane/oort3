@@ -4,7 +4,6 @@ pub mod codestorage;
 pub mod documentation;
 pub mod editor_window;
 pub mod filesystem;
-pub mod format;
 pub mod game;
 pub mod js;
 pub mod leaderboard;

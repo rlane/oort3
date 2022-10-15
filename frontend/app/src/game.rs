@@ -46,6 +46,7 @@ pub enum Msg {
     CompileSlow,
     LoadedCodeFromDisk { team: usize, text: String },
     SubmitToTournament,
+    FormattedCode { team: usize, text: String },
 }
 
 enum Overlay {
@@ -214,8 +215,10 @@ impl Component for Game {
             }
             Msg::EditorAction { team, ref action } if action == "oort-format" => {
                 let text = self.team(team).get_editor_text();
-                let text = crate::format::format(&text);
-                self.team(team).set_editor_text(&text);
+                let cb = context
+                    .link()
+                    .callback(move |text| Msg::FormattedCode { team, text });
+                services::format(text, cb);
                 false
             }
             Msg::EditorAction { team: _, action } => {
@@ -309,6 +312,10 @@ impl Component for Game {
                 false
             }
             Msg::LoadedCodeFromDisk { team, text } => {
+                self.team(team).set_editor_text(&text);
+                false
+            }
+            Msg::FormattedCode { team, text } => {
                 self.team(team).set_editor_text(&text);
                 false
             }
