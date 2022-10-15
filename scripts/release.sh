@@ -18,12 +18,14 @@ PUSH_APP=0
 PUSH_COMPILER_SERVICE=0
 PUSH_TELEMETRY_SERVICE=0
 PUSH_LEADERBOARD_SERVICE=0
+PUSH_DOC=0
 while getopts "wctshl" option; do
    case $option in
       w) PUSH_ALL=0; PUSH_APP=1;;
       c) PUSH_ALL=0; PUSH_COMPILER_SERVICE=1;;
       t) PUSH_ALL=0; PUSH_TELEMETRY_SERVICE=1;;
       l) PUSH_ALL=0; PUSH_LEADERBOARD_SERVICE=1;;
+      d) PUSH_ALL=0; PUSH_DOC=1;;
       s) BUMP_VERSION=0;;
       h) usage; exit;;
       \?) usage; exit;;
@@ -66,4 +68,8 @@ fi
 
 if [[ $PUSH_ALL -eq 1 || $PUSH_APP -eq 1 ]]; then
   scripts/push.sh
+fi
+
+if [[ $PUSH_ALL -eq 1 || $PUSH_DOC -eq 1 ]]; then
+  (cd shared && cargo publish -p oort_api)
 fi
