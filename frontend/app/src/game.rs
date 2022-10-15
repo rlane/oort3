@@ -1,6 +1,7 @@
 use crate::editor_window::EditorWindow;
 use crate::filesystem;
 use crate::leaderboard::Leaderboard;
+use crate::services;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
 use crate::userid;
@@ -57,8 +58,6 @@ enum Overlay {
 #[derive(Deserialize, Debug, Default)]
 struct QueryParams {
     pub seed: Option<u32>,
-    #[serde(default)]
-    pub local: bool,
 }
 
 pub struct Game {
@@ -69,7 +68,6 @@ pub struct Game {
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
     saw_slow_compile: bool,
-    local_compiler: bool,
     compiler_errors: Option<String>,
     frame: u64,
     last_window_size: (i32, i32),
@@ -105,11 +103,6 @@ impl Component for Game {
         let render_handle = Some(request_animation_frame(move |_ts| {
             link2.send_message(Msg::Render)
         }));
-        let q = parse_query_params(context);
-        let local_compiler = q.local;
-        if local_compiler {
-            log::info!("Using local compiler");
-        }
 
         let compilation_cache = HashMap::new();
 
@@ -121,7 +114,6 @@ impl Component for Game {
             overlay: None,
             overlay_ref: NodeRef::default(),
             saw_slow_compile: false,
-            local_compiler,
             compiler_errors: None,
             frame: 0,
             last_window_size: (0, 0),
@@ -260,9 +252,9 @@ impl Component for Game {
                             time: summary.average_time.unwrap(),
                         };
                         wasm_bindgen_futures::spawn_local(async move {
-                            let url = "https://leaderboard.oort.rs/leaderboard";
+                            let url = format!("{}/leaderboard", services::leaderboard_url());
                             let body = serde_json::to_string(&msg).unwrap();
-                            let result = Request::post(url).body(body).send().await;
+                            let result = Request::post(&url).body(body).send().await;
                             if let Err(e) = result {
                                 log::warn!("error posting to leaderboard: {:?}", e);
                             }
@@ -679,13 +671,12 @@ impl Game {
         let finished_callback = context.link().callback(Msg::CompileFinished);
         let slow_compile_callback = context.link().callback(|_| Msg::CompileSlow);
 
-        let url = if self.local_compiler {
-            "http://localhost:8081/compile"
-        } else if self.saw_slow_compile {
-            "https://compiler.oort.rs/compile"
+        let url = if self.saw_slow_compile {
+            services::compiler_url()
         } else {
-            "https://compiler-vm.oort.rs/compile"
+            services::compiler_vm_url()
         };
+        let url = format!("{url}/compile");
 
         async fn compile(
             url: &str,
@@ -757,7 +748,7 @@ impl Game {
             let mut results = vec![];
             for source_code in source_codes {
                 let result = match source_code {
-                    Code::Rust(text) => compile(url, text, slow_compile_callback.clone()).await,
+                    Code::Rust(text) => compile(&url, text, slow_compile_callback.clone()).await,
                     Code::Builtin(name) => oort_simulator::vm::builtin::load_compiled(&name),
                     other => Ok(other),
                 };

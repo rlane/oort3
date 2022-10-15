@@ -1,3 +1,4 @@
+use crate::services;
 use crate::userid;
 use oort_proto::{LeaderboardData, TimeLeaderboardRow};
 use reqwasm::http::Request;
@@ -39,7 +40,8 @@ impl Component for Leaderboard {
         match msg {
             SendRequest => {
                 let url = format!(
-                    "https://leaderboard.oort.rs/leaderboard?scenario_name={}",
+                    "{}/leaderboard?scenario_name={}",
+                    services::leaderboard_url(),
                     &context.props().scenario_name
                 );
                 let callback =
