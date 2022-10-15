@@ -10,7 +10,6 @@ pub mod js;
 pub mod leaderboard;
 pub mod services;
 pub mod simulation_window;
-pub mod telemetry;
 pub mod toolbar;
 pub mod ui;
 pub mod userid;

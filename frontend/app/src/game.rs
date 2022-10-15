@@ -229,7 +229,7 @@ impl Component for Game {
                 self.background_snapshots.push((seed, snapshot));
                 if let Some(summary) = self.summarize_background_simulations() {
                     let code = self.player_team().running_source_code.clone();
-                    crate::telemetry::send(Telemetry::FinishScenario {
+                    services::send_telemetry(Telemetry::FinishScenario {
                         scenario_name: self.scenario_name.clone(),
                         code: code_to_string(&code),
                         ticks: (summary.average_time.unwrap_or(0.0)
@@ -294,7 +294,7 @@ impl Component for Game {
                     .cloned()
                     .collect();
                 if errors.is_empty() {
-                    crate::telemetry::send(Telemetry::StartScenario {
+                    services::send_telemetry(Telemetry::StartScenario {
                         scenario_name: self.scenario_name.clone(),
                         code: code_to_string(&self.player_team().running_source_code),
                     });
@@ -313,7 +313,7 @@ impl Component for Game {
                 false
             }
             Msg::SubmitToTournament => {
-                crate::telemetry::send(Telemetry::SubmitToTournament {
+                services::send_telemetry(Telemetry::SubmitToTournament {
                     scenario_name: self.scenario_name.clone(),
                     code: code_to_string(&self.player_team().running_source_code),
                 });
