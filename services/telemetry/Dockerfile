@@ -9,7 +9,9 @@ RUN \
   cd services/telemetry && cargo install --locked --path .
 
 FROM rust:1.64-slim-buster
-WORKDIR /usr/src/app
+RUN useradd -m app
+USER app:1000
+WORKDIR /home/app
 COPY --from=builder /usr/local/cargo/bin/oort_telemetry_service /usr/local/bin/oort_telemetry_service
 ENV PORT 8080
 ENV RUST_LOG info
