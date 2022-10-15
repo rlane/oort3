@@ -316,7 +316,7 @@ impl Component for Game {
                 false
             }
             Msg::FormattedCode { team, text } => {
-                self.team(team).set_editor_text(&text);
+                self.team(team).set_editor_text_preserving_cursor(&text);
                 false
             }
             Msg::SubmitToTournament => {
@@ -881,6 +881,17 @@ impl Team {
     pub fn set_editor_text(&self, text: &str) {
         self.editor_link.with_editor(|editor| {
             editor.get_model().unwrap().set_value(text);
+        });
+        // TODO trigger analyzer run
+    }
+
+    pub fn set_editor_text_preserving_cursor(&self, text: &str) {
+        self.editor_link.with_editor(|editor| {
+            let saved = editor.as_ref().save_view_state();
+            editor.get_model().unwrap().set_value(text);
+            if let Some(view_state) = saved {
+                editor.as_ref().restore_view_state(&view_state);
+            }
         });
         // TODO trigger analyzer run
     }
