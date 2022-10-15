@@ -251,15 +251,7 @@ impl Component for Game {
                             code_size: crate::code_size::calculate(&code_to_string(&code)),
                             time: summary.average_time.unwrap(),
                         };
-                        wasm_bindgen_futures::spawn_local(async move {
-                            let url = format!("{}/leaderboard", services::leaderboard_url());
-                            let body = serde_json::to_string(&msg).unwrap();
-                            let result = Request::post(&url).body(body).send().await;
-                            if let Err(e) = result {
-                                log::warn!("error posting to leaderboard: {:?}", e);
-                            }
-                            // TODO refresh displayed leaderboard
-                        });
+                        services::post_leaderboard(msg);
                     }
                 }
                 true
