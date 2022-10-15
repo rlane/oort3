@@ -87,7 +87,16 @@ pub fn format(text: String, cb: yew::Callback<String>) {
         let url = format!("{}/format", compiler_url());
         let result = Request::post(&url).body(text).send().await;
         match result {
-            Ok(response) => cb.emit(response.text().await.unwrap()),
+            Ok(response) => {
+                if response.ok() {
+                    cb.emit(response.text().await.unwrap());
+                } else {
+                    log::warn!(
+                        "Error formatting code: {:?}",
+                        response.text().await.unwrap()
+                    );
+                }
+            }
             Err(e) => {
                 log::warn!("Error formatting code: {:?}", e);
             }
