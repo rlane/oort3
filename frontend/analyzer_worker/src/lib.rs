@@ -29,6 +29,14 @@ pub enum Response {
     Diagnostics(Vec<Diagnostic>),
 }
 
+static FAKE_STD: &str = r#"
+#[macro_export]
+macro_rules! format_args {
+    ($fmt:expr) => {{ /* compiler built-in */ }};
+    ($fmt:expr, $($args:tt)*) => {{ /* compiler built-in */ }};
+}
+"#;
+
 pub fn create_source_root(name: &str, f: FileId) -> SourceRoot {
     let mut file_set = FileSet::default();
     file_set.insert(
@@ -70,7 +78,7 @@ impl yew_agent::Worker for AnalyzerAgent {
 
     fn create(link: WorkerLink<Self>) -> Self {
         let text = "".to_string();
-        let fake_std = "".to_string();
+        let fake_std = FAKE_STD.to_string();
         let fake_core = "".to_string();
         let fake_alloc = "".to_string();
         let fake_oort_api = include_str!("../../../shared/api/src/lib.rs").to_string();
