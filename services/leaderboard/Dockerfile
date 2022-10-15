@@ -13,4 +13,5 @@ WORKDIR /usr/src/app
 COPY --from=builder /usr/local/cargo/bin/oort_leaderboard_service /usr/local/bin/oort_leaderboard_service
 ENV PORT 8080
 ENV RUST_LOG info
+ENV ENVIRONMENT prod
 CMD ["oort_leaderboard_service"]

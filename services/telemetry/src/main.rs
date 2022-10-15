@@ -4,8 +4,13 @@ use oort_proto::TelemetryMsg;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 
-const COLLECTION_NAME: &str = "telemetry";
-const PROJECT_ID: &str = "oort-319301";
+fn project_id() -> &'static str {
+    match std::env::var("ENVIRONMENT") {
+        Ok(x) if x == "dev" => { "oort-dev" }
+        Ok(x) if x == "prod" => { "oort-319301" }
+        _ => { panic!("Invalid ENVIRONMENT") }
+    }
+}
 
 fn generate_docid() -> String {
     use rand::Rng;
@@ -23,14 +28,14 @@ fn generate_docid() -> String {
 }
 
 async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(PROJECT_ID).await?;
+    let db = FirestoreDb::new(project_id()).await?;
     log::debug!("Got request {:?}", req);
     let payload = req.payload().await?;
     log::debug!("Got payload {:?}", payload);
     let mut obj: TelemetryMsg = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();
     log::debug!("Got request obj {:?}", obj);
-    db.create_obj(COLLECTION_NAME, &generate_docid(), &obj)
+    db.create_obj("telemetry", &generate_docid(), &obj)
         .await?;
     res.render("");
     Ok(())
@@ -77,6 +82,7 @@ async fn main() {
         Router::with_hoop(cors_handler).push(Router::with_path("/post").post(post).options(nop));
 
     log::info!("Starting oort_telemetry_service");
+    log::info!("Using project ID {}", project_id());
     Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
         .serve(router)
         .await;

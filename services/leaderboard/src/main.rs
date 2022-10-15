@@ -6,8 +6,13 @@ use oort_proto::{LeaderboardData, LeaderboardSubmission, TimeLeaderboardRow};
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 
-const LEADERBOARD_COLLECTION_NAME: &str = "leaderboard";
-const PROJECT_ID: &str = "oort-319301";
+fn project_id() -> &'static str {
+    match std::env::var("ENVIRONMENT") {
+        Ok(x) if x == "dev" => { "oort-dev" }
+        Ok(x) if x == "prod" => { "oort-319301" }
+        _ => { panic!("Invalid ENVIRONMENT") }
+    }
+}
 
 async fn render_leaderboard(
     db: &FirestoreDb,
@@ -16,7 +21,7 @@ async fn render_leaderboard(
 ) -> anyhow::Result<()> {
     let docs: Vec<Document> = db
         .query_doc(
-            FirestoreQueryParams::new(LEADERBOARD_COLLECTION_NAME.into())
+            FirestoreQueryParams::new("leaderboard".into())
                 .with_filter(FirestoreQueryFilter::Composite(
                     FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
                         FirestoreQueryFilterCompare::Equal(
@@ -56,7 +61,7 @@ async fn render_leaderboard(
 }
 
 async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(PROJECT_ID).await?;
+    let db = FirestoreDb::new(project_id()).await?;
     log::debug!("Got request {:?}", req);
 
     let scenario_name: String = req
@@ -76,7 +81,7 @@ async fn get_leaderboard(req: &mut Request, res: &mut Response) {
 }
 
 async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(PROJECT_ID).await?;
+    let db = FirestoreDb::new(project_id()).await?;
     log::debug!("Got request {:?}", req);
     let payload = req.payload().await?;
     log::debug!("Got payload {:?}", payload);
@@ -86,7 +91,7 @@ async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> any
     let path = format!("{}.{}", obj.scenario_name, obj.userid);
 
     if let Ok(existing_obj) = db
-        .get_obj::<LeaderboardSubmission>(LEADERBOARD_COLLECTION_NAME, &path)
+        .get_obj::<LeaderboardSubmission>("leaderboard", &path)
         .await
     {
         log::debug!("Got existing obj {:?}", existing_obj);
@@ -97,7 +102,7 @@ async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> any
         }
     }
 
-    db.update_obj(LEADERBOARD_COLLECTION_NAME, &path, &obj, None)
+    db.update_obj("leaderboard", &path, &obj, None)
         .await?;
 
     render_leaderboard(&db, &obj.scenario_name, res).await
@@ -153,6 +158,7 @@ async fn main() {
         );
 
     log::info!("Starting oort_leaderboard_service");
+    log::info!("Using project ID {}", project_id());
     Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
         .serve(router)
         .await;

@@ -1,4 +1,4 @@
-#!/bin/bash -eux
+#!/bin/bash -eu
 cd $(realpath $(dirname $0))/..
 rm -rf scratch/compiler_service_sandbox
 mkdir -p scratch/compiler_service_sandbox
@@ -11,4 +11,4 @@ cp scripts/build-ai.sh scripts/build-ai-fast.sh scratch/compiler_service_sandbox
 cd scratch/compiler_service_sandbox
 ./scripts/build-ai.sh
 ./scripts/build-ai-fast.sh
-PORT=8081 RUST_LOG=debug ../../services/target/debug/oort_compiler_service
+PORT=8081 RUST_LOG=debug exec ../../services/target/debug/oort_compiler_service
