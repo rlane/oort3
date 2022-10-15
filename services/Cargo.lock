@@ -1235,6 +1235,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "log",
+ "once_cell",
  "salvo",
  "salvo_extra",
  "stackdriver_logger",

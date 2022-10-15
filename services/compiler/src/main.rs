@@ -2,9 +2,13 @@ use bytes::Bytes;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 use tokio::process::Command;
+use once_cell::sync::Lazy;
+
+static LOCK : Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
 
 async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    log::debug!("Got request {:?}", req);
+    let _guard = LOCK.lock().await;
+    log::debug!("Got compile request {:?}", req);
     let payload = req.payload().await?;
     let code = std::str::from_utf8(payload)?;
     log::debug!("Code: {}", code);
@@ -38,7 +42,8 @@ async fn compile(req: &mut Request, res: &mut Response) {
 }
 
 async fn format_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    log::debug!("Got request {:?}", req);
+    let _guard = LOCK.lock().await;
+    log::debug!("Got format request {:?}", req);
     let payload = req.payload().await?;
     let code = std::str::from_utf8(payload)?;
     log::debug!("Code: {}", code);
