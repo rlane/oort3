@@ -61,8 +61,12 @@ pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error
     }
 }
 
+const MAX_VMS: usize = 64;
+
 pub struct WasmTeamController {
-    vm: WasmVm,
+    code: Vec<u8>,
+    vms: Vec<WasmVm>,
+    index: usize,
 }
 
 struct WasmShipController {
@@ -82,8 +86,26 @@ pub struct WasmVm {
 
 impl WasmTeamController {
     pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, Error> {
-        let vm = WasmVm::create(code)?;
-        Ok(Box::new(WasmTeamController { vm }))
+        Ok(Box::new(WasmTeamController {
+            code: code.to_vec(),
+            vms: Vec::new(),
+            index: 0,
+        }))
+    }
+
+    pub fn assign_vm(&mut self) -> Result<WasmVm, Error> {
+        if self.index > MAX_VMS {
+            self.index = 0;
+        }
+
+        if self.index == self.vms.len() {
+            let vm = WasmVm::create(&self.code)?;
+            self.vms.push(vm);
+        }
+
+        let vm = self.vms[self.index].clone();
+        self.index += 1;
+        Ok(vm)
     }
 }
 
@@ -96,7 +118,7 @@ impl TeamController for WasmTeamController {
         let mut ctrl = WasmShipController {
             handle,
             sim,
-            vm: self.vm.clone(),
+            vm: self.assign_vm()?,
             state: LocalSystemState::new(),
         };
 
