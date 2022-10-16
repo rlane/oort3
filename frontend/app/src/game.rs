@@ -442,7 +442,7 @@ impl Game {
         }
 
         self.last_snapshot = Some(snapshot);
-        false
+        true
     }
 
     fn render_overlay(&self, context: &yew::Context<Self>) -> Html {
