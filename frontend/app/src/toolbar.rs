@@ -1,9 +1,12 @@
 use oort_simulator::scenario;
+use wasm_bindgen::JsCast;
 use yew::events::Event;
 use yew::prelude::*;
 
 #[derive(Debug)]
-pub enum Msg {}
+pub enum Msg {
+    ChangeUsername(String),
+}
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct ToolbarProps {
@@ -22,8 +25,21 @@ impl Component for Toolbar {
         Self {}
     }
 
-    fn update(&mut self, _context: &yew::Context<Self>, _msg: Self::Message) -> bool {
-        false
+    fn update(&mut self, _context: &yew::Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::ChangeUsername(username) => {
+                let window = web_sys::window().expect("no global `window` exists");
+                let storage = window
+                    .local_storage()
+                    .expect("failed to get local storage")
+                    .unwrap();
+                if let Err(msg) = storage.set_item("/user/name", &username) {
+                    log::error!("Failed to save username: {:?}", msg);
+                }
+                log::info!("Changed username to {:?}", username);
+            }
+        }
+        true
     }
 
     fn view(&self, context: &yew::Context<Self>) -> Html {
@@ -40,6 +56,21 @@ impl Component for Toolbar {
         let select_scenario_cb = context.props().select_scenario_cb.clone();
         let show_documentation_cb = context.props().show_documentation_cb.clone();
 
+        let username_keydown_cb = context
+            .link()
+            .batch_callback(|event: web_sys::KeyboardEvent| {
+                let input_box: web_sys::HtmlInputElement =
+                    event.target().unwrap().dyn_into().unwrap();
+                if event.key() == "Enter" {
+                    let _ = input_box.blur();
+                }
+                vec![]
+            });
+        let username_blur_cb = context.link().callback(|event: web_sys::FocusEvent| {
+            let input_box: web_sys::HtmlInputElement = event.target().unwrap().dyn_into().unwrap();
+            Msg::ChangeUsername(input_box.value())
+        });
+
         create_portal(
             html! {
                 <>
@@ -54,7 +85,12 @@ impl Component for Toolbar {
                     <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
                     <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
                     <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a></div>
-                    <div id="username" class="toolbar-elem right" title="Your username">{ username }</div>
+                    <div id="username" class="toolbar-elem right" title="Your username">
+                        <input type="text"
+                            value={username}
+                            onblur={username_blur_cb}
+                            onkeydown={username_keydown_cb} />
+                    </div>
                 </>
             },
             host,

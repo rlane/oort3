@@ -85,6 +85,15 @@ body {
   margin: 10px;
 }
 
+#username input {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: none;
+  font-family: "Roboto";
+  font-size: 16px;
+  text-align: right;
+}
+
 .title {
   font-size: 24px;
   font-family: "Share Tech Mono", monospace;
