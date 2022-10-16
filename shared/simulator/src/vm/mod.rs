@@ -62,18 +62,18 @@ pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error
 }
 
 pub struct WasmTeamController {
-    shared: WasmShared,
+    vm: WasmVm,
 }
 
 struct WasmShipController {
     sim: *mut Simulation,
     handle: ShipHandle,
-    shared: WasmShared,
+    vm: WasmVm,
     state: LocalSystemState,
 }
 
 #[derive(Clone)]
-pub struct WasmShared {
+pub struct WasmVm {
     memory: wasmer::Memory,
     system_state_ptr: WasmPtr<f64>,
     tick_ship: wasmer::Function,
@@ -82,6 +82,43 @@ pub struct WasmShared {
 
 impl WasmTeamController {
     pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, Error> {
+        let vm = WasmVm::create(code)?;
+        Ok(Box::new(WasmTeamController { vm }))
+    }
+}
+
+impl TeamController for WasmTeamController {
+    fn create_ship_controller(
+        &mut self,
+        handle: ShipHandle,
+        sim: &mut Simulation,
+    ) -> Result<Box<dyn ShipController>, Error> {
+        let mut ctrl = WasmShipController {
+            handle,
+            sim,
+            vm: self.vm.clone(),
+            state: LocalSystemState::new(),
+        };
+
+        ctrl.state.set(
+            SystemState::Seed,
+            (make_seed(sim.seed(), handle) & 0xffffff) as f64,
+        );
+        if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
+            ctrl.state.set(SystemState::RadarHeading, radar.heading);
+            ctrl.state.set(SystemState::RadarWidth, radar.width);
+            ctrl.state
+                .set(SystemState::RadarMinDistance, radar.min_distance);
+            ctrl.state
+                .set(SystemState::RadarMaxDistance, radar.max_distance);
+        }
+
+        Ok(Box::new(ctrl))
+    }
+}
+
+impl WasmVm {
+    pub fn create(code: &[u8]) -> Result<WasmVm, Error> {
         #[cfg(not(target_arch = "wasm32"))]
         let store = Store::new_with_engine(
             &wasmer_compiler::Universal::new(wasmer_compiler_cranelift::Cranelift::default())
@@ -105,53 +142,21 @@ impl WasmTeamController {
         let delete_ship =
             translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
 
-        let shared = WasmShared {
+        Ok(WasmVm {
             memory,
             system_state_ptr,
             tick_ship,
             delete_ship,
-        };
-
-        Ok(Box::new(WasmTeamController { shared }))
-    }
-}
-
-impl TeamController for WasmTeamController {
-    fn create_ship_controller(
-        &mut self,
-        handle: ShipHandle,
-        sim: &mut Simulation,
-    ) -> Result<Box<dyn ShipController>, Error> {
-        let mut ctrl = WasmShipController {
-            handle,
-            sim,
-            shared: self.shared.clone(),
-            state: LocalSystemState::new(),
-        };
-
-        ctrl.state.set(
-            SystemState::Seed,
-            (make_seed(sim.seed(), handle) & 0xffffff) as f64,
-        );
-        if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
-            ctrl.state.set(SystemState::RadarHeading, radar.heading);
-            ctrl.state.set(SystemState::RadarWidth, radar.width);
-            ctrl.state
-                .set(SystemState::RadarMinDistance, radar.min_distance);
-            ctrl.state
-                .set(SystemState::RadarMaxDistance, radar.max_distance);
-        }
-
-        Ok(Box::new(ctrl))
+        })
     }
 }
 
 impl WasmShipController {
     pub fn read_system_state(&mut self) {
         let slice = self
-            .shared
+            .vm
             .system_state_ptr
-            .slice(&self.shared.memory, SystemState::Size as u32)
+            .slice(&self.vm.memory, SystemState::Size as u32)
             .expect("system state read");
         slice
             .read_slice(&mut self.state.state)
@@ -160,9 +165,9 @@ impl WasmShipController {
 
     pub fn write_system_state(&self) {
         let slice = self
-            .shared
+            .vm
             .system_state_ptr
-            .slice(&self.shared.memory, SystemState::Size as u32)
+            .slice(&self.vm.memory, SystemState::Size as u32)
             .expect("system state write");
         slice
             .write_slice(&self.state.state)
@@ -173,7 +178,7 @@ impl WasmShipController {
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let mut bytes: Vec<u8> = Vec::new();
         bytes.resize(length as usize, 0);
-        let slice = ptr.slice(&self.shared.memory, length).ok()?;
+        let slice = ptr.slice(&self.vm.memory, length).ok()?;
         slice.read_slice(&mut bytes).ok()?;
         String::from_utf8(bytes).ok()
     }
@@ -181,7 +186,7 @@ impl WasmShipController {
     pub fn read_vec<T: Default + Clone>(&self, offset: u32, length: u32) -> Option<Vec<T>> {
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let byte_length = length.saturating_mul(std::mem::size_of::<T>() as u32);
-        let slice = ptr.slice(&self.shared.memory, byte_length).ok()?;
+        let slice = ptr.slice(&self.vm.memory, byte_length).ok()?;
         let byte_vec = slice.read_to_vec().ok()?;
         let src_ptr = unsafe { std::mem::transmute::<*const u8, *const T>(byte_vec.as_ptr()) };
         let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
@@ -289,7 +294,7 @@ impl ShipController for WasmShipController {
 
         let (index, _) = self.handle.0.into_raw_parts();
         let index = index as i32;
-        translate_error(self.shared.tick_ship.call(&[index.into()]))?;
+        translate_error(self.vm.tick_ship.call(&[index.into()]))?;
 
         {
             self.read_system_state();
@@ -388,7 +393,7 @@ impl ShipController for WasmShipController {
     fn delete(&mut self) {
         let (index, _) = self.handle.0.into_raw_parts();
         let index = index as i32;
-        if let Err(e) = translate_error(self.shared.delete_ship.call(&[index.into()])) {
+        if let Err(e) = translate_error(self.vm.delete_ship.call(&[index.into()])) {
             log::warn!("Failed to delete ship: {:?}", e);
         }
     }
