@@ -1,35 +1,41 @@
 mod user;
 
+use std::collections::HashMap;
+
 // For compatibility.
 pub use oort_api::prelude;
 
-static mut SHIPS: Vec<Option<(usize, user::Ship)>> = Vec::new();
+static mut SHIPS: Option<HashMap<i32, user::Ship>> = None;
+
+fn ensure_initialized() {
+    unsafe {
+        if SHIPS.is_none() {
+            SHIPS = Some(HashMap::new());
+        }
+    }
+}
 
 #[doc(hidden)]
 #[no_mangle]
-pub fn export_tick_ship(index: u32, generation: u32) {
-    let index = index as usize;
-    let generation = generation as usize;
+pub fn export_tick_ship(key: i32) {
+    ensure_initialized();
     unsafe {
         oort_api::dbg::reset();
-        if SHIPS.len() <= index {
-            SHIPS.resize_with(index + 1, || None);
-        }
-        match SHIPS.get_mut(index) {
-            Some(Some((gen, ship))) => {
-                if *gen != generation {
-                    *ship = user::Ship::new();
-                    *gen = generation;
-                }
-                ship.tick();
-            }
-            Some(x @ None) => {
-                let mut ship = user::Ship::new();
-                ship.tick();
-                *x = Some((generation, ship));
-            }
-            _ => {}
-        }
+        let ship = SHIPS
+            .as_mut()
+            .unwrap()
+            .entry(key)
+            .or_insert_with(|| user::Ship::new());
+        ship.tick();
         oort_api::dbg::update();
+    }
+}
+
+#[doc(hidden)]
+#[no_mangle]
+pub fn export_delete_ship(key: i32) {
+    ensure_initialized();
+    unsafe {
+        SHIPS.as_mut().unwrap().remove(&key);
     }
 }

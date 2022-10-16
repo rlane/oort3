@@ -815,6 +815,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         // Destruction.
         if self.data().destroyed {
+            if let Some(mut controller) = self.simulation.ship_controllers.remove(&self.handle) {
+                controller.delete();
+            }
             self.simulation.ships.remove(self.handle);
             self.simulation.bodies.remove(
                 RigidBodyHandle(self.handle.index()),

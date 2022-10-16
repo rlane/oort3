@@ -46,6 +46,7 @@ pub trait TeamController {
 
 pub trait ShipController {
     fn tick(&mut self) -> Result<(), Error>;
+    fn delete(&mut self);
     fn write_target(&mut self, target: Vector2<f64>);
 }
 
@@ -76,6 +77,7 @@ pub struct WasmShared {
     memory: wasmer::Memory,
     system_state_ptr: WasmPtr<f64>,
     tick_ship: wasmer::Function,
+    delete_ship: wasmer::Function,
 }
 
 impl WasmTeamController {
@@ -100,11 +102,14 @@ impl WasmTeamController {
         let system_state_ptr: WasmPtr<f64> = WasmPtr::new(system_state_offset as u32);
 
         let tick_ship = translate_error(instance.exports.get_function("export_tick_ship"))?.clone();
+        let delete_ship =
+            translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
 
         let shared = WasmShared {
             memory,
             system_state_ptr,
             tick_ship,
+            delete_ship,
         };
 
         Ok(Box::new(WasmTeamController { shared }))
@@ -282,12 +287,9 @@ impl ShipController for WasmShipController {
             self.write_system_state();
         }
 
-        let (index, generation) = self.handle.0.into_raw_parts();
-        translate_error(
-            self.shared
-                .tick_ship
-                .call(&[index.into(), generation.into()]),
-        )?;
+        let (index, _) = self.handle.0.into_raw_parts();
+        let index = index as i32;
+        translate_error(self.shared.tick_ship.call(&[index.into()]))?;
 
         {
             self.read_system_state();
@@ -381,6 +383,14 @@ impl ShipController for WasmShipController {
             }
         }
         Ok(())
+    }
+
+    fn delete(&mut self) {
+        let (index, _) = self.handle.0.into_raw_parts();
+        let index = index as i32;
+        if let Err(e) = translate_error(self.shared.delete_ship.call(&[index.into()])) {
+            log::warn!("Failed to delete ship: {:?}", e);
+        }
     }
 
     fn write_target(&mut self, target: Vec2) {
