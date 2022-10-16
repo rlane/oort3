@@ -251,17 +251,14 @@ impl Ship {
     }
 }
 
-const SCALE: f64 = 1e6;
-const BIAS: f64 = SCALE / 2.0;
-
-fn parse_orders(o: f64) -> Vec2 {
-    if o == 0.0 {
-        vec2(0.0, 0.0)
+fn parse_orders(msg: Option<Message>) -> Vec2 {
+    if let Some(msg) = msg {
+        vec2(msg[0], msg[1])
     } else {
-        vec2(o % SCALE - BIAS, (o / SCALE).round() - BIAS)
+        vec2(0.0, 0.0)
     }
 }
 
-fn make_orders(o: Vec2) -> f64 {
-    (o.x.round() + BIAS) + (o.y.round() + BIAS) * SCALE
+fn make_orders(o: Vec2) -> Message {
+    [o.x, o.y, 0.0, 0.0]
 }

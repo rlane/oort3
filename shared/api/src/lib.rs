@@ -61,6 +61,11 @@ pub enum SystemState {
 
     ActivateAbility,
 
+    RadioData0,
+    RadioData1,
+    RadioData2,
+    RadioData3,
+
     Size,
     MaxSize = 128,
 }
@@ -115,6 +120,9 @@ pub struct Line {
     pub y1: f64,
     pub color: u32,
 }
+
+/// Message sent and received on the radio.
+pub type Message = [f64; 4];
 
 // Public for fuzzer.
 #[doc(hidden)]
@@ -175,7 +183,7 @@ mod rng {
 mod api {
     use super::sys::{read_system_state, write_system_state};
     use super::{Ability, Class, SystemState};
-    use crate::vec::*;
+    use crate::{vec::*, Message};
 
     /// The time between each simulation tick.
     pub const TICK_LENGTH: f64 = 1.0 / 60.0;
@@ -369,15 +377,26 @@ mod api {
     /// Sends a radio message.
     ///
     /// The message will be received on the next tick.
-    pub fn send(data: f64) {
-        write_system_state(SystemState::RadioSend, data);
+    pub fn send(msg: Message) {
+        write_system_state(SystemState::RadioSend, 1.0);
+        write_system_state(SystemState::RadioData0, msg[0]);
+        write_system_state(SystemState::RadioData1, msg[1]);
+        write_system_state(SystemState::RadioData2, msg[2]);
+        write_system_state(SystemState::RadioData3, msg[3]);
     }
 
     /// Returns the received radio message.
-    ///
-    /// A value of `0.0` means no message was received.
-    pub fn receive() -> f64 {
-        read_system_state(SystemState::RadioReceive)
+    pub fn receive() -> Option<Message> {
+        if read_system_state(SystemState::RadioReceive) != 0.0 {
+            Some([
+                read_system_state(SystemState::RadioData0),
+                read_system_state(SystemState::RadioData1),
+                read_system_state(SystemState::RadioData2),
+                read_system_state(SystemState::RadioData3),
+            ])
+        } else {
+            None
+        }
     }
 
     /// Returns the maximum linear acceleration (in m/s²).
@@ -604,7 +623,7 @@ pub mod prelude {
     #[doc(inline)]
     pub use super::vec::*;
     #[doc(inline)]
-    pub use super::{Ability, Class};
+    pub use super::{Ability, Class, Message};
     #[doc(inline)]
     pub use crate::debug;
 }

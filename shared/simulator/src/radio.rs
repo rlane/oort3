@@ -1,6 +1,7 @@
 use crate::ship::ShipHandle;
 use crate::simulation::Simulation;
 use nalgebra::Point2;
+use oort_api::Message;
 use std::collections::BTreeMap;
 use std::f64::consts::TAU;
 
@@ -12,8 +13,8 @@ pub struct Radio {
     pub(crate) rx_cross_section: f64,
     pub(crate) min_rssi: f64,
     pub(crate) channel: usize,
-    pub(crate) sent: Option<f64>,
-    pub(crate) received: Option<f64>,
+    pub(crate) sent: Option<Message>,
+    pub(crate) received: Option<Message>,
 }
 
 impl Radio {
@@ -25,11 +26,11 @@ impl Radio {
         self.channel = channel.clamp(0, NUM_CHANNELS - 1);
     }
 
-    pub fn set_sent(&mut self, sent: Option<f64>) {
+    pub fn set_sent(&mut self, sent: Option<Message>) {
         self.sent = sent;
     }
 
-    pub fn get_received(&self) -> Option<f64> {
+    pub fn get_received(&self) -> Option<Message> {
         self.received
     }
 }
@@ -37,7 +38,7 @@ impl Radio {
 struct RadioSender {
     position: Point2<f64>,
     power: f64,
-    data: f64,
+    msg: Message,
 }
 
 struct RadioReceiver {
@@ -68,11 +69,11 @@ pub fn tick(sim: &mut Simulation) {
                     min_rssi: radio.min_rssi,
                 });
 
-            if let Some(data) = radio.sent {
+            if let Some(msg) = radio.sent {
                 senders.entry(radio.channel).or_default().push(RadioSender {
                     position: ship.position().vector.into(),
                     power: radio.power,
-                    data,
+                    msg,
                 });
             }
         }
@@ -80,13 +81,13 @@ pub fn tick(sim: &mut Simulation) {
 
     for channel in 0..NUM_CHANNELS {
         for rx in receivers.get(&channel).unwrap_or(&Vec::new()) {
-            let mut best_data = None;
+            let mut best_msg = None;
             let mut best_rssi = rx.min_rssi;
             for tx in senders.get(&channel).unwrap_or(&Vec::new()) {
                 let rssi = compute_rssi(tx, rx);
                 if rssi > best_rssi {
                     best_rssi = rssi;
-                    best_data = Some(tx.data);
+                    best_msg = Some(tx.msg);
                 }
             }
             sim.ship_mut(rx.handle)
@@ -94,7 +95,7 @@ pub fn tick(sim: &mut Simulation) {
                 .radio
                 .as_mut()
                 .unwrap()
-                .received = best_data;
+                .received = best_msg;
         }
     }
 
@@ -143,12 +144,14 @@ mod test {
         assert!(sim.ship(ship0).radio().unwrap().received.is_none());
         assert!(sim.ship(ship1).radio().unwrap().received.is_none());
 
-        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(1.0);
+        let msg = [42.0, 43.0, 44.0, 45.0];
+
+        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(msg);
 
         sim.step();
 
-        assert_eq!(sim.ship(ship0).radio().unwrap().received, Some(1.0));
-        assert_eq!(sim.ship(ship1).radio().unwrap().received, Some(1.0));
+        assert_eq!(sim.ship(ship0).radio().unwrap().received, Some(msg));
+        assert_eq!(sim.ship(ship1).radio().unwrap().received, Some(msg));
 
         sim.step();
 
@@ -176,7 +179,9 @@ mod test {
             ship::fighter(0),
         );
 
-        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(1.0);
+        let msg = [42.0, 43.0, 44.0, 45.0];
+
+        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(msg);
         sim.ship_mut(ship1).radio_mut().unwrap().channel = 5;
 
         sim.step();
@@ -184,10 +189,10 @@ mod test {
         assert_eq!(sim.ship(ship0).radio().unwrap().received, None);
 
         sim.ship_mut(ship0).radio_mut().unwrap().channel = 5;
-        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(1.0);
+        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(msg);
 
         sim.step();
 
-        assert_eq!(sim.ship(ship0).radio().unwrap().received, Some(1.0));
+        assert_eq!(sim.ship(ship0).radio().unwrap().received, Some(msg));
     }
 }

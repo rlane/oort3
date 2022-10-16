@@ -265,10 +265,13 @@ impl ShipController for WasmShipController {
             if let Some(radio) = sim.ship(self.handle).data().radio.as_ref() {
                 self.state
                     .set(SystemState::RadioChannel, radio.get_channel() as f64);
-                self.state.set(
-                    SystemState::RadioReceive,
-                    radio.get_received().unwrap_or(0.0),
-                );
+                if let Some(msg) = radio.get_received() {
+                    self.state.set(SystemState::RadioReceive, 1.0);
+                    self.state.set(SystemState::RadioData0, msg[0]);
+                    self.state.set(SystemState::RadioData1, msg[1]);
+                    self.state.set(SystemState::RadioData2, msg[2]);
+                    self.state.set(SystemState::RadioData3, msg[3]);
+                }
                 self.state.set(SystemState::RadioSend, 0.0);
             }
 
@@ -366,9 +369,14 @@ impl ShipController for WasmShipController {
 
             if let Some(radio) = sim.ship_mut(self.handle).data_mut().radio.as_mut() {
                 radio.set_channel(self.state.get(SystemState::RadioChannel) as usize);
-                let data = self.state.get(SystemState::RadioSend);
-                if data != 0.0 {
-                    radio.set_sent(Some(data));
+                if self.state.get(SystemState::RadioSend) != 0.0 {
+                    let msg = [
+                        self.state.get(SystemState::RadioData0),
+                        self.state.get(SystemState::RadioData1),
+                        self.state.get(SystemState::RadioData2),
+                        self.state.get(SystemState::RadioData3),
+                    ];
+                    radio.set_sent(Some(msg));
                 }
             }
         }
