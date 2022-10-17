@@ -6,6 +6,8 @@ use std::rc::Rc;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 
+const BATCH_SIZE: usize = 10;
+
 pub enum Msg {
     ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
@@ -19,7 +21,6 @@ pub struct Benchmark {
     scenario_name: String,
     sim_agent: Box<dyn Bridge<SimAgent>>,
     time: f64,
-    ticks: usize,
     cumulative_timing: Timing,
     num_slow_ticks: usize,
     slowest_snapshot: Option<Snapshot>,
@@ -48,17 +49,14 @@ impl Component for Benchmark {
             codes,
             nonce,
         });
-        for _ in 0..5 {
-            sim_agent.send(oort_simulation_worker::Request::Snapshot {
-                ticks: 100,
-                nonce: 0,
-            });
-        }
+        sim_agent.send(oort_simulation_worker::Request::Snapshot {
+            ticks: BATCH_SIZE as u32,
+            nonce: 0,
+        });
         Self {
             scenario_name,
             sim_agent,
             time: 0.0,
-            ticks: 0,
             cumulative_timing: Timing::default(),
             num_slow_ticks: 0,
             slowest_snapshot: None,
@@ -73,9 +71,8 @@ impl Component for Benchmark {
             }) => {
                 if snapshot.status == oort_simulator::scenario::Status::Running {
                     self.time = snapshot.time;
-                    self.ticks += 1;
                     if snapshot.timing.total() > oort_simulator::simulation::PHYSICS_TICK_LENGTH {
-                        self.num_slow_ticks += 1;
+                        self.num_slow_ticks += BATCH_SIZE;
                     }
                     if self.slowest_snapshot.is_none()
                         || snapshot.timing.total()
@@ -86,10 +83,10 @@ impl Component for Benchmark {
                     self.cumulative_timing += snapshot.timing;
                     self.sim_agent
                         .send(oort_simulation_worker::Request::Snapshot {
-                            ticks: 100,
+                            ticks: BATCH_SIZE as u32,
                             nonce: 0,
                         });
-                    self.ticks % 10 == 0
+                    true
                 } else {
                     if self.hash.is_none() {
                         let mut snapshot = snapshot;
@@ -111,9 +108,9 @@ impl Component for Benchmark {
                 <div>
                     <p><b>{ "Slowest snapshot:" }</b></p>
                     <p>{ format!("Simulated time: {:.1}s", snapshot.time) }</p>
-                    <p>{ format!("CPU time: {:.2}ms", snapshot.timing.total() * 1e3) }</p>
-                    <p>{ format!("Physics: {:.2}ms", snapshot.timing.physics * 1e3) }</p>
-                    <p>{ format!("Script: {:.2}ms", snapshot.timing.script * 1e3) }</p>
+                    <p>{ format!("CPU time: {:.2}ms", snapshot.timing.total() * 1e3 * BATCH_SIZE as f64) }</p>
+                    <p>{ format!("Physics: {:.2}ms", snapshot.timing.physics * 1e3 * BATCH_SIZE as f64) }</p>
+                    <p>{ format!("Script: {:.2}ms", snapshot.timing.script * 1e3 * BATCH_SIZE as f64) }</p>
                     <p>{ format!("Ships: {}", snapshot.ships.len()) }</p>
                     <p>{ format!("Bullets: {}", snapshot.bullets.len()) }</p>
                 </div>
@@ -122,13 +119,13 @@ impl Component for Benchmark {
             html! {}
         };
         html! {
-            <div style="margin: 10px; background-color: #1e1e1e;">
+            <div id="overlay">
                 <h1>{ "Benchmark: " }{ &self.scenario_name }</h1>
                 <p><b>{ "Cumulative:" }</b></p>
                 <p>{ format!("Simulated time: {:.1}s", self.time) }</p>
-                <p>{ format!("CPU time: {:.1}s", self.cumulative_timing.total()) }</p>
-                <p>{ format!("Physics: {:.1}s", self.cumulative_timing.physics ) }</p>
-                <p>{ format!("Script: {:.1}s", self.cumulative_timing.script ) }</p>
+                <p>{ format!("CPU time: {:.1}s", self.cumulative_timing.total() * BATCH_SIZE as f64) }</p>
+                <p>{ format!("Physics: {:.1}s", self.cumulative_timing.physics * BATCH_SIZE as f64 ) }</p>
+                <p>{ format!("Script: {:.1}s", self.cumulative_timing.script * BATCH_SIZE as f64 ) }</p>
                 <p>{ format!("Slow ticks: {}", self.num_slow_ticks) }</p>
                 <p>{ format!("Hash: {:?}", self.hash) }</p>
                 { slowest_snapshot }
