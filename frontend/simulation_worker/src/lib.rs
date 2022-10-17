@@ -13,12 +13,8 @@ pub enum Request {
         codes: Vec<Code>,
         nonce: u32,
     },
-    RunScenario {
-        scenario_name: String,
-        seed: u32,
-        codes: Vec<Code>,
-    },
     Snapshot {
+        ticks: u32,
         nonce: u32,
     },
 }
@@ -63,27 +59,14 @@ impl yew_agent::Worker for SimAgent {
                 self.errored = !snapshot.errors.is_empty();
                 self.link.respond(who, Response::Snapshot { snapshot });
             }
-            Request::RunScenario {
-                scenario_name,
-                seed,
-                codes,
-            } => {
-                let mut sim = Simulation::new(&scenario_name, seed, &codes);
-                while sim.status() == Status::Running && sim.tick() < MAX_TICKS {
-                    sim.step();
-                }
-                let snapshot = sim.snapshot(0);
-                if snapshot.status == Status::Running {
-                    log::error!("running status after max ticks");
-                }
-                self.link.respond(who, Response::Snapshot { snapshot });
-            }
-            Request::Snapshot { nonce } => {
+            Request::Snapshot { ticks, nonce } => {
                 if self.errored {
                     return;
                 }
-                if self.sim().status() == Status::Running {
-                    self.sim().step();
+                for _ in 0..ticks {
+                    if self.sim().status() == Status::Running && self.sim().tick() < MAX_TICKS {
+                        self.sim().step();
+                    }
                 }
                 let snapshot = self.sim().snapshot(nonce);
                 self.errored = !snapshot.errors.is_empty();

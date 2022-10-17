@@ -9,7 +9,7 @@ use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
 use oort_proto::{LeaderboardSubmission, Telemetry};
 use oort_simulation_worker::SimAgent;
-use oort_simulator::scenario::{self, Status};
+use oort_simulator::scenario::{self, Status, MAX_TICKS};
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
 use oort_simulator::{simulation, vm};
@@ -66,6 +66,7 @@ pub struct Game {
     scenario_name: String,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
     background_snapshots: Vec<(u32, Snapshot)>,
+    background_nonce: u32,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
     saw_slow_compile: bool,
@@ -112,6 +113,7 @@ impl Component for Game {
             scenario_name: String::new(),
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
+            background_nonce: 0,
             overlay: None,
             overlay_ref: NodeRef::default(),
             saw_slow_compile: false,
@@ -229,35 +231,53 @@ impl Component for Game {
                 oort_simulation_worker::Response::Snapshot { snapshot },
                 seed,
             ) => {
-                self.background_snapshots.push((seed, snapshot));
-                if let Some(summary) = self.summarize_background_simulations() {
-                    let code = self.player_team().running_source_code.clone();
-                    services::send_telemetry(Telemetry::FinishScenario {
-                        scenario_name: self.scenario_name.clone(),
-                        code: code_to_string(&code),
-                        ticks: (summary.average_time.unwrap_or(0.0)
-                            / simulation::PHYSICS_TICK_LENGTH)
-                            as u32,
-                        code_size: crate::code_size::calculate(&code_to_string(&code)),
-                        success: summary.failed_seeds.is_empty(),
-                        time: summary.average_time,
-                    });
+                if snapshot.nonce == self.background_nonce {
+                    if snapshot.status == Status::Running
+                        && snapshot.time < (MAX_TICKS as f64 * PHYSICS_TICK_LENGTH)
+                    {
+                        if !self.background_agents.is_empty() {
+                            self.background_agents[seed as usize].send(
+                                oort_simulation_worker::Request::Snapshot {
+                                    ticks: 100,
+                                    nonce: self.background_nonce,
+                                },
+                            );
+                        }
+                        false
+                    } else {
+                        self.background_snapshots.push((seed, snapshot));
+                        if let Some(summary) = self.summarize_background_simulations() {
+                            let code = self.player_team().running_source_code.clone();
+                            services::send_telemetry(Telemetry::FinishScenario {
+                                scenario_name: self.scenario_name.clone(),
+                                code: code_to_string(&code),
+                                ticks: (summary.average_time.unwrap_or(0.0)
+                                    / simulation::PHYSICS_TICK_LENGTH)
+                                    as u32,
+                                code_size: crate::code_size::calculate(&code_to_string(&code)),
+                                success: summary.failed_seeds.is_empty(),
+                                time: summary.average_time,
+                            });
 
-                    // Submit to leaderboard
-                    if summary.failed_seeds.is_empty() {
-                        let msg = LeaderboardSubmission {
-                            userid: userid::get_userid(),
-                            username: userid::get_username(),
-                            timestamp: chrono::Utc::now(),
-                            scenario_name: self.scenario_name.clone(),
-                            code: code_to_string(&code),
-                            code_size: crate::code_size::calculate(&code_to_string(&code)),
-                            time: summary.average_time.unwrap(),
-                        };
-                        services::post_leaderboard(msg);
+                            // Submit to leaderboard
+                            if summary.failed_seeds.is_empty() {
+                                let msg = LeaderboardSubmission {
+                                    userid: userid::get_userid(),
+                                    username: userid::get_username(),
+                                    timestamp: chrono::Utc::now(),
+                                    scenario_name: self.scenario_name.clone(),
+                                    code: code_to_string(&code),
+                                    code_size: crate::code_size::calculate(&code_to_string(&code)),
+                                    time: summary.average_time.unwrap(),
+                                };
+                                services::post_leaderboard(msg);
+                            }
+                        }
+                        true
                     }
+                } else {
+                    false
                 }
-                true
             }
             Msg::ShowDocumentation => {
                 self.overlay = Some(Overlay::Documentation);
@@ -267,6 +287,7 @@ impl Component for Game {
                 self.overlay = None;
                 self.background_agents.clear();
                 self.background_snapshots.clear();
+                self.background_nonce = 0;
                 true
             }
             Msg::CompileFinished(results) => {
@@ -418,6 +439,7 @@ impl Game {
             if let Status::Victory { team: 0 } = status {
                 self.background_agents.clear();
                 self.background_snapshots.clear();
+                self.background_nonce = rand::thread_rng().gen();
                 let codes: Vec<_> = self
                     .teams
                     .iter()
@@ -429,10 +451,11 @@ impl Game {
                         move |e| link.send_message(Msg::ReceivedBackgroundSimAgentResponse(e, seed))
                     };
                     let mut sim_agent = SimAgent::bridge(Rc::new(cb));
-                    sim_agent.send(oort_simulation_worker::Request::RunScenario {
+                    sim_agent.send(oort_simulation_worker::Request::StartScenario {
                         scenario_name: self.scenario_name.to_owned(),
                         seed,
                         codes: codes.clone(),
+                        nonce: self.background_nonce,
                     });
                     self.background_agents.push(sim_agent);
                 }
@@ -780,6 +803,7 @@ impl Game {
         }
         self.background_agents.clear();
         self.background_snapshots.clear();
+        self.background_nonce = 0;
     }
 
     pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str) {

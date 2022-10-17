@@ -79,12 +79,13 @@ impl Component for SimulationWindow {
                     self.status_ref.clone(),
                     self.picked_ref.clone(),
                 )));
-                self.sim_agent.send(oort_simulation_worker::Request::StartScenario {
-                    scenario_name,
-                    seed,
-                    codes: codes.to_vec(),
-                    nonce: self.nonce,
-                });
+                self.sim_agent
+                    .send(oort_simulation_worker::Request::StartScenario {
+                        scenario_name,
+                        seed,
+                        codes: codes.to_vec(),
+                        nonce: self.nonce,
+                    });
                 false
             }
             Msg::Render => {
@@ -95,7 +96,10 @@ impl Component for SimulationWindow {
             }
             Msg::RequestSnapshot => {
                 self.sim_agent
-                    .send(oort_simulation_worker::Request::Snapshot { nonce: self.nonce });
+                    .send(oort_simulation_worker::Request::Snapshot {
+                        ticks: 1,
+                        nonce: self.nonce,
+                    });
                 false
             }
             Msg::KeyEvent(e) => {
@@ -116,7 +120,9 @@ impl Component for SimulationWindow {
                 }
                 false
             }
-            Msg::ReceivedSimAgentResponse(oort_simulation_worker::Response::Snapshot { snapshot }) => {
+            Msg::ReceivedSimAgentResponse(oort_simulation_worker::Response::Snapshot {
+                snapshot,
+            }) => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.on_snapshot(snapshot);
                 }
