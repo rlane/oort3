@@ -283,11 +283,18 @@ impl ShipController for WasmShipController {
             {
                 let ship = sim.ship(self.handle);
                 let data = ship.data();
-                let max_acceleration = data.max_acceleration;
-                self.state
-                    .set(SystemState::MaxAccelerationX, max_acceleration.x);
-                self.state
-                    .set(SystemState::MaxAccelerationY, max_acceleration.y);
+                self.state.set(
+                    SystemState::MaxForwardAcceleration,
+                    data.max_forward_acceleration,
+                );
+                self.state.set(
+                    SystemState::MaxBackwardAcceleration,
+                    data.max_backward_acceleration,
+                );
+                self.state.set(
+                    SystemState::MaxLateralAcceleration,
+                    data.max_lateral_acceleration,
+                );
                 self.state.set(
                     SystemState::MaxAngularAcceleration,
                     data.max_angular_acceleration,

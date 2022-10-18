@@ -92,7 +92,9 @@ pub struct ShipData {
     pub health: f64,
     pub acceleration: Vector2<f64>,
     pub angular_acceleration: f64,
-    pub max_acceleration: Vector2<f64>,
+    pub max_forward_acceleration: f64,
+    pub max_backward_acceleration: f64,
+    pub max_lateral_acceleration: f64,
     pub max_angular_acceleration: f64,
     pub destroyed: bool,
     pub ttl: Option<u64>,
@@ -114,7 +116,9 @@ impl Default for ShipData {
             health: 100.0,
             acceleration: vector![0.0, 0.0],
             angular_acceleration: 0.0,
-            max_acceleration: vector![0.0, 0.0],
+            max_forward_acceleration: 0.0,
+            max_backward_acceleration: 0.0,
+            max_lateral_acceleration: 0.0,
             max_angular_acceleration: 0.0,
             destroyed: false,
             ttl: None,
@@ -181,7 +185,9 @@ pub fn fighter(team: i32) -> ShipData {
         class: ShipClass::Fighter,
         team,
         health: 100.0,
-        max_acceleration: vector![60.0, 30.0],
+        max_forward_acceleration: 60.0,
+        max_backward_acceleration: 30.0,
+        max_lateral_acceleration: 30.0,
         max_angular_acceleration: TAU,
         guns: vec![Gun {
             offset: vector![20.0, 0.0],
@@ -211,7 +217,9 @@ pub fn frigate(team: i32) -> ShipData {
         class: ShipClass::Frigate,
         team,
         health: 10000.0,
-        max_acceleration: vector![10.0, 5.0],
+        max_forward_acceleration: 10.0,
+        max_backward_acceleration: 5.0,
+        max_lateral_acceleration: 5.0,
         max_angular_acceleration: TAU / 8.0,
         guns: vec![
             Gun {
@@ -266,7 +274,9 @@ pub fn cruiser(team: i32) -> ShipData {
         class: ShipClass::Cruiser,
         team,
         health: 20000.0,
-        max_acceleration: vector![5.0, 2.5],
+        max_forward_acceleration: 5.0,
+        max_backward_acceleration: 2.5,
+        max_lateral_acceleration: 2.5,
         max_angular_acceleration: TAU / 16.0,
         guns: vec![Gun {
             magazine_size: 30,
@@ -336,7 +346,9 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 20.0,
-        max_acceleration: vector![200.0, 50.0],
+        max_forward_acceleration: 200.0,
+        max_backward_acceleration: 0.0,
+        max_lateral_acceleration: 50.0,
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
             power: 10e3,
@@ -355,7 +367,9 @@ pub fn torpedo(team: i32) -> ShipData {
         class: ShipClass::Torpedo,
         team,
         health: 100.0,
-        max_acceleration: vector![70.0, 20.0],
+        max_forward_acceleration: 70.0,
+        max_backward_acceleration: 0.0,
+        max_lateral_acceleration: 20.0,
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
             power: 20e3,
@@ -507,8 +521,16 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn accelerate(&mut self, acceleration: Vector2<f64>) {
-        let max_acceleration = self.data().max_acceleration;
-        let clamped_acceleration = acceleration.inf(&max_acceleration).sup(&-max_acceleration);
+        let data = self.data();
+        let clamped_acceleration = acceleration
+            .inf(&vector![
+                data.max_forward_acceleration,
+                data.max_lateral_acceleration
+            ])
+            .sup(&vector![
+                -data.max_backward_acceleration,
+                -data.max_lateral_acceleration
+            ]);
         self.data_mut().acceleration = clamped_acceleration;
     }
 

@@ -42,8 +42,8 @@ pub enum SystemState {
     DebugTextPointer,
     DebugTextLength,
 
-    MaxAccelerationX,
-    MaxAccelerationY,
+    MaxForwardAcceleration,
+    MaxLateralAcceleration,
     MaxAngularAcceleration,
 
     RadioChannel,
@@ -57,8 +57,7 @@ pub enum SystemState {
     RadarMaxDistance,
 
     CurrentTick,
-    #[deprecated]
-    Energy,
+    MaxBackwardAcceleration,
 
     ActivateAbility,
 
@@ -228,12 +227,14 @@ mod api {
     /// Sets the linear acceleration for the next tick (in m/s²).
     pub fn accelerate(mut acceleration: Vec2) {
         acceleration = acceleration.rotate(-heading());
-        let max = max_acceleration();
-        if acceleration.x.abs() > max.x.abs() {
-            acceleration *= max.x.abs() / acceleration.x.abs();
+        if acceleration.x > max_forward_acceleration() {
+            acceleration *= max_forward_acceleration() / acceleration.x;
         }
-        if acceleration.y.abs() > max.y.abs() {
-            acceleration *= max.y.abs() / acceleration.y.abs();
+        if acceleration.x < -max_backward_acceleration() {
+            acceleration *= max_backward_acceleration() / -acceleration.x;
+        }
+        if acceleration.y.abs() > max_lateral_acceleration() {
+            acceleration *= max_lateral_acceleration() / acceleration.y.abs();
         }
         write_system_state(SystemState::AccelerateX, acceleration.x);
         write_system_state(SystemState::AccelerateY, acceleration.y);
@@ -401,11 +402,27 @@ mod api {
     }
 
     /// Returns the maximum linear acceleration (in m/s²).
+    #[deprecated]
     pub fn max_acceleration() -> Vec2 {
         vec2(
-            read_system_state(SystemState::MaxAccelerationX),
-            read_system_state(SystemState::MaxAccelerationY),
+            read_system_state(SystemState::MaxForwardAcceleration),
+            read_system_state(SystemState::MaxBackwardAcceleration),
         )
+    }
+
+    /// Returns the maximum forward acceleration (in m/s²).
+    pub fn max_forward_acceleration() -> f64 {
+        read_system_state(SystemState::MaxForwardAcceleration)
+    }
+
+    /// Returns the maximum backward acceleration (in m/s²).
+    pub fn max_backward_acceleration() -> f64 {
+        read_system_state(SystemState::MaxBackwardAcceleration)
+    }
+
+    /// Returns the maximum lateral acceleration (in m/s²).
+    pub fn max_lateral_acceleration() -> f64 {
+        read_system_state(SystemState::MaxLateralAcceleration)
     }
 
     /// Returns the maximum angular acceleration (in radians/s²).
