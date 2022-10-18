@@ -22,17 +22,30 @@ impl Ship {
 
                 set_radar_heading((contact.position - position()).angle());
                 set_radar_width((10.0 * TAU / dp.length()).clamp(TAU / 30.0, TAU));
+            } else if let Some(msg) = receive() {
+                let target_position = vec2(msg[0], msg[1]);
+                let target_velocity = vec2(msg[2], msg[3]);
+                seek(target_position, target_velocity);
+                set_radar_heading((target_position - position()).angle());
+                set_radar_width(TAU / 360.0);
             } else {
                 accelerate(vec2(100.0, 0.0).rotate(heading()));
                 set_radar_width(TAU / 4.0);
             }
         } else {
             set_radar_width(TAU / 32.0);
-            if angular_velocity() < 2.0 {
-                torque(1.0);
-            }
-            if let Some(_) = scan() {
+            if let Some(contact) = scan() {
                 fire(1);
+                send([
+                    contact.position.x,
+                    contact.position.y,
+                    contact.velocity.x,
+                    contact.velocity.y,
+                ]);
+                set_radar_heading(contact.position.angle());
+                turn_to(contact.position.angle(), 0.0);
+            } else {
+                set_radar_heading(radar_heading() + TAU / 32.0);
             }
         }
     }
@@ -64,3 +77,4 @@ fn turn_to(target_heading: f64, target_angular_velocity: f64) {
         torque(-acc);
     }
 }
+

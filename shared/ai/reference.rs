@@ -3,18 +3,15 @@ use oort_api::prelude::*;
 pub struct Ship {
     target_position: Vec2,
     target_velocity: Vec2,
-    has_locked: bool,
     last_contact_time: f64,
 }
 
 impl Ship {
     pub fn new() -> Ship {
-        let target_position = parse_orders(receive());
-        let target_velocity = Vec2::new(0.0, 0.0);
+        let (target_position, target_velocity) = parse_orders(receive());
         Ship {
             target_position,
             target_velocity,
-            has_locked: false,
             last_contact_time: current_time(),
         }
     }
@@ -58,7 +55,7 @@ impl Ship {
                 if predicted_dp.length() < 5000.0 {
                     fire(0);
                 }
-                send(make_orders(contact.position));
+                send(make_orders(contact.position, contact.velocity));
                 fire(1);
             } else if class() == Class::Frigate {
                 fire(0);
@@ -72,7 +69,7 @@ impl Ship {
                     (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle(),
                 );
                 fire(2);
-                send(make_orders(contact.position));
+                send(make_orders(contact.position, contact.velocity));
                 fire(3);
             } else if class() == Class::Cruiser {
                 if predicted_dp.length() < 5000.0 {
@@ -80,11 +77,11 @@ impl Ship {
                     fire(0);
                 }
                 for i in [1, 2] {
-                    send(make_orders(contact.position));
+                    send(make_orders(contact.position, contact.velocity));
                     fire(i);
                 }
                 if contact.class == Class::Frigate || contact.class == Class::Cruiser {
-                    send(make_orders(contact.position));
+                    send(make_orders(contact.position, contact.velocity));
                     fire(3);
                 }
                 //dbg.draw_diamond(contact.position, 30.0, 0xffff00);
@@ -115,39 +112,33 @@ impl Ship {
     }
 
     fn missile_tick(&mut self) {
-        let acc = max_acceleration().x;
+        let acc = max_forward_acceleration();
 
-        if !self.has_locked {
-            set_radar_heading((self.target_position - position()).angle());
-            set_radar_width(TAU / 32.0);
-            //dbg.draw_diamond(target_position, 20.0, 0xff0000);
-        }
-
-        let mut contact = scan();
-        if contact.is_some()
-            && class() == Class::Torpedo
-            && contact.as_ref().unwrap().class != Class::Frigate
-            && contact.as_ref().unwrap().class != Class::Cruiser
-        {
-            contact = None;
-        }
-        if contact.is_none() {
-            if self.has_locked {
-                set_radar_heading(rand(0.0, TAU));
-                set_radar_width(TAU / 6.0);
+        if let Some(contact) = scan() {
+            self.target_position = contact.position;
+            self.target_velocity = contact.velocity;
+            set_radar_width((radar_width() * 0.9).max(TAU / 360.0));
+            debug_diamond(self.target_position, 20.0, 0x00ff00);
+        } else if let Some(_) = receive() {
+            let (new_target_position, new_target_velocity) = parse_orders(receive());
+            if new_target_position.distance(self.target_position) < 100.0 {
+                self.target_position = new_target_position;
+                self.target_velocity = new_target_velocity;
+                set_radar_width(TAU / 360.0);
+                debug_diamond(self.target_position, 20.0, 0xf5da42);
             } else {
-                let dp = self.target_position - position();
-                self.turn_to(dp.angle(), 0.0);
-                accelerate(dp.normalize() * acc);
+                set_radar_width((radar_width() * 2.0).min(TAU / 16.0));
+                debug_diamond(self.target_position, 20.0, 0xff0000);
             }
-            return;
+        } else {
+            set_radar_width((radar_width() * 2.0).min(TAU / 16.0));
+            debug_diamond(self.target_position, 20.0, 0xff0000);
         }
-        self.has_locked = true;
-        let contact = contact.unwrap();
-        set_radar_heading((contact.position - position()).angle());
 
-        let dp = contact.position - position();
-        let dv = contact.velocity - velocity();
+        set_radar_heading((self.target_position - position()).angle());
+
+        let dp = self.target_position - position();
+        let dv = self.target_velocity - velocity();
 
         let dist = dp.length();
         let next_dist = (dp + dv / 60.0).length();
@@ -156,22 +147,18 @@ impl Ship {
             return;
         }
 
+        if dist < 300.0 {
+            set_radar_width(TAU / 6.0);
+        }
+
         let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
         let a = (dp - badv * 10.0).normalize() * acc;
         accelerate(a);
         self.turn_to(a.angle(), 0.0);
-
-        /* TODO
-        dbg.draw_diamond(contact.position, 20.0, 0xffff00);
-        dbg.draw_diamond(position() + dp, 5.0, 0xffffff);
-        dbg.draw_line(position(), position() + dp, 0x222222);
-        dbg.draw_line(position(), position() - dv, 0xffffff);
-        dbg.draw_line(position(), position() + badv, 0x222299);
-        */
     }
 
     fn torpedo_tick(&mut self) {
-        let mut acc = max_acceleration().x;
+        let mut acc = max_forward_acceleration();
         self.target_velocity = velocity();
 
         let target_heading = (self.target_position - position()).angle();
@@ -251,14 +238,14 @@ impl Ship {
     }
 }
 
-fn parse_orders(msg: Option<Message>) -> Vec2 {
+fn parse_orders(msg: Option<Message>) -> (Vec2, Vec2) {
     if let Some(msg) = msg {
-        vec2(msg[0], msg[1])
+        (vec2(msg[0], msg[1]), vec2(msg[2], msg[3]))
     } else {
-        vec2(0.0, 0.0)
+        (vec2(0.0, 0.0), vec2(0.0, 0.0))
     }
 }
 
-fn make_orders(o: Vec2) -> Message {
-    [o.x, o.y, 0.0, 0.0]
+fn make_orders(p: Vec2, v: Vec2) -> Message {
+    [p.x, p.y, v.x, v.y]
 }

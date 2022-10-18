@@ -27,7 +27,7 @@ impl Ship {
                 set_radar_width(TAU / 4.0);
             }
         } else {
-            set_radar_width(TAU / 32.0);
+            set_radar_width(TAU / 4.0);
             if let Some(contact) = scan() {
                 fire(0);
                 fire(3);
@@ -41,7 +41,7 @@ impl Ship {
                 turn_to(dp.angle(), 0.0);
                 set_radar_heading(dp.angle());
             } else {
-                set_radar_heading(radar_heading() + TAU / 32.0);
+                set_radar_heading(radar_heading() + TAU / 4.0);
             }
         }
     }
@@ -73,3 +73,4 @@ fn turn_to(target_heading: f64, target_angular_velocity: f64) {
         torque(-acc);
     }
 }
+

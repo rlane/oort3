@@ -380,6 +380,7 @@ impl Scenario for MissileTest {
         target_data.max_forward_acceleration = Self::MAX_ACCELERATION;
         target_data.max_backward_acceleration = Self::MAX_ACCELERATION;
         target_data.max_lateral_acceleration = Self::MAX_ACCELERATION;
+        target_data.radar_cross_section = 1e6;
         self.target = Some(ship::create(
             sim,
             vector![target_p.x, target_p.y],

@@ -351,7 +351,7 @@ pub fn missile(team: i32) -> ShipData {
         max_lateral_acceleration: 50.0,
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
-            power: 10e3,
+            power: 1e3,
             rx_cross_section: 3.0,
             ..Default::default()
         }),
@@ -372,7 +372,7 @@ pub fn torpedo(team: i32) -> ShipData {
         max_lateral_acceleration: 20.0,
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
-            power: 20e3,
+            power: 10e3,
             rx_cross_section: 3.0,
             ..Default::default()
         }),
