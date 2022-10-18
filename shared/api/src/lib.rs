@@ -57,6 +57,7 @@ pub enum SystemState {
     RadarMaxDistance,
 
     CurrentTick,
+    #[deprecated]
     Energy,
 
     ActivateAbility,
@@ -420,11 +421,6 @@ mod api {
     /// Returns the number of seconds elapsed since the simulation began.
     pub fn current_time() -> f64 {
         read_system_state(SystemState::CurrentTick) * TICK_LENGTH
-    }
-
-    /// Returns the energy available to the ship (in Joules).
-    pub fn energy() -> f64 {
-        read_system_state(SystemState::Energy)
     }
 
     /// Activates a special ability.

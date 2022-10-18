@@ -361,10 +361,8 @@ impl UI {
                 class,
                 team,
                 health,
-                energy,
                 ..
             } = ship;
-            let energy = energy / 1e6;
             let debug_text = self
                 .snapshot
                 .as_ref()
@@ -373,8 +371,8 @@ impl UI {
                 .unwrap_or_default();
             if let Some(elem) = self.picked_ref.cast::<Element>() {
                 elem.set_text_content(Some(&format!(
-                "{class:?}\nTeam: {team:?}\nHealth: {health:.0} Energy: {energy:.0} MJ\n{debug_text}"
-            )));
+                    "{class:?}\nTeam: {team:?}\nHealth: {health:.0}\n{debug_text}"
+                )));
             }
         } else if let Some(elem) = self.picked_ref.cast::<Element>() {
             elem.set_text_content(Some(""));

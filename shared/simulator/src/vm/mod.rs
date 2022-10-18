@@ -308,8 +308,6 @@ impl ShipController for WasmShipController {
             }
 
             self.state.set(SystemState::CurrentTick, sim.tick() as f64);
-            self.state
-                .set(SystemState::Energy, sim.ship(self.handle).data().energy);
 
             self.write_system_state();
         }

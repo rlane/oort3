@@ -15,8 +15,6 @@ use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::TAU;
 
-const EXTRA_DEBUG: bool = false;
-
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub struct ShipHandle(pub Index);
 
@@ -85,7 +83,6 @@ pub struct MissileLauncher {
     pub initial_speed: f64,
     pub offset: Vector2<f64>,
     pub angle: f64,
-    pub energy_required: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -93,9 +90,6 @@ pub struct ShipData {
     pub class: ShipClass,
     pub team: i32,
     pub health: f64,
-    pub energy: f64,
-    pub max_energy: f64,
-    pub energy_refill_rate: f64,
     pub acceleration: Vector2<f64>,
     pub angular_acceleration: f64,
     pub max_acceleration: Vector2<f64>,
@@ -118,9 +112,6 @@ impl Default for ShipData {
             class: ShipClass::Fighter,
             team: 0,
             health: 100.0,
-            energy: 0.0,
-            max_energy: 1e9,
-            energy_refill_rate: 200e6,
             acceleration: vector![0.0, 0.0],
             angular_acceleration: 0.0,
             max_acceleration: vector![0.0, 0.0],
@@ -190,8 +181,6 @@ pub fn fighter(team: i32) -> ShipData {
         class: ShipClass::Fighter,
         team,
         health: 100.0,
-        max_energy: 1e9,
-        energy_refill_rate: 100e6,
         max_acceleration: vector![60.0, 30.0],
         max_angular_acceleration: TAU,
         guns: vec![Gun {
@@ -205,7 +194,6 @@ pub fn fighter(team: i32) -> ShipData {
             initial_speed: 100.0,
             offset: vector![20.0, 0.0],
             angle: 0.0,
-            energy_required: 200e6,
         }],
         radar: Some(Radar {
             power: 20e3,
@@ -223,8 +211,6 @@ pub fn frigate(team: i32) -> ShipData {
         class: ShipClass::Frigate,
         team,
         health: 10000.0,
-        max_energy: 10e9,
-        energy_refill_rate: 500e6,
         max_acceleration: vector![10.0, 5.0],
         max_angular_acceleration: TAU / 8.0,
         guns: vec![
@@ -255,7 +241,6 @@ pub fn frigate(team: i32) -> ShipData {
             initial_speed: 100.0,
             offset: vector![32.0, 0.0],
             angle: 0.0,
-            energy_required: 200e6,
         }],
         radar: Some(Radar {
             power: 100e3,
@@ -276,14 +261,11 @@ pub fn cruiser(team: i32) -> ShipData {
         initial_speed: 100.0,
         offset: vector![0.0, 0.0],
         angle: 0.0,
-        energy_required: 200e6,
     };
     ShipData {
         class: ShipClass::Cruiser,
         team,
         health: 20000.0,
-        max_energy: 20e9,
-        energy_refill_rate: 1e9,
         max_acceleration: vector![5.0, 2.5],
         max_angular_acceleration: TAU / 16.0,
         guns: vec![Gun {
@@ -318,7 +300,6 @@ pub fn cruiser(team: i32) -> ShipData {
                 initial_speed: 100.0,
                 offset: vector![100.0, 0.0],
                 angle: 0.0,
-                energy_required: 1e9,
             },
         ],
         radar: Some(Radar {
@@ -355,8 +336,6 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 20.0,
-        max_energy: 50e6,
-        energy_refill_rate: 0.0,
         max_acceleration: vector![200.0, 50.0],
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
@@ -376,8 +355,6 @@ pub fn torpedo(team: i32) -> ShipData {
         class: ShipClass::Torpedo,
         team,
         health: 100.0,
-        max_energy: 200e6,
-        energy_refill_rate: 0.0,
         max_acceleration: vector![70.0, 20.0],
         max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
@@ -399,8 +376,6 @@ pub fn create(
     heading: f64,
     mut data: ShipData,
 ) -> ShipHandle {
-    data.energy = data.max_energy;
-
     let rigid_body = RigidBodyBuilder::dynamic()
         .translation(position)
         .linvel(velocity)
@@ -618,12 +593,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             if let Some(missile_launcher) =
                 ship_data.missile_launchers.get_mut(index as usize).as_mut()
             {
-                if missile_launcher.reload_time_remaining > 0.0
-                    || ship_data.energy < missile_launcher.energy_required
-                {
+                if missile_launcher.reload_time_remaining > 0.0 {
                     return;
                 }
-                ship_data.energy -= missile_launcher.energy_required;
                 missile_launcher.reload_time_remaining += missile_launcher.reload_time;
                 missile_launcher.clone()
             } else {
@@ -722,14 +694,6 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn tick(&mut self) {
-        // Energy
-        {
-            let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
-            ship_data.energy = (ship_data.energy
-                + ship_data.energy_refill_rate * PHYSICS_TICK_LENGTH)
-                .clamp(0.0, ship_data.max_energy);
-        }
-
         // Guns.
         {
             let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
@@ -749,33 +713,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         {
             let acceleration = self.data().acceleration;
             let mass = self.body().mass();
-            if EXTRA_DEBUG {
-                self.simulation
-                    .emit_debug_text(self.handle, format!("Mass: {:.0} kg", mass));
-            }
-            let exhaust_velocity = 5e3;
-            let exhaust_mass =
-                PHYSICS_TICK_LENGTH * mass * acceleration.magnitude() / exhaust_velocity;
-            let energy_required = 0.5 * exhaust_mass * exhaust_velocity.powi(2);
             let rotation_matrix = self.body().position().rotation.to_rotation_matrix();
             self.body().reset_forces(false);
-            if self.data().energy > energy_required {
+            self.body()
+                .add_force(rotation_matrix * acceleration * mass, true);
+            if self.data().active_ability == Ability::Boost {
                 self.body()
-                    .add_force(rotation_matrix * acceleration * mass, true);
-                self.data_mut().energy -= energy_required;
-                if EXTRA_DEBUG {
-                    self.simulation.emit_debug_text(
-                        self.handle,
-                        format!(
-                            "Engine power: {:.0} MW",
-                            energy_required / 1e6 / PHYSICS_TICK_LENGTH
-                        ),
-                    );
-                }
-                if self.data().active_ability == Ability::Boost {
-                    self.body()
-                        .add_force(rotation_matrix * vector![100.0, 0.0] * mass, true);
-                }
+                    .add_force(rotation_matrix * vector![100.0, 0.0] * mass, true);
             }
             self.data_mut().acceleration = vector![0.0, 0.0];
         }

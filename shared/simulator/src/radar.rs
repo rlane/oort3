@@ -1,5 +1,5 @@
 use crate::ship::{ShipClass, ShipHandle};
-use crate::simulation::{Line, Simulation, PHYSICS_TICK_LENGTH};
+use crate::simulation::{Line, Simulation};
 use crate::{rng, simulation};
 use nalgebra::Rotation2;
 use nalgebra::{vector, Point2, Vector2};
@@ -129,10 +129,6 @@ pub fn tick(sim: &mut Simulation) {
         let ship_data = ship.data();
 
         if let Some(radar) = ship_data.radar.as_ref() {
-            let energy_used = radar.power * PHYSICS_TICK_LENGTH;
-            if energy_used > ship_data.energy {
-                continue;
-            }
             let h = radar.heading + ship.heading();
             let w = radar.width;
             let max_distance =
@@ -181,7 +177,6 @@ pub fn tick(sim: &mut Simulation) {
                 let mut ship = sim.ship_mut(emitter.handle);
                 let ship_data = ship.data_mut();
                 let radar = ship_data.radar.as_mut().unwrap();
-                ship_data.energy -= energy_used;
                 radar.result = result;
             }
 
