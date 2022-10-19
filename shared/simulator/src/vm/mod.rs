@@ -61,7 +61,7 @@ pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error
     }
 }
 
-const MAX_VMS: usize = 64;
+const MAX_VMS: usize = 1;
 
 pub struct WasmTeamController {
     code: Vec<u8>,

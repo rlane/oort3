@@ -1,10 +1,12 @@
 use oort_simulator::scenario;
 use oort_simulator::simulation;
 use rayon::prelude::*;
+use std::time::Instant;
 use test_log::test;
 
 fn check_solution(scenario_name: &str) {
     (0..10u32).into_par_iter().for_each(|seed| {
+        let start_time = Instant::now();
         let check_once = |seed: u32| -> u64 {
             let scenario = scenario::load(scenario_name);
             let mut codes = scenario.initial_code();
@@ -34,6 +36,12 @@ fn check_solution(scenario_name: &str) {
             hashes[0], hashes[1],
             "tutorial {} was not deterministic",
             scenario_name
+        );
+        log::info!(
+            "{} seed {} took {:?}",
+            scenario_name,
+            seed,
+            Instant::now() - start_time
         );
     });
 }
