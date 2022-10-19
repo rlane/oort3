@@ -670,8 +670,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let team = self.data().team;
         let p =
             self.body().position().translation.vector - self.body().linvel() * PHYSICS_TICK_LENGTH;
-        let color = vector![0.5, 0.5, 0.5, 0.30];
-        let ttl = 0.5;
+        let color = vector![0.5, 0.5, 0.5, 0.70];
+        let ttl = (PHYSICS_TICK_LENGTH * 5.0) as f32;
         let h = if self.data().active_ability == Ability::ShapedCharge {
             0.1
         } else if self.data().class == ShipClass::Torpedo {
