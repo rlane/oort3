@@ -663,7 +663,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         let (mass, num) = match self.data().class {
             ShipClass::Missile => (0.25, 20),
-            ShipClass::Torpedo => (1.5, 50),
+            ShipClass::Torpedo => (0.25, 50),
             _ => (0.2, 20),
         };
 
