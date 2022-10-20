@@ -100,6 +100,10 @@ fn target_asteroid(variant: i32) -> ShipData {
 pub trait Scenario {
     fn name(&self) -> String;
 
+    fn human_name(&self) -> String {
+        self.name()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32);
 
     fn tick(&mut self, _: &mut Simulation) {}
@@ -222,12 +226,9 @@ pub fn list() -> Vec<String> {
         "tutorial10",
         "tutorial11",
         "gunnery",
-        "primitive_duel",
         "fighter_duel",
         "frigate_duel",
         "cruiser_duel",
-        "frigate_vs_cruiser",
-        "cruiser_vs_frigate",
         "furball",
         "fleet",
         "belt",
@@ -282,6 +283,10 @@ struct GunneryScenario {}
 impl Scenario for GunneryScenario {
     fn name(&self) -> String {
         "gunnery".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Gunnery".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -552,6 +557,10 @@ impl Scenario for WelcomeScenario {
         "welcome".into()
     }
 
+    fn human_name(&self) -> String {
+        "Welcome".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         self.rng = Some(new_rng(seed));
         let rng = self.rng.as_mut().unwrap();
@@ -599,6 +608,10 @@ struct Tutorial01 {}
 impl Scenario for Tutorial01 {
     fn name(&self) -> String {
         "tutorial01".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Tutorial 1: Guns".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
@@ -651,6 +664,10 @@ impl Tutorial02 {
 impl Scenario for Tutorial02 {
     fn name(&self) -> String {
         "tutorial02".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Tutorial 2: Acceleration".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
@@ -741,6 +758,10 @@ impl Scenario for Tutorial03 {
         "tutorial03".into()
     }
 
+    fn human_name(&self) -> String {
+        "Tutorial 3: Acceleration #2".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
         self.target = Some(
@@ -828,6 +849,10 @@ impl Scenario for Tutorial04 {
         "tutorial04".into()
     }
 
+    fn human_name(&self) -> String {
+        "Tutorial 4: Rotation".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         let mut rng = new_rng(seed);
@@ -888,6 +913,10 @@ impl Tutorial05 {
 impl Scenario for Tutorial05 {
     fn name(&self) -> String {
         "tutorial05".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Tutorial 5: Deflection".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -965,6 +994,10 @@ impl Scenario for Tutorial06 {
         "tutorial06".into()
     }
 
+    fn human_name(&self) -> String {
+        "Tutorial 6: Radar".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         ship::create(
@@ -1026,6 +1059,10 @@ impl Scenario for Tutorial07 {
         "tutorial07".into()
     }
 
+    fn human_name(&self) -> String {
+        "Tutorial 7: Squadron".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
@@ -1079,6 +1116,10 @@ impl Tutorial08 {
 impl Scenario for Tutorial08 {
     fn name(&self) -> String {
         "tutorial08".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Tutorial 8: Search".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -1146,6 +1187,10 @@ impl Scenario for Tutorial09 {
         "tutorial09".into()
     }
 
+    fn human_name(&self) -> String {
+        "Tutorial 9: Missiles".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
@@ -1196,6 +1241,10 @@ impl Scenario for Tutorial10 {
         "tutorial10".into()
     }
 
+    fn human_name(&self) -> String {
+        "Tutorial 10: Frigate".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
@@ -1242,6 +1291,10 @@ impl Tutorial11 {
 impl Scenario for Tutorial11 {
     fn name(&self) -> String {
         "tutorial11".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Tutorial 11: Cruiser".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -1292,6 +1345,10 @@ impl PrimitiveDuel {
 impl Scenario for PrimitiveDuel {
     fn name(&self) -> String {
         "primitive_duel".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Primitive Duel".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -1364,6 +1421,10 @@ impl Scenario for FighterDuel {
         "fighter_duel".into()
     }
 
+    fn human_name(&self) -> String {
+        "Fighter Duel".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
@@ -1418,6 +1479,10 @@ impl Scenario for FrigateDuel {
         "frigate_duel".into()
     }
 
+    fn human_name(&self) -> String {
+        "Frigate Duel".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
 
@@ -1470,6 +1535,10 @@ impl CruiserDuel {
 impl Scenario for CruiserDuel {
     fn name(&self) -> String {
         "cruiser_duel".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Cruiser Duel".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -1614,6 +1683,10 @@ impl Scenario for Furball {
         "furball".into()
     }
 
+    fn human_name(&self) -> String {
+        "Furball".into()
+    }
+
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         add_walls(sim);
         let mut rng = new_rng(seed);
@@ -1663,6 +1736,10 @@ impl Fleet {
 impl Scenario for Fleet {
     fn name(&self) -> String {
         "fleet".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Fleet".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -1743,6 +1820,10 @@ impl Belt {
 impl Scenario for Belt {
     fn name(&self) -> String {
         "belt".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Belt".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {

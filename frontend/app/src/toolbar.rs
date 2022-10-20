@@ -48,8 +48,9 @@ impl Component for Toolbar {
             .expect("a #toolbar element");
 
         let render_option = |name: String| {
+            let scenario = scenario::load(&name);
             let selected = name == context.props().scenario_name;
-            html! { <option name={name.clone()} selected={selected}>{name}</option> }
+            html! { <option value={name.clone()} selected={selected}>{scenario.human_name()}</option> }
         };
 
         let username = crate::userid::get_username();
