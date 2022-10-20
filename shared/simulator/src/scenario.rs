@@ -1068,10 +1068,10 @@ impl Scenario for Tutorial07 {
 
         let mut rng = new_rng(seed);
         for team in 0..2 {
-            for _ in 0..10 {
+            for _ in 0..4 {
                 let size = 500.0;
                 let range = -size..size;
-                let center = vector![(team as f64 - 0.5) * 1000.0, 0.0];
+                let center = vector![(team as f64 - 0.5) * 6000.0, 0.0];
                 let offset = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
                 let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
                 ship::create(

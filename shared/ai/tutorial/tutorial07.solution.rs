@@ -10,13 +10,17 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
+        set_radar_width(TAU / 60.0);
         if let Some(contact) = scan() {
-            accelerate(0.1 * (contact.position - position()));
-            turn_to((contact.position - position()).angle());
+            let dp = contact.position - position();
+            let dv = contact.velocity - velocity();
+            accelerate(0.1 * dp);
+            let predicted_dp = dp + dv * dp.length() / 1000.0;
+            turn_to(predicted_dp.angle());
             fire(0);
-            set_radar_heading((contact.position - position()).angle());
+            set_radar_heading(dp.angle());
         } else {
-            set_radar_heading(radar_heading() + TAU / 6.0);
+            set_radar_heading(radar_heading() + radar_width());
         }
     }
 }
