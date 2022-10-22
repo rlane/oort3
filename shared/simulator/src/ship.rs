@@ -261,6 +261,8 @@ pub fn frigate(team: i32) -> ShipData {
     }
 }
 
+pub const CRUISER_RADAR_CROSS_SECTION: f64 = 40.0;
+
 pub fn cruiser(team: i32) -> ShipData {
     let missile_launcher = MissileLauncher {
         class: ShipClass::Missile,
@@ -317,7 +319,7 @@ pub fn cruiser(team: i32) -> ShipData {
             rx_cross_section: 20.0,
             ..Default::default()
         }),
-        radar_cross_section: 40.0,
+        radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
         radio: Some(radio()),
         ..Default::default()
     }
@@ -706,6 +708,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let r = match (self.data().class, ability) {
             (ShipClass::Fighter, Ability::Boost) => Some((2.0, 10.0)),
             (ShipClass::Missile, Ability::ShapedCharge) => Some((1.0, 0.5)),
+            (ShipClass::Torpedo, Ability::Decoy) => Some((0.5, 10.0)),
             _ => None,
         };
         if let Some((time, reload)) = r {

@@ -1,7 +1,7 @@
 use nalgebra::vector;
 use oort_api::Ability;
 use oort_simulator::ship;
-use oort_simulator::ship::{fighter, missile};
+use oort_simulator::ship::{fighter, missile, torpedo, ShipClass};
 use oort_simulator::simulation::{self, Code, PHYSICS_TICK_LENGTH};
 use test_log::test;
 
@@ -45,4 +45,37 @@ fn test_shaped_charge() {
         assert!(v.angle(&vector![1.0, 0.0]) <= max_angle);
         assert!(v.angle(&vector![1.0, 0.0]) >= -max_angle);
     }
+}
+
+#[test]
+fn test_decoy() {
+    let mut sim = simulation::Simulation::new("test", 0, &[Code::None, Code::None]);
+    let ship0 = ship::create(
+        &mut sim,
+        vector![0.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        fighter(0),
+    );
+    let ship1 = ship::create(
+        &mut sim,
+        vector![100.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        torpedo(1),
+    );
+
+    sim.ship_mut(ship1).activate_ability(Ability::Decoy);
+    sim.step();
+
+    assert_eq!(
+        sim.ship(ship0)
+            .radar()
+            .as_ref()
+            .unwrap()
+            .scan()
+            .unwrap()
+            .class,
+        ShipClass::Cruiser
+    );
 }

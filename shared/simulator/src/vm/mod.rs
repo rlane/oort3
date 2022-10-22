@@ -476,6 +476,8 @@ fn translate_ability(v: f64) -> Option<Ability> {
         Some(Ability::Boost)
     } else if v == Ability::ShapedCharge as u32 {
         Some(Ability::ShapedCharge)
+    } else if v == Ability::Decoy as u32 {
+        Some(Ability::Decoy)
     } else {
         None
     }

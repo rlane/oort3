@@ -115,6 +115,7 @@ Some ship classes have a unique special ability. These abilities are activated f
 - Available abilities:
   - [`Ability::Boost`](prelude::Ability::Boost): Fighter only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s.
   - [`Ability::ShapedCharge`](prelude::Ability::ShapedCharge): Missile only. [`explode()`][prelude::explode] will create a jet of shrapnel instead of a circle.
+  - [`Ability::Decoy`](prelude::Ability::Decoy): Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s.
 
 ## Scalar Math
 

@@ -109,6 +109,8 @@ pub enum Ability {
     Boost,
     /// Missile only. `explode()` will create a jet of shrapnel instead of a circle.
     ShapedCharge,
+    /// Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s.
+    Decoy,
 }
 
 #[allow(missing_docs)]

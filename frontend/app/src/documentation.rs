@@ -90,6 +90,7 @@ pub fn documentation() -> Html {
                 <ul>
                   <li><code>{ "Ability::Boost" }</code>{ ": Fighter only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s." }</li>
                   <li><code>{ "Ability::ShapedCharge" }</code>{ ": Missile only. " }<code>{ "explode()" }</code>{ " will create a jet of shrapnel instead of a circle." }</li>
+                  <li><code>{ "Ability::Decoy" }</code>{ ": Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s." }</li>
                 </ul>
               </li>
             </ul>

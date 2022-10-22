@@ -1,8 +1,9 @@
-use crate::ship::{ShipClass, ShipHandle};
+use crate::ship::{self, ShipClass, ShipHandle};
 use crate::simulation::{Line, Simulation};
 use crate::{rng, simulation};
 use nalgebra::Rotation2;
 use nalgebra::{vector, Point2, Vector2};
+use oort_api::Ability;
 use rand::Rng;
 use rand_distr::StandardNormal;
 use rng::SeededRng;
@@ -114,12 +115,18 @@ pub fn tick(sim: &mut Simulation) {
         .map(|handle| {
             let ship = sim.ship(handle);
             let ship_data = ship.data();
+            let mut class = ship_data.class;
+            let mut radar_cross_section = ship_data.radar_cross_section;
+            if ship_data.active_ability == Ability::Decoy {
+                class = ShipClass::Cruiser;
+                radar_cross_section = ship::CRUISER_RADAR_CROSS_SECTION / 2.0;
+            }
             RadarReflector {
                 team: ship_data.team,
                 position: ship.position().vector.into(),
                 velocity: ship.velocity(),
-                radar_cross_section: ship_data.radar_cross_section,
-                class: ship_data.class,
+                radar_cross_section,
+                class,
             }
         })
         .collect();
