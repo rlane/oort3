@@ -117,7 +117,7 @@ pub fn tick(sim: &mut Simulation) {
             let ship_data = ship.data();
             let mut class = ship_data.class;
             let mut radar_cross_section = ship_data.radar_cross_section;
-            if ship_data.active_ability == Ability::Decoy {
+            if ship.is_ability_active(Ability::Decoy) {
                 class = ShipClass::Cruiser;
                 radar_cross_section = ship::CRUISER_RADAR_CROSS_SECTION / 2.0;
             }

@@ -84,6 +84,14 @@ pub struct MissileLauncher {
     pub offset: Vector2<f64>,
     pub angle: f64,
 }
+#[derive(Debug, Clone)]
+pub struct ShipAbility {
+    pub ability: Ability,
+    pub active_time: f64,
+    pub reload_time: f64,
+    pub active_time_remaining: f64,
+    pub reload_time_remaining: f64,
+}
 
 #[derive(Debug, Clone)]
 pub struct ShipData {
@@ -103,9 +111,7 @@ pub struct ShipData {
     pub radar: Option<Radar>,
     pub radar_cross_section: f64,
     pub radio: Option<Radio>,
-    pub active_ability: oort_api::Ability,
-    pub ability_time_remaining: f64,
-    pub ability_reload_time_remaining: f64,
+    pub abilities: Vec<ShipAbility>,
 }
 
 impl Default for ShipData {
@@ -127,9 +133,7 @@ impl Default for ShipData {
             radar: None,
             radar_cross_section: 10.0,
             radio: None,
-            active_ability: Ability::None,
-            ability_time_remaining: 0.0,
-            ability_reload_time_remaining: 0.0,
+            abilities: vec![],
         }
     }
 }
@@ -152,6 +156,18 @@ impl Default for Gun {
             burst_size: 1,
             ttl: 5.0,
             bullet_mass: 1.0,
+        }
+    }
+}
+
+impl Default for ShipAbility {
+    fn default() -> Self {
+        Self {
+            ability: Ability::None,
+            active_time: 0.0,
+            reload_time: 0.0,
+            active_time_remaining: 0.0,
+            reload_time_remaining: 0.0,
         }
     }
 }
@@ -208,6 +224,12 @@ pub fn fighter(team: i32) -> ShipData {
         }),
         radar_cross_section: 10.0,
         radio: Some(radio()),
+        abilities: vec![ShipAbility {
+            ability: Ability::Boost,
+            active_time: 2.0,
+            reload_time: 10.0,
+            ..Default::default()
+        }],
         ..Default::default()
     }
 }
@@ -360,6 +382,12 @@ pub fn missile(team: i32) -> ShipData {
         radar_cross_section: 3.0,
         radio: Some(radio()),
         ttl: Some(20 * 60),
+        abilities: vec![ShipAbility {
+            ability: Ability::ShapedCharge,
+            active_time: 1e6,
+            reload_time: 0.0,
+            ..Default::default()
+        }],
         ..Default::default()
     }
 }
@@ -381,6 +409,12 @@ pub fn torpedo(team: i32) -> ShipData {
         radar_cross_section: 8.0,
         radio: Some(radio()),
         ttl: Some(30 * 60),
+        abilities: vec![ShipAbility {
+            ability: Ability::Decoy,
+            active_time: 0.5,
+            reload_time: 10.0,
+            ..Default::default()
+        }],
         ..Default::default()
     }
 }
@@ -483,6 +517,15 @@ impl<'a> ShipAccessor<'a> {
 
     pub fn radio(&self) -> Option<&Radio> {
         self.data().radio.as_ref()
+    }
+
+    pub fn is_ability_active(&self, ability: oort_api::Ability) -> bool {
+        self.data()
+            .abilities
+            .iter()
+            .find(|x| x.ability == ability)
+            .map(|x| x.active_time_remaining > 0.0)
+            .unwrap_or(false)
     }
 }
 
@@ -674,7 +717,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             self.body().position().translation.vector - self.body().linvel() * PHYSICS_TICK_LENGTH;
         let color = vector![0.5, 0.5, 0.5, 0.70];
         let ttl = (PHYSICS_TICK_LENGTH * 5.0) as f32;
-        let h = if self.data().active_ability == Ability::ShapedCharge {
+        let h = if self.readonly().is_ability_active(Ability::ShapedCharge) {
             0.1
         } else if self.data().class == ShipClass::Torpedo {
             0.5
@@ -702,19 +745,17 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn activate_ability(&mut self, ability: oort_api::Ability) {
-        if self.data().ability_reload_time_remaining > 0.0 {
-            return;
-        }
-        let r = match (self.data().class, ability) {
-            (ShipClass::Fighter, Ability::Boost) => Some((2.0, 10.0)),
-            (ShipClass::Missile, Ability::ShapedCharge) => Some((1.0, 0.5)),
-            (ShipClass::Torpedo, Ability::Decoy) => Some((0.5, 10.0)),
-            _ => None,
-        };
-        if let Some((time, reload)) = r {
-            self.data_mut().active_ability = ability;
-            self.data_mut().ability_time_remaining = time - PHYSICS_TICK_LENGTH;
-            self.data_mut().ability_reload_time_remaining = reload;
+        if let Some(ship_ability) = self
+            .data_mut()
+            .abilities
+            .iter_mut()
+            .find(|x| x.ability == ability)
+        {
+            if ship_ability.reload_time_remaining > 0.0 {
+                return;
+            }
+            ship_ability.active_time_remaining = ship_ability.active_time - PHYSICS_TICK_LENGTH;
+            ship_ability.reload_time_remaining = ship_ability.reload_time;
         }
     }
 
@@ -742,7 +783,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             self.body().reset_forces(false);
             self.body()
                 .add_force(rotation_matrix * acceleration * mass, true);
-            if self.data().active_ability == Ability::Boost {
+            if self.readonly().is_ability_active(Ability::Boost) {
                 self.body()
                     .add_force(rotation_matrix * vector![100.0, 0.0] * mass, true);
             }
@@ -770,15 +811,11 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         // Special abilities.
         {
-            let data = self.data_mut();
-            data.ability_reload_time_remaining =
-                (data.ability_reload_time_remaining - PHYSICS_TICK_LENGTH).max(0.0);
-            if data.active_ability != Ability::None {
-                data.ability_time_remaining =
-                    (data.ability_time_remaining - PHYSICS_TICK_LENGTH).max(0.0);
-                if data.ability_time_remaining <= 0.0 {
-                    data.active_ability = Ability::None;
-                }
+            for ship_ability in self.data_mut().abilities.iter_mut() {
+                ship_ability.active_time_remaining =
+                    (ship_ability.active_time_remaining - PHYSICS_TICK_LENGTH).max(0.0);
+                ship_ability.reload_time_remaining =
+                    (ship_ability.reload_time_remaining - PHYSICS_TICK_LENGTH).max(0.0);
             }
         }
 
