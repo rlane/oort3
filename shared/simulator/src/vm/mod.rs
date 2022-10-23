@@ -307,6 +307,8 @@ impl ShipController for WasmShipController {
                     self.state.set(SystemState::RadioData1, msg[1]);
                     self.state.set(SystemState::RadioData2, msg[2]);
                     self.state.set(SystemState::RadioData3, msg[3]);
+                } else {
+                    self.state.set(SystemState::RadioReceive, 0.0);
                 }
                 self.state.set(SystemState::RadioSend, 0.0);
             }
