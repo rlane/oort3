@@ -1,5 +1,5 @@
 // tutorial09
-// Destroy the enemy ships with your missiles.
+// Destroy the enemy ship with your missiles.
 use oort_api::prelude::*;
 
 pub struct Ship {}
@@ -77,4 +77,3 @@ fn turn_to(target_heading: f64, target_angular_velocity: f64) {
         torque(-acc);
     }
 }
-

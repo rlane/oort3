@@ -1,5 +1,5 @@
 // tutorial09
-// Destroy the enemy ships with your missiles.
+// Destroy the enemy ship with your missiles.
 use oort_api::prelude::*;
 
 pub struct Ship {}

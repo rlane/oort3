@@ -1199,13 +1199,11 @@ impl Scenario for Tutorial09 {
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, shipdata);
 
         let mut rng = new_rng(seed);
-        for _ in 0..3 {
-            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(2000.0..2500.0), 0.0]);
-            let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-            ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
-        }
+        let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+            .transform_vector(&vector![rng.gen_range(2000.0..2500.0), 0.0]);
+        let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+            .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
+        ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
     }
 
     fn status(&self, sim: &Simulation) -> Status {
