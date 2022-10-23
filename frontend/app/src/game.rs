@@ -12,7 +12,7 @@ use oort_simulation_worker::SimAgent;
 use oort_simulator::scenario::{self, Status, MAX_TICKS};
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
-use oort_simulator::{simulation, vm};
+use oort_simulator::simulation;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
@@ -920,7 +920,7 @@ impl Team {
         // TODO trigger analyzer run
     }
 
-    pub fn display_compiler_errors(&mut self, errors: &[vm::Error]) {
+    pub fn display_compiler_errors(&mut self, errors: &[CompilerError]) {
         use monaco::sys::{
             editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,
         };
@@ -990,10 +990,16 @@ fn parse_query_params(context: &Context<Game>) -> QueryParams {
     }
 }
 
-fn make_editor_errors(error: &str) -> Vec<vm::Error> {
+#[derive(Debug, Clone)]
+pub struct CompilerError {
+    pub line: usize,
+    pub msg: String,
+}
+
+fn make_editor_errors(error: &str) -> Vec<CompilerError> {
     let re = Regex::new(r"(?m)error.*?: (.*?)$\n.*?ai/src/user.rs:(\d+):").unwrap();
     re.captures_iter(error)
-        .map(|m| vm::Error {
+        .map(|m| CompilerError {
             line: m[2].parse().unwrap(),
             msg: m[1].to_string(),
         })

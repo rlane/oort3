@@ -13,7 +13,6 @@ pub type Vec2 = nalgebra::Vector2<f64>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
-    pub line: usize,
     pub msg: String,
 }
 
@@ -21,7 +20,6 @@ pub struct Error {
 impl From<wasm_bindgen::JsValue> for Error {
     fn from(err: wasm_bindgen::JsValue) -> Self {
         Self {
-            line: 0,
             msg: format!("JS error: {:?}", err),
         }
     }
@@ -30,7 +28,6 @@ impl From<wasm_bindgen::JsValue> for Error {
 impl From<wasmer::InstantiationError> for Error {
     fn from(err: wasmer::InstantiationError) -> Self {
         Self {
-            line: 0,
             msg: format!("Wasmer instantiation error: {:?}", err),
         }
     }
@@ -55,7 +52,7 @@ pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error
         Code::Wasm(b) => WasmTeamController::create(b),
         Code::Builtin(name) => match builtin::load_compiled(name) {
             Ok(code) => new_team_controller(&code),
-            Err(e) => Err(Error { line: 0, msg: e }),
+            Err(e) => Err(Error { msg: e }),
         },
         _ => unreachable!(),
     }
@@ -321,7 +318,7 @@ impl ShipController for WasmShipController {
 
         let (index, _) = self.handle.0.into_raw_parts();
         let index = index as i32;
-        translate_error(self.vm.tick_ship.call(&[index.into()]))?;
+        translate_runtime_error(self.vm.tick_ship.call(&[index.into()]))?;
 
         {
             self.read_system_state();
@@ -420,7 +417,7 @@ impl ShipController for WasmShipController {
     fn delete(&mut self) {
         let (index, _) = self.handle.0.into_raw_parts();
         let index = index as i32;
-        if let Err(e) = translate_error(self.vm.delete_ship.call(&[index.into()])) {
+        if let Err(e) = translate_runtime_error(self.vm.delete_ship.call(&[index.into()])) {
             log::warn!("Failed to delete ship: {:?}", e);
         }
     }
@@ -490,8 +487,16 @@ where
     match err {
         Ok(val) => Ok(val),
         Err(err) => Err(Error {
-            line: 0,
             msg: format!("Wasmer error: {:?}", err),
+        }),
+    }
+}
+
+fn translate_runtime_error<T>(err: Result<T, wasmer::RuntimeError>) -> Result<T, Error> {
+    match err {
+        Ok(val) => Ok(val),
+        Err(err) => Err(Error {
+            msg: format!("Ship runtime error: {}", err),
         }),
     }
 }

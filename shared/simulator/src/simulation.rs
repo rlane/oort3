@@ -247,13 +247,17 @@ impl Simulation {
         let script_start_time = Instant::now();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
+            let mut explode = false;
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
                 if let Err(e) = ship_controller.tick() {
-                    log::warn!("Ship tick error: {:?}", e);
-                    self.events.errors.push(e);
+                    log::warn!("{}", e.msg);
+                    explode = true;
                 }
             }
             debug::emit_ship(self, handle);
+            if explode {
+                self.ship_mut(handle).explode();
+            }
             self.ship_mut(handle).tick();
         }
         self.timing.script = (Instant::now() - script_start_time).as_secs_f64();
