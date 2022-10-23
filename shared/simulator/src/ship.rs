@@ -370,7 +370,7 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 20.0,
-        max_forward_acceleration: 200.0,
+        max_forward_acceleration: 180.0,
         max_backward_acceleration: 0.0,
         max_lateral_acceleration: 50.0,
         max_angular_acceleration: 2.0 * TAU,
@@ -382,12 +382,20 @@ pub fn missile(team: i32) -> ShipData {
         radar_cross_section: 3.0,
         radio: Some(radio()),
         ttl: Some(20 * 60),
-        abilities: vec![ShipAbility {
-            ability: Ability::ShapedCharge,
-            active_time: 1e6,
-            reload_time: 0.0,
-            ..Default::default()
-        }],
+        abilities: vec![
+            ShipAbility {
+                ability: Ability::ShapedCharge,
+                active_time: 1e6,
+                reload_time: 0.0,
+                ..Default::default()
+            },
+            ShipAbility {
+                ability: Ability::Boost,
+                active_time: 2.0,
+                reload_time: 10.0,
+                ..Default::default()
+            },
+        ],
         ..Default::default()
     }
 }
