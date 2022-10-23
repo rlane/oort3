@@ -136,7 +136,7 @@ pub fn tick(sim: &mut Simulation) {
         let ship_data = ship.data();
 
         if let Some(radar) = ship_data.radar.as_ref() {
-            let h = radar.heading + ship.heading();
+            let h = radar.heading;
             let w = radar.width;
             let max_distance =
                 compute_max_detection_range(radar, 40.0 /*cruiser*/).min(radar.max_distance);
@@ -595,8 +595,9 @@ mod test {
             let h = rng.gen_range(0.0..TAU);
             let w = rng.gen_range(0.0..TAU);
 
-            let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], h, ship::fighter(0));
+            let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], 0.0, ship::fighter(0));
             let _ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
+            sim.ship_mut(ship0).radar_mut().unwrap().heading = h;
             sim.ship_mut(ship0).radar_mut().unwrap().width = w;
             sim.step();
 

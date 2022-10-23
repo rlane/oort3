@@ -78,8 +78,8 @@ impl Ship {
         } else {
             set_radar_width(SEARCH_RADAR_WIDTH);
             set_radar_heading(radar_heading() - SEARCH_RADAR_WIDTH);
-            if radar_heading() < heading() - TAU / 8.0 {
-                set_radar_heading(heading() + TAU / 8.0);
+            if angle_diff(radar_heading(), 0.0) > TAU / 8.0 {
+                set_radar_heading(TAU / 8.0);
             }
         }
     }
@@ -97,3 +97,4 @@ fn turn_to(target_heading: f64, target_angular_velocity: f64) {
         torque(-acc);
     }
 }
+

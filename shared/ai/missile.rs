@@ -17,9 +17,7 @@ impl Ship {
                 explode();
             }
 
-            set_radar_heading(
-                (contact.position - position()).angle() - angular_velocity() * TICK_LENGTH,
-            );
+            set_radar_heading((contact.position - position()).angle());
             set_radar_width((20.0 * TAU / dp.length()).clamp(TAU / 128.0, TAU));
         } else {
             set_radar_heading(radar_heading() + TAU / 128.0);
@@ -56,3 +54,4 @@ fn turn_to(target_heading: f64, target_angular_velocity: f64) {
         torque(-acc);
     }
 }
+

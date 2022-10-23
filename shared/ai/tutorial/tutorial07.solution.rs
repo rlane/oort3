@@ -22,9 +22,14 @@ impl Ship {
         } else {
             set_radar_heading(radar_heading() + radar_width());
         }
+        if current_time() < 3.0 {
+            turn_to(TAU / 4.0);
+            accelerate(vec2(0.0, 200.0));
+        }
     }
 }
 
 fn turn_to(target_heading: f64) {
     torque(3.0 * angle_diff(heading(), target_heading) - angular_velocity());
 }
+
