@@ -259,7 +259,7 @@ mod api {
             3 => SystemState::Aim3,
             _ => return,
         };
-        write_system_state(state_index, heading - crate::api::heading());
+        write_system_state(state_index, heading);
     }
 
     /// Fires a weapon.

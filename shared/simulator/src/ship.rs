@@ -66,7 +66,7 @@ pub struct Gun {
     pub speed: f64,
     pub speed_error: f64,
     pub offset: Vector2<f64>,
-    pub angle: f64,
+    pub heading: f64,
     pub min_angle: f64,
     pub max_angle: f64,
     pub inaccuracy: f64,
@@ -149,7 +149,7 @@ impl Default for Gun {
             speed: 1000.0,
             speed_error: 0.0,
             offset: vector![00.0, 0.0],
-            angle: 0.0,
+            heading: 0.0,
             min_angle: 0.0,
             max_angle: 0.0,
             inaccuracy: 0.0,
@@ -630,11 +630,15 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let mut t = 0.0;
         let dt = simulation::PHYSICS_TICK_LENGTH / gun.burst_size as f64;
 
+        let relative_heading = (gun.heading - self.readonly().heading())
+            .rem_euclid(TAU)
+            .clamp(gun.min_angle, gun.max_angle);
+
         for _ in 0..gun.burst_size {
-            let angle = if gun.inaccuracy > 0.0 {
-                gun.angle + rng.gen_range(-gun.inaccuracy..gun.inaccuracy)
+            let relative_heading = if gun.inaccuracy > 0.0 {
+                relative_heading + rng.gen_range(-gun.inaccuracy..gun.inaccuracy)
             } else {
-                gun.angle
+                relative_heading
             };
             let speed = if gun.speed_error > 0.0 {
                 gun.speed + rng.gen_range(-gun.speed_error..gun.speed_error)
@@ -642,7 +646,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 gun.speed
             };
             let body = self.body();
-            let rot = body.position().rotation * UnitComplex::new(angle);
+            let rot = body.position().rotation * UnitComplex::new(relative_heading);
             let v = body.linvel() + rot.transform_vector(&vector![speed, 0.0]);
             let p = body.position().translation.vector
                 + body.position().rotation.transform_vector(&gun.offset)
@@ -699,13 +703,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         );
     }
 
-    pub fn aim(&mut self, index: i64, angle: f64) {
+    pub fn aim(&mut self, index: i64, heading: f64) {
         let ship_data = self.data_mut();
         if index as usize >= ship_data.guns.len() {
             return;
         }
         let gun = &mut ship_data.guns[index as usize];
-        gun.angle = angle.rem_euclid(TAU).clamp(gun.min_angle, gun.max_angle);
+        gun.heading = heading;
     }
 
     pub fn explode(&mut self) {
