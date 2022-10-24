@@ -11,12 +11,15 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        accelerate(0.1 * (target() - position() - velocity()));
-        turn_to((target() - position()).angle());
+        let dp = target() - position();
+        let predicted_dp = dp - velocity() * dp.length() / 1000.0;
+        accelerate(0.1 * (dp - velocity()));
+        turn_to(predicted_dp.angle());
         fire(0);
     }
 }
 
 fn turn_to(target_heading: f64) {
-    torque(3.0 * angle_diff(heading(), target_heading) - angular_velocity());
+    let heading_error = angle_diff(heading(), target_heading);
+    turn(3.0 * heading_error);
 }

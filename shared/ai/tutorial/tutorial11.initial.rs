@@ -14,7 +14,7 @@ impl Ship {
             if let Some(contact) = scan() {
                 let dp = contact.position - position();
                 let dv = contact.velocity - velocity();
-                torque(20.0 * (angle_diff(heading(), dp.angle()) - 0.1 * angular_velocity()));
+                turn_to(dp.angle());
                 accelerate(dp + dv);
                 if dp.length() < 20.0 {
                     explode();
@@ -31,4 +31,9 @@ impl Ship {
             fire(3);
         }
     }
+}
+
+fn turn_to(target_heading: f64) {
+    let heading_error = angle_diff(heading(), target_heading);
+    turn(10.0 * heading_error);
 }

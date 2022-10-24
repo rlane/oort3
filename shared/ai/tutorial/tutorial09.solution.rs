@@ -43,7 +43,7 @@ impl Ship {
                     contact.velocity.y,
                 ]);
                 set_radar_heading(contact.position.angle());
-                turn_to(contact.position.angle(), 0.0);
+                turn_to(contact.position.angle());
             } else {
                 set_radar_heading(radar_heading() + TAU / 32.0);
             }
@@ -62,18 +62,10 @@ pub fn seek(p: Vec2, v: Vec2) {
     let a = vec2(100.0, N * closing_speed * los_rate).rotate(los);
     let a = vec2(400.0, 0.0).rotate(a.angle());
     accelerate(a);
-    turn_to(a.angle(), 0.0);
+    turn_to(a.angle());
 }
 
-fn turn_to(target_heading: f64, target_angular_velocity: f64) {
-    let acc = max_angular_acceleration();
-    let dh = angle_diff(heading(), target_heading);
-    let vh = angular_velocity() - target_angular_velocity;
-    let t = (vh / acc).abs();
-    let pdh = vh * t + 0.5 * -acc * t * t - dh;
-    if pdh < 0.0 {
-        torque(acc);
-    } else if pdh > 0.0 {
-        torque(-acc);
-    }
+fn turn_to(target_heading: f64) {
+    let heading_error = angle_diff(heading(), target_heading);
+    turn(10.0 * heading_error);
 }

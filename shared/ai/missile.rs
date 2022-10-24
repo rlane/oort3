@@ -43,15 +43,8 @@ pub fn seek(p: Vec2, v: Vec2) {
 }
 
 fn turn_to(target_heading: f64, target_angular_velocity: f64) {
-    let acc = max_angular_acceleration();
-    let dh = angle_diff(heading(), target_heading);
-    let vh = angular_velocity() - target_angular_velocity;
-    let t = (vh / acc).abs();
-    let pdh = vh * t + 0.5 * -acc * t * t - dh;
-    if pdh < 0.0 {
-        torque(acc);
-    } else if pdh > 0.0 {
-        torque(-acc);
-    }
+    let heading_error = angle_diff(heading(), target_heading);
+    turn(10.0 * heading_error);
 }
+
 

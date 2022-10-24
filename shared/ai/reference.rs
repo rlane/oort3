@@ -102,7 +102,7 @@ impl Ship {
         }
         let t = dist / bullet_speed;
         let predicted_dp = dp + t * (self.target_velocity - velocity());
-        self.turn_to(predicted_dp.angle(), 0.0);
+        self.turn_to(predicted_dp.angle());
 
         if scan_result.is_some() && dist < 1000.0 {
             accelerate(-velocity());
@@ -154,7 +154,7 @@ impl Ship {
         let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
         let a = (dp - badv * 10.0).normalize() * acc;
         accelerate(a);
-        self.turn_to(a.angle(), 0.0);
+        self.turn_to(a.angle());
     }
 
     fn torpedo_tick(&mut self) {
@@ -208,7 +208,7 @@ impl Ship {
         let badv = -(dv - dv.dot(dp) * pdp.normalize() / pdp.length());
         let a = (pdp - badv * 10.0).normalize() * acc;
         accelerate(a);
-        self.turn_to(a.angle(), 0.0);
+        self.turn_to(a.angle());
 
         /*
         if no_contact_ticks > 0 {
@@ -224,17 +224,9 @@ impl Ship {
         */
     }
 
-    fn turn_to(&mut self, target_heading: f64, target_angular_velocity: f64) {
-        let acc = max_angular_acceleration();
-        let dh = angle_diff(heading(), target_heading);
-        let vh = angular_velocity() - target_angular_velocity;
-        let t = (vh / acc).abs();
-        let pdh = vh * t + 0.5 * -acc * t * t - dh;
-        if pdh < 0.0 {
-            torque(acc);
-        } else if pdh > 0.0 {
-            torque(-acc);
-        }
+    fn turn_to(&mut self, target_heading: f64) {
+        let heading_error = angle_diff(heading(), target_heading);
+        turn(10.0 * heading_error);
     }
 }
 

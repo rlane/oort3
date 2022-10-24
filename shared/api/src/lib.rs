@@ -242,7 +242,17 @@ mod api {
         write_system_state(SystemState::AccelerateY, acceleration.y);
     }
 
+    /// Rotates the ship at the given speed (in radians/s).
+    ///
+    /// Internally this uses `torque()`. Reaching the commanded speed takes time.
+    pub fn turn(speed: f64) {
+        let max = max_angular_acceleration() * 0.2;
+        torque((speed.clamp(-max, max) - angular_velocity()).signum() * max_angular_acceleration());
+    }
+
     /// Sets the angular acceleration for the next tick (in radians/s²).
+    ///
+    /// This is lower-level than turn() and can be used to turn faster.
     pub fn torque(angular_acceleration: f64) {
         write_system_state(SystemState::Torque, angular_acceleration);
     }

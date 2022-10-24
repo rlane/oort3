@@ -25,5 +25,6 @@ impl Ship {
 }
 
 fn turn_to(target_heading: f64) {
-    torque(3.0 * angle_diff(heading(), target_heading) - angular_velocity());
+    let heading_error = angle_diff(heading(), target_heading);
+    turn(3.0 * heading_error);
 }

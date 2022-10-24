@@ -50,6 +50,7 @@ pub fn documentation() -> Html {
               <li><code>{ "angular_velocity() → f64" }</code>{ ": Get the current angular velocity in radians/s." }</li>
               <li><code>{ "accelerate(acceleration: Vec2)" }</code>{ ": Linear acceleration. X axis is forward/back, Y axis is left/right. Units are m/s²." }</li>
               <li><code>{ "max_acceleration() -> Vec2" }</code>{ ": Maximum linear acceleration." }</li>
+              <li><code>{ "turn(speed: f64)" }</code>{ ": Rotate the ship. Unit is radians/s." }</li>
               <li><code>{ "torque(acceleration: f64)" }</code>{ ": Angular acceleration. Unit is radians/s²." }</li>
               <li><code>{ "max_angular_acceleration() -> f64" }</code>{ ": Maximum angular acceleration." }</li>
             </ul>

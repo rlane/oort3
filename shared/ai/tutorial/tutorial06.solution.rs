@@ -13,7 +13,7 @@ impl Ship {
     pub fn tick(&mut self) {
         if let Some(contact) = scan() {
             accelerate(0.1 * (contact.position - position() - velocity()));
-            turn_to((contact.position - position()).angle());
+            turn_to(lead_target(contact.position, contact.velocity));
             fire(0);
             set_radar_heading((contact.position - position()).angle());
         } else {
@@ -23,5 +23,14 @@ impl Ship {
 }
 
 fn turn_to(target_heading: f64) {
-    torque(3.0 * angle_diff(heading(), target_heading) - angular_velocity());
+    let heading_error = angle_diff(heading(), target_heading);
+    turn(10.0 * heading_error);
 }
+
+fn lead_target(target_position: Vec2, target_velocity: Vec2) -> f64 {
+    let dp = target_position - position();
+    let dv = target_velocity - velocity();
+    let predicted_dp = dp + dv * dp.length() / 1000.0;
+    predicted_dp.angle()
+}
+
