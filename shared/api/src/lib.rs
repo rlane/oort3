@@ -462,6 +462,15 @@ mod api {
             read_system_state(SystemState::RadarContactPositionY),
         )
     }
+
+    /// Returns the velocity of the target set by the scenario.
+    /// Only used in tutorials.
+    pub fn target_velocity() -> Vec2 {
+        vec2(
+            read_system_state(SystemState::RadarContactVelocityX),
+            read_system_state(SystemState::RadarContactVelocityY),
+        )
+    }
 }
 
 #[doc(hidden)]

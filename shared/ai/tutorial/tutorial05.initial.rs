@@ -1,6 +1,6 @@
 // Tutorial 05
-// Destroy the enemy ship. Its location is given by the
-// "target" function.
+// Destroy the enemy ship. Its position is given by the "target" function and velocity by the
+// "target_velocity" function.
 use oort_api::prelude::*;
 
 pub struct Ship {}

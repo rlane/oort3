@@ -44,7 +44,7 @@ pub trait TeamController {
 pub trait ShipController {
     fn tick(&mut self) -> Result<(), Error>;
     fn delete(&mut self);
-    fn write_target(&mut self, target: Vector2<f64>);
+    fn write_target(&mut self, position: Vector2<f64>, velocity: Vector2<f64>);
 }
 
 pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
@@ -424,9 +424,15 @@ impl ShipController for WasmShipController {
         }
     }
 
-    fn write_target(&mut self, target: Vec2) {
-        self.state.set(SystemState::RadarContactPositionX, target.x);
-        self.state.set(SystemState::RadarContactPositionY, target.y);
+    fn write_target(&mut self, position: Vec2, velocity: Vec2) {
+        self.state
+            .set(SystemState::RadarContactPositionX, position.x);
+        self.state
+            .set(SystemState::RadarContactPositionY, position.y);
+        self.state
+            .set(SystemState::RadarContactVelocityX, velocity.x);
+        self.state
+            .set(SystemState::RadarContactVelocityY, velocity.y);
     }
 }
 

@@ -681,7 +681,7 @@ impl Scenario for Tutorial02 {
         );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
-                c.write_target(Self::TARGET);
+                c.write_target(Self::TARGET, vector![0.0, 0.0]);
             }
         }
     }
@@ -778,7 +778,7 @@ impl Scenario for Tutorial03 {
         );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
-                c.write_target(self.target.unwrap().coords);
+                c.write_target(self.target.unwrap().coords, vector![0.0, 0.0]);
             }
         }
     }
@@ -867,7 +867,7 @@ impl Scenario for Tutorial04 {
         );
         if let Some(&handle) = sim.ships.iter().next() {
             if let Some(c) = sim.ship_controllers.get_mut(&handle) {
-                c.write_target(target.coords);
+                c.write_target(target.coords, vector![0.0, 0.0]);
             }
         }
         ship::create(
@@ -944,8 +944,10 @@ impl Scenario for Tutorial05 {
             fighter(1),
         ));
 
+        let target_position = sim.ship(self.target_handle.unwrap()).position();
+        let target_velocity = sim.ship(self.target_handle.unwrap()).velocity();
         if let Some(c) = sim.ship_controllers.get_mut(&self.ship_handle.unwrap()) {
-            c.write_target(target.coords);
+            c.write_target(target_position.vector, target_velocity);
         }
     }
 
@@ -955,8 +957,9 @@ impl Scenario for Tutorial05 {
         }
         {
             let target_position = sim.ship(self.target_handle.unwrap()).position();
+            let target_velocity = sim.ship(self.target_handle.unwrap()).velocity();
             if let Some(c) = sim.ship_controllers.get_mut(&self.ship_handle.unwrap()) {
-                c.write_target(target_position.vector);
+                c.write_target(target_position.vector, target_velocity);
             }
         }
     }
@@ -1395,13 +1398,15 @@ impl Scenario for PrimitiveDuel {
         }
 
         let ship0_position = sim.ship(self.ship0.unwrap()).position().vector;
+        let ship0_velocity = sim.ship(self.ship0.unwrap()).velocity();
         let ship1_position = sim.ship(self.ship1.unwrap()).position().vector;
+        let ship1_velocity = sim.ship(self.ship1.unwrap()).velocity();
 
         if let Some(c) = sim.ship_controllers.get_mut(&self.ship0.unwrap()) {
-            c.write_target(ship1_position);
+            c.write_target(ship1_position, ship1_velocity);
         }
         if let Some(c) = sim.ship_controllers.get_mut(&self.ship1.unwrap()) {
-            c.write_target(ship0_position);
+            c.write_target(ship0_position, ship0_velocity);
         }
     }
 }
