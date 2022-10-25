@@ -89,6 +89,7 @@ impl Component for Toolbar {
                     <div id="username" class="toolbar-elem right" title="Your username">
                         <input type="text"
                             value={username}
+                            spellcheck="false"
                             onblur={username_blur_cb}
                             onkeydown={username_keydown_cb} />
                     </div>
