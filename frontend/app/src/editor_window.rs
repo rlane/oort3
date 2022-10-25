@@ -1,12 +1,17 @@
+#![allow(clippy::drop_non_drop)]
 use gloo_timers::callback::Interval;
+use js_sys::Function;
+use monaco::sys::Position;
 use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
-use oort_analyzer_worker::AnalyzerAgent;
+use oort_analyzer_worker::{AnalyzerAgent, CompletionItem};
+use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
+use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 
@@ -25,6 +30,12 @@ fn make_monaco_options() -> CodeEditorOptions {
 pub enum Msg {
     RequestAnalyzer,
     AnalyzerResponse(oort_analyzer_worker::Response),
+    RequestCompletion {
+        line: u32,
+        col: u32,
+        resolve: Function,
+        reject: Function,
+    },
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -41,6 +52,7 @@ pub struct EditorWindow {
     analyzer_agent: Box<dyn Bridge<AnalyzerAgent>>,
     #[allow(dead_code)]
     analyzer_interval: Interval,
+    current_completion: Option<(Function, Function)>,
 }
 
 impl Component for EditorWindow {
@@ -63,6 +75,7 @@ impl Component for EditorWindow {
             last_analyzed_text: "".to_string(),
             analyzer_agent,
             analyzer_interval,
+            current_completion: None,
         }
     }
 
@@ -82,6 +95,30 @@ impl Component for EditorWindow {
             }
             Msg::AnalyzerResponse(oort_analyzer_worker::Response::Diagnostics(diags)) => {
                 self.display_analyzer_diagnostics(context, &diags);
+                false
+            }
+            Msg::RequestCompletion {
+                line,
+                col,
+                resolve,
+                reject,
+            } => {
+                self.current_completion = Some((resolve, reject));
+                self.analyzer_agent
+                    .send(oort_analyzer_worker::Request::Completion(line, col));
+                false
+            }
+            Msg::AnalyzerResponse(oort_analyzer_worker::Response::Completion(completions)) => {
+                if let Some((resolve, _)) = self.current_completion.clone() {
+                    let this = JsValue::null();
+                    let results = CompletionList {
+                        suggestions: completions,
+                    };
+                    resolve
+                        .call1(&this, &serde_wasm_bindgen::to_value(&results).unwrap())
+                        .unwrap();
+                    self.current_completion = None;
+                }
                 false
             }
         }
@@ -173,6 +210,17 @@ impl Component for EditorWindow {
                     ed.update_options(&options);
                 }
 
+                {
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    let completer = Completer::new(context.link().clone());
+                    js_sys::Reflect::set(
+                        &ed.get_model().unwrap(),
+                        &JsValue::from_str("completer"),
+                        &completer.into(),
+                    )
+                    .unwrap();
+                }
+
                 js_sys::Reflect::set(
                     &web_sys::window().unwrap(),
                     &JsValue::from_str("editor"),
@@ -238,5 +286,34 @@ impl EditorWindow {
                     .delta_decorations(&self.current_analyzer_decorations, &decorations_jsarray)
             })
             .unwrap();
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct CompletionList {
+    pub suggestions: Vec<CompletionItem>,
+}
+
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct Completer {
+    link: Scope<EditorWindow>,
+}
+
+#[wasm_bindgen]
+impl Completer {
+    fn new(link: Scope<EditorWindow>) -> Self {
+        Self { link }
+    }
+
+    pub fn complete(&mut self, position: Position) -> js_sys::Promise {
+        js_sys::Promise::new(&mut |resolve, reject| {
+            self.link.send_message(Msg::RequestCompletion {
+                line: position.line_number() as u32,
+                col: position.column() as u32,
+                resolve,
+                reject,
+            })
+        })
     }
 }

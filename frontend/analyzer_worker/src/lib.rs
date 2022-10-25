@@ -5,10 +5,11 @@ use yew_agent::{HandlerId, Private, WorkerLink};
 
 use cfg::CfgOptions;
 use ide::{
-    AnalysisHost, Change, CrateGraph, CrateId, DiagnosticsConfig, Edition, FileId, LineIndex,
-    SourceRoot,
+    AnalysisHost, Change, CompletionConfig, CrateGraph, CrateId, DiagnosticsConfig, Edition,
+    FileId, LineIndex, SourceRoot, TextSize,
 };
 use ide_db::base_db::{CrateName, CrateOrigin, Dependency, Env, FileSet, VfsPath};
+use ide_db::imports::insert_use::{ImportGranularity, InsertUseConfig, PrefixKind};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Diagnostic {
@@ -20,13 +21,24 @@ pub struct Diagnostic {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
+pub struct CompletionItem {
+    pub label: String,
+    pub kind: i64,
+    pub detail: String,
+    pub insertText: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
     Diagnostics(String),
+    Completion(u32, u32),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Response {
     Diagnostics(Vec<Diagnostic>),
+    Completion(Vec<CompletionItem>),
 }
 
 static FAKE_STD: &str = r#"
@@ -145,6 +157,7 @@ impl yew_agent::Worker for AnalyzerAgent {
         log::info!("AnalyzerAgent got message: {:?}", request);
         let response = match request {
             Request::Diagnostics(text) => self.diagnostics(text),
+            Request::Completion(line, col) => self.completion(line, col),
         };
         if let Some(msg) = response {
             self.link.respond(who, msg);
@@ -184,6 +197,62 @@ impl AnalyzerAgent {
                 None
             }
         }
+    }
+
+    fn completion(&mut self, line: u32, col: u32) -> Option<Response> {
+        let file_id = ide::FileId(0);
+
+        const COMPLETION_CONFIG: CompletionConfig = CompletionConfig {
+            enable_postfix_completions: true,
+            enable_imports_on_the_fly: true,
+            enable_self_on_the_fly: true,
+            enable_private_editable: false,
+            callable: None,
+            snippet_cap: None,
+            insert_use: InsertUseConfig {
+                granularity: ImportGranularity::Module,
+                enforce_granularity: false,
+                prefix_kind: PrefixKind::Plain,
+                group: true,
+                skip_glob_imports: false,
+            },
+            snippets: Vec::new(),
+        };
+
+        let analysis = self.analysis_host.analysis();
+        let line_index = analysis.file_line_index(file_id).unwrap();
+
+        let line_col = ide::LineCol {
+            line: line - 1,
+            col: col - 1,
+        };
+        let file_length = analysis.file_text(file_id).unwrap().len();
+        let offset = line_index
+            .offset(line_col)
+            .unwrap_or_default()
+            .min(TextSize::from(file_length as u32));
+        let pos = ide::FilePosition { file_id, offset };
+
+        let items = match analysis.completions(&COMPLETION_CONFIG, pos, None).unwrap() {
+            Some(items) => items,
+            None => return None,
+        };
+
+        let results = items
+            .iter()
+            .map(|item| {
+                let inserts: Vec<_> = item.text_edit().iter().map(|x| x.insert.clone()).collect();
+                let text = inserts.join("");
+                CompletionItem {
+                    label: item.label().to_string(),
+                    kind: 1,
+                    detail: item.detail().map(|it| it.to_string()).unwrap_or_default(),
+                    insertText: text,
+                }
+            })
+            .collect();
+
+        Some(Response::Completion(results))
     }
 }
 

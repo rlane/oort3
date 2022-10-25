@@ -75,6 +75,7 @@ pub fn run_app() -> Result<(), JsValue> {
     log::info!("userid {}", &userid);
     log::info!("username {}", &userid::get_username());
     js::golden_layout::init();
+    js::completion::init();
     yew::Renderer::<Main>::with_root(
         gloo_utils::document()
             .get_element_by_id("yew")

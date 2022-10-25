@@ -20,3 +20,12 @@ pub mod golden_layout {
         pub fn update_size();
     }
 }
+
+pub mod completion {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(module = "/js/completion.js")]
+    extern "C" {
+        pub fn init();
+    }
+}
