@@ -1,3 +1,4 @@
+use ide_db::SnippetCap;
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::sync::Arc;
@@ -27,6 +28,8 @@ pub struct CompletionItem {
     pub kind: i64,
     pub detail: String,
     pub insertText: String,
+    pub insertTextRules: u32,
+    pub filterText: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -207,8 +210,8 @@ impl AnalyzerAgent {
             enable_imports_on_the_fly: true,
             enable_self_on_the_fly: true,
             enable_private_editable: false,
-            callable: None,
-            snippet_cap: None,
+            callable: Some(ide::CallableSnippets::FillArguments),
+            snippet_cap: SnippetCap::new(true),
             insert_use: InsertUseConfig {
                 granularity: ImportGranularity::Module,
                 enforce_granularity: false,
@@ -248,6 +251,8 @@ impl AnalyzerAgent {
                     kind: 1,
                     detail: item.detail().map(|it| it.to_string()).unwrap_or_default(),
                     insertText: text,
+                    insertTextRules: if item.is_snippet() { 4 } else { 0 },
+                    filterText: item.lookup().to_string(),
                 }
             })
             .collect();
