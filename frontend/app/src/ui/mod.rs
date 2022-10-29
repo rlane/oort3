@@ -7,7 +7,7 @@ use oort_renderer::Renderer;
 use oort_simulator::scenario::Status;
 use oort_simulator::simulation;
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
@@ -22,6 +22,7 @@ pub struct UI {
     snapshot: Option<Snapshot>,
     pending_snapshots: VecDeque<Snapshot>,
     renderer: Renderer,
+    canvas: HtmlCanvasElement,
     zoom: f32,
     camera_target: Point2<f32>,
     frame_timer: frame_timer::FrameTimer,
@@ -43,6 +44,7 @@ pub struct UI {
     picked_ship_id: Option<u64>,
     status_ref: NodeRef,
     picked_ref: NodeRef,
+    touches: HashMap<i32, Touch>,
 }
 
 unsafe impl Send for UI {}
@@ -63,7 +65,7 @@ impl UI {
         let canvas = canvas_ref
             .cast::<HtmlCanvasElement>()
             .expect("canvas element");
-        let mut renderer = Renderer::new(canvas).expect("Failed to create renderer");
+        let mut renderer = Renderer::new(canvas.clone()).expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
         let camera_target = point![0.0, 0.0];
         renderer.set_view(zoom, point![camera_target.x, camera_target.y]);
@@ -79,6 +81,7 @@ impl UI {
             snapshot: None,
             pending_snapshots: VecDeque::new(),
             renderer,
+            canvas,
             zoom,
             camera_target,
             frame_timer,
@@ -100,6 +103,7 @@ impl UI {
             picked_ship_id: None,
             status_ref,
             picked_ref,
+            touches: HashMap::new(),
         }
     }
 
@@ -343,6 +347,41 @@ impl UI {
         self.update_picked();
     }
 
+    pub fn on_pointer_event(&mut self, e: web_sys::PointerEvent) {
+        if e.buttons() == 0 {
+            self.touches.remove(&e.pointer_id());
+            return;
+        }
+
+        let bounds = self.canvas.get_bounding_client_rect();
+        let canvas_position = point![
+            e.client_x() - bounds.x() as i32,
+            e.client_y() - bounds.y() as i32
+        ];
+        let world_position = self
+            .renderer
+            .unproject(canvas_position.x, canvas_position.y);
+        log::debug!(
+            "PointerEvent: pointer_id={} pointer_type={} x={} y={} buttons={}",
+            e.pointer_id(),
+            e.pointer_type(),
+            canvas_position.x,
+            canvas_position.y,
+            e.buttons()
+        );
+
+        if let Some(touch) = self.touches.get_mut(&e.pointer_id()) {
+            let diff = (touch.world_position - world_position).cast();
+            self.camera_target += diff;
+            self.renderer.set_view(self.zoom, self.camera_target);
+            // TODO Should not be necessary
+            touch.world_position = world_position;
+        } else {
+            self.touches
+                .insert(e.pointer_id(), Touch { world_position });
+        }
+    }
+
     pub fn status(&self) -> Status {
         self.status
     }
@@ -389,4 +428,9 @@ impl UI {
     pub fn frame(&self) -> u64 {
         self.frame
     }
+}
+
+#[derive(Debug)]
+struct Touch {
+    world_position: Point2<f64>,
 }

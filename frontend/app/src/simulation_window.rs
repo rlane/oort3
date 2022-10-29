@@ -18,6 +18,7 @@ pub enum Msg {
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
     MouseEvent(web_sys::MouseEvent),
+    PointerEvent(web_sys::PointerEvent),
     RequestSnapshot,
     ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
@@ -120,6 +121,12 @@ impl Component for SimulationWindow {
                 }
                 false
             }
+            Msg::PointerEvent(e) => {
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.on_pointer_event(e);
+                }
+                false
+            }
             Msg::ReceivedSimAgentResponse(oort_simulation_worker::Response::Snapshot {
                 snapshot,
             }) => {
@@ -135,6 +142,7 @@ impl Component for SimulationWindow {
         let key_event_cb = context.link().callback(Msg::KeyEvent);
         let wheel_event_cb = context.link().callback(Msg::WheelEvent);
         let mouse_event_cb = context.link().callback(Msg::MouseEvent);
+        let pointer_event_cb = context.link().callback(Msg::PointerEvent);
         let compile_errors = context.props().compiler_errors.clone();
         let class = compile_errors
             .as_ref()
@@ -150,7 +158,9 @@ impl Component for SimulationWindow {
                         onkeydown={key_event_cb.clone()}
                         onkeyup={key_event_cb}
                         onwheel={wheel_event_cb}
-                        onclick={mouse_event_cb} />
+                        onclick={mouse_event_cb}
+                        onpointermove={pointer_event_cb.clone()}
+                        onpointerup={pointer_event_cb} />
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>

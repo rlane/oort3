@@ -39,6 +39,7 @@ body {
   position: absolute;
   background: black;
   z-index: 0;
+  touch-action: none;
 }
 
 .status {

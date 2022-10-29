@@ -69,6 +69,8 @@ features = [
   'MouseEvent',
   'Request',
   'EventTarget',
+  'PointerEvent',
+  'DomRect',
 ]
 
 [build-dependencies]
