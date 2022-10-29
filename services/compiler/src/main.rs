@@ -12,6 +12,7 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
     let payload = req.payload().await?;
     let code = std::str::from_utf8(payload)?;
     log::debug!("Code: {}", code);
+    oort_compiler_service::sanitizer::check(code)?;
     std::fs::write("ai/src/user.rs", payload)?;
     let start_time = std::time::Instant::now();
     let output = Command::new("./scripts/build-ai-fast.sh").output().await?;

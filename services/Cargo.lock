@@ -1234,8 +1234,10 @@ version = "0.16.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "lazy_static",
  "log",
  "once_cell",
+ "regex",
  "salvo",
  "salvo_extra",
  "stackdriver_logger",
