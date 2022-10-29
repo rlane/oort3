@@ -76,9 +76,11 @@ impl Component for Leaderboard {
         } else if self.fetching {
             html! { <p>{ "Fetching leaderboard..." }</p> }
         } else if let Some(ref data) = self.data {
-            fn render_time_row(row: &TimeLeaderboardRow) -> Html {
-                html! { <tr><td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td><td>{ &row.time }</td></tr> }
-            }
+            let userid = userid::get_userid();
+            let render_time_row = |row: &TimeLeaderboardRow| -> Html {
+                let class = (row.userid == userid).then(|| "own-leaderboard-entry");
+                html! { <tr class={classes!(class)}><td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td><td>{ &row.time }</td></tr> }
+            };
 
             html! {
                 <div class="leaderboard">

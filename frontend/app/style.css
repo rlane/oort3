@@ -213,6 +213,10 @@ td {
   padding-bottom: 10px;
 }
 
+.leaderboard tr.own-leaderboard-entry {
+  color: #47cb47;
+}
+
 .errorDecoration {
   background-color: #881e1e;
 }
