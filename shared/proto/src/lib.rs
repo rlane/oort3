@@ -62,3 +62,5 @@ pub struct LeaderboardSubmission {
     pub code_size: usize,
     pub code: String,
 }
+
+impl Eq for LeaderboardSubmission {}

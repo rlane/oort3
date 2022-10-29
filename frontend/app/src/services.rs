@@ -1,6 +1,6 @@
 use crate::userid;
 use chrono::Utc;
-use oort_proto::LeaderboardSubmission;
+use oort_proto::{LeaderboardData, LeaderboardSubmission};
 use oort_proto::{Telemetry, TelemetryMsg};
 use reqwasm::http::Request;
 
@@ -49,15 +49,48 @@ pub fn leaderboard_url() -> String {
     }
 }
 
-pub fn post_leaderboard(msg: LeaderboardSubmission) {
+pub fn get_leaderboard(
+    scenario_name: &str,
+    callback: yew::Callback<Result<LeaderboardData, reqwasm::Error>>,
+) {
+    let url = format!(
+        "{}/leaderboard?scenario_name={}",
+        leaderboard_url(),
+        scenario_name
+    );
+    wasm_bindgen_futures::spawn_local(async move {
+        let result = Request::get(&url).send().await;
+        match result {
+            Err(e) => {
+                log::warn!("Error getting leaderboard: {:?}", e);
+                callback.emit(Err(e));
+            }
+            Ok(response) => {
+                let data: Result<LeaderboardData, _> = response.json().await;
+                callback.emit(data);
+            }
+        }
+    });
+}
+
+pub fn post_leaderboard(
+    msg: LeaderboardSubmission,
+    callback: yew::Callback<Result<LeaderboardData, reqwasm::Error>>,
+) {
     wasm_bindgen_futures::spawn_local(async move {
         let url = format!("{}/leaderboard", leaderboard_url());
         let body = serde_json::to_string(&msg).unwrap();
         let result = Request::post(&url).body(body).send().await;
-        if let Err(e) = result {
-            log::warn!("Error posting to leaderboard: {:?}", e);
+        match result {
+            Err(e) => {
+                log::warn!("Error posting to leaderboard: {:?}", e);
+                callback.emit(Err(e));
+            }
+            Ok(response) => {
+                let data: Result<LeaderboardData, _> = response.json().await;
+                callback.emit(data);
+            }
         }
-        // TODO refresh displayed leaderboard
     });
 }
 

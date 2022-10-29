@@ -10,9 +10,9 @@ use monaco::yew::CodeEditorLink;
 use oort_proto::{LeaderboardSubmission, Telemetry};
 use oort_simulation_worker::SimAgent;
 use oort_simulator::scenario::{self, Status, MAX_TICKS};
+use oort_simulator::simulation;
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
-use oort_simulator::simulation;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
@@ -258,20 +258,6 @@ impl Component for Game {
                                 success: summary.failed_seeds.is_empty(),
                                 time: summary.average_time,
                             });
-
-                            // Submit to leaderboard
-                            if summary.failed_seeds.is_empty() {
-                                let msg = LeaderboardSubmission {
-                                    userid: userid::get_userid(),
-                                    username: userid::get_username(),
-                                    timestamp: chrono::Utc::now(),
-                                    scenario_name: self.scenario_name.clone(),
-                                    code: code_to_string(&code),
-                                    code_size: crate::code_size::calculate(&code_to_string(&code)),
-                                    time: summary.average_time.unwrap(),
-                                };
-                                services::post_leaderboard(msg);
-                            }
                         }
                         true
                     }
@@ -566,8 +552,8 @@ impl Game {
         } else {
             0.0
         };
-        let code_size =
-            crate::code_size::calculate(&code_to_string(&self.player_team().running_source_code));
+        let source_code = code_to_string(&self.player_team().running_source_code);
+        let code_size = crate::code_size::calculate(&source_code);
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
 
@@ -650,6 +636,19 @@ impl Game {
             } else {
                 html! {}
             };
+            let leaderboard_submission =
+                summary
+                    .failed_seeds
+                    .is_empty()
+                    .then(|| LeaderboardSubmission {
+                        userid: userid::get_userid(),
+                        username: userid::get_username(),
+                        timestamp: chrono::Utc::now(),
+                        scenario_name: self.scenario_name.clone(),
+                        code: source_code.clone(),
+                        code_size,
+                        time: summary.average_time.unwrap(),
+                    });
             html! {
                 <>
                     <span>{ "Simulations complete: " }{ summary.victory_count }{"/"}{ summary.count }{ " successful" }</span><br />
@@ -668,7 +667,8 @@ impl Game {
                     { submit_button }
                     { next_scenario_link }
                     <br />
-                    <Leaderboard scenario_name={ self.scenario_name.clone() }/>
+                    <Leaderboard scenario_name={ self.scenario_name.clone() }
+                        submission={leaderboard_submission} />
                 </>
             }
         } else {

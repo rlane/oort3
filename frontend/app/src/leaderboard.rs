@@ -1,7 +1,7 @@
 use crate::services;
 use crate::userid;
+use oort_proto::LeaderboardSubmission;
 use oort_proto::{LeaderboardData, TimeLeaderboardRow};
-use reqwasm::http::Request;
 use yew::prelude::*;
 
 #[derive(Debug)]
@@ -13,6 +13,7 @@ pub enum Msg {
 #[derive(Properties, Clone, PartialEq, Eq)]
 pub struct LeaderboardProps {
     pub scenario_name: String,
+    pub submission: Option<LeaderboardSubmission>,
 }
 
 pub struct Leaderboard {
@@ -39,21 +40,17 @@ impl Component for Leaderboard {
 
         match msg {
             SendRequest => {
-                let url = format!(
-                    "{}/leaderboard?scenario_name={}",
-                    services::leaderboard_url(),
-                    &context.props().scenario_name
-                );
                 let callback =
                     context
                         .link()
                         .callback(|response: Result<LeaderboardData, reqwasm::Error>| {
                             Msg::ReceiveResponse(response)
                         });
-                wasm_bindgen_futures::spawn_local(async move {
-                    let result = Request::get(&url).send().await.unwrap().json().await;
-                    callback.emit(result);
-                });
+                if let Some(submission) = context.props().submission.as_ref() {
+                    services::post_leaderboard(submission.clone(), callback);
+                } else {
+                    services::get_leaderboard(&context.props().scenario_name, callback);
+                }
                 self.fetching = true;
                 true
             }

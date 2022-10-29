@@ -97,8 +97,7 @@ async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> any
         log::debug!("Got existing obj {:?}", existing_obj);
         if existing_obj.time <= obj.time {
             log::debug!("Ignoring slower time");
-            res.render("");
-            return Ok(());
+            return render_leaderboard(&db, &obj.scenario_name, res).await;
         }
     }
 
