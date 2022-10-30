@@ -193,6 +193,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "fighter_duel" => Some(Box::new(FighterDuel::new())),
         "frigate_duel" => Some(Box::new(FrigateDuel::new())),
         "cruiser_duel" => Some(Box::new(CruiserDuel::new())),
+        "asteroid_duel" => Some(Box::new(AsteroidDuel::new())),
         "furball" => Some(Box::new(Furball::new())),
         "fleet" => Some(Box::new(Fleet::new())),
         "belt" => Some(Box::new(Belt::new())),
@@ -229,6 +230,7 @@ pub fn list() -> Vec<String> {
         "fighter_duel",
         "frigate_duel",
         "cruiser_duel",
+        "asteroid_duel",
         "furball",
         "fleet",
         "belt",
@@ -1566,6 +1568,84 @@ impl Scenario for CruiserDuel {
             std::f64::consts::PI,
             cruiser(1),
         );
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tournament_victory(sim)
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![Code::None, reference_ai()]
+    }
+
+    fn solution(&self) -> Code {
+        reference_ai()
+    }
+
+    fn is_tournament(&self) -> bool {
+        true
+    }
+}
+
+struct AsteroidDuel {}
+
+impl AsteroidDuel {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Scenario for AsteroidDuel {
+    fn name(&self) -> String {
+        "asteroid_duel".into()
+    }
+
+    fn human_name(&self) -> String {
+        "Asteroid Duel".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        add_walls(sim);
+
+        let mut rng = new_rng(seed);
+        let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 2.0) * 0.9];
+
+        ship::create(
+            sim,
+            vector![
+                rng.gen_range(-bound.x..bound.x),
+                rng.gen_range(-bound.y..bound.y)
+            ],
+            vector![0.0, 0.0],
+            0.0,
+            frigate(0),
+        );
+        ship::create(
+            sim,
+            vector![
+                rng.gen_range(-bound.x..bound.x),
+                rng.gen_range(-bound.y..bound.y)
+            ],
+            vector![0.0, 0.0],
+            std::f64::consts::PI,
+            frigate(1),
+        );
+
+        let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 2.0) * 0.9];
+        for _ in 0..200 {
+            let mut data = asteroid(rng.gen_range(0..30));
+            data.health = 10000.0;
+            ship::create(
+                sim,
+                vector![
+                    rng.gen_range(-bound.x..bound.x),
+                    rng.gen_range(-bound.y..bound.y)
+                ],
+                vector![rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)] * 10.0,
+                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                data,
+            );
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {
