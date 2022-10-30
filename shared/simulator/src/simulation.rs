@@ -411,6 +411,17 @@ impl EventHandler for CollisionEventHandler {
     ) {
         let _ = self.collision_event_sender.send(event);
     }
+
+    fn handle_contact_force_event(
+        &self,
+        _: f64,
+        _: &rapier2d_f64::dynamics::RigidBodySet,
+        _: &rapier2d_f64::geometry::ColliderSet,
+        _: &ContactPair,
+        _: f64,
+    ) {
+        unimplemented!();
+    }
 }
 
 pub struct SimEvents {

@@ -109,7 +109,7 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
                     .unwrap();
                 has_collider = !body.colliders().is_empty();
 
-                let aabb = AABB::from_half_extents(
+                let aabb = Aabb::from_half_extents(
                     body.position().translation.vector.into(),
                     vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
                 );
