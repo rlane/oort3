@@ -76,7 +76,10 @@ pub fn create_crate(crate_graph: &mut CrateGraph, f: FileId) -> CrateId {
         Env::default(),
         Ok(Vec::new()),
         false,
-        CrateOrigin::CratesIo { repo: None },
+        CrateOrigin::CratesIo {
+            repo: None,
+            name: None,
+        },
     )
 }
 
@@ -219,6 +222,7 @@ impl AnalyzerAgent {
                 group: true,
                 skip_glob_imports: false,
             },
+            prefer_no_std: false,
             snippets: Vec::new(),
         };
 
