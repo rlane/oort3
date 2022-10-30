@@ -45,6 +45,14 @@ export function init() {
     document.getElementById("goldenlayout")
   );
   goldenLayout.registerComponent(
+    "Welcome",
+    function (container, componentState) {
+      container
+        .getElement()[0]
+        .appendChild(document.getElementById("welcome-window"));
+    }
+  );
+  goldenLayout.registerComponent(
     "Editor",
     function (container, componentState) {
       container.getElement()[0].id = "editor-window-" + componentState.team;
@@ -63,4 +71,31 @@ export function init() {
 
 export function update_size() {
   goldenLayout.updateSize();
+}
+
+function welcome_component() {
+  return {
+    type: "component",
+    title: "Welcome",
+    componentName: "Welcome",
+    componentState: {},
+    isClosable: true,
+    id: "welcome",
+  };
+}
+
+export function show_welcome(visible) {
+  let tabs = goldenLayout.root.contentItems[0].contentItems[0];
+  let existing = tabs.getItemsById("welcome");
+  let currently_visible = existing.length != 0;
+  if (visible != currently_visible) {
+    if (visible) {
+      tabs.addChild(welcome_component(), 0);
+    } else {
+      document
+        .getElementById("welcome-hidden")
+        .appendChild(document.getElementById("welcome-window"));
+      tabs.removeChild(existing[0], false);
+    }
+  }
 }

@@ -13,6 +13,7 @@ pub mod simulation_window;
 pub mod toolbar;
 pub mod ui;
 pub mod userid;
+pub mod welcome;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
@@ -54,11 +55,11 @@ fn app() -> Html {
 
 fn switch(routes: Route) -> Html {
     match routes {
-        Route::Home => switch(Route::Scenario {
-            scenario: "welcome".to_owned(),
-        }),
+        Route::Home => html! {
+            <game::Game scenario="welcome" version={version()} />
+        },
         Route::Scenario { scenario } => html! {
-            <game::Game scenario={scenario} demo=false version={version()} />
+            <game::Game scenario={scenario} version={version()} />
         },
         Route::Demo { scenario } => html! {
             <game::Game scenario={scenario} demo=true version={version()} />

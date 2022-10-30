@@ -18,6 +18,7 @@ pub mod golden_layout {
     extern "C" {
         pub fn init();
         pub fn update_size();
+        pub fn show_welcome(visible: bool);
     }
 }
 

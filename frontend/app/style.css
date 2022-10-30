@@ -218,6 +218,12 @@ td {
   color: #47cb47;
 }
 
+div.welcome {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
 .errorDecoration {
   background-color: #881e1e;
 }

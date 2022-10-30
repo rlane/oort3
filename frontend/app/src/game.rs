@@ -5,6 +5,7 @@ use crate::services;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
 use crate::userid;
+use crate::welcome::Welcome;
 use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
 use oort_proto::{LeaderboardSubmission, Telemetry};
@@ -94,6 +95,7 @@ pub struct Team {
 #[derive(Properties, PartialEq, Eq)]
 pub struct Props {
     pub scenario: String,
+    #[prop_or_default]
     pub demo: bool,
     pub version: String,
 }
@@ -385,9 +387,22 @@ impl Component for Game {
         let version = context.props().version.clone();
         let compiler_errors = self.compiler_errors.clone();
 
+        // For Welcome
+        let welcome_window_host = gloo_utils::document()
+            .get_element_by_id("welcome-window")
+            .expect("a #welcome-window element");
+        let navigator = context.link().navigator().unwrap();
+        let select_scenario_cb2 = context.link().batch_callback(move |name: String| {
+            navigator.push(&crate::Route::Scenario {
+                scenario: name.clone(),
+            });
+            vec![Msg::SelectScenario(name), Msg::DismissOverlay]
+        });
+
         html! {
         <>
-            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} {show_feedback_cb} />
+            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} show_feedback_cb={show_feedback_cb.clone()} />
+            <Welcome host={welcome_window_host} {show_feedback_cb} select_scenario_cb={select_scenario_cb2} />
             <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} />
             <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} />
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} {compiler_errors} />
@@ -861,6 +876,8 @@ impl Game {
             enemy_team.set_editor_text(&code_to_string(&enemy_team.initial_source_code));
             self.teams.push(enemy_team);
         }
+
+        crate::js::golden_layout::show_welcome(scenario_name == "welcome");
 
         self.run(context);
     }
