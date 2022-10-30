@@ -103,6 +103,7 @@ async fn cmd_list(
                 Telemetry::SubmitToTournament { scenario_name, .. } => {
                     println!("{prefix} SubmitToTournament user={user} scenario={scenario_name}")
                 }
+                Telemetry::Feedback { .. } => println!("{prefix} Feedback user={user}"),
             }
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
@@ -154,6 +155,15 @@ async fn cmd_get(
                 println!("// User: {}", user);
                 println!("// Scenario: {}", scenario_name);
                 println!("{}", code.trim());
+            },
+            Telemetry::Feedback {
+                text,
+            } => {
+                let datetime: DateTime<Local> = DateTime::from(msg.timestamp);
+                println!("// User: {}", user);
+                println!("// Date: {}", datetime);
+                println!("// Build: {}", msg.build);
+                println!("{}", text.trim());
             }
         }
     } else {

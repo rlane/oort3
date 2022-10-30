@@ -39,6 +39,7 @@ async fn run(args: &Arguments) -> Result<(), Box<dyn std::error::Error + Send + 
                 Telemetry::FinishScenario { .. } => {}
                 Telemetry::Crash { .. } => {}
                 Telemetry::SubmitToTournament { .. } => {}
+                Telemetry::Feedback { .. } => {}
             }
             if msg != original_msg {
                 let docid = doc.name.rsplit_once('/').unwrap().1.to_string();
