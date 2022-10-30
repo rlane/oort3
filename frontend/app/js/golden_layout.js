@@ -34,6 +34,7 @@ export function init() {
             componentName: "Simulation",
             componentState: {},
             isClosable: false,
+            width: 61.8,
           },
         ],
       },
