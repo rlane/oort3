@@ -264,3 +264,7 @@ b.error {
 .lm_maximised .lm_header {
   background-color: #1e1e1e;
 }
+
+.lm_content {
+  overflow: scroll;
+}
