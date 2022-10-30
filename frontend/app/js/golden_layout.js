@@ -48,6 +48,7 @@ export function init() {
   goldenLayout.registerComponent(
     "Welcome",
     function (container, componentState) {
+      container.getElement()[0].style.overflow = "auto";
       container
         .getElement()[0]
         .appendChild(document.getElementById("welcome-window"));
