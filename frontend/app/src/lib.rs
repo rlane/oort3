@@ -3,6 +3,7 @@ pub mod code_size;
 pub mod codestorage;
 pub mod documentation;
 pub mod editor_window;
+pub mod feedback;
 pub mod filesystem;
 pub mod game;
 pub mod js;

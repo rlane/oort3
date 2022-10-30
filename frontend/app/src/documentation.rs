@@ -1,12 +1,18 @@
-use yew::{function_component, html, Html};
+use yew::prelude::*;
+
+#[derive(Properties, PartialEq)]
+pub struct DocumentationProps {
+    pub show_feedback_cb: Callback<MouseEvent>,
+}
 
 #[function_component(Documentation)]
-pub fn documentation() -> Html {
+pub fn documentation(props: &DocumentationProps) -> Html {
     html! {
         <>
             <h1>{ "Quick Reference" }</h1>
             { "Press Escape to close. Please file bugs at " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>
-            { " and give feedback on " } <a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a>{ ". " }
+            { " and give feedback on " } <a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a>
+            { " or " }<a href="#" onclick={props.show_feedback_cb.clone()}>{ "in-game" }</a>{ ". " }
             { "Also take a look at the " }<a href="https://github.com/rlane/oort3/wiki">{ "wiki" }</a>{ "." }<br/>
 
             <h2>{ "Basics" }</h2>

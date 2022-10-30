@@ -12,6 +12,7 @@ pub enum Msg {
 pub struct ToolbarProps {
     pub select_scenario_cb: Callback<Event>,
     pub show_documentation_cb: Callback<web_sys::MouseEvent>,
+    pub show_feedback_cb: Callback<web_sys::MouseEvent>,
     pub scenario_name: String,
 }
 
@@ -56,6 +57,7 @@ impl Component for Toolbar {
         let username = crate::userid::get_username();
         let select_scenario_cb = context.props().select_scenario_cb.clone();
         let show_documentation_cb = context.props().show_documentation_cb.clone();
+        let show_feedback_cb = context.props().show_feedback_cb.clone();
 
         let username_keydown_cb = context
             .link()
@@ -81,6 +83,7 @@ impl Component for Toolbar {
                             { for scenario::list().iter().cloned().map(render_option) }
                         </select>
                     </div>
+                    <div class="toolbar-elem right"><a href="#" onclick={show_feedback_cb}>{ "Feedback" }</a></div>
                     <div class="toolbar-elem right"><a href="#" onclick={show_documentation_cb}>{ "Documentation" }</a></div>
                     <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3/wiki" target="_none">{ "Wiki" }</a></div>
                     <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>

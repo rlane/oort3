@@ -36,6 +36,9 @@ pub enum Telemetry {
         scenario_name: String,
         code: String,
     },
+    Feedback {
+        text: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

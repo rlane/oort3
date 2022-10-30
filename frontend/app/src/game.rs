@@ -41,6 +41,7 @@ pub enum Msg {
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
     ShowDocumentation,
+    ShowFeedback,
     DismissOverlay,
     CompileFinished(Vec<Result<Code, String>>),
     CompileSlow,
@@ -54,6 +55,7 @@ enum Overlay {
     #[allow(dead_code)]
     MissionComplete,
     Compiling,
+    Feedback,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -269,6 +271,10 @@ impl Component for Game {
                 self.overlay = Some(Overlay::Documentation);
                 true
             }
+            Msg::ShowFeedback => {
+                self.overlay = Some(Overlay::Feedback);
+                true
+            }
             Msg::DismissOverlay => {
                 self.overlay = None;
                 self.background_agents.clear();
@@ -350,6 +356,7 @@ impl Component for Game {
             Msg::SelectScenario(data)
         });
         let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
+        let show_feedback_cb = context.link().callback(|_| Msg::ShowFeedback);
 
         // For EditorWindow 0
         let editor_window0_host = gloo_utils::document()
@@ -380,7 +387,7 @@ impl Component for Game {
 
         html! {
         <>
-            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} />
+            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} {show_feedback_cb} />
             <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} />
             <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} />
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} {compiler_errors} />
@@ -456,6 +463,7 @@ impl Game {
 
     fn render_overlay(&self, context: &yew::Context<Self>) -> Html {
         let outer_click_cb = context.link().callback(|_| Msg::DismissOverlay);
+        let close_overlay_cb = context.link().callback(|_| Msg::DismissOverlay);
         let inner_click_cb = context.link().batch_callback(|e: web_sys::MouseEvent| {
             e.stop_propagation();
             None
@@ -467,6 +475,7 @@ impl Game {
                 None
             }
         });
+        let show_feedback_cb = context.link().callback(|_| Msg::ShowFeedback);
         if self.overlay.is_none() {
             return html! {};
         }
@@ -480,9 +489,10 @@ impl Game {
                 onkeydown={key_cb} onclick={outer_click_cb} tabindex="-1">
                 <div class={inner_class} onclick={inner_click_cb}>{
                     match &self.overlay {
-                        Some(Overlay::Documentation) => html! { <crate::documentation::Documentation /> },
+                        Some(Overlay::Documentation) => html! { <crate::documentation::Documentation {show_feedback_cb} /> },
                         Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(context),
                         Some(Overlay::Compiling) => html! { <h1 class="compiling">{ "Compiling..." }</h1> },
+                        Some(Overlay::Feedback) => html! { <crate::feedback::Feedback {close_overlay_cb} /> },
                         None => unreachable!(),
                     }
                 }</div>
