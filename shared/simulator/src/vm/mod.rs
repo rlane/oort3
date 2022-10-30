@@ -7,6 +7,9 @@ use nalgebra::point;
 use nalgebra::Vector2;
 use oort_api::{Ability, Class, Line, SystemState};
 use serde::{Deserialize, Serialize};
+use std::cell::{RefCell, RefMut};
+use std::ops::DerefMut;
+use std::rc::Rc;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
 pub type Vec2 = nalgebra::Vector2<f64>;
@@ -75,10 +78,17 @@ struct WasmShipController {
 
 #[derive(Clone)]
 pub struct WasmVm {
+    store: Rc<RefCell<wasmer::Store>>,
     memory: wasmer::Memory,
     system_state_ptr: WasmPtr<f64>,
     tick_ship: wasmer::Function,
     delete_ship: wasmer::Function,
+}
+
+impl WasmVm {
+    fn store(&self) -> RefMut<'_, Store> {
+        self.store.borrow_mut()
+    }
 }
 
 impl WasmTeamController {
@@ -138,21 +148,15 @@ impl TeamController for WasmTeamController {
 
 impl WasmVm {
     pub fn create(code: &[u8]) -> Result<WasmVm, Error> {
-        #[cfg(not(target_arch = "wasm32"))]
-        let store = Store::new_with_engine(
-            &wasmer_compiler::Universal::new(wasmer_compiler_cranelift::Cranelift::default())
-                .engine(),
-        );
-        #[cfg(target_arch = "wasm32")]
-        let store = Store::default();
+        let mut store = Store::default();
         let module = translate_error(Module::new(&store, code))?;
         let import_object = imports! {};
-        let instance = Instance::new(&module, &import_object)?;
+        let instance = Instance::new(&mut store, &module, &import_object)?;
 
         let memory = translate_error(instance.exports.get_memory("memory"))?.clone();
         let system_state_offset: i32 =
             translate_error(instance.exports.get_global("SYSTEM_STATE"))?
-                .get()
+                .get(&mut store)
                 .i32()
                 .unwrap();
         let system_state_ptr: WasmPtr<f64> = WasmPtr::new(system_state_offset as u32);
@@ -162,6 +166,7 @@ impl WasmVm {
             translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
 
         Ok(WasmVm {
+            store: Rc::new(RefCell::new(store)),
             memory,
             system_state_ptr,
             tick_ship,
@@ -172,10 +177,11 @@ impl WasmVm {
 
 impl WasmShipController {
     pub fn read_system_state(&mut self) {
+        let memory_view = self.vm.memory.view(self.vm.store().deref_mut());
         let slice = self
             .vm
             .system_state_ptr
-            .slice(&self.vm.memory, SystemState::Size as u32)
+            .slice(&memory_view, SystemState::Size as u32)
             .expect("system state read");
         slice
             .read_slice(&mut self.state.state)
@@ -183,10 +189,11 @@ impl WasmShipController {
     }
 
     pub fn write_system_state(&self) {
+        let memory_view = self.vm.memory.view(self.vm.store().deref_mut());
         let slice = self
             .vm
             .system_state_ptr
-            .slice(&self.vm.memory, SystemState::Size as u32)
+            .slice(&memory_view, SystemState::Size as u32)
             .expect("system state write");
         slice
             .write_slice(&self.state.state)
@@ -194,18 +201,20 @@ impl WasmShipController {
     }
 
     pub fn read_string(&self, offset: u32, length: u32) -> Option<String> {
+        let memory_view = self.vm.memory.view(self.vm.store().deref_mut());
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let mut bytes: Vec<u8> = Vec::new();
         bytes.resize(length as usize, 0);
-        let slice = ptr.slice(&self.vm.memory, length).ok()?;
+        let slice = ptr.slice(&memory_view, length).ok()?;
         slice.read_slice(&mut bytes).ok()?;
         String::from_utf8(bytes).ok()
     }
 
     pub fn read_vec<T: Default + Clone>(&self, offset: u32, length: u32) -> Option<Vec<T>> {
+        let memory_view = self.vm.memory.view(self.vm.store().deref_mut());
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let byte_length = length.saturating_mul(std::mem::size_of::<T>() as u32);
-        let slice = ptr.slice(&self.vm.memory, byte_length).ok()?;
+        let slice = ptr.slice(&memory_view, byte_length).ok()?;
         let byte_vec = slice.read_to_vec().ok()?;
         let src_ptr = unsafe { std::mem::transmute::<*const u8, *const T>(byte_vec.as_ptr()) };
         let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
@@ -320,7 +329,11 @@ impl ShipController for WasmShipController {
 
         let (index, _) = self.handle.0.into_raw_parts();
         let index = index as i32;
-        translate_runtime_error(self.vm.tick_ship.call(&[index.into()]))?;
+        translate_runtime_error(
+            self.vm
+                .tick_ship
+                .call(self.vm.store().deref_mut(), &[index.into()]),
+        )?;
 
         {
             self.read_system_state();
@@ -419,7 +432,11 @@ impl ShipController for WasmShipController {
     fn delete(&mut self) {
         let (index, _) = self.handle.0.into_raw_parts();
         let index = index as i32;
-        if let Err(e) = translate_runtime_error(self.vm.delete_ship.call(&[index.into()])) {
+        if let Err(e) = translate_runtime_error(
+            self.vm
+                .delete_ship
+                .call(self.vm.store().deref_mut(), &[index.into()]),
+        ) {
             log::warn!("Failed to delete ship: {:?}", e);
         }
     }
