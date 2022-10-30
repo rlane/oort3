@@ -352,6 +352,7 @@ pub fn asteroid(variant: i32) -> ShipData {
         class: ShipClass::Asteroid { variant },
         team: 9,
         health: 200.0,
+        radar_cross_section: 50.0,
         ..Default::default()
     }
 }
