@@ -266,5 +266,5 @@ b.error {
 }
 
 .lm_content {
-  overflow: scroll;
+  overflow: auto;
 }
