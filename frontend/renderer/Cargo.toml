@@ -13,7 +13,7 @@ getrandom = { version = "0.2.6", features = ["js"] }
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 js-sys = "0.3.57"
 log = "0.4.17"
-memoffset = "0.6.5"
+memoffset = "0.7.1"
 nalgebra = { version = "0.31.0", features = ["serde-serialize"] }
 rand = "0.8.5"
 rand_chacha = "0.3.1"
