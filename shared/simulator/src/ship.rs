@@ -98,6 +98,7 @@ pub struct ShipData {
     pub class: ShipClass,
     pub team: i32,
     pub health: f64,
+    pub mass: f64,
     pub acceleration: Vector2<f64>,
     pub angular_acceleration: f64,
     pub max_forward_acceleration: f64,
@@ -120,6 +121,7 @@ impl Default for ShipData {
             class: ShipClass::Fighter,
             team: 0,
             health: 100.0,
+            mass: 1000.0,
             acceleration: vector![0.0, 0.0],
             angular_acceleration: 0.0,
             max_forward_acceleration: 0.0,
@@ -201,6 +203,7 @@ pub fn fighter(team: i32) -> ShipData {
         class: ShipClass::Fighter,
         team,
         health: 100.0,
+        mass: 15000.0,
         max_forward_acceleration: 60.0,
         max_backward_acceleration: 30.0,
         max_lateral_acceleration: 30.0,
@@ -239,6 +242,7 @@ pub fn frigate(team: i32) -> ShipData {
         class: ShipClass::Frigate,
         team,
         health: 10000.0,
+        mass: 4e6,
         max_forward_acceleration: 10.0,
         max_backward_acceleration: 5.0,
         max_lateral_acceleration: 5.0,
@@ -298,6 +302,7 @@ pub fn cruiser(team: i32) -> ShipData {
         class: ShipClass::Cruiser,
         team,
         health: 20000.0,
+        mass: 9e6,
         max_forward_acceleration: 5.0,
         max_backward_acceleration: 2.5,
         max_lateral_acceleration: 2.5,
@@ -352,6 +357,7 @@ pub fn asteroid(variant: i32) -> ShipData {
         class: ShipClass::Asteroid { variant },
         team: 9,
         health: 200.0,
+        mass: 20e6,
         radar_cross_section: 50.0,
         ..Default::default()
     }
@@ -362,6 +368,7 @@ pub fn target(team: i32) -> ShipData {
         class: ShipClass::Target,
         team,
         health: 1.0,
+        mass: 10.0,
         ..Default::default()
     }
 }
@@ -371,6 +378,7 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 20.0,
+        mass: 150.0,
         max_forward_acceleration: 180.0,
         max_backward_acceleration: 0.0,
         max_lateral_acceleration: 50.0,
@@ -406,6 +414,7 @@ pub fn torpedo(team: i32) -> ShipData {
         class: ShipClass::Torpedo,
         team,
         health: 100.0,
+        mass: 500.0,
         max_forward_acceleration: 70.0,
         max_backward_acceleration: 0.0,
         max_lateral_acceleration: 20.0,
@@ -455,6 +464,7 @@ pub fn create(
         .collect::<Vec<_>>();
     let collider = ColliderBuilder::convex_hull(&vertices)
         .unwrap()
+        .mass(data.mass)
         .restitution(restitution)
         .collision_groups(collision::ship_interaction_groups(team))
         .active_events(ActiveEvents::COLLISION_EVENTS)
