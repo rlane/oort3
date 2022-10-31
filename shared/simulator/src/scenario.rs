@@ -33,6 +33,10 @@ fn reference_ai() -> Code {
     builtin("reference")
 }
 
+fn empty_ai() -> Code {
+    builtin("empty")
+}
+
 fn check_victory_with_filter(sim: &Simulation, ship_filter: fn(&ShipAccessor) -> bool) -> Status {
     let mut team_health: HashMap<i32, u32> = HashMap::new();
     for &handle in sim.ships.iter() {
@@ -114,7 +118,7 @@ pub trait Scenario {
 
     // Indexed by team ID.
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None]
+        vec![empty_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1383,7 +1387,7 @@ impl Scenario for PrimitiveDuel {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1459,7 +1463,7 @@ impl Scenario for FighterDuel {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1517,7 +1521,7 @@ impl Scenario for FrigateDuel {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1575,7 +1579,7 @@ impl Scenario for CruiserDuel {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1653,7 +1657,7 @@ impl Scenario for AsteroidDuel {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1796,7 +1800,7 @@ impl Scenario for Furball {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1880,7 +1884,7 @@ impl Scenario for Fleet {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -1971,7 +1975,7 @@ impl Scenario for Belt {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 
     fn solution(&self) -> Code {
@@ -2014,6 +2018,6 @@ impl Scenario for FrigatePointDefense {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, reference_ai()]
+        vec![empty_ai(), reference_ai()]
     }
 }
