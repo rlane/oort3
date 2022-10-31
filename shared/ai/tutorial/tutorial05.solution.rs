@@ -3,6 +3,8 @@
 // "target_velocity" function.
 use oort_api::prelude::*;
 
+const BULLET_SPEED: f64 = 1000.0;
+
 pub struct Ship {}
 
 impl Ship {
@@ -25,6 +27,6 @@ fn turn_to(target_heading: f64) {
 fn lead_target(target_position: Vec2, target_velocity: Vec2) -> f64 {
     let dp = target_position - position();
     let dv = target_velocity - velocity();
-    let predicted_dp = dp + dv * dp.length() / 1000.0;
+    let predicted_dp = dp + dv * dp.length() / BULLET_SPEED;
     predicted_dp.angle()
 }
