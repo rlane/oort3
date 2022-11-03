@@ -1015,6 +1015,8 @@ pub fn str_to_code(s: &str) -> Code {
     let re = Regex::new(r"#builtin:(.*)").unwrap();
     if let Some(m) = re.captures(s) {
         Code::Builtin(m[1].to_string())
+    } else if s.trim().is_empty() {
+        Code::None
     } else {
         Code::Rust(s.to_string())
     }
