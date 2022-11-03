@@ -13,7 +13,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             { "Press Escape to close. Please file bugs at " }<a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub" }</a>
             { " and give feedback on " } <a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a>
             { " or " }<a href="#" onclick={props.show_feedback_cb.clone()}>{ "in-game" }</a>{ ". " }
-            { "Also take a look at the " }<a href="https://github.com/rlane/oort3/wiki">{ "wiki" }</a>{ "." }<br/>
+            { "Also take a look at the " }<a href="https://github.com/rlane/oort3/wiki" target="_none">{ "wiki" }</a>{ "." }<br/>
 
             <h2>{ "Basics" }</h2>
             { "Select a scenario from the list in the top-right of the page (after closing the documentation overlay)." }<br/>
@@ -32,8 +32,8 @@ pub fn documentation(props: &DocumentationProps) -> Html {
 
             <h2>{ "Language" }</h2>
             <p>
-                { "Oort AIs are written in " }<a href="https://www.rust-lang.org/">{ "Rust" }</a>{ ". " }
-                { "For an introduction to the language check out " }<a href="https://doc.rust-lang.org/stable/rust-by-example/">{ "Rust By Example" }</a>{ ". " }
+                { "Oort AIs are written in " }<a href="https://www.rust-lang.org/" target="_none">{ "Rust" }</a>{ ". " }
+                { "For an introduction to the language check out " }<a href="https://doc.rust-lang.org/stable/rust-by-example/" target="_none">{ "Rust By Example" }</a>{ ". " }
             </p>
 
             <p>
@@ -110,7 +110,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "x.abs()" }</code>{ ": Absolute value."}</li>
               <li><code>{ "x.sqrt()" }</code>{ ": Square root."}</li>
               <li><code>{ "x.sin(), x.cos(), x.tan()" }</code>{": Trignometry."}</li>
-              <li>{ "See the " }<a href="https://doc.rust-lang.org/std/primitive.f64.html">{ "Rust documentation" }</a>{ " for the full list of f64 methods." }</li>
+              <li>{ "See the " }<a href="https://doc.rust-lang.org/std/primitive.f64.html" target="_none">{ "Rust documentation" }</a>{ " for the full list of f64 methods." }</li>
             </ul>
 
             <h2>{ "Vector Math" }</h2>
