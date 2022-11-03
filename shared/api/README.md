@@ -56,7 +56,9 @@ Engine control:
 
 Engine limits:
 
-- [`max_acceleration() -> Vec2`](prelude::max_acceleration): Maximum linear acceleration.
+- [`max_forward_acceleration() -> f64`](prelude::max_forward_acceleration): Maximum forward acceleration.
+- [`max_backward_acceleration() -> f64`](prelude::max_backward_acceleration): Maximum backward acceleration.
+- [`max_lateral_acceleration() -> f64`](prelude::max_lateral_acceleration): Maximum lateral acceleration.
 - [`max_angular_acceleration() -> f64`](prelude::max_angular_acceleration): Maximum angular acceleration.
 
 ## Weapons
