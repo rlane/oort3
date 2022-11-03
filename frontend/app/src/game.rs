@@ -418,6 +418,8 @@ impl Component for Game {
     fn rendered(&mut self, _context: &yew::Context<Self>, _first_render: bool) {
         if self.overlay.is_some() {
             self.focus_overlay();
+        } else {
+            self.focus_editor();
         }
     }
 }
@@ -523,6 +525,10 @@ impl Game {
         if let Some(element) = self.overlay_ref.cast::<web_sys::HtmlElement>() {
             element.focus().expect("focusing overlay");
         }
+    }
+
+    fn focus_editor(&self) {
+        self.editor_links[0].with_editor(|editor| editor.as_ref().focus());
     }
 
     fn summarize_background_simulations(&self) -> Option<BackgroundSimSummary> {
