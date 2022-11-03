@@ -36,19 +36,19 @@ pub fn welcome(props: &WelcomeProps) -> Html {
             </p>
 
             <p>
-                { "For an introduction to the language check out " }<a href="https://doc.rust-lang.org/stable/rust-by-example/" target="_none">{ "Rust By Example" }</a>{ ". " }
+                { "For an introduction to the language check out " }<a href="https://doc.rust-lang.org/stable/rust-by-example/" target="_blank">{ "Rust By Example" }</a>{ ". " }
                 { "Only basic Rust knowledge is required to play. " }
-                { "The \"Documentation\" link in the top-right of the game UI has a quick reference to the API, or you can check out the " }<a href="https://docs.rs/oort_api" target="_none">{ "API Reference" }</a>{ ". " }
-                { "You also have large parts of the " }<a href="https://doc.rust-lang.org/std/" target="_none">{ "Rust Standard Library" }</a>{ " available." }
+                { "The \"Documentation\" link in the top-right of the game UI has a quick reference to the API, or you can check out the " }<a href="https://docs.rs/oort_api" target="_blank">{ "API Reference" }</a>{ ". " }
+                { "You also have large parts of the " }<a href="https://doc.rust-lang.org/std/" target="_blank">{ "Rust Standard Library" }</a>{ " available." }
             </p>
 
             <h2>{ "Next Steps" }</h2>
             <ul>
                 <li>{ "Complete a few tutorials starting with " }<a href="#" onclick={scenario("tutorial01")}>{ "tutorial01" }</a> { ". " }<a href="#" onclick={scenario("tutorial05")}>{ "tutorial05" }</a>{ " is where it can get challenging!" }</li>
-                <li>{ "Read up on the " }<a href="https://docs.rs/oort_api" target="_none">{ "API" }</a>{ " and the " }<a href="https://github.com/rlane/oort3/wiki" target="_none">{ "wiki" }</a>{ "." }</li>
-                <li>{ "Join the " }<a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a>{ "." }</li>
+                <li>{ "Read up on the " }<a href="https://docs.rs/oort_api" target="_blank">{ "API" }</a>{ " and the " }<a href="https://github.com/rlane/oort3/wiki" target="_blank">{ "wiki" }</a>{ "." }</li>
+                <li>{ "Join the " }<a href="https://discord.gg/vYyu9EhkKH" target="_blank">{ "Discord" }</a>{ "." }</li>
                 <li>{ "Send in your feedback via Discord, a " }
-                    <a href="http://github.com/rlane/oort3/issues" target="_none">{ "GitHub issue" }</a>{ ", or " }
+                    <a href="http://github.com/rlane/oort3/issues" target="_blank">{ "GitHub issue" }</a>{ ", or " }
                     <a href="#" onclick={props.show_feedback_cb.clone()}>{ "in-game" }</a>{ "." }</li>
             </ul>
         </div>

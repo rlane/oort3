@@ -28,7 +28,7 @@ pub fn feedback(props: &FeedbackProps) -> Html {
             <h1>{ "Feedback" }</h1>
             <p>
                 { "I'm glad to get your feedback! Consider posting on " }
-                <a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a>
+                <a href="https://discord.gg/vYyu9EhkKH" target="_blank">{ "Discord" }</a>
                 {" as well." }
             </p>
             <textarea ref={text_ref} rows="10" cols="80"></textarea>

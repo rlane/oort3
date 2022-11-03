@@ -85,10 +85,10 @@ impl Component for Toolbar {
                     </div>
                     <div class="toolbar-elem right"><a href="#" onclick={show_feedback_cb}>{ "Feedback" }</a></div>
                     <div class="toolbar-elem right"><a href="#" onclick={show_documentation_cb}>{ "Documentation" }</a></div>
-                    <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3/wiki" target="_none">{ "Wiki" }</a></div>
-                    <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_none">{ "GitHub" }</a></div>
-                    <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_none">{ "Trello" }</a></div>
-                    <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_none">{ "Discord" }</a></div>
+                    <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3/wiki" target="_blank">{ "Wiki" }</a></div>
+                    <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_blank">{ "GitHub" }</a></div>
+                    <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_blank">{ "Trello" }</a></div>
+                    <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_blank">{ "Discord" }</a></div>
                     <div id="username" class="toolbar-elem right" title="Your username">
                         <input type="text"
                             value={username}
