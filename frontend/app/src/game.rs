@@ -190,7 +190,11 @@ impl Component for Game {
                 true
             }
             Msg::EditorAction { team, ref action } if action == "oort-restore-initial-code" => {
-                let mut code = scenario::load(&self.scenario_name).initial_code()[team].clone();
+                let mut code = scenario::load(&self.scenario_name)
+                    .initial_code()
+                    .get(team)
+                    .unwrap_or(&Code::None)
+                    .clone();
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
@@ -867,15 +871,19 @@ impl Game {
         player_team.set_editor_text(&code_to_string(&player_team.initial_source_code));
         self.teams = vec![player_team];
 
-        if codes.len() > 1 {
-            let mut enemy_team = Team::new(self.editor_links[1].clone());
-            enemy_team.initial_source_code = to_source_code(&codes[1]);
-            enemy_team.running_source_code = to_source_code(&codes[1]);
-            enemy_team.initial_compiled_code = codes[1].clone();
-            enemy_team.running_compiled_code = codes[1].clone();
-            enemy_team.set_editor_text(&code_to_string(&enemy_team.initial_source_code));
-            self.teams.push(enemy_team);
-        }
+        let enemy_code = if codes.len() > 1 {
+            codes[1].clone()
+        } else {
+            Code::None
+        };
+
+        let mut enemy_team = Team::new(self.editor_links[1].clone());
+        enemy_team.initial_source_code = to_source_code(&enemy_code);
+        enemy_team.running_source_code = to_source_code(&enemy_code);
+        enemy_team.initial_compiled_code = enemy_code.clone();
+        enemy_team.running_compiled_code = enemy_code;
+        enemy_team.set_editor_text(&code_to_string(&enemy_team.initial_source_code));
+        self.teams.push(enemy_team);
 
         crate::js::golden_layout::show_welcome(scenario_name == "welcome");
 
