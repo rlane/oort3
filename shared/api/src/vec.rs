@@ -1,4 +1,7 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::{
+    fmt::Display,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+};
 
 /// A two-dimensional vector.
 #[derive(Clone, Copy, Debug)]
@@ -52,6 +55,12 @@ impl Vec2 {
             x: self.x * cos - self.y * sin,
             y: self.x * sin + self.y * cos,
         }
+    }
+}
+
+impl Display for Vec2 {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.debug_tuple("").field(&self.x).field(&self.y).finish()
     }
 }
 
