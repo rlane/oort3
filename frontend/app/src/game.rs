@@ -612,7 +612,8 @@ impl Game {
                 ]
             })
         };
-        let make_seed_link = |seed| html! { <a onclick={make_seed_link_cb(seed)}>{ seed }</a> };
+        let make_seed_link =
+            |seed| html! { <a href="#" onclick={make_seed_link_cb(seed)}>{ seed }</a> };
 
         let background_status = if let Some(summary) = self.summarize_background_simulations() {
             let next_scenario_link = if summary.failed_seeds.is_empty() {
