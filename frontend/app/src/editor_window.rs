@@ -131,6 +131,7 @@ impl Component for EditorWindow {
             .props()
             .on_editor_action
             .reform(|_| "oort-execute".to_string());
+        let cmd_or_ctrl = if is_mac() { "Cmd" } else { "Ctrl" };
 
         create_portal(
             html! {
@@ -141,7 +142,7 @@ impl Component for EditorWindow {
                     <div class="run_button"><span
                         onclick={run_cb}
                         class="material-symbols-outlined"
-                        title="Execute (Ctrl-Enter)"
+                        title={format!("Execute ({cmd_or_ctrl}-Enter)")}
                     >{ "play_circle" }</span></div>
                 </>
             },
@@ -327,4 +328,12 @@ impl Completer {
             })
         })
     }
+}
+
+fn is_mac() -> bool {
+    gloo_utils::window()
+        .navigator()
+        .app_version()
+        .unwrap()
+        .contains("Mac")
 }

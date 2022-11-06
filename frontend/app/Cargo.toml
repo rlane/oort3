@@ -71,6 +71,7 @@ features = [
   'EventTarget',
   'PointerEvent',
   'DomRect',
+  'Navigator',
 ]
 
 [build-dependencies]
