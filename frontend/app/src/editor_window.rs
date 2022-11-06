@@ -127,12 +127,23 @@ impl Component for EditorWindow {
     fn view(&self, context: &yew::Context<Self>) -> Html {
         let monaco_options: Rc<CodeEditorOptions> = Rc::new(make_monaco_options());
         let editor_link = context.props().editor_link.clone();
+        let run_cb = context
+            .props()
+            .on_editor_action
+            .reform(|_| "oort-execute".to_string());
 
         create_portal(
             html! {
-                <div class="editor">
-                    <CodeEditor options={monaco_options} link={editor_link} />
-                </div>
+                <>
+                    <div class="editor">
+                        <CodeEditor options={monaco_options} link={editor_link} />
+                    </div>
+                    <div class="run_button"><span
+                        onclick={run_cb}
+                        class="material-symbols-outlined"
+                        title="Execute (Ctrl-Enter)"
+                    >{ "play_circle" }</span></div>
+                </>
             },
             context.props().host.clone(),
         )
