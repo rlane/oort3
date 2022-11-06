@@ -4,7 +4,7 @@ body {
   padding: 0px;
   background: black;
   color: #d4d4d4;
-  font-family: "Roboto", sans-serif;
+  font-family: "Ubuntu", sans-serif;
   overflow: hidden;
 }
 
@@ -105,7 +105,7 @@ body {
   background-color: #1e1e1e;
   color: #d4d4d4;
   border: none;
-  font-family: "Roboto";
+  font-family: "Ubuntu";
   font-size: 16px;
   text-align: right;
 }
@@ -263,11 +263,12 @@ b.error {
 
 .lm_header .lm_tab {
   box-shadow: none;
-  font-family: Roboto;
-  font-size: 16px;
+  font-family: Ubuntu;
+  font-size: 14px;
   margin-top: 0;
-  padding-top: 0;
-  height: 18px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  height: 16px;
 }
 
 .lm_header .lm_tab.lm_active {
