@@ -1530,14 +1530,14 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort_api"
-version = "0.19.2"
+version = "0.19.3"
 dependencies = [
  "oorandom",
 ]
 
 [[package]]
 name = "oort_proto"
-version = "0.19.2"
+version = "0.19.3"
 dependencies = [
  "chrono",
  "serde",
@@ -1545,7 +1545,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulator"
-version = "0.19.2"
+version = "0.19.3"
 dependencies = [
  "crossbeam",
  "getrandom",
@@ -1575,7 +1575,7 @@ dependencies = [
 
 [[package]]
 name = "oort_tools"
-version = "0.19.2"
+version = "0.19.3"
 dependencies = [
  "chrono",
  "clap 3.2.23",
