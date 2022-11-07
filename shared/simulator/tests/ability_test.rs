@@ -1,7 +1,7 @@
 use nalgebra::vector;
 use oort_api::Ability;
 use oort_simulator::ship;
-use oort_simulator::ship::{fighter, missile, torpedo, ShipClass};
+use oort_simulator::ship::{cruiser, fighter, frigate, missile, torpedo, ShipClass};
 use oort_simulator::simulation::{self, Code, PHYSICS_TICK_LENGTH};
 use test_log::test;
 
@@ -78,4 +78,33 @@ fn test_decoy() {
             .class,
         ShipClass::Cruiser
     );
+}
+
+#[test]
+fn test_shield() {
+    let mut sim = simulation::Simulation::new("test", 0, &[Code::None, Code::None]);
+    let ship0 = ship::create(
+        &mut sim,
+        vector![0.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        frigate(0),
+    );
+    let ship1 = ship::create(
+        &mut sim,
+        vector![1000.0, 0.0],
+        vector![0.0, 0.0],
+        0.0,
+        cruiser(1),
+    );
+
+    sim.ship_mut(ship1).activate_ability(Ability::Shield);
+    sim.ship_mut(ship0).fire(0);
+
+    for _ in 0..30 {
+        sim.step();
+    }
+
+    assert_ne!(sim.ship(ship0).data().health, frigate(0).health);
+    assert_eq!(sim.ship(ship1).data().health, cruiser(1).health);
 }

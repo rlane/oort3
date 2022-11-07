@@ -348,6 +348,12 @@ pub fn cruiser(team: i32) -> ShipData {
         }),
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
         radio: Some(radio()),
+        abilities: vec![ShipAbility {
+            ability: Ability::Shield,
+            active_time: 1.0,
+            reload_time: 5.0,
+            ..Default::default()
+        }],
         ..Default::default()
     }
 }

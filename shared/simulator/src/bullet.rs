@@ -67,6 +67,10 @@ impl<'a> BulletAccessor<'a> {
     pub fn data(&self) -> &BulletData {
         self.simulation.bullet_data.get(&self.handle).unwrap()
     }
+
+    pub fn position(&self) -> Vector2<f64> {
+        *self.body().translation()
+    }
 }
 
 pub struct BulletAccessorMut<'a> {
@@ -75,6 +79,10 @@ pub struct BulletAccessorMut<'a> {
 }
 
 impl<'a: 'b, 'b> BulletAccessorMut<'a> {
+    pub fn position(&'a mut self) -> Vector2<f64> {
+        *self.body().translation()
+    }
+
     pub fn body(&'a mut self) -> &'a mut RigidBody {
         self.simulation
             .bodies

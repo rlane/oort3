@@ -13,6 +13,7 @@ use crate::vm::{ShipController, TeamController};
 use crossbeam::channel::Sender;
 use instant::Instant;
 use nalgebra::{UnitComplex, Vector2};
+use oort_api::Ability;
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 use rapier2d_f64::prelude::*;
@@ -181,6 +182,22 @@ impl Simulation {
             if let CollisionEvent::Started(h1, h2, _flags) = event {
                 let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
                 let handle_hit = |sim: &mut Simulation, ship, bullet| {
+                    if sim.ship(ship).is_ability_active(Ability::Shield) {
+                        let dp = sim.bullet(bullet).body().position().translation.vector
+                            - sim.ship(ship).position().vector;
+                        let normal = dp.normalize();
+                        let old_velocity = sim.bullet(bullet).body().linvel();
+                        let new_velocity = normal * old_velocity.magnitude();
+                        sim.bullet_mut(bullet)
+                            .body()
+                            .set_linvel(new_velocity, false);
+                        let pos = sim.bullet_mut(bullet).position();
+                        sim.bullet_mut(bullet)
+                            .body()
+                            .set_translation(pos + new_velocity * PHYSICS_TICK_LENGTH, false);
+                        sim.bullet_mut(bullet).data_mut().team = sim.ship(ship).data().team;
+                        return;
+                    }
                     if sim.bullet(bullet).data().team == sim.ship(ship).data().team {
                         sim.bullet_mut(bullet).destroy();
                         return;

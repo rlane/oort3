@@ -112,6 +112,8 @@ pub enum Ability {
     ShapedCharge,
     /// Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s.
     Decoy,
+    /// Cruiser only. Deflects projectiles for 1s. Reloads in 5s.
+    Shield,
 }
 
 #[allow(missing_docs)]
