@@ -30,6 +30,7 @@ pub struct SimulationWindowProps {
     pub register_link: Callback<Scope<SimulationWindow>>,
     pub version: String,
     pub compiler_errors: Option<String>,
+    pub canvas_ref: NodeRef,
 }
 
 pub struct SimulationWindow {
@@ -58,7 +59,7 @@ impl Component for SimulationWindow {
             nonce: 0,
             sim_agent,
             last_status: scenario::Status::Running,
-            canvas_ref: NodeRef::default(),
+            canvas_ref: context.props().canvas_ref.clone(),
             status_ref: NodeRef::default(),
             picked_ref: NodeRef::default(),
         }
@@ -152,7 +153,7 @@ impl Component for SimulationWindow {
         create_portal(
             html! {
                 <>
-                    <canvas class="glcanvas"
+                    <canvas id="simcanvas" class="glcanvas"
                         ref={self.canvas_ref.clone()}
                         tabindex="1"
                         onkeydown={key_event_cb.clone()}

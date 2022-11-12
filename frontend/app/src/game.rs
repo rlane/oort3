@@ -22,6 +22,7 @@ use serde::Deserialize;
 use simulation::PHYSICS_TICK_LENGTH;
 use std::collections::HashMap;
 use std::rc::Rc;
+use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::{EventTarget, HtmlInputElement};
@@ -71,6 +72,7 @@ pub struct Game {
     background_nonce: u32,
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
+    simulation_canvas_ref: NodeRef,
     saw_slow_compile: bool,
     compiler_errors: Option<String>,
     frame: u64,
@@ -119,6 +121,7 @@ impl Component for Game {
             background_nonce: 0,
             overlay: None,
             overlay_ref: NodeRef::default(),
+            simulation_canvas_ref: NodeRef::default(),
             saw_slow_compile: false,
             compiler_errors: None,
             frame: 0,
@@ -281,6 +284,7 @@ impl Component for Game {
                 self.background_agents.clear();
                 self.background_snapshots.clear();
                 self.background_nonce = 0;
+                self.focus_editor();
                 true
             }
             Msg::CompileFinished(results) => {
@@ -316,10 +320,11 @@ impl Component for Game {
                         code: code_to_string(&self.player_team().running_source_code),
                     });
                     self.run(context);
+                    self.focus_simulation();
                 } else {
                     self.compiler_errors = Some(errors.join("\n"));
+                    self.focus_editor();
                 }
-                self.focus_editor();
                 true
             }
             Msg::CompileSlow => {
@@ -409,17 +414,18 @@ impl Component for Game {
             <Welcome host={welcome_window_host} show_feedback_cb={show_feedback_cb.clone()} select_scenario_cb={select_scenario_cb2} />
             <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} />
             <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} />
-            <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} {compiler_errors} />
+            <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} {compiler_errors} canvas_ref={self.simulation_canvas_ref.clone()} />
             <Documentation host={documentation_window_host} {show_feedback_cb} />
             { self.render_overlay(context) }
         </>
         }
     }
 
-    fn rendered(&mut self, _context: &yew::Context<Self>, _first_render: bool) {
+    fn rendered(&mut self, _context: &yew::Context<Self>, first_render: bool) {
         if self.overlay.is_some() {
             self.focus_overlay();
-        } else {
+        } else if first_render {
+            // TODO
             self.focus_editor();
         }
     }
@@ -528,6 +534,18 @@ impl Game {
 
     fn focus_editor(&self) {
         self.editor_links[0].with_editor(|editor| editor.as_ref().focus());
+    }
+
+    fn focus_simulation(&self) {
+        let canvas_ref = self.simulation_canvas_ref.clone();
+        let cb = Closure::once_into_js(move || {
+            if let Some(element) = canvas_ref.cast::<web_sys::HtmlElement>() {
+                element.focus().expect("focusing simulation canvas");
+            }
+        });
+        gloo_utils::window()
+            .set_timeout_with_callback(&cb.into())
+            .unwrap();
     }
 
     fn summarize_background_simulations(&self) -> Option<BackgroundSimSummary> {
