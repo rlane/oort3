@@ -29,7 +29,6 @@ pub struct SimulationWindowProps {
     pub on_simulation_finished: Callback<Snapshot>,
     pub register_link: Callback<Scope<SimulationWindow>>,
     pub version: String,
-    pub compiler_errors: Option<String>,
     pub canvas_ref: NodeRef,
 }
 
@@ -144,11 +143,6 @@ impl Component for SimulationWindow {
         let wheel_event_cb = context.link().callback(Msg::WheelEvent);
         let mouse_event_cb = context.link().callback(Msg::MouseEvent);
         let pointer_event_cb = context.link().callback(Msg::PointerEvent);
-        let compile_errors = context.props().compiler_errors.clone();
-        let class = compile_errors
-            .as_ref()
-            .map(|_| "visible")
-            .unwrap_or("hidden");
 
         create_portal(
             html! {
@@ -165,12 +159,6 @@ impl Component for SimulationWindow {
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>
-                    </div>
-                    <div id="compiler-errors" class={class}>
-                        <pre>
-                            <h1>{ "Compile error" }</h1>
-                            { compile_errors.unwrap_or_default() }
-                        </pre>
                     </div>
                 </>
             },

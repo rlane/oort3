@@ -1,6 +1,7 @@
 pub mod benchmark;
 pub mod code_size;
 pub mod codestorage;
+pub mod compiler_output_window;
 pub mod documentation;
 pub mod editor_window;
 pub mod feedback;

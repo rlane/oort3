@@ -50,6 +50,13 @@ export function init() {
                 isClosable: false,
                 id: "quick_reference",
               },
+              {
+                type: "component",
+                componentName: "Compiler Output",
+                componentState: {},
+                isClosable: false,
+                id: "compiler_output",
+              },
             ],
           },
         ],
@@ -87,6 +94,13 @@ export function init() {
     function (container, componentState) {
       container.getElement()[0].style.overflow = "auto";
       container.getElement()[0].id = "documentation-window";
+    }
+  );
+  goldenLayout.registerComponent(
+    "Compiler Output",
+    function (container, componentState) {
+      container.getElement()[0].style.overflow = "auto";
+      container.getElement()[0].id = "compiler-output-window";
     }
   );
   goldenLayout.init();
