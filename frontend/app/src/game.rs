@@ -319,6 +319,7 @@ impl Component for Game {
                 } else {
                     self.compiler_errors = Some(errors.join("\n"));
                 }
+                self.focus_editor();
                 true
             }
             Msg::CompileSlow => {
