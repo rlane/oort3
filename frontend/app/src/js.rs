@@ -19,6 +19,7 @@ pub mod golden_layout {
         pub fn init();
         pub fn update_size();
         pub fn show_welcome(visible: bool);
+        pub fn select_tab(id: &str);
     }
 }
 

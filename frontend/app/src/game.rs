@@ -1,12 +1,12 @@
 use crate::documentation::Documentation;
 use crate::editor_window::EditorWindow;
-use crate::filesystem;
 use crate::leaderboard::Leaderboard;
 use crate::services;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
 use crate::userid;
 use crate::welcome::Welcome;
+use crate::{filesystem, js};
 use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
 use oort_proto::{LeaderboardSubmission, Telemetry};
@@ -535,6 +535,7 @@ impl Game {
     fn focus_editor(&self) {
         let link = self.editor_links[0].clone();
         let cb = Closure::once_into_js(move || {
+            js::golden_layout::select_tab("editor.player");
             link.with_editor(|editor| editor.as_ref().focus());
         });
         gloo_utils::window()
@@ -545,6 +546,7 @@ impl Game {
     fn focus_simulation(&self) {
         let canvas_ref = self.simulation_canvas_ref.clone();
         let cb = Closure::once_into_js(move || {
+            js::golden_layout::select_tab("simulation");
             if let Some(element) = canvas_ref.cast::<web_sys::HtmlElement>() {
                 element.focus().expect("focusing simulation canvas");
             }

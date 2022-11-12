@@ -5,6 +5,7 @@ export function init() {
     settings: {
       showPopoutIcon: false,
       showCloseIcon: false,
+      selectionEnabled: true,
     },
     content: [
       {
@@ -19,6 +20,7 @@ export function init() {
                 componentName: "Editor",
                 componentState: { team: 0 },
                 isClosable: false,
+                id: "editor.player",
               },
               {
                 type: "component",
@@ -26,6 +28,7 @@ export function init() {
                 title: "Editor (Opponent)",
                 componentState: { team: 1 },
                 isClosable: false,
+                id: "editor.opponent",
               },
             ],
           },
@@ -38,12 +41,14 @@ export function init() {
                 componentName: "Simulation",
                 componentState: {},
                 isClosable: false,
+                id: "simulation",
               },
               {
                 type: "component",
                 componentName: "Quick Reference",
                 componentState: {},
                 isClosable: false,
+                id: "quick_reference",
               },
             ],
           },
@@ -117,5 +122,21 @@ export function show_welcome(visible) {
         .appendChild(document.getElementById("welcome-window"));
       tabs.removeChild(existing[0], false);
     }
+  }
+}
+
+export function select_tab(id) {
+  let item = goldenLayout.root.getItemsById(id)[0];
+  if (item == null) {
+    console.log("Could not find item " + id);
+    return;
+  }
+  var prev = null;
+  while (item != null) {
+    if (item.isStack) {
+      item.setActiveContentItem(prev);
+    }
+    prev = item;
+    item = item.parent;
   }
 }
