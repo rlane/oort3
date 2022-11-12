@@ -533,7 +533,13 @@ impl Game {
     }
 
     fn focus_editor(&self) {
-        self.editor_links[0].with_editor(|editor| editor.as_ref().focus());
+        let link = self.editor_links[0].clone();
+        let cb = Closure::once_into_js(move || {
+            link.with_editor(|editor| editor.as_ref().focus());
+        });
+        gloo_utils::window()
+            .set_timeout_with_callback(&cb.into())
+            .unwrap();
     }
 
     fn focus_simulation(&self) {
