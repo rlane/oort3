@@ -2,22 +2,23 @@ use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
 pub struct DocumentationProps {
+    pub host: web_sys::Element,
     pub show_feedback_cb: Callback<MouseEvent>,
 }
 
 #[function_component(Documentation)]
 pub fn documentation(props: &DocumentationProps) -> Html {
-    html! {
-        <>
+    let htm = html! {
+        <div class="documentation">
             <h1>{ "Quick Reference" }</h1>
-            { "Press Escape to close. Please file bugs at " }<a href="http://github.com/rlane/oort3/issues" target="_blank">{ "GitHub" }</a>
+            { "Please file bugs at " }<a href="http://github.com/rlane/oort3/issues" target="_blank">{ "GitHub" }</a>
             { " and give feedback on " } <a href="https://discord.gg/vYyu9EhkKH" target="_blank">{ "Discord" }</a>
             { " or " }<a href="#" onclick={props.show_feedback_cb.clone()}>{ "in-game" }</a>{ ". " }
             { "Also take a look at the " }<a href="https://github.com/rlane/oort3/wiki" target="_blank">{ "wiki" }</a>{ "." }<br/>
 
             <h2>{ "Basics" }</h2>
-            { "Select a scenario from the list in the top-right of the page (after closing the documentation overlay)." }<br/>
-            { "Press Ctrl-Enter in the editor (Cmd-Enter on Mac) to run the scenario with a new version of your code." }<br/>
+            { "Select a scenario from the list in the top-right of the page." }<br/>
+            { "Click the run button in the editor to start the scenario with a new version of your code." }<br/>
 
             <h2>{ "Controls" }</h2>
             <ul>
@@ -157,6 +158,8 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li>{ "Missile: Highly maneuverable but unarmored. Explodes on contact or after an " }<code>{ "explode()" }</code>{ " call." }</li>
               <li>{ "Torpedo: Better armor, larger warhead, but less maneuverable than a missile. Explodes on contact or after an " }<code>{ "explode()" }</code>{ " call." }</li>
             </ul>
-        </>
-    }
+        </div>
+    };
+
+    create_portal(htm, props.host.clone())
 }

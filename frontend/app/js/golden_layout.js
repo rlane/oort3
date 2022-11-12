@@ -30,11 +30,22 @@ export function init() {
             ],
           },
           {
-            type: "component",
-            componentName: "Simulation",
-            componentState: {},
-            isClosable: false,
+            type: "stack",
             width: 61.8,
+            content: [
+              {
+                type: "component",
+                componentName: "Simulation",
+                componentState: {},
+                isClosable: false,
+              },
+              {
+                type: "component",
+                componentName: "Quick Reference",
+                componentState: {},
+                isClosable: false,
+              },
+            ],
           },
         ],
       },
@@ -64,6 +75,13 @@ export function init() {
     "Simulation",
     function (container, componentState) {
       container.getElement()[0].id = "simulation-window";
+    }
+  );
+  goldenLayout.registerComponent(
+    "Quick Reference",
+    function (container, componentState) {
+      container.getElement()[0].style.overflow = "auto";
+      container.getElement()[0].id = "documentation-window";
     }
   );
   goldenLayout.init();

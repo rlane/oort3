@@ -1,3 +1,4 @@
+use crate::documentation::Documentation;
 use crate::editor_window::EditorWindow;
 use crate::filesystem;
 use crate::leaderboard::Leaderboard;
@@ -41,7 +42,6 @@ pub enum Msg {
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
-    ShowDocumentation,
     ShowFeedback,
     DismissOverlay,
     CompileFinished(Vec<Result<Code, String>>),
@@ -52,7 +52,6 @@ pub enum Msg {
 }
 
 enum Overlay {
-    Documentation,
     #[allow(dead_code)]
     MissionComplete,
     Compiling,
@@ -273,10 +272,6 @@ impl Component for Game {
                     false
                 }
             }
-            Msg::ShowDocumentation => {
-                self.overlay = Some(Overlay::Documentation);
-                true
-            }
             Msg::ShowFeedback => {
                 self.overlay = Some(Overlay::Feedback);
                 true
@@ -361,7 +356,6 @@ impl Component for Game {
             });
             Msg::SelectScenario(data)
         });
-        let show_documentation_cb = context.link().callback(|_| Msg::ShowDocumentation);
         let show_feedback_cb = context.link().callback(|_| Msg::ShowFeedback);
 
         // For EditorWindow 0
@@ -403,13 +397,19 @@ impl Component for Game {
             vec![Msg::SelectScenario(name), Msg::DismissOverlay]
         });
 
+        // For Documentation.
+        let documentation_window_host = gloo_utils::document()
+            .get_element_by_id("documentation-window")
+            .expect("a #documentation-window element");
+
         html! {
         <>
-            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} {show_documentation_cb} show_feedback_cb={show_feedback_cb.clone()} />
-            <Welcome host={welcome_window_host} {show_feedback_cb} select_scenario_cb={select_scenario_cb2} />
+            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
+            <Welcome host={welcome_window_host} show_feedback_cb={show_feedback_cb.clone()} select_scenario_cb={select_scenario_cb2} />
             <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} />
             <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} />
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} {compiler_errors} />
+            <Documentation host={documentation_window_host} {show_feedback_cb} />
             { self.render_overlay(context) }
         </>
         }
@@ -496,7 +496,6 @@ impl Game {
                 None
             }
         });
-        let show_feedback_cb = context.link().callback(|_| Msg::ShowFeedback);
         if self.overlay.is_none() {
             return html! {};
         }
@@ -510,7 +509,6 @@ impl Game {
                 onkeydown={key_cb} onclick={outer_click_cb} tabindex="-1">
                 <div class={inner_class} onclick={inner_click_cb}>{
                     match &self.overlay {
-                        Some(Overlay::Documentation) => html! { <crate::documentation::Documentation {show_feedback_cb} /> },
                         Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(context),
                         Some(Overlay::Compiling) => html! { <h1 class="compiling">{ "Compiling..." }</h1> },
                         Some(Overlay::Feedback) => html! { <crate::feedback::Feedback {close_overlay_cb} /> },

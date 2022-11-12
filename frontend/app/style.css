@@ -239,6 +239,11 @@ div.welcome {
   padding: 1rem;
 }
 
+div.documentation {
+  padding: 1rem;
+  width: calc(min(100% - 2rem, 80em));
+}
+
 .errorDecoration {
   background-color: #ff000055;
 }

@@ -38,7 +38,7 @@ pub fn welcome(props: &WelcomeProps) -> Html {
             <p>
                 { "For an introduction to the language check out " }<a href="https://doc.rust-lang.org/stable/rust-by-example/" target="_blank">{ "Rust By Example" }</a>{ ". " }
                 { "Only basic Rust knowledge is required to play. " }
-                { "The \"Documentation\" link in the top-right of the game UI has a quick reference to the API, or you can check out the " }<a href="https://docs.rs/oort_api" target="_blank">{ "API Reference" }</a>{ ". " }
+                { "There's a \"Quick Reference\" tab to the right with documentation, or you can check out the " }<a href="https://docs.rs/oort_api" target="_blank">{ "API Reference" }</a>{ ". " }
                 { "You also have large parts of the " }<a href="https://doc.rust-lang.org/std/" target="_blank">{ "Rust Standard Library" }</a>{ " available." }
             </p>
 
