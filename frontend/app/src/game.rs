@@ -41,6 +41,7 @@ pub enum Msg {
     Render,
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
     SelectScenario(String),
+    SelectScenarioAndStart(String),
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
@@ -174,7 +175,11 @@ impl Component for Game {
                 false
             }
             Msg::SelectScenario(scenario_name) => {
-                self.change_scenario(context, &scenario_name);
+                self.change_scenario(context, &scenario_name, false);
+                true
+            }
+            Msg::SelectScenarioAndStart(scenario_name) => {
+                self.change_scenario(context, &scenario_name, true);
                 true
             }
             Msg::SimulationFinished(snapshot) => self.on_simulation_finished(context, snapshot),
@@ -641,7 +646,7 @@ impl Game {
                     .unwrap();
                 vec![
                     Msg::DismissOverlay,
-                    Msg::SelectScenario(scenario_name.clone()),
+                    Msg::SelectScenarioAndStart(scenario_name.clone()),
                 ]
             })
         };
@@ -875,7 +880,7 @@ impl Game {
         self.background_nonce = 0;
     }
 
-    pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str) {
+    pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, start: bool) {
         if !self.teams.is_empty() {
             crate::codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
         }
@@ -896,7 +901,14 @@ impl Game {
             player_team.initial_source_code = to_source_code(&solution);
             player_team.running_source_code = player_team.initial_source_code.clone();
             player_team.running_compiled_code = solution;
-        };
+        } else if let Some(compiled_code) =
+            self.compilation_cache.get(&player_team.initial_source_code)
+        {
+            if start {
+                player_team.running_source_code = player_team.initial_source_code.clone();
+                player_team.running_compiled_code = compiled_code.clone();
+            }
+        }
 
         if self.scenario_name == "welcome" {
             player_team.initial_source_code = Code::Rust(
