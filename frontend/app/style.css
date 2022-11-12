@@ -221,8 +221,8 @@ div.compiler-output {
   padding: 1rem;
 }
 
-div.compiler-errors pre {
-  font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
+div.compiler-output pre {
+  font-family: "Droid Sans Mono", monospace;
 }
 
 .errorDecoration {
