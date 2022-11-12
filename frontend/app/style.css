@@ -241,6 +241,13 @@ b.error {
   color: #f61d1d;
 }
 
+#text-size {
+  position: absolute;
+  visibility: hidden;
+  font-family: "Droid Sans Mono", "monospace";
+  font-size: 14px;
+}
+
 /* GoldenLayout */
 .lm_header {
   background-color: #1e1e1e;

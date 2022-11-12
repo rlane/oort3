@@ -1,6 +1,17 @@
 var goldenLayout;
 
 export function init() {
+  let editor_width_pct = 100.0 - 61.8;
+  let window_width = document.documentElement.clientWidth;
+  let min_editor_width =
+    68 + 14 + document.getElementById("text-size").clientWidth;
+  if ((window_width * editor_width_pct) / 100.0 < min_editor_width) {
+    editor_width_pct = (100.0 * min_editor_width) / window_width;
+  }
+  if (editor_width_pct > 50.0) {
+    editor_width_pct = 50.0;
+  }
+
   var config = {
     settings: {
       showPopoutIcon: false,
@@ -13,6 +24,7 @@ export function init() {
         content: [
           {
             type: "stack",
+            width: editor_width_pct,
             content: [
               {
                 type: "component",
@@ -34,7 +46,6 @@ export function init() {
           },
           {
             type: "stack",
-            width: 61.8,
             content: [
               {
                 type: "component",
