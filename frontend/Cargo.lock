@@ -1620,6 +1620,7 @@ name = "oort_api"
 version = "0.20.0"
 dependencies = [
  "oorandom",
+ "serde",
 ]
 
 [[package]]

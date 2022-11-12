@@ -546,6 +546,15 @@ impl<'a> ShipAccessor<'a> {
             .map(|x| x.active_time_remaining > 0.0)
             .unwrap_or(false)
     }
+
+    pub fn active_abilities(&self) -> Vec<oort_api::Ability> {
+        self.data()
+            .abilities
+            .iter()
+            .filter(|x| x.active_time_remaining > 0.0)
+            .map(|x| x.ability)
+            .collect()
+    }
 }
 
 pub struct ShipAccessorMut<'a> {

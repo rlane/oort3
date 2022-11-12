@@ -3,6 +3,7 @@ use crate::ship::ShipClass;
 use crate::simulation::Line;
 use crate::vm;
 use nalgebra::{Point2, Vector2, Vector4};
+use oort_api::Ability;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -33,6 +34,7 @@ pub struct ShipSnapshot {
     pub team: i32,
     pub class: ShipClass,
     pub health: f64,
+    pub active_abilities: Vec<Ability>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

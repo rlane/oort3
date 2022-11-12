@@ -102,6 +102,7 @@ impl Class {
 
 /// Special abilities available to different ship classes.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Ability {
     /// No-op.
     None,

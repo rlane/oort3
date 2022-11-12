@@ -27,7 +27,7 @@ regex = "1.5.6"
 serde = { version = "1.0.137", features = ["derive"] }
 smartstring = "1.0.1"
 instant = "0.1.12"
-oort_api = { path = "../api" }
+oort_api = { path = "../api", features = ["serde"] }
 wasmer = { version = "3.0.0-rc.1", default-features = false }
 wasmer-compiler = { version = "3.0.0-rc.1", features = [] }
 tar = "0.4.38"

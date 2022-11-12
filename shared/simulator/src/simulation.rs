@@ -365,6 +365,7 @@ impl Simulation {
                 team,
                 class,
                 health,
+                active_abilities: ship.active_abilities(),
             });
         }
 
