@@ -1,6 +1,7 @@
 var goldenLayout;
+let configVersion = 2;
 
-export function init() {
+function make_config() {
   let editor_width_pct = 100.0 - 61.8;
   let window_width = document.documentElement.clientWidth;
   let min_editor_width =
@@ -75,6 +76,23 @@ export function init() {
     ],
   };
 
+  return config;
+}
+
+function load_config() {
+  let json = localStorage.getItem("layout." + configVersion);
+  if (json == null) {
+    return null;
+  }
+  return JSON.parse(json);
+}
+
+export function init() {
+  var config = load_config();
+  if (config == null) {
+    config = make_config();
+  }
+
   goldenLayout = new GoldenLayout(
     config,
     document.getElementById("goldenlayout")
@@ -117,6 +135,14 @@ export function init() {
   goldenLayout.init();
 
   window.goldenLayout = goldenLayout;
+
+  window.onbeforeunload = function () {
+    localStorage.setItem(
+      "layout." + configVersion,
+      JSON.stringify(goldenLayout.toConfig())
+    );
+    return null;
+  };
 }
 
 export function update_size() {
