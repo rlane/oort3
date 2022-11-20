@@ -41,7 +41,7 @@ pub enum Msg {
     Render,
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
     SelectScenario(String),
-    SelectScenarioAndStart(String),
+    SelectScenarioAndStart(String, u32),
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
@@ -84,6 +84,7 @@ pub struct Game {
     teams: Vec<Team>,
     editor_links: Vec<CodeEditorLink>,
     compilation_cache: HashMap<Code, Code>,
+    seed: Option<u32>,
 }
 
 pub struct Team {
@@ -115,6 +116,8 @@ impl Component for Game {
 
         let compilation_cache = HashMap::new();
 
+        let q = parse_query_params(context);
+
         Self {
             render_handle,
             scenario_name: String::new(),
@@ -133,6 +136,7 @@ impl Component for Game {
             teams: Vec::new(),
             editor_links: vec![CodeEditorLink::default(), CodeEditorLink::default()],
             compilation_cache,
+            seed: q.seed,
         }
     }
 
@@ -178,7 +182,8 @@ impl Component for Game {
                 self.change_scenario(context, &scenario_name, false);
                 true
             }
-            Msg::SelectScenarioAndStart(scenario_name) => {
+            Msg::SelectScenarioAndStart(scenario_name, seed) => {
+                self.seed = Some(seed);
                 self.change_scenario(context, &scenario_name, true);
                 true
             }
@@ -646,7 +651,7 @@ impl Game {
                     .unwrap();
                 vec![
                     Msg::DismissOverlay,
-                    Msg::SelectScenarioAndStart(scenario_name.clone()),
+                    Msg::SelectScenarioAndStart(scenario_name.clone(), seed),
                 ]
             })
         };
@@ -854,7 +859,7 @@ impl Game {
         });
     }
 
-    pub fn run(&mut self, context: &Context<Self>) {
+    pub fn run(&mut self, _context: &Context<Self>) {
         self.compiler_errors = None;
 
         let codes: Vec<_> = self
@@ -862,9 +867,7 @@ impl Game {
             .iter()
             .map(|x| x.running_compiled_code.clone())
             .collect();
-
-        let q = parse_query_params(context);
-        let seed = q.seed.unwrap_or_else(|| rand::thread_rng().gen());
+        let seed = self.seed.unwrap_or_else(|| rand::thread_rng().gen());
 
         if let Some(link) = self.simulation_window_link.as_ref() {
             link.send_message(crate::simulation_window::Msg::StartSimulation {
