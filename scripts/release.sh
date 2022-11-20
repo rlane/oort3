@@ -2,12 +2,13 @@
 cd $(realpath $(dirname $0))/..
 
 function usage() {
-  echo "Usage: $0 -[wctshl]"
+  echo "Usage: $0 -[wctldsh]"
   echo
   echo "  -w: Push app"
   echo "  -c: Push compiler service"
   echo "  -t: Push telemetry service"
   echo "  -l: Push leaderboard service"
+  echo "  -d: Push docs"
   echo "  -s: Skip bumping version"
   echo "  -h: Display this message"
 }
@@ -19,7 +20,7 @@ PUSH_COMPILER_SERVICE=0
 PUSH_TELEMETRY_SERVICE=0
 PUSH_LEADERBOARD_SERVICE=0
 PUSH_DOC=0
-while getopts "wctshl" option; do
+while getopts "wctldsh" option; do
    case $option in
       w) PUSH_ALL=0; PUSH_APP=1;;
       c) PUSH_ALL=0; PUSH_COMPILER_SERVICE=1;;
