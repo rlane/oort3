@@ -12,6 +12,7 @@ pub struct ShipRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
+    current_time_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
 }
@@ -23,11 +24,16 @@ impl ShipRenderer {
             gl::VERTEX_SHADER,
             r#"#version 300 es
 uniform mat4 transform;
+uniform float current_time;
 layout(location = 0) in vec2 vertex;
 layout(location = 1) in vec4 position;
 layout(location = 2) in float heading;
-layout(location = 3) in vec4 color;
+layout(location = 3) in float shielded;
+layout(location = 4) in vec4 color;
 out vec4 varying_color;
+out float varying_shielded;
+out float varying_current_time;
+out vec2 varying_vertex;
 
 // https://gist.github.com/yiwenl/3f804e80d0930e34a0b33359259b556c
 vec2 rotate(vec2 v, float a) {
@@ -40,6 +46,9 @@ vec2 rotate(vec2 v, float a) {
 void main() {
     gl_Position = transform * (position + vec4(rotate(vertex, heading), 0.0, 0.0));
     varying_color = color;
+    varying_shielded = shielded;
+    varying_current_time = current_time;
+    varying_vertex = vertex;
 }
     "#,
         )?;
@@ -49,9 +58,23 @@ void main() {
             r#"#version 300 es
 precision mediump float;
 in vec4 varying_color;
+in float varying_shielded;
+in float varying_current_time;
+in vec2 varying_vertex;
 out vec4 fragmentColor;
+
+// https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
+float rand(vec2 co, float current_time){
+    return fract(sin(dot(vec3(co, current_time), vec3(12.9898, 78.233, 53.797))) * 43758.5453);
+}
+
 void main() {
-    fragmentColor = varying_color;
+    if (varying_shielded > 0.0 && rand(floor(varying_vertex), varying_current_time) > 0.5) {
+        fragmentColor = vec4(1.0, 1.0, 1.0, 1.0) - varying_color;
+        fragmentColor.w = varying_color.w;
+    } else {
+        fragmentColor = varying_color;
+    }
 }
     "#,
         )?;
@@ -61,12 +84,17 @@ void main() {
             .get_uniform_location(&program, "transform")
             .ok_or("did not find uniform")?;
 
+        let current_time_loc = context
+            .get_uniform_location(&program, "current_time")
+            .ok_or("did not find uniform")?;
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
             context: context.clone(),
             program,
             transform_loc,
+            current_time_loc,
             projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "ship_renderer",
@@ -106,6 +134,7 @@ void main() {
         struct ShipAttribs {
             position: Point2<f32>,
             heading: f32,
+            shielded: f32,
             color: Vector4<f32>,
         }
 
@@ -127,6 +156,11 @@ void main() {
                 attribs.push(ShipAttribs {
                     position: ship.position.cast(),
                     heading: ship.heading as f32,
+                    shielded: if ship.active_abilities.contains(&oort_api::Ability::Shield) {
+                        1.0
+                    } else {
+                        0.0
+                    },
                     color: Self::team_color(ship.team),
                 });
             }
@@ -147,8 +181,14 @@ void main() {
                 .offset(offset_of!(ShipAttribs, heading))
                 .build();
 
-            // color
+            // shielded
             vab.index(3)
+                .size(1)
+                .offset(offset_of!(ShipAttribs, shielded))
+                .build();
+
+            // color
+            vab.index(4)
                 .size(4)
                 .offset(offset_of!(ShipAttribs, color))
                 .build();
@@ -160,6 +200,10 @@ void main() {
                 false,
                 self.projection_matrix.data.as_slice(),
             );
+
+            // current_time
+            self.context
+                .uniform1f(Some(&self.current_time_loc), snapshot.time as f32);
 
             let num_instances = ships.len();
             self.context.draw_arrays_instanced(
