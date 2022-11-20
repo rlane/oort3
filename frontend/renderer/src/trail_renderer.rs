@@ -1,6 +1,7 @@
 use super::glutil;
 use log::warn;
 use nalgebra::{Matrix4, Point2};
+use oort_api::Ability;
 use oort_simulator::ship::ShipClass;
 use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use oort_simulator::snapshot::Snapshot;
@@ -108,6 +109,9 @@ void main() {
                 ShipClass::Missile => 0.10,
                 ShipClass::Torpedo => 0.15,
                 _ => 0.5,
+            };
+            if ship.active_abilities.contains(&Ability::Boost) {
+                color.w = (color.w * 4.0).clamp(0.0, 1.0);
             };
             let current_position: Point2<f32> = ship.position.cast();
             {

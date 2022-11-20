@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
+oort_api = { path = "../../shared/api" }
 getrandom = { version = "0.2.6", features = ["js"] }
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 js-sys = "0.3.57"

@@ -1641,6 +1641,7 @@ dependencies = [
  "log",
  "memoffset 0.7.1",
  "nalgebra",
+ "oort_api",
  "oort_simulator",
  "rand",
  "rand_chacha",
