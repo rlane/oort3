@@ -284,8 +284,8 @@ impl UI {
         self.snapshot = self.pending_snapshots.pop_front();
         let snapshot = self.snapshot.as_ref().unwrap();
 
-        // Zoom out to show all ships.
         if first_snapshot {
+            // Zoom out to show all ships.
             let maxdist = snapshot
                 .ships
                 .iter()
@@ -294,6 +294,16 @@ impl UI {
             let cornerdist = nalgebra::distance(&point![0.0, 0.0], &self.renderer.unproject(0, 0));
             self.zoom = (self.zoom * cornerdist as f32 / (2.0 * maxdist as f32))
                 .clamp(MIN_ZOOM, INITIAL_ZOOM);
+
+            // Pick player ship if there's only one.
+            let own_ships: Vec<_> = snapshot
+                .ships
+                .iter()
+                .filter(|ship| ship.team == 0)
+                .collect();
+            if own_ships.len() == 1 {
+                self.picked_ship_id = Some(own_ships[0].id);
+            }
         }
 
         if !snapshot.errors.is_empty() {
