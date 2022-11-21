@@ -292,7 +292,7 @@ impl UI {
                 .map(|ship| nalgebra::distance(&ship.position, &point![0.0, 0.0]))
                 .fold(0.0, |a, b| if a > b { a } else { b });
             let cornerdist = nalgebra::distance(&point![0.0, 0.0], &self.renderer.unproject(0, 0));
-            self.zoom = (self.zoom * cornerdist as f32 / (1.5 * maxdist as f32))
+            self.zoom = (self.zoom * cornerdist as f32 / (2.0 * maxdist as f32))
                 .clamp(MIN_ZOOM, INITIAL_ZOOM);
         }
 
