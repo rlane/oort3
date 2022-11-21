@@ -116,6 +116,12 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             </ul>
 
             <h2>{ "Vector Math" }</h2>
+            <span>
+                { "For a refresher on vectors check out this " }
+                <a href="https://phys.libretexts.org/Bookshelves/University_Physics/Radically_Modern_Introductory_Physics_Text_I_(Raymond)/02%3A_Waves_in_Two_and_Three_Dimensions/2.01%3A_Math_Tutorial__Vectors"
+                   target="_blank">{ "tutorial" }</a>
+                { "." }
+            </span>
             <ul>
               <li><code>{ "vec2(x, y) → Vec2" }</code>{ ": Create a vector." }</li>
               <li><code>{ "v.x, v.y → f64" }</code>{ ": Get a component of a vector." }</li>
