@@ -15,6 +15,8 @@ use std::collections::HashMap;
 use std::f64::consts::{PI, TAU};
 use Status::Running;
 
+pub const DEFAULT_TUTORIAL_MAX_TICKS: u32 = 30 * 60;
+pub const TOURNAMENT_MAX_TICKS: u32 = 10000;
 pub const MAX_TICKS: u32 = 10000;
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
@@ -37,7 +39,11 @@ fn empty_ai() -> Code {
     builtin("empty")
 }
 
-fn check_victory_with_filter(sim: &Simulation, ship_filter: fn(&ShipAccessor) -> bool) -> Status {
+fn check_victory_with_filter(
+    sim: &Simulation,
+    max_ticks: u32,
+    ship_filter: fn(&ShipAccessor) -> bool,
+) -> Status {
     let mut team_health: HashMap<i32, u32> = HashMap::new();
     for &handle in sim.ships.iter() {
         let ship = sim.ship(handle);
@@ -51,15 +57,15 @@ fn check_victory_with_filter(sim: &Simulation, ship_filter: fn(&ShipAccessor) ->
         Status::Victory {
             team: *team_health.iter().next().unwrap().0,
         }
-    } else if sim.tick() >= MAX_TICKS - 1 {
+    } else if sim.tick() >= max_ticks - 1 {
         Status::Draw
     } else {
         Status::Running
     }
 }
 
-fn check_tutorial_victory(sim: &Simulation) -> Status {
-    match check_victory_with_filter(sim, |ship| {
+fn check_tutorial_victory(sim: &Simulation, max_ticks: u32) -> Status {
+    match check_victory_with_filter(sim, max_ticks, |ship| {
         ![ShipClass::Missile, ShipClass::Torpedo].contains(&ship.data().class)
     }) {
         x @ Status::Victory { team: 0 } => x,
@@ -69,14 +75,14 @@ fn check_tutorial_victory(sim: &Simulation) -> Status {
 }
 
 fn check_tournament_victory(sim: &Simulation) -> Status {
-    check_victory_with_filter(sim, |ship| {
+    check_victory_with_filter(sim, TOURNAMENT_MAX_TICKS, |ship| {
         [ShipClass::Fighter, ShipClass::Frigate, ShipClass::Cruiser].contains(&ship.data().class)
             && ship.data().team < 2
     })
 }
 
 fn check_capital_ship_tournament_victory(sim: &Simulation) -> Status {
-    check_victory_with_filter(sim, |ship| {
+    check_victory_with_filter(sim, TOURNAMENT_MAX_TICKS, |ship| {
         [ShipClass::Frigate, ShipClass::Cruiser].contains(&ship.data().class)
             && ship.data().team < 2
     })
@@ -336,7 +342,7 @@ impl Scenario for GunneryScenario {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
     }
 
     fn solution(&self) -> Code {
@@ -473,7 +479,7 @@ impl Scenario for AsteroidStressScenario {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
     }
 }
 
@@ -647,7 +653,7 @@ impl Scenario for Tutorial01 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -894,7 +900,7 @@ impl Scenario for Tutorial04 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -979,7 +985,7 @@ impl Scenario for Tutorial05 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1044,7 +1050,7 @@ impl Scenario for Tutorial06 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1103,7 +1109,7 @@ impl Scenario for Tutorial07 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 3)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1172,7 +1178,7 @@ impl Scenario for Tutorial08 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 3)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1224,7 +1230,7 @@ impl Scenario for Tutorial09 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1276,7 +1282,7 @@ impl Scenario for Tutorial10 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -1328,7 +1334,7 @@ impl Scenario for Tutorial11 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
     }
 
     fn initial_code(&self) -> Vec<Code> {
