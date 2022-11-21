@@ -1,5 +1,8 @@
 use oort_api::prelude::*;
 
+const τ: f64 = TAU;
+const π: f64 = PI;
+
 pub struct Ship {
     target_position: Vec2,
     target_velocity: Vec2,
@@ -29,25 +32,25 @@ impl Ship {
     pub fn ship_tick(&mut self) {
         if class() == Class::Cruiser {
             if current_tick() % 6 == 0 {
-                set_radar_width(TAU);
+                set_radar_width(τ);
             } else {
-                set_radar_width(TAU / 60.0);
-                set_radar_heading(TAU * (current_tick() as f64 * 2.0) / 60.0);
+                set_radar_width(τ / 60.0);
+                set_radar_heading(τ * (current_tick() as f64 * 2.0) / 60.0);
             }
         }
 
         let scan_result = scan();
         if let Some(contact) = scan_result.as_ref() {
-            let dp = contact.position - position();
-            let dv = contact.velocity - velocity();
-            let mut predicted_dp = dp;
+            let Δp = contact.position - position();
+            let Δv = contact.velocity - velocity();
+            let mut predicted_dp = Δp;
             let bullet_speed = 1000.0;
-            if dp.dot(dv) > -0.9 {
+            if Δp.dot(Δv) > -0.9 {
                 for _ in 0..3 {
-                    predicted_dp = dp + dv * predicted_dp.length() / bullet_speed;
+                    predicted_dp = Δp + Δv * predicted_dp.length() / bullet_speed;
                 }
             }
-            set_radar_heading(dp.angle());
+            set_radar_heading(Δp.angle());
             self.target_position = contact.position;
             self.target_velocity = contact.velocity;
 
@@ -87,27 +90,27 @@ impl Ship {
                 //dbg.draw_diamond(contact.position, 30.0, 0xffff00);
             }
         } else {
-            set_radar_heading(rand(0.0, TAU));
+            set_radar_heading(rand(0.0, τ));
             if (self.target_position - position()).length() < 100.0 {
-                self.target_position = vec2(rand(3500.0, 4500.0), 0.0).rotate(rand(0.0, TAU));
+                self.target_position = vec2(rand(3500.0, 4500.0), 0.0).rotate(rand(0.0, τ));
                 self.target_velocity = vec2(0.0, 0.0);
             }
         }
 
-        let dp = self.target_position - position();
-        let dist = dp.length();
+        let Δp = self.target_position - position();
+        let dist = Δp.length();
         let mut bullet_speed = 1000.0;
         if class() == Class::Frigate {
             bullet_speed = 4000.0;
         }
         let t = dist / bullet_speed;
-        let predicted_dp = dp + t * (self.target_velocity - velocity());
+        let predicted_dp = Δp + t * (self.target_velocity - velocity());
         self.turn_to(predicted_dp.angle());
 
         if scan_result.is_some() && dist < 1000.0 {
             accelerate(-velocity());
         } else {
-            accelerate(dp - velocity());
+            accelerate(Δp - velocity());
         }
     }
 
@@ -117,42 +120,42 @@ impl Ship {
         if let Some(contact) = scan() {
             self.target_position = contact.position;
             self.target_velocity = contact.velocity;
-            set_radar_width((radar_width() * 0.9).max(TAU / 360.0));
+            set_radar_width((radar_width() * 0.9).max(τ / 360.0));
             debug_diamond(self.target_position, 20.0, 0x00ff00);
         } else if let Some(_) = receive() {
             let (new_target_position, new_target_velocity) = parse_orders(receive());
             if new_target_position.distance(self.target_position) < 100.0 {
                 self.target_position = new_target_position;
                 self.target_velocity = new_target_velocity;
-                set_radar_width(TAU / 360.0);
+                set_radar_width(τ / 360.0);
                 debug_diamond(self.target_position, 20.0, 0xf5da42);
             } else {
-                set_radar_width((radar_width() * 2.0).min(TAU / 16.0));
+                set_radar_width((radar_width() * 2.0).min(τ / 16.0));
                 debug_diamond(self.target_position, 20.0, 0xff0000);
             }
         } else {
-            set_radar_width((radar_width() * 2.0).min(TAU / 16.0));
+            set_radar_width((radar_width() * 2.0).min(τ / 16.0));
             debug_diamond(self.target_position, 20.0, 0xff0000);
         }
 
         set_radar_heading((self.target_position - position()).angle());
 
-        let dp = self.target_position - position();
-        let dv = self.target_velocity - velocity();
+        let Δp = self.target_position - position();
+        let Δv = self.target_velocity - velocity();
 
-        let dist = dp.length();
-        let next_dist = (dp + dv / 60.0).length();
+        let dist = Δp.length();
+        let next_dist = (Δp + Δv / 60.0).length();
         if next_dist < 30.0 || dist < 100.0 && next_dist > dist {
             explode();
             return;
         }
 
         if dist < 300.0 {
-            set_radar_width(TAU / 6.0);
+            set_radar_width(τ / 6.0);
         }
 
-        let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
-        let a = (dp - badv * 10.0).normalize() * acc;
+        let badv = -(Δv - Δv.dot(Δp) * Δp.normalize() / Δp.length());
+        let a = (Δp - badv * 10.0).normalize() * acc;
         accelerate(a);
         self.turn_to(a.angle());
     }
@@ -163,12 +166,12 @@ impl Ship {
 
         let target_heading = (self.target_position - position()).angle();
         set_radar_heading(
-            target_heading + rand(-PI, PI) * ((current_time() - self.last_contact_time) / 10.0),
+            target_heading + rand(-π, π) * ((current_time() - self.last_contact_time) / 10.0),
         );
         if (self.target_position - position()).length() < 200.0 {
-            set_radar_width(PI * 2.0 / 6.0);
+            set_radar_width(π * 2.0 / 6.0);
         } else {
-            set_radar_width(PI * 2.0 / 60.0);
+            set_radar_width(π * 2.0 / 60.0);
         }
 
         let mut contact = scan();
@@ -187,12 +190,12 @@ impl Ship {
             self.target_position += self.target_velocity / 60.0;
         }
 
-        let dp = self.target_position - position();
-        let dv = self.target_velocity - velocity();
+        let Δp = self.target_position - position();
+        let Δv = self.target_velocity - velocity();
 
         if contact.is_some() {
-            let dist = dp.length();
-            let next_dist = (dp + dv / 60.0).length();
+            let dist = Δp.length();
+            let next_dist = (Δp + Δv / 60.0).length();
             if next_dist < 60.0 || dist < 100.0 && next_dist > dist {
                 explode();
                 return;
@@ -202,10 +205,10 @@ impl Ship {
         }
 
         let predicted_position =
-            self.target_position + self.target_velocity * (dp.length() / 8000.0);
+            self.target_position + self.target_velocity * (Δp.length() / 8000.0);
         let pdp = predicted_position - position();
 
-        let badv = -(dv - dv.dot(dp) * pdp.normalize() / pdp.length());
+        let badv = -(Δv - Δv.dot(Δp) * pdp.normalize() / pdp.length());
         let a = (pdp - badv * 10.0).normalize() * acc;
         accelerate(a);
         self.turn_to(a.angle());
@@ -218,8 +221,8 @@ impl Ship {
             dbg.draw_diamond(position() + pdp, 5.0, 0xffffff);
         }
 
-        dbg.draw_line(position(), position() + dp, 0x222222);
-        dbg.draw_line(position(), position() - dv, 0xffffff);
+        dbg.draw_line(position(), position() + Δp, 0x222222);
+        dbg.draw_line(position(), position() - Δv, 0xffffff);
         dbg.draw_line(position(), position() + badv, 0x222299);
         */
     }
