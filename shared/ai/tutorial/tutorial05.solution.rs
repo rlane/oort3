@@ -3,7 +3,7 @@
 // "target_velocity" function.
 use oort_api::prelude::*;
 
-const BULLET_SPEED: f64 = 1000.0;
+const BULLET_SPEED: f64 = 1000.0; // m/s
 
 pub struct Ship {}
 
