@@ -21,15 +21,14 @@ struct Handler {
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
+        log::info!("Connected to Discord as {}", ready.user.name);
 
         if let Some(mut rx) = self.rx.lock().await.take() {
             tokio::spawn(async move {
                 while let Some(msg) = rx.recv().await {
-                    println!("Sending {:?}", msg);
-
+                    log::info!("Sending Discord message {:?}", msg.text);
                     if let Err(e) = ChannelId(CHANNEL_ID).say(&ctx.http, &msg.text).await {
-                        println!("Error sending message: {:?}", e);
+                        log::error!("Error sending message: {:?}", e);
                     }
                 }
             });
@@ -65,7 +64,7 @@ pub async fn start() -> Result<mpsc::Sender<Msg>, anyhow::Error> {
     // exponential backoff until it reconnects.
     tokio::spawn(async move {
         if let Err(why) = client.start().await {
-            println!("Discord client error: {:?}", why);
+            log::error!("Discord client error: {:?}", why);
         }
     });
 
