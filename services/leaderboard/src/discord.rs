@@ -38,6 +38,8 @@ impl EventHandler for Handler {
                     if let Err(e) = channel_id().say(&ctx.http, &msg.text).await {
                         log::error!("Error sending message: {:?}", e);
                     }
+                    // Rate limit messages.
+                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
                 }
             });
         } else {
