@@ -120,17 +120,24 @@ async fn post_leaderboard_internal(
 
     db.update_obj("leaderboard", &path, &obj, None).await?;
 
-    discord_tx
-        .send(discord::Msg {
-            text: format!(
-                "New personal best on {}: {} {}s",
-                obj.scenario_name, obj.username, obj.time
-            ),
-        })
-        .await
-        .expect("sending Discord message");
-
     let leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
+
+    if let Some(first) = leaderboard.lowest_time.first() {
+        if first.userid == obj.userid {
+            if let Err(e) = discord_tx
+                .send(discord::Msg {
+                    text: format!(
+                        "New best time on {}: {} {}s",
+                        obj.scenario_name, obj.username, obj.time
+                    ),
+                })
+                .await
+            {
+                log::error!("Failed to send Discord message: {:?}", e);
+            }
+        }
+    }
+
     render_leaderboard(&leaderboard, res).await
 }
 
