@@ -1,3 +1,5 @@
+mod discord;
+
 use anyhow::anyhow;
 use chrono::Utc;
 use firestore::*;
@@ -5,12 +7,15 @@ use gcloud_sdk::google::firestore::v1::Document;
 use oort_proto::{LeaderboardData, LeaderboardSubmission, TimeLeaderboardRow};
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
+use tokio::sync::mpsc;
 
 fn project_id() -> &'static str {
     match std::env::var("ENVIRONMENT") {
-        Ok(x) if x == "dev" => { "oort-dev" }
-        Ok(x) if x == "prod" => { "oort-319301" }
-        _ => { panic!("Invalid ENVIRONMENT") }
+        Ok(x) if x == "dev" => "oort-dev",
+        Ok(x) if x == "prod" => "oort-319301",
+        _ => {
+            panic!("Invalid ENVIRONMENT")
+        }
     }
 }
 
@@ -80,7 +85,11 @@ async fn get_leaderboard(req: &mut Request, res: &mut Response) {
     }
 }
 
-async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+async fn post_leaderboard_internal(
+    req: &mut Request,
+    res: &mut Response,
+    discord_tx: &mpsc::Sender<discord::Msg>,
+) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id()).await?;
     log::debug!("Got request {:?}", req);
     let payload = req.payload().await?;
@@ -101,18 +110,39 @@ async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> any
         }
     }
 
-    db.update_obj("leaderboard", &path, &obj, None)
-        .await?;
+    db.update_obj("leaderboard", &path, &obj, None).await?;
+
+    discord_tx
+        .send(discord::Msg {
+            text: format!(
+                "New personal best on {}: {} {}s",
+                obj.scenario_name, obj.username, obj.time
+            ),
+        })
+        .await
+        .expect("sending Discord message");
 
     render_leaderboard(&db, &obj.scenario_name, res).await
 }
 
-#[handler]
-async fn post_leaderboard(req: &mut Request, res: &mut Response) {
-    if let Err(e) = post_leaderboard_internal(req, res).await {
-        log::error!("error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
+struct PostLeaderboard {
+    discord_tx: mpsc::Sender<discord::Msg>,
+}
+
+#[async_trait]
+impl Handler for PostLeaderboard {
+    async fn handle(
+        &self,
+        req: &mut Request,
+        _depot: &mut Depot,
+        res: &mut Response,
+        _ctrl: &mut FlowCtrl,
+    ) {
+        if let Err(e) = post_leaderboard_internal(req, res, &self.discord_tx).await {
+            log::error!("error: {}", e);
+            res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
+            res.render(e.to_string());
+        }
     }
 }
 
@@ -138,6 +168,11 @@ async fn main() {
         Err(_e) => {}
     };
 
+    log::info!("Starting oort_leaderboard_service");
+    log::info!("Using project ID {}", project_id());
+
+    let discord_tx = discord::start().await.expect("starting Discord bot");
+
     let cors_handler = Cors::builder()
         .allow_any_origin()
         .allow_methods(vec!["POST", "OPTIONS"])
@@ -152,12 +187,10 @@ async fn main() {
         )
         .push(
             Router::with_path("/leaderboard")
-                .post(post_leaderboard)
+                .post(PostLeaderboard { discord_tx })
                 .options(nop),
         );
 
-    log::info!("Starting oort_leaderboard_service");
-    log::info!("Using project ID {}", project_id());
     Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
         .serve(router)
         .await;

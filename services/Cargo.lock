@@ -1311,6 +1311,7 @@ dependencies = [
  "salvo_extra",
  "serde",
  "serde_json",
+ "serenity",
  "stackdriver_logger",
  "tokio",
 ]
