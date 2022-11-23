@@ -14,6 +14,6 @@ USER app:1000
 WORKDIR /home/app
 COPY --from=builder /usr/local/cargo/bin/oort_leaderboard_service /usr/local/bin/oort_leaderboard_service
 ENV PORT 8080
-ENV RUST_LOG info
+ENV RUST_LOG none,oort_leaderboard_service=info
 ENV ENVIRONMENT prod
 CMD ["oort_leaderboard_service"]
