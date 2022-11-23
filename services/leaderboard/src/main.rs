@@ -19,11 +19,10 @@ fn project_id() -> &'static str {
     }
 }
 
-async fn render_leaderboard(
+async fn fetch_leaderboard(
     db: &FirestoreDb,
     scenario_name: &str,
-    res: &mut Response,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<LeaderboardData> {
     let docs: Vec<Document> = db
         .query_doc(
             FirestoreQueryParams::new("leaderboard".into())
@@ -60,7 +59,14 @@ async fn render_leaderboard(
         }
     }
 
-    res.render(&serde_json::to_string_pretty(&leaderboard)?);
+    Ok(leaderboard)
+}
+
+async fn render_leaderboard(
+    leaderboard: &LeaderboardData,
+    res: &mut Response,
+) -> anyhow::Result<()> {
+    res.render(&serde_json::to_string_pretty(leaderboard)?);
 
     Ok(())
 }
@@ -73,7 +79,8 @@ async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyh
         .query("scenario_name")
         .ok_or_else(|| anyhow!("missing scenario_name parameter"))?;
 
-    render_leaderboard(&db, &scenario_name, res).await
+    let leaderboard = fetch_leaderboard(&db, &scenario_name).await?;
+    render_leaderboard(&leaderboard, res).await
 }
 
 #[handler]
@@ -106,7 +113,8 @@ async fn post_leaderboard_internal(
         log::debug!("Got existing obj {:?}", existing_obj);
         if existing_obj.time <= obj.time {
             log::debug!("Ignoring slower time");
-            return render_leaderboard(&db, &obj.scenario_name, res).await;
+            let leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
+            return render_leaderboard(&leaderboard, res).await;
         }
     }
 
@@ -122,7 +130,8 @@ async fn post_leaderboard_internal(
         .await
         .expect("sending Discord message");
 
-    render_leaderboard(&db, &obj.scenario_name, res).await
+    let leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
+    render_leaderboard(&leaderboard, res).await
 }
 
 struct PostLeaderboard {
