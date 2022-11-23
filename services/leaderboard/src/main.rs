@@ -125,12 +125,15 @@ async fn post_leaderboard_internal(
     if let Some(first) = leaderboard.lowest_time.first() {
         if first.userid == obj.userid {
             if let Err(e) = discord_tx
-                .send(discord::Msg {
-                    text: format!(
-                        "New best time on {}: {} {}s",
-                        obj.scenario_name, obj.username, obj.time
-                    ),
-                })
+                .send_timeout(
+                    discord::Msg {
+                        text: format!(
+                            "New best time on {}: {} {}s",
+                            obj.scenario_name, obj.username, obj.time
+                        ),
+                    },
+                    std::time::Duration::from_secs(1),
+                )
                 .await
             {
                 log::error!("Failed to send Discord message: {:?}", e);
