@@ -7,7 +7,15 @@ use serenity::model::id::ChannelId;
 use serenity::prelude::*;
 use tokio::sync::Mutex;
 
-const CHANNEL_ID: u64 = 1044848260893900862;
+fn channel_id() -> ChannelId {
+    match std::env::var("ENVIRONMENT") {
+        Ok(x) if x == "dev" => ChannelId(1044848260893900862),
+        Ok(x) if x == "prod" => ChannelId(1045042156060016680),
+        _ => {
+            panic!("Invalid ENVIRONMENT")
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Msg {
@@ -27,7 +35,7 @@ impl EventHandler for Handler {
             tokio::spawn(async move {
                 while let Some(msg) = rx.recv().await {
                     log::info!("Sending Discord message {:?}", msg.text);
-                    if let Err(e) = ChannelId(CHANNEL_ID).say(&ctx.http, &msg.text).await {
+                    if let Err(e) = channel_id().say(&ctx.http, &msg.text).await {
                         log::error!("Error sending message: {:?}", e);
                     }
                 }
