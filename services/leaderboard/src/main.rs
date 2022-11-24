@@ -128,7 +128,7 @@ async fn post_leaderboard_internal(
                 .send_timeout(
                     discord::Msg {
                         text: format!(
-                            "New best time on {}: {} {}s",
+                            "New best time on {}: {} {:.2}s",
                             obj.scenario_name, obj.username, obj.time
                         ),
                     },
