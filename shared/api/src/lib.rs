@@ -46,10 +46,6 @@ pub enum SystemState {
     MaxLateralAcceleration,
     MaxAngularAcceleration,
 
-    RadioChannel,
-    RadioSend,
-    RadioReceive,
-
     DebugLinesPointer,
     DebugLinesLength,
 
@@ -61,10 +57,72 @@ pub enum SystemState {
 
     ActivateAbility,
 
-    RadioData0,
-    RadioData1,
-    RadioData2,
-    RadioData3,
+    Radio0Channel, // TODO collapse into command word
+    Radio0Send,
+    Radio0Receive,
+    Radio0Data0,
+    Radio0Data1,
+    Radio0Data2,
+    Radio0Data3,
+
+    Radio1Channel,
+    Radio1Send,
+    Radio1Receive,
+    Radio1Data0,
+    Radio1Data1,
+    Radio1Data2,
+    Radio1Data3,
+
+    Radio2Channel,
+    Radio2Send,
+    Radio2Receive,
+    Radio2Data0,
+    Radio2Data1,
+    Radio2Data2,
+    Radio2Data3,
+
+    Radio3Channel,
+    Radio3Send,
+    Radio3Receive,
+    Radio3Data0,
+    Radio3Data1,
+    Radio3Data2,
+    Radio3Data3,
+
+    Radio4Channel,
+    Radio4Send,
+    Radio4Receive,
+    Radio4Data0,
+    Radio4Data1,
+    Radio4Data2,
+    Radio4Data3,
+
+    Radio5Channel,
+    Radio5Send,
+    Radio5Receive,
+    Radio5Data0,
+    Radio5Data1,
+    Radio5Data2,
+    Radio5Data3,
+
+    Radio6Channel,
+    Radio6Send,
+    Radio6Receive,
+    Radio6Data0,
+    Radio6Data1,
+    Radio6Data2,
+    Radio6Data3,
+
+    Radio7Channel,
+    Radio7Send,
+    Radio7Receive,
+    Radio7Data0,
+    Radio7Data1,
+    Radio7Data2,
+    Radio7Data3,
+
+    // TODO not part of interface
+    SelectedRadio,
 
     Size,
     MaxSize = 128,
@@ -376,37 +434,162 @@ mod api {
         })
     }
 
+    #[doc(hidden)]
+    pub mod radio_internal {
+        use super::SystemState;
+
+        pub const MAX_RADIOS: usize = 8;
+
+        pub struct RadioIndices {
+            pub channel: SystemState,
+            pub send: SystemState,
+            pub receive: SystemState,
+            pub data: [SystemState; 4],
+        }
+
+        pub fn radio_indices(sel: usize) -> RadioIndices {
+            match sel {
+                0 => RadioIndices {
+                    channel: SystemState::Radio0Channel,
+                    send: SystemState::Radio0Send,
+                    receive: SystemState::Radio0Receive,
+                    data: [
+                        SystemState::Radio0Data0,
+                        SystemState::Radio0Data1,
+                        SystemState::Radio0Data2,
+                        SystemState::Radio0Data3,
+                    ],
+                },
+                1 => RadioIndices {
+                    channel: SystemState::Radio1Channel,
+                    send: SystemState::Radio1Send,
+                    receive: SystemState::Radio1Receive,
+                    data: [
+                        SystemState::Radio1Data0,
+                        SystemState::Radio1Data1,
+                        SystemState::Radio1Data2,
+                        SystemState::Radio1Data3,
+                    ],
+                },
+                2 => RadioIndices {
+                    channel: SystemState::Radio2Channel,
+                    send: SystemState::Radio2Send,
+                    receive: SystemState::Radio2Receive,
+                    data: [
+                        SystemState::Radio2Data0,
+                        SystemState::Radio2Data1,
+                        SystemState::Radio2Data2,
+                        SystemState::Radio2Data3,
+                    ],
+                },
+                3 => RadioIndices {
+                    channel: SystemState::Radio3Channel,
+                    send: SystemState::Radio3Send,
+                    receive: SystemState::Radio3Receive,
+                    data: [
+                        SystemState::Radio3Data0,
+                        SystemState::Radio3Data1,
+                        SystemState::Radio3Data2,
+                        SystemState::Radio3Data3,
+                    ],
+                },
+                4 => RadioIndices {
+                    channel: SystemState::Radio4Channel,
+                    send: SystemState::Radio4Send,
+                    receive: SystemState::Radio4Receive,
+                    data: [
+                        SystemState::Radio4Data0,
+                        SystemState::Radio4Data1,
+                        SystemState::Radio4Data2,
+                        SystemState::Radio4Data3,
+                    ],
+                },
+                5 => RadioIndices {
+                    channel: SystemState::Radio5Channel,
+                    send: SystemState::Radio5Send,
+                    receive: SystemState::Radio5Receive,
+                    data: [
+                        SystemState::Radio5Data0,
+                        SystemState::Radio5Data1,
+                        SystemState::Radio5Data2,
+                        SystemState::Radio5Data3,
+                    ],
+                },
+                6 => RadioIndices {
+                    channel: SystemState::Radio6Channel,
+                    send: SystemState::Radio6Send,
+                    receive: SystemState::Radio6Receive,
+                    data: [
+                        SystemState::Radio6Data0,
+                        SystemState::Radio6Data1,
+                        SystemState::Radio6Data2,
+                        SystemState::Radio6Data3,
+                    ],
+                },
+                7 => RadioIndices {
+                    channel: SystemState::Radio7Channel,
+                    send: SystemState::Radio7Send,
+                    receive: SystemState::Radio7Receive,
+                    data: [
+                        SystemState::Radio7Data0,
+                        SystemState::Radio7Data1,
+                        SystemState::Radio7Data2,
+                        SystemState::Radio7Data3,
+                    ],
+                },
+                _ => unimplemented!(),
+            }
+        }
+    }
+
+    /// Select the radio to control with subsequent API calls.
+    pub fn select_radio(idx: usize) {
+        let idx = idx.clamp(0, radio_internal::MAX_RADIOS - 1);
+        write_system_state(SystemState::SelectedRadio, idx as f64);
+    }
+
     /// Sets the channel to send and receive radio transmissions on.
     ///
     /// Takes effect next tick.
     pub fn set_radio_channel(channel: usize) {
-        write_system_state(SystemState::RadioChannel, channel as f64);
+        write_system_state(
+            radio_internal::radio_indices(read_system_state(SystemState::SelectedRadio) as usize)
+                .channel,
+            channel as f64,
+        );
     }
 
     /// Gets the current radio channel.
     pub fn get_radio_channel() -> usize {
-        read_system_state(SystemState::RadioChannel) as usize
+        read_system_state(
+            radio_internal::radio_indices(read_system_state(SystemState::SelectedRadio) as usize)
+                .channel,
+        ) as usize
     }
 
     /// Sends a radio message.
     ///
     /// The message will be received on the next tick.
     pub fn send(msg: Message) {
-        write_system_state(SystemState::RadioSend, 1.0);
-        write_system_state(SystemState::RadioData0, msg[0]);
-        write_system_state(SystemState::RadioData1, msg[1]);
-        write_system_state(SystemState::RadioData2, msg[2]);
-        write_system_state(SystemState::RadioData3, msg[3]);
+        let idxs =
+            radio_internal::radio_indices(read_system_state(SystemState::SelectedRadio) as usize);
+        write_system_state(idxs.send, 1.0);
+        write_system_state(idxs.data[0], msg[0]);
+        write_system_state(idxs.data[1], msg[1]);
+        write_system_state(idxs.data[2], msg[2]);
+        write_system_state(idxs.data[3], msg[3]);
     }
 
     /// Returns the received radio message.
     pub fn receive() -> Option<Message> {
-        if read_system_state(SystemState::RadioReceive) != 0.0 {
+        let idxs =
+            radio_internal::radio_indices(read_system_state(SystemState::SelectedRadio) as usize);
+        if read_system_state(idxs.receive) != 0.0 {
             Some([
-                read_system_state(SystemState::RadioData0),
-                read_system_state(SystemState::RadioData1),
-                read_system_state(SystemState::RadioData2),
-                read_system_state(SystemState::RadioData3),
+                read_system_state(idxs.data[0]),
+                read_system_state(idxs.data[1]),
+                read_system_state(idxs.data[2]),
+                read_system_state(idxs.data[3]),
             ])
         } else {
             None
