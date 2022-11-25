@@ -1,12 +1,13 @@
 use clap::Parser;
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::Table;
 use firestore::*;
-use gcloud_sdk::google::firestore::v1::{value::ValueType, Document};
+use gcloud_sdk::google::firestore::v1::Document;
+use oort_proto::LeaderboardSubmission;
 use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-const COLLECTION_NAME: &str = "telemetry";
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -19,6 +20,9 @@ struct Arguments {
 
     #[clap(short, long, value_parser)]
     scenario: Option<String>,
+
+    #[clap(long, value_parser, default_value_t = 10)]
+    limit: usize,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,142 +39,120 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args = Arguments::parse();
 
     let db = FirestoreDb::new(&args.project_id).await?;
+    let http_client = reqwest::Client::new();
+    let mut updates: Vec<(String, LeaderboardSubmission, Option<LeaderboardSubmission>)> =
+        Vec::new();
 
-    let docs: Vec<Document> = db
-        .query_doc(
-            FirestoreQueryParams::new(COLLECTION_NAME.into()).with_filter(
-                FirestoreQueryFilter::Composite(FirestoreQueryFilterComposite::new(vec![
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "type".into(),
-                        "FinishScenario".into(),
-                    ))),
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "success".into(),
-                        true.into(),
-                    ))),
-                ])),
-            ),
-        )
-        .await?;
-
-    // (userid, scenario_name) -> (ticks, docid, code).
-    let mut best_times: HashMap<(String, String), (i64, String, String)> = HashMap::new();
-
-    let get_string = |doc: &Document, field: &str| {
-        let v = doc.fields.get(field).unwrap();
-        match &v.value_type {
-            Some(ValueType::StringValue(s)) => s.clone(),
-            _ => panic!(
-                "Failed to get string field {:?} from document {:?}",
-                field, doc.name
-            ),
-        }
-    };
-
-    let get_int = |doc: &Document, field: &str| {
-        let v = doc.fields.get(field).unwrap();
-        match v.value_type {
-            Some(ValueType::IntegerValue(x)) => x,
-            _ => panic!(
-                "Failed to get integer field {:?} from document {:?}",
-                field, doc.name
-            ),
-        }
-    };
-
-    let mut saved_docs = HashMap::new();
-
-    for doc in &docs {
-        let docid = doc.name.rsplit_once('/').unwrap().1.to_string();
-        let userid = get_string(doc, "userid");
-        let scenario_name = get_string(doc, "scenario_name");
-        if let Some(scenario) = args.scenario.as_ref() {
-            if *scenario != scenario_name {
-                continue;
-            }
-        }
-        let ticks = get_int(doc, "ticks");
-        let code = get_string(doc, "code");
-        let key = (userid.clone(), scenario_name.clone());
-        let update_best_times = if let Some((other_ticks, _docid, _code)) = best_times.get(&key) {
-            ticks < *other_ticks
-        } else {
-            true
-        };
-        if update_best_times {
-            best_times.insert(key, (ticks, docid.clone(), code.clone()));
-        }
-        saved_docs.insert(docid, doc);
+    let mut scenario_names = vec![];
+    if let Some(scenario) = args.scenario.as_ref() {
+        scenario_names.push(scenario.clone());
+    } else {
+        scenario_names = scenario::list();
     }
 
-    let http_client = reqwest::Client::new();
-    // docid, ticks
-    let mut updates: Vec<(String, Option<u32>)> = Vec::new();
+    for scenario_name in &scenario_names {
+        log::info!("Processing scenario {}", scenario_name);
 
-    for ((userid, scenario_name), (old_ticks, docid, code)) in best_times.iter() {
-        log::info!(
-            "Running simulations for userid={} scenario_name={} old_ticks={} docid={}",
-            userid,
-            scenario_name,
-            old_ticks,
-            docid
-        );
+        let docs: Vec<Document> = db
+            .query_doc(
+                FirestoreQueryParams::new("leaderboard".into())
+                    .with_filter(FirestoreQueryFilter::Composite(
+                        FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(
+                            Some(FirestoreQueryFilterCompare::Equal(
+                                "scenario_name".into(),
+                                scenario_name.into(),
+                            )),
+                        )]),
+                    ))
+                    .with_order_by(vec![
+                        FirestoreQueryOrder::new(
+                            "time".to_owned(),
+                            FirestoreQueryDirection::Ascending,
+                        ),
+                        FirestoreQueryOrder::new(
+                            "timestamp".to_owned(),
+                            FirestoreQueryDirection::Ascending,
+                        ),
+                    ])
+                    .with_limit(args.limit as u32),
+            )
+            .await?;
 
-        if let Some(wasm) = compile(&http_client, docid.into(), code.into()).await {
-            log::info!("Successfully compiled to WASM");
-            let status = run_simulations(scenario_name, wasm);
-            match status {
-                Some(new_ticks) => {
-                    if *old_ticks as u32 != new_ticks {
-                        log::info!("Updating ticks from {} to {}", old_ticks, new_ticks);
-                        updates.push((docid.to_string(), Some(new_ticks)));
-                    } else {
-                        log::info!("Ticks unchanged");
+        for doc in docs {
+            let docid = extract_docid(&doc.name);
+            if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(&doc) {
+                log::info!(
+                    "Running simulations for username={} scenario={} old_time={} docid={}",
+                    msg.username,
+                    msg.scenario_name,
+                    msg.time,
+                    docid
+                );
+
+                if let Some(wasm) = compile(&http_client, docid.clone(), msg.code.clone()).await {
+                    log::info!("Successfully compiled to WASM");
+                    let status = run_simulations(&msg.scenario_name, wasm);
+                    match status {
+                        Some(new_time) => {
+                            if msg.time != new_time {
+                                log::info!("Updating time from {} to {}", msg.time, new_time);
+                                let mut new_msg = msg.clone();
+                                new_msg.time = new_time;
+                                updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
+                            } else {
+                                log::info!("Time unchanged");
+                            }
+                        }
+                        None => {
+                            log::warn!(
+                                "Simulation failed for userid={} scenario_name={} docid={}",
+                                msg.username,
+                                msg.scenario_name,
+                                docid,
+                            );
+                            updates.push((doc.name.to_string(), msg.clone(), None));
+                        }
                     }
-                }
-                None => {
+                } else {
                     log::warn!(
-                        "Simulation failed for userid={} scenario_name={} docid={}",
-                        userid,
-                        scenario_name,
+                        "Compilation failed for userid={} scenario_name={} docid={}",
+                        msg.username,
+                        msg.scenario_name,
                         docid,
                     );
-                    updates.push((docid.to_string(), None));
+                    updates.push((doc.name.to_string(), msg.clone(), None));
                 }
             }
         }
     }
 
+    log::info!("Applying {} updates:", updates.len());
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec!["Scenario", "User", "Old Time", "New Time", "Docid"]);
+    for (docname, old_msg, new_msg) in &updates {
+        let docid = extract_docid(docname);
+        table.add_row(vec![
+            old_msg.scenario_name.clone(),
+            old_msg.username.clone(),
+            format!("{:.2}", old_msg.time),
+            format!("{:.2?}", new_msg.as_ref().map(|x| x.time)),
+            docid.clone(),
+        ]);
+    }
+    println!("{}", table);
+
     if args.dry_run {
-        log::info!("Dry run, would have applied {} updates", updates.len());
+        log::info!("Dry run, skipping");
         return Ok(());
     }
 
-    log::info!("Applying {} updates", updates.len());
-
-    for (docid, ticks) in updates {
-        let doc = saved_docs.get(&docid).unwrap();
-        let mut map = FirestoreDb::deserialize_doc_to::<JsonMap>(doc).unwrap();
-        if let Some(ticks) = ticks {
-            map.fields.insert("ticks".into(), ticks.into());
-            map.fields.insert("success".into(), true.into());
-            db.update_obj(
-                "telemetry",
-                &docid,
-                &map,
-                Some(vec!["ticks".into(), "success".into()]),
-            )
-            .await?;
+    for (docname, _old_msg, new_msg) in &updates {
+        let docid = extract_docid(docname);
+        if let Some(new_msg) = new_msg {
+            db.update_obj("leaderboard", &docid, new_msg, None).await?;
         } else {
-            map.fields.insert("ticks".into(), 0.into());
-            map.fields.insert("success".into(), false.into());
-            db.update_obj(
-                "telemetry",
-                &docid,
-                &map,
-                Some(vec!["ticks".into(), "success".into()]),
-            )
-            .await?;
+            db.delete_by_id("leaderboard", &docid).await?;
         }
     }
 
@@ -190,8 +172,8 @@ async fn compile(client: &reqwest::Client, docid: String, code: String) -> Optio
     }
 }
 
-fn run_simulations(scenario_name: &str, wasm: Vec<u8>) -> Option<u32> {
-    let results: Vec<Option<u32>> = (0..10u32)
+fn run_simulations(scenario_name: &str, wasm: Vec<u8>) -> Option<f64> {
+    let results: Vec<Option<f64>> = (0..10u32)
         .into_par_iter()
         .map(|seed| run_simulation(scenario_name, seed, wasm.clone()))
         .collect();
@@ -199,10 +181,10 @@ fn run_simulations(scenario_name: &str, wasm: Vec<u8>) -> Option<u32> {
     if results.iter().any(|x| x.is_none()) {
         return None;
     }
-    Some(results.iter().map(|x| x.unwrap()).sum::<u32>() as u32 / results.len() as u32)
+    Some(results.iter().map(|x| x.unwrap()).sum::<f64>() as f64 / results.len() as f64)
 }
 
-fn run_simulation(scenario_name: &str, seed: u32, wasm: Vec<u8>) -> Option<u32> {
+fn run_simulation(scenario_name: &str, seed: u32, wasm: Vec<u8>) -> Option<f64> {
     let scenario = scenario::load(scenario_name);
     let mut codes = scenario.initial_code();
     codes[0] = simulation::Code::Wasm(wasm);
@@ -211,7 +193,12 @@ fn run_simulation(scenario_name: &str, seed: u32, wasm: Vec<u8>) -> Option<u32> 
         sim.step();
     }
     match sim.status() {
-        scenario::Status::Victory { team: 0 } => Some(sim.tick()),
+        scenario::Status::Victory { team: 0 } => Some(sim.time()),
         _ => None,
     }
+}
+
+fn extract_docid(docname: &str) -> String {
+    let (_, docid) = docname.rsplit_once('/').unwrap();
+    docid.to_string()
 }
