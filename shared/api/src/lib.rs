@@ -448,96 +448,22 @@ mod api {
         }
 
         pub fn radio_indices(sel: usize) -> RadioIndices {
-            match sel {
-                0 => RadioIndices {
-                    channel: SystemState::Radio0Channel,
-                    send: SystemState::Radio0Send,
-                    receive: SystemState::Radio0Receive,
-                    data: [
-                        SystemState::Radio0Data0,
-                        SystemState::Radio0Data1,
-                        SystemState::Radio0Data2,
-                        SystemState::Radio0Data3,
-                    ],
-                },
-                1 => RadioIndices {
-                    channel: SystemState::Radio1Channel,
-                    send: SystemState::Radio1Send,
-                    receive: SystemState::Radio1Receive,
-                    data: [
-                        SystemState::Radio1Data0,
-                        SystemState::Radio1Data1,
-                        SystemState::Radio1Data2,
-                        SystemState::Radio1Data3,
-                    ],
-                },
-                2 => RadioIndices {
-                    channel: SystemState::Radio2Channel,
-                    send: SystemState::Radio2Send,
-                    receive: SystemState::Radio2Receive,
-                    data: [
-                        SystemState::Radio2Data0,
-                        SystemState::Radio2Data1,
-                        SystemState::Radio2Data2,
-                        SystemState::Radio2Data3,
-                    ],
-                },
-                3 => RadioIndices {
-                    channel: SystemState::Radio3Channel,
-                    send: SystemState::Radio3Send,
-                    receive: SystemState::Radio3Receive,
-                    data: [
-                        SystemState::Radio3Data0,
-                        SystemState::Radio3Data1,
-                        SystemState::Radio3Data2,
-                        SystemState::Radio3Data3,
-                    ],
-                },
-                4 => RadioIndices {
-                    channel: SystemState::Radio4Channel,
-                    send: SystemState::Radio4Send,
-                    receive: SystemState::Radio4Receive,
-                    data: [
-                        SystemState::Radio4Data0,
-                        SystemState::Radio4Data1,
-                        SystemState::Radio4Data2,
-                        SystemState::Radio4Data3,
-                    ],
-                },
-                5 => RadioIndices {
-                    channel: SystemState::Radio5Channel,
-                    send: SystemState::Radio5Send,
-                    receive: SystemState::Radio5Receive,
-                    data: [
-                        SystemState::Radio5Data0,
-                        SystemState::Radio5Data1,
-                        SystemState::Radio5Data2,
-                        SystemState::Radio5Data3,
-                    ],
-                },
-                6 => RadioIndices {
-                    channel: SystemState::Radio6Channel,
-                    send: SystemState::Radio6Send,
-                    receive: SystemState::Radio6Receive,
-                    data: [
-                        SystemState::Radio6Data0,
-                        SystemState::Radio6Data1,
-                        SystemState::Radio6Data2,
-                        SystemState::Radio6Data3,
-                    ],
-                },
-                7 => RadioIndices {
-                    channel: SystemState::Radio7Channel,
-                    send: SystemState::Radio7Send,
-                    receive: SystemState::Radio7Receive,
-                    data: [
-                        SystemState::Radio7Data0,
-                        SystemState::Radio7Data1,
-                        SystemState::Radio7Data2,
-                        SystemState::Radio7Data3,
-                    ],
-                },
-                _ => unimplemented!(),
+            assert!(sel < MAX_RADIOS);
+            let stride = 7;
+            let offset = stride * sel;
+            let add_offset = |x| unsafe {
+                ::std::mem::transmute::<u8, SystemState>((x as u8) + offset as u8) as SystemState
+            };
+            RadioIndices {
+                channel: add_offset(SystemState::Radio0Channel),
+                send: add_offset(SystemState::Radio0Send),
+                receive: add_offset(SystemState::Radio0Receive),
+                data: [
+                    add_offset(SystemState::Radio0Data0),
+                    add_offset(SystemState::Radio0Data1),
+                    add_offset(SystemState::Radio0Data2),
+                    add_offset(SystemState::Radio0Data3),
+                ],
             }
         }
     }
