@@ -2,4 +2,4 @@
 cd $(realpath $(dirname $0))/../tools
 cargo build
 mkdir -p ../scratch/tools
-cp target/debug/{tournament,battle,rescore,telemetry,fixup-telemetry,populate-leaderboard} ../scratch/tools/
+cp target/debug/{tournament,battle,rescore,telemetry,fixup-telemetry,populate-leaderboard,leaderboard} ../scratch/tools/
