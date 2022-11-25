@@ -33,6 +33,8 @@ use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
 use yew_router::prelude::*;
 
+const NUM_BACKGROUND_SIMULATIONS: u32 = 10;
+
 fn empty() -> JsValue {
     js_sys::Object::new().into()
 }
@@ -456,6 +458,7 @@ struct BackgroundSimSummary {
     average_time: Option<f64>,
     best_seed: Option<u32>,
     worst_seed: Option<u32>,
+    scenario_name: String,
 }
 
 impl Game {
@@ -484,7 +487,7 @@ impl Game {
                     .iter()
                     .map(|x| x.running_compiled_code.clone())
                     .collect();
-                for seed in 0..10 {
+                for seed in 0..NUM_BACKGROUND_SIMULATIONS {
                     let cb = {
                         let link = context.link().clone();
                         move |e| link.send_message(Msg::ReceivedBackgroundSimAgentResponse(e, seed))
@@ -575,7 +578,23 @@ impl Game {
     }
 
     fn summarize_background_simulations(&self) -> Option<BackgroundSimSummary> {
-        if self.background_snapshots.len() != self.background_agents.len() {
+        if self
+            .background_snapshots
+            .iter()
+            .any(|(_, snapshot)| snapshot.nonce != self.background_nonce)
+        {
+            log::error!("Found unexpected nonce");
+            return None;
+        }
+
+        let expected_seeds: Vec<u32> = (0..NUM_BACKGROUND_SIMULATIONS).collect();
+        let mut found_seeds: Vec<u32> = self
+            .background_snapshots
+            .iter()
+            .map(|(seed, _)| *seed)
+            .collect();
+        found_seeds.sort();
+        if expected_seeds != found_seeds {
             return None;
         }
 
@@ -615,12 +634,13 @@ impl Game {
         }
 
         Some(BackgroundSimSummary {
-            count: self.background_agents.len(),
+            count: found_seeds.len(),
             victory_count,
             failed_seeds,
             average_time,
             best_seed,
             worst_seed,
+            scenario_name: self.scenario_name.clone(),
         })
     }
 
@@ -723,7 +743,7 @@ impl Game {
                         userid: userid::get_userid(),
                         username: userid::get_username(),
                         timestamp: chrono::Utc::now(),
-                        scenario_name: self.scenario_name.clone(),
+                        scenario_name: summary.scenario_name.clone(),
                         code: source_code.clone(),
                         code_size,
                         time: summary.average_time.unwrap(),
