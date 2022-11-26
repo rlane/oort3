@@ -30,7 +30,7 @@ impl Component for Toolbar {
         match msg {
             Msg::ChangeUsername(username) => {
                 let re = Regex::new(r"^[a-zA-A0-9_-]+").unwrap();
-                if !re.is_match(&username) {
+                if !re.is_match(&username) || censor::Censor::Standard.check(&username) {
                     return true;
                 }
                 let window = web_sys::window().expect("no global `window` exists");

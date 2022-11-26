@@ -47,6 +47,7 @@ qstring = "0.7.2"
 gloo-utils = "0.1.5"
 gloo-timers = "0.2.4"
 serde-wasm-bindgen = "0.4"
+censor = "0.3.0"
 
 [dependencies.web-sys]
 version = "0.3.57"
