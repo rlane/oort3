@@ -755,7 +755,6 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let team = self.data().team;
         let p =
             self.body().position().translation.vector - self.body().linvel() * PHYSICS_TICK_LENGTH;
-        let color = vector![0.5, 0.5, 0.5, 0.70];
         let ttl = (PHYSICS_TICK_LENGTH * 5.0) as f32;
         let h = if self.readonly().is_ability_active(Ability::ShapedCharge) {
             0.1
@@ -766,6 +765,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         };
         let mut rng = new_rng(0);
         for _ in 0..num {
+            let shade: f32 = rng.gen_range(0.5..2.0);
+            let color = vector![
+                (shade * 0.9).clamp(0.0, 1.0),
+                shade * 0.5,
+                shade * 0.5,
+                0.70
+            ];
             let rot = self.body().rotation() * Rotation2::new(rng.gen_range((-h / 2.0)..(h / 2.0)));
             let speed = 2000.0 * rng.gen_range(0.0..1.0);
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
@@ -782,6 +788,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 },
             );
         }
+        self.simulation.events.ships_destroyed.push(p);
     }
 
     pub fn activate_ability(&mut self, ability: oort_api::Ability) {
