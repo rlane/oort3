@@ -487,7 +487,7 @@ fn translate_class(class: ShipClass) -> Class {
         ShipClass::Target => Class::Target,
         ShipClass::Missile => Class::Missile,
         ShipClass::Torpedo => Class::Torpedo,
-        ShipClass::Planet => Class::Target,
+        ShipClass::Planet => Class::Unknown,
     }
 }
 
