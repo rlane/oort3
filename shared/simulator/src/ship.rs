@@ -4,8 +4,8 @@ use crate::model;
 use crate::radar::Radar;
 use crate::radio::Radio;
 use crate::rng;
-use crate::simulation::Simulation;
 use crate::simulation::{self, PHYSICS_TICK_LENGTH};
+use crate::simulation::{Particle, Simulation};
 use crate::{bullet, collision};
 use bullet::BulletData;
 use nalgebra::{vector, Rotation2, UnitComplex, Vector2};
@@ -787,8 +787,13 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                     ttl,
                 },
             );
+            self.simulation.events.particles.push(Particle {
+                position: p,
+                velocity: v,
+                color,
+                lifetime: ttl * 1.5,
+            });
         }
-        self.simulation.events.ships_destroyed.push(p);
     }
 
     pub fn activate_ability(&mut self, ability: oort_api::Ability) {

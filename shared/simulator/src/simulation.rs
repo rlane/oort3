@@ -12,7 +12,7 @@ use crate::vm;
 use crate::vm::{ShipController, TeamController};
 use crossbeam::channel::Sender;
 use instant::Instant;
-use nalgebra::{UnitComplex, Vector2};
+use nalgebra::{Rotation2, UnitComplex, Vector2, Vector4};
 use oort_api::Ability;
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
@@ -20,6 +20,7 @@ use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
+use std::f64::consts::TAU;
 use std::rc::Rc;
 
 pub const WORLD_SIZE: f64 = 20000.0;
@@ -210,18 +211,37 @@ impl Simulation {
                     let dv = sim.bullet(bullet).body().linvel() - sim.ship(ship).velocity();
                     let energy = 0.5 * sim.bullet(bullet).data().mass * dv.magnitude_squared();
                     let damage = energy * DAMAGE_FACTOR;
-                    sim.events
-                        .hits
-                        .push(sim.bullet(bullet).body().position().translation.vector);
+                    for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
+                        let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
+                        let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..500.0), 0.0]);
+                        let p = sim.ship(ship).body().position().translation.vector
+                            + v * sim.rng.gen_range(0.0..0.1);
+                        sim.events.particles.push(Particle {
+                            position: p,
+                            velocity: v,
+                            color: vector![1.0, 1.0, 1.0, 1.0] * sim.rng.gen_range(0.5..1.0),
+                            lifetime: 1.0,
+                        });
+                    }
                     let ship_destroyed = {
                         let ship_data = sim.ship_data.get_mut(&ship).unwrap();
                         ship_data.health -= damage;
                         ship_data.health <= 0.0
                     };
                     if ship_destroyed {
-                        sim.events
-                            .ships_destroyed
-                            .push(sim.ship(ship).body().position().translation.vector);
+                        for _ in 0..10 {
+                            let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
+                            let v =
+                                rot.transform_vector(&vector![sim.rng.gen_range(0.0..200.0), 0.0]);
+                            let p = sim.ship(ship).body().position().translation.vector
+                                + v * sim.rng.gen_range(0.0..0.1);
+                            sim.events.particles.push(Particle {
+                                position: p,
+                                velocity: v,
+                                color: vector![1.0, 1.0, 1.0, 1.0] * sim.rng.gen_range(0.5..1.0),
+                                lifetime: 1.0,
+                            });
+                        }
                         sim.ship_mut(ship).data_mut().destroyed = true;
                         sim.bullet_mut(bullet).data_mut().mass *= 0.5;
                         let rotation = UnitComplex::new(sim.rng.gen_range(-0.1..0.1));
@@ -365,8 +385,7 @@ impl Simulation {
             scenario_lines: self.scenario.as_ref().unwrap().lines(),
             debug_lines: self.events.debug_lines.clone(),
             debug_text: self.events.debug_text.clone(),
-            hits: self.events.hits.clone(),
-            ships_destroyed: self.events.ships_destroyed.clone(),
+            particles: self.events.particles.clone(),
             errors: self.events.errors.clone(),
             cheats: self.cheats,
             timing: self.timing.clone(),
@@ -448,10 +467,17 @@ impl EventHandler for CollisionEventHandler {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Particle {
+    pub position: Vector2<f64>,
+    pub velocity: Vector2<f64>,
+    pub color: Vector4<f32>,
+    pub lifetime: f32,
+}
+
 pub struct SimEvents {
     pub errors: Vec<vm::Error>,
-    pub hits: Vec<Vector2<f64>>,
-    pub ships_destroyed: Vec<Vector2<f64>>,
+    pub particles: Vec<Particle>,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,
     pub debug_text: BTreeMap<u64, String>,
 }
@@ -460,8 +486,7 @@ impl SimEvents {
     pub fn new() -> Self {
         Self {
             errors: vec![],
-            hits: vec![],
-            ships_destroyed: vec![],
+            particles: vec![],
             debug_lines: BTreeMap::new(),
             debug_text: BTreeMap::new(),
         }
@@ -469,8 +494,7 @@ impl SimEvents {
 
     pub fn clear(&mut self) {
         self.errors.clear();
-        self.hits.clear();
-        self.ships_destroyed.clear();
+        self.particles.clear();
         self.debug_lines.clear();
         self.debug_text.clear();
     }

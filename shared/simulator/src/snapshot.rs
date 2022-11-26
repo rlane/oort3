@@ -1,6 +1,6 @@
 use crate::scenario::Status;
 use crate::ship::ShipClass;
-use crate::simulation::Line;
+use crate::simulation::{Line, Particle};
 use crate::vm;
 use nalgebra::{Point2, Vector2, Vector4};
 use oort_api::Ability;
@@ -16,8 +16,7 @@ pub struct Snapshot {
     pub ships: Vec<ShipSnapshot>,
     pub bullets: Vec<BulletSnapshot>,
     pub scenario_lines: Vec<Line>,
-    pub hits: Vec<Vector2<f64>>,
-    pub ships_destroyed: Vec<Vector2<f64>>,
+    pub particles: Vec<Particle>,
     pub errors: Vec<vm::Error>,
     pub cheats: bool,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,

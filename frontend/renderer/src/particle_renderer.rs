@@ -1,8 +1,7 @@
 use super::{buffer_arena, glutil};
 use glutil::VertexAttribBuilder;
-use nalgebra::{vector, Matrix4, Vector2};
+use nalgebra::{vector, Matrix4, Vector2, Vector4};
 use oort_simulator::snapshot::Snapshot;
-use rand::Rng;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -23,6 +22,8 @@ pub struct ParticleRenderer {
 pub struct Particle {
     position: Vector2<f32>,
     velocity: Vector2<f32>,
+    color: Vector4<f32>,
+    lifetime: f32,
     creation_time: f32,
 }
 
@@ -36,15 +37,16 @@ uniform mat4 transform;
 uniform float current_time;
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec3 velocity;
-layout(location = 2) in float creation_time;
+layout(location = 2) in vec4 color;
+layout(location = 3) in float lifetime;
+layout(location = 4) in float creation_time;
 out vec4 varying_color;
 
 void main() {
     float dt = current_time - creation_time;
-    float lifetime = 0.5;
     float life_fraction = clamp(dt / lifetime, 0.0, 1.0);
     gl_Position = transform * (position + vec4(velocity, 0.0) * dt);
-    varying_color = vec4(1.0, 1.0, 1.0, 1.0 - life_fraction);
+    varying_color = vec4(color.x, color.y, color.z, color.w * (1.0 - life_fraction));
     gl_PointSize = (1.0 - life_fraction) * 10.0;
 }
     "#,
@@ -78,6 +80,8 @@ void main() {
             particles.push(Particle {
                 position: vector![0.0, 0.0],
                 velocity: vector![0.0, 0.0],
+                color: vector![0.0, 0.0, 0.0, 0.0],
+                lifetime: 1.0,
                 creation_time: -100.0,
             });
         }
@@ -112,27 +116,14 @@ void main() {
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
-        let mut rng = rand::thread_rng();
-        for position in snapshot.hits.iter() {
-            let s = 400.0;
+        for particle in snapshot.particles.iter() {
             self.add_particle(Particle {
-                position: vector![position.x as f32, position.y as f32],
-                velocity: vector![rng.gen_range(-s..s), rng.gen_range(-s..s)],
+                position: vector![particle.position.x as f32, particle.position.y as f32],
+                velocity: vector![particle.velocity.x as f32, particle.velocity.y as f32],
+                color: particle.color,
+                lifetime: particle.lifetime,
                 creation_time: snapshot.time as f32,
             });
-        }
-
-        for position in snapshot.ships_destroyed.iter() {
-            let s = 200.0;
-            for _ in 0..10 {
-                let v = vector![rng.gen_range(-s..s), rng.gen_range(-s..s)];
-                let p = vector![position.x as f32, position.y as f32] + v * rng.gen_range(0.0..0.1);
-                self.add_particle(Particle {
-                    position: p,
-                    velocity: v,
-                    creation_time: snapshot.time as f32 + rng.gen_range(-0.1..0.3),
-                });
-            }
         }
     }
 
@@ -164,6 +155,14 @@ void main() {
             .offset(offset_of!(Particle, velocity))
             .build();
         vab.index(2)
+            .size(4)
+            .offset(offset_of!(Particle, color))
+            .build();
+        vab.index(3)
+            .size(1)
+            .offset(offset_of!(Particle, lifetime))
+            .build();
+        vab.index(4)
             .size(1)
             .offset(offset_of!(Particle, creation_time))
             .build();
