@@ -5,6 +5,7 @@ use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
 use oort_simulator::scenario::Status;
+use oort_simulator::ship::ShipClass;
 use oort_simulator::simulation;
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
 use std::collections::{HashMap, VecDeque};
@@ -350,11 +351,20 @@ impl UI {
             snapshot
                 .ships
                 .iter()
-                .filter(|ship| nalgebra::distance(&ship.position, &target) < 60.0)
+                .filter(|ship| {
+                    nalgebra::distance(&ship.position, &target) < Self::ship_pick_radius(ship.class)
+                })
                 .min_by_key(|ship| nalgebra::distance(&ship.position, &target) as i64)
                 .map(|ship| ship.id)
         });
         self.update_picked();
+    }
+
+    fn ship_pick_radius(class: ShipClass) -> f64 {
+        match class {
+            ShipClass::Planet => 2000.0,
+            _ => 60.0,
+        }
     }
 
     pub fn on_pointer_event(&mut self, e: web_sys::PointerEvent) {
