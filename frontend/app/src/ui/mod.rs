@@ -347,12 +347,15 @@ impl UI {
             .renderer
             .unproject(e.offset_x() as i32, e.offset_y() as i32)
             + vector![self.camera_target.x as f64, self.camera_target.y as f64];
+        let extra_radius =
+            (self.renderer.unproject(10, 0) - self.renderer.unproject(0, 0)).magnitude();
         self.picked_ship_id = self.snapshot.as_ref().and_then(|snapshot| {
             snapshot
                 .ships
                 .iter()
                 .filter(|ship| {
-                    nalgebra::distance(&ship.position, &target) < Self::ship_pick_radius(ship.class)
+                    nalgebra::distance(&ship.position, &target)
+                        < Self::ship_pick_radius(ship.class) + extra_radius
                 })
                 .min_by_key(|ship| nalgebra::distance(&ship.position, &target) as i64)
                 .map(|ship| ship.id)
