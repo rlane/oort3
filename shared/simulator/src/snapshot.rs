@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 pub struct Snapshot {
     pub nonce: u32,
     pub time: f64,
+    pub score_time: f64,
     pub status: Status,
     pub ships: Vec<ShipSnapshot>,
     pub bullets: Vec<BulletSnapshot>,

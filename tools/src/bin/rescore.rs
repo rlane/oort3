@@ -193,7 +193,7 @@ fn run_simulation(scenario_name: &str, seed: u32, wasm: Vec<u8>) -> Option<f64> 
         sim.step();
     }
     match sim.status() {
-        scenario::Status::Victory { team: 0 } => Some(sim.time()),
+        scenario::Status::Victory { team: 0 } => Some(sim.score_time()),
         _ => None,
     }
 }

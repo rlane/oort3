@@ -154,6 +154,10 @@ pub trait Scenario {
     fn is_tournament(&self) -> bool {
         false
     }
+
+    fn score_time(&self, sim: &Simulation) -> f64 {
+        sim.time()
+    }
 }
 
 pub fn add_walls(sim: &mut Simulation) {
@@ -2101,6 +2105,8 @@ struct PlanetaryDefense {
 }
 
 impl PlanetaryDefense {
+    const PLANET_HEALTH: f64 = 1.5e5;
+
     fn new() -> Self {
         Self { rng: new_rng(0) }
     }
@@ -2163,7 +2169,7 @@ impl Scenario for PlanetaryDefense {
                 ShipData {
                     class: ShipClass::Planet,
                     team: 0,
-                    health: 1.5e5,
+                    health: Self::PLANET_HEALTH,
                     mass: 20e6,
                     radar_cross_section: 50.0,
                     ..Default::default()
@@ -2218,5 +2224,17 @@ impl Scenario for PlanetaryDefense {
 
     fn is_tournament(&self) -> bool {
         true
+    }
+
+    fn score_time(&self, sim: &Simulation) -> f64 {
+        if let Some(&planet) = sim
+            .ships
+            .iter()
+            .find(|&&handle| sim.ship(handle).data().class == ShipClass::Planet)
+        {
+            sim.time() + (1.0 - sim.ship(planet).data().health / Self::PLANET_HEALTH) * 60.0
+        } else {
+            1e6
+        }
     }
 }

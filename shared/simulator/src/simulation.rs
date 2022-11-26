@@ -121,6 +121,10 @@ impl Simulation {
         self.tick as f64 * PHYSICS_TICK_LENGTH
     }
 
+    pub fn score_time(&self) -> f64 {
+        self.scenario.as_ref().unwrap().score_time(self)
+    }
+
     pub fn seed(&self) -> u32 {
         self.seed
     }
@@ -354,6 +358,7 @@ impl Simulation {
         let mut snapshot = Snapshot {
             nonce,
             time: self.time(),
+            score_time: self.score_time(),
             status: self.status(),
             ships: vec![],
             bullets: vec![],

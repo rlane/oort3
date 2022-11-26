@@ -612,7 +612,7 @@ impl Game {
                 self.background_snapshots
                     .iter()
                     .filter(|(_, snapshot)| is_victory(&snapshot.status))
-                    .map(|(_, snapshot)| snapshot.time)
+                    .map(|(_, snapshot)| snapshot.score_time)
                     .sum::<f64>()
                     / victory_count as f64,
             )
@@ -624,7 +624,7 @@ impl Game {
             .background_snapshots
             .iter()
             .filter(|(_, snapshot)| is_victory(&snapshot.status))
-            .map(|(seed, snapshot)| (*seed, snapshot.time))
+            .map(|(seed, snapshot)| (*seed, snapshot.score_time))
             .collect();
         victory_seeds_by_time.sort_by_key(|(_, time)| (time / PHYSICS_TICK_LENGTH) as i64);
         let best_seed = victory_seeds_by_time.first().map(|(seed, _)| *seed);
@@ -645,8 +645,8 @@ impl Game {
     }
 
     fn render_mission_complete_overlay(&self, context: &yew::Context<Self>) -> Html {
-        let time = if let Some(snapshot) = self.last_snapshot.as_ref() {
-            snapshot.time
+        let score_time = if let Some(snapshot) = self.last_snapshot.as_ref() {
+            snapshot.score_time
         } else {
             0.0
         };
@@ -777,7 +777,7 @@ impl Game {
         html! {
             <div class="centered">
                 <h1>{ "Mission Complete" }</h1>
-                { "Time: " }{ format!("{:.2}", time) }{ " seconds" }<br/>
+                { "Time: " }{ format!("{:.2}", score_time) }{ " seconds" }<br/>
                 { "Code size: " }{ code_size }{ " bytes" }<br/><br/>
                 { background_status }<br/><br/>
                 <br/><br/>
