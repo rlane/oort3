@@ -1,4 +1,5 @@
 use oort_simulator::scenario;
+use regex::Regex;
 use wasm_bindgen::JsCast;
 use yew::events::Event;
 use yew::prelude::*;
@@ -28,6 +29,10 @@ impl Component for Toolbar {
     fn update(&mut self, _context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::ChangeUsername(username) => {
+                let re = Regex::new(r"^[a-zA-A0-9_-]+").unwrap();
+                if !re.is_match(&username) {
+                    return true;
+                }
                 let window = web_sys::window().expect("no global `window` exists");
                 let storage = window
                     .local_storage()
