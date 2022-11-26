@@ -40,6 +40,7 @@ pub enum ShipClass {
     Target,
     Missile,
     Torpedo,
+    Planet,
 }
 
 impl ShipClass {
@@ -52,6 +53,7 @@ impl ShipClass {
             ShipClass::Target => "target",
             ShipClass::Missile => "missile",
             ShipClass::Torpedo => "torpedo",
+            ShipClass::Planet => "planet",
         }
     }
 }

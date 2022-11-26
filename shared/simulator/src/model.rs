@@ -115,6 +115,16 @@ pub fn torpedo() -> Vec<Vector2<f32>> {
     )
 }
 
+pub fn planet() -> Vec<Vector2<f32>> {
+    let n = 100;
+    let mut vertices = vec![];
+    for i in 0..n {
+        let rotation = Rotation2::new(i as f32 * 2.0 * std::f32::consts::PI / n as f32);
+        vertices.push(rotation.transform_vector(&vector![1.0, 0.0]));
+    }
+    scale(2000.0, &vertices)
+}
+
 pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
     match class {
         ShipClass::Fighter => fighter(),
@@ -124,5 +134,6 @@ pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
         ShipClass::Target => target(),
         ShipClass::Missile => missile(),
         ShipClass::Torpedo => torpedo(),
+        ShipClass::Planet => planet(),
     }
 }
