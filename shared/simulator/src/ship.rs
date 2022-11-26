@@ -765,13 +765,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         };
         let mut rng = new_rng(0);
         for _ in 0..num {
-            let shade: f32 = rng.gen_range(0.5..2.0);
-            let color = vector![
-                (shade * 0.9).clamp(0.0, 1.0),
-                shade * 0.5,
-                shade * 0.5,
-                0.70
-            ];
+            let color = vector![rng.gen_range(0.7..1.0), 0.5, 0.5, rng.gen_range(0.5..1.0)];
             let rot = self.body().rotation() * Rotation2::new(rng.gen_range((-h / 2.0)..(h / 2.0)));
             let speed = 2000.0 * rng.gen_range(0.0..1.0);
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
@@ -788,10 +782,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 },
             );
             self.simulation.events.particles.push(Particle {
-                position: p,
+                position: p + offset,
                 velocity: v,
                 color,
-                lifetime: ttl * 1.5,
+                lifetime: ttl * 2.0,
             });
         }
     }

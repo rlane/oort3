@@ -219,7 +219,7 @@ impl Simulation {
                         sim.events.particles.push(Particle {
                             position: p,
                             velocity: v,
-                            color: vector![1.0, 1.0, 1.0, 1.0] * sim.rng.gen_range(0.5..1.0),
+                            color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
                             lifetime: 1.0,
                         });
                     }
@@ -238,7 +238,7 @@ impl Simulation {
                             sim.events.particles.push(Particle {
                                 position: p,
                                 velocity: v,
-                                color: vector![1.0, 1.0, 1.0, 1.0] * sim.rng.gen_range(0.5..1.0),
+                                color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
                                 lifetime: 1.0,
                             });
                         }
