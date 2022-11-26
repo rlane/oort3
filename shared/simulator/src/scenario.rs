@@ -2168,7 +2168,7 @@ impl Scenario for PlanetaryDefense {
                 0.0,
                 ShipData {
                     class: ShipClass::Planet,
-                    team: 0,
+                    team: 2,
                     health: Self::PLANET_HEALTH,
                     mass: 20e6,
                     radar_cross_section: 50.0,
