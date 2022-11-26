@@ -214,7 +214,7 @@ impl Simulation {
                     for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
                         let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
                         let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..500.0), 0.0]);
-                        let p = sim.ship(ship).body().position().translation.vector
+                        let p = sim.bullet(bullet).body().position().translation.vector
                             + v * sim.rng.gen_range(0.0..0.1);
                         sim.events.particles.push(Particle {
                             position: p,
