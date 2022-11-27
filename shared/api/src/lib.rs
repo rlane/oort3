@@ -469,9 +469,9 @@ mod api {
     }
 
     /// Select the radio to control with subsequent API calls.
-    pub fn select_radio(idx: usize) {
-        let idx = idx.clamp(0, radio_internal::MAX_RADIOS - 1);
-        write_system_state(SystemState::SelectedRadio, idx as f64);
+    pub fn select_radio(index: usize) {
+        let index = index.clamp(0, radio_internal::MAX_RADIOS - 1);
+        write_system_state(SystemState::SelectedRadio, index as f64);
     }
 
     /// Sets the channel to send and receive radio transmissions on.

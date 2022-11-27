@@ -109,6 +109,7 @@ channels available (0 to 9), shared between all teams.
 - [`get_radio_channel() -> usize`](prelude::get_radio_channel): Get the radio channel.
 - [`send(data: f64)`](prelude::send): Send a message on a channel.
 - [`receive() -> f64`](prelude::receive): Receive a message from the channel. The message with the strongest signal is returned.
+- [`select_radio(index: usize)`](prelude::select_radio): Select the radio to control with subsequent API calls. Frigates have 4 radios and cruisers have 8.
 
 ## Special Abilities
 

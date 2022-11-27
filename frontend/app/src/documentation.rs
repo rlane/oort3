@@ -91,6 +91,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "get_radio_channel() -> usize" }</code>{ ": Get the radio channel." }</li>
               <li><code>{ "send(data: f64)" }</code>{ ": Send a message on a channel." }</li>
               <li><code>{ "receive() -> f64" }</code>{ ": Receive a message from the channel. The message with the strongest signal is returned." }</li>
+              <li><code>{ "select_radio(index: usize)" }</code>{ ": Select the radio to control with subsequent API calls. Frigates have 4 radios and cruisers have 8." }</li>
             </ul>
 
             <h2>{ "Special Abilities" }</h2>
