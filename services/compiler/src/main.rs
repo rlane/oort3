@@ -1,10 +1,10 @@
 use bytes::Bytes;
+use once_cell::sync::Lazy;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 use tokio::process::Command;
-use once_cell::sync::Lazy;
 
-static LOCK : Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
+static LOCK: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
 
 async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
     let _guard = LOCK.lock().await;

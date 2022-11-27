@@ -1145,6 +1145,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "id-arena"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1567,6 +1573,7 @@ dependencies = [
  "serde",
  "smartstring",
  "tar",
+ "walrus",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasmer",
@@ -3022,6 +3029,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
+name = "walrus"
+version = "0.19.0"
+source = "git+https://github.com/scrtlabs/walrus?rev=c5777d4#c5777d43d78b437cef94aaa939d3be115dfeee6a"
+dependencies = [
+ "anyhow",
+ "id-arena",
+ "leb128",
+ "log",
+ "walrus-macro",
+ "wasmparser 0.78.2",
+]
+
+[[package]]
+name = "walrus-macro"
+version = "0.19.0"
+source = "git+https://github.com/scrtlabs/walrus?rev=c5777d4#c5777d43d78b437cef94aaa939d3be115dfeee6a"
+dependencies = [
+ "heck 0.3.3",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "want"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3163,7 +3194,7 @@ dependencies = [
  "thiserror",
  "wasmer-types",
  "wasmer-vm",
- "wasmparser",
+ "wasmparser 0.83.0",
  "winapi",
 ]
 
@@ -3236,6 +3267,12 @@ dependencies = [
  "wasmer-types",
  "winapi",
 ]
+
+[[package]]
+name = "wasmparser"
+version = "0.78.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52144d4c78e5cf8b055ceab8e5fa22814ce4315d6002ad32cfd914f37c12fd65"
 
 [[package]]
 name = "wasmparser"

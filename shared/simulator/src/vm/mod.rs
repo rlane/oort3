@@ -1,4 +1,5 @@
 pub mod builtin;
+mod limiter;
 
 use crate::debug;
 use crate::ship::{ShipClass, ShipHandle};
@@ -13,6 +14,8 @@ use std::rc::Rc;
 use wasmer::{imports, Instance, Module, Store, WasmPtr};
 
 pub type Vec2 = nalgebra::Vector2<f64>;
+
+const GAS_PER_TICK: i32 = 1_000_000;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
@@ -83,6 +86,7 @@ pub struct WasmVm {
     system_state_ptr: WasmPtr<f64>,
     tick_ship: wasmer::Function,
     delete_ship: wasmer::Function,
+    reset_gas: wasmer::Function,
 }
 
 impl WasmVm {
@@ -93,8 +97,9 @@ impl WasmVm {
 
 impl WasmTeamController {
     pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, Error> {
+        let code = limiter::rewrite(code)?;
         Ok(Box::new(WasmTeamController {
-            code: code.to_vec(),
+            code,
             vms: Vec::new(),
             index: 0,
         }))
@@ -164,6 +169,7 @@ impl WasmVm {
         let tick_ship = translate_error(instance.exports.get_function("export_tick_ship"))?.clone();
         let delete_ship =
             translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
+        let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
 
         Ok(WasmVm {
             store: Rc::new(RefCell::new(store)),
@@ -171,6 +177,7 @@ impl WasmVm {
             system_state_ptr,
             tick_ship,
             delete_ship,
+            reset_gas,
         })
     }
 }
@@ -237,6 +244,12 @@ impl ShipController for WasmShipController {
     fn tick(&mut self) -> Result<(), Error> {
         {
             let sim = unsafe { &mut *self.sim };
+
+            translate_runtime_error(
+                self.vm
+                    .reset_gas
+                    .call(self.vm.store().deref_mut(), &[GAS_PER_TICK.into()]),
+            )?;
 
             self.state.set(
                 SystemState::Class,
