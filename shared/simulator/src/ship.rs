@@ -284,7 +284,7 @@ pub fn frigate(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 30.0,
-        radios: vec![radio()],
+        radios: vec![radio(), radio(), radio(), radio()],
         ..Default::default()
     }
 }
@@ -349,7 +349,16 @@ pub fn cruiser(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
-        radios: vec![radio()],
+        radios: vec![
+            radio(),
+            radio(),
+            radio(),
+            radio(),
+            radio(),
+            radio(),
+            radio(),
+            radio(),
+        ],
         abilities: vec![ShipAbility {
             ability: Ability::Shield,
             active_time: 1.0,

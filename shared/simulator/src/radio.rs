@@ -196,4 +196,46 @@ mod test {
 
         assert_eq!(sim.ship(ship0).radio(0).unwrap().received, Some(msg));
     }
+
+    #[test]
+    fn test_multi_radio() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        let make_msg = |i: usize| -> [f64; 4] {
+            let x = i as f64;
+            [x, x + 10.0, x + 20.0, x + 30.0]
+        };
+
+        // Initial state.
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::cruiser(0),
+        );
+        let ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::cruiser(0),
+        );
+
+        let n = 8;
+        for i in 0..n {
+            sim.ship_mut(ship0).radio_mut(i).unwrap().channel = i;
+            sim.ship_mut(ship1).radio_mut(i).unwrap().channel = i;
+            sim.ship_mut(ship1).radio_mut(i).unwrap().sent = Some(make_msg(i));
+        }
+
+        sim.step();
+
+        for i in 0..n {
+            assert_eq!(
+                sim.ship(ship0).radio(i).unwrap().received,
+                Some(make_msg(i))
+            );
+        }
+    }
 }
