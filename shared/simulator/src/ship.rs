@@ -113,7 +113,7 @@ pub struct ShipData {
     pub missile_launchers: Vec<MissileLauncher>,
     pub radar: Option<Radar>,
     pub radar_cross_section: f64,
-    pub radio: Option<Radio>,
+    pub radios: Vec<Radio>,
     pub abilities: Vec<ShipAbility>,
 }
 
@@ -136,7 +136,7 @@ impl Default for ShipData {
             missile_launchers: vec![],
             radar: None,
             radar_cross_section: 10.0,
-            radio: None,
+            radios: vec![],
             abilities: vec![],
         }
     }
@@ -228,7 +228,7 @@ pub fn fighter(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 10.0,
-        radio: Some(radio()),
+        radios: vec![radio()],
         abilities: vec![ShipAbility {
             ability: Ability::Boost,
             active_time: 2.0,
@@ -284,7 +284,7 @@ pub fn frigate(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 30.0,
-        radio: Some(radio()),
+        radios: vec![radio()],
         ..Default::default()
     }
 }
@@ -349,7 +349,7 @@ pub fn cruiser(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
-        radio: Some(radio()),
+        radios: vec![radio()],
         abilities: vec![ShipAbility {
             ability: Ability::Shield,
             active_time: 1.0,
@@ -397,7 +397,7 @@ pub fn missile(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 3.0,
-        radio: Some(radio()),
+        radios: vec![radio()],
         ttl: Some(20 * 60),
         abilities: vec![
             ShipAbility {
@@ -433,7 +433,7 @@ pub fn torpedo(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 8.0,
-        radio: Some(radio()),
+        radios: vec![radio()],
         ttl: Some(30 * 60),
         abilities: vec![ShipAbility {
             ability: Ability::Decoy,
@@ -542,8 +542,8 @@ impl<'a> ShipAccessor<'a> {
         self.data().radar.as_ref()
     }
 
-    pub fn radio(&self) -> Option<&Radio> {
-        self.data().radio.as_ref()
+    pub fn radio(&self, idx: usize) -> Option<&Radio> {
+        self.data().radios.get(idx)
     }
 
     pub fn is_ability_active(&self, ability: oort_api::Ability) -> bool {
@@ -597,8 +597,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         self.data_mut().radar.as_mut()
     }
 
-    pub fn radio_mut(&mut self) -> Option<&mut Radio> {
-        self.data_mut().radio.as_mut()
+    pub fn radio_mut(&mut self, idx: usize) -> Option<&mut Radio> {
+        self.data_mut().radios.get_mut(idx)
     }
 
     pub fn accelerate(&mut self, acceleration: Vector2<f64>) {

@@ -307,8 +307,8 @@ impl ShipController for WasmShipController {
                 );
             }
 
-            if let Some(radio) = sim.ship(self.handle).data().radio.as_ref() {
-                let idxs = oort_api::prelude::radio_internal::radio_indices(0);
+            for (i, radio) in sim.ship(self.handle).data().radios.iter().enumerate() {
+                let idxs = oort_api::prelude::radio_internal::radio_indices(i);
                 self.state.set(idxs.channel, radio.get_channel() as f64);
                 if let Some(msg) = radio.get_received() {
                     self.state.set(idxs.receive, 1.0);
@@ -413,8 +413,14 @@ impl ShipController for WasmShipController {
                 }
             }
 
-            if let Some(radio) = sim.ship_mut(self.handle).data_mut().radio.as_mut() {
-                let idxs = oort_api::prelude::radio_internal::radio_indices(0);
+            for (i, radio) in sim
+                .ship_mut(self.handle)
+                .data_mut()
+                .radios
+                .iter_mut()
+                .enumerate()
+            {
+                let idxs = oort_api::prelude::radio_internal::radio_indices(i);
                 radio.set_channel(self.state.get(idxs.channel) as usize);
                 if self.state.get(idxs.send) != 0.0 {
                     let msg = [

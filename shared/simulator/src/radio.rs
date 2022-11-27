@@ -43,6 +43,7 @@ struct RadioSender {
 
 struct RadioReceiver {
     handle: ShipHandle,
+    radio_index: usize,
     position: Point2<f64>,
     rx_cross_section: f64,
     min_rssi: f64,
@@ -58,12 +59,13 @@ pub fn tick(sim: &mut Simulation) {
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
         let ship_data = ship.data();
-        if let Some(radio) = ship_data.radio.as_ref() {
+        for (radio_index, radio) in ship_data.radios.iter().enumerate() {
             receivers
                 .entry(radio.channel)
                 .or_default()
                 .push(RadioReceiver {
                     handle,
+                    radio_index,
                     position: ship.position().vector.into(),
                     rx_cross_section: radio.rx_cross_section,
                     min_rssi: radio.min_rssi,
@@ -91,8 +93,7 @@ pub fn tick(sim: &mut Simulation) {
                 }
             }
             sim.ship_mut(rx.handle)
-                .data_mut()
-                .radio
+                .radio_mut(rx.radio_index)
                 .as_mut()
                 .unwrap()
                 .received = best_msg;
@@ -100,7 +101,7 @@ pub fn tick(sim: &mut Simulation) {
     }
 
     for handle in handle_snapshot.iter().cloned() {
-        if let Some(radio) = sim.ship_mut(handle).data_mut().radio.as_mut() {
+        for radio in sim.ship_mut(handle).data_mut().radios.iter_mut() {
             radio.sent = None;
         }
     }
@@ -141,22 +142,22 @@ mod test {
 
         sim.step();
 
-        assert!(sim.ship(ship0).radio().unwrap().received.is_none());
-        assert!(sim.ship(ship1).radio().unwrap().received.is_none());
+        assert!(sim.ship(ship0).radio(0).unwrap().received.is_none());
+        assert!(sim.ship(ship1).radio(0).unwrap().received.is_none());
 
         let msg = [42.0, 43.0, 44.0, 45.0];
 
-        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(msg);
+        sim.ship_mut(ship1).radio_mut(0).unwrap().sent = Some(msg);
 
         sim.step();
 
-        assert_eq!(sim.ship(ship0).radio().unwrap().received, Some(msg));
-        assert_eq!(sim.ship(ship1).radio().unwrap().received, Some(msg));
+        assert_eq!(sim.ship(ship0).radio(0).unwrap().received, Some(msg));
+        assert_eq!(sim.ship(ship1).radio(0).unwrap().received, Some(msg));
 
         sim.step();
 
-        assert!(sim.ship(ship0).radio().unwrap().received.is_none());
-        assert!(sim.ship(ship1).radio().unwrap().received.is_none());
+        assert!(sim.ship(ship0).radio(0).unwrap().received.is_none());
+        assert!(sim.ship(ship1).radio(0).unwrap().received.is_none());
     }
 
     #[test]
@@ -181,18 +182,18 @@ mod test {
 
         let msg = [42.0, 43.0, 44.0, 45.0];
 
-        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(msg);
-        sim.ship_mut(ship1).radio_mut().unwrap().channel = 5;
+        sim.ship_mut(ship1).radio_mut(0).unwrap().sent = Some(msg);
+        sim.ship_mut(ship1).radio_mut(0).unwrap().channel = 5;
 
         sim.step();
 
-        assert_eq!(sim.ship(ship0).radio().unwrap().received, None);
+        assert_eq!(sim.ship(ship0).radio(0).unwrap().received, None);
 
-        sim.ship_mut(ship0).radio_mut().unwrap().channel = 5;
-        sim.ship_mut(ship1).radio_mut().unwrap().sent = Some(msg);
+        sim.ship_mut(ship0).radio_mut(0).unwrap().channel = 5;
+        sim.ship_mut(ship1).radio_mut(0).unwrap().sent = Some(msg);
 
         sim.step();
 
-        assert_eq!(sim.ship(ship0).radio().unwrap().received, Some(msg));
+        assert_eq!(sim.ship(ship0).radio(0).unwrap().received, Some(msg));
     }
 }
