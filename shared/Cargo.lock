@@ -1083,7 +1083,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort_ai"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "oorandom",
  "oort_api",
@@ -1091,7 +1091,7 @@ dependencies = [
 
 [[package]]
 name = "oort_api"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "oorandom",
  "serde",
@@ -1099,7 +1099,7 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "serde",
  "sha2",
@@ -1107,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "oort_proto"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1115,7 +1115,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulator"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "approx",
  "bincode",
