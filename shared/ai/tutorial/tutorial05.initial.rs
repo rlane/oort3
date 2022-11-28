@@ -1,6 +1,9 @@
 // Tutorial 05
 // Destroy the enemy ship. Its position is given by the "target" function and velocity by the
 // "target_velocity" function.
+//
+// This is where the game becomes challenging! You'll need to lead the target
+// by firing towards where the target will be by the time the bullet gets there.
 use oort_api::prelude::*;
 
 const BULLET_SPEED: f64 = 1000.0; // m/s
