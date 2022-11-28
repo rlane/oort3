@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 oort_proto = { path = "../../shared/proto" }
+oort_envelope = { path = "../../shared/envelope" }
 salvo = "0.36"
 salvo_extra = { version="0.36", features=["cors"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "process"] }

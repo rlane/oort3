@@ -14,6 +14,7 @@ oort_simulation_worker = { path = "../simulation_worker" }
 oort_analyzer_worker = { path = "../analyzer_worker" }
 oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
 oort_proto = { path = "../../shared/proto" }
+oort_envelope = { path = "../../shared/envelope" }
 bincode = "1.3.3"
 chrono = "0.4.19"
 console_error_panic_hook = "0.1.7"

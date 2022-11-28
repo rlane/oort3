@@ -99,9 +99,15 @@ async fn post_leaderboard_internal(
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id()).await?;
     log::debug!("Got request {:?}", req);
-    let payload = req.payload().await?;
+    let payload = match oort_envelope::remove(req.payload().await?) {
+        Some(x) => x,
+        None => {
+            log::warn!("Failed to remove envelope");
+            return Err(anyhow!("failed"));
+        }
+    };
     log::debug!("Got payload {:?}", payload);
-    let mut obj: LeaderboardSubmission = serde_json::from_slice(payload)?;
+    let mut obj: LeaderboardSubmission = serde_json::from_slice(&payload)?;
     obj.timestamp = Utc::now();
     log::debug!("Got request obj {:?}", obj);
     let path = format!("{}.{}", obj.scenario_name, obj.userid);

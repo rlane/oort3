@@ -1318,6 +1318,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_envelope"
+version = "0.25.0"
+dependencies = [
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "oort_leaderboard_service"
 version = "0.25.0"
 dependencies = [
@@ -1327,6 +1335,7 @@ dependencies = [
  "firestore",
  "gcloud-sdk",
  "log",
+ "oort_envelope",
  "oort_proto",
  "rand 0.8.5",
  "salvo",

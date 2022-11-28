@@ -1596,6 +1596,7 @@ dependencies = [
  "nalgebra",
  "no-comment",
  "oort_analyzer_worker",
+ "oort_envelope",
  "oort_proto",
  "oort_renderer",
  "oort_simulation_worker",
@@ -1643,6 +1644,14 @@ version = "0.25.0"
 dependencies = [
  "oorandom",
  "serde",
+]
+
+[[package]]
+name = "oort_envelope"
+version = "0.25.0"
+dependencies = [
+ "serde",
+ "sha2",
 ]
 
 [[package]]

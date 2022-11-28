@@ -79,8 +79,10 @@ pub fn post_leaderboard(
 ) {
     wasm_bindgen_futures::spawn_local(async move {
         let url = format!("{}/leaderboard", leaderboard_url());
-        let body = serde_json::to_string(&msg).unwrap();
-        let result = Request::post(&url).body(body).send().await;
+        let body = oort_envelope::add(&serde_json::to_vec(&msg).unwrap());
+        let jsdata = js_sys::Uint8Array::new_with_length(body.len() as u32);
+        jsdata.copy_from(&body);
+        let result = Request::post(&url).body(jsdata).send().await;
         match result {
             Err(e) => {
                 log::warn!("Error posting to leaderboard: {:?}", e);
