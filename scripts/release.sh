@@ -39,6 +39,8 @@ if ! git diff HEAD --quiet; then
   exit 1
 fi
 
+[-e scratch/secrets.sh ] && source scratch/secrets.sh
+
 if [[ $BUMP_VERSION -eq 1 ]]; then
   (cd frontend && cargo workspaces version --all --force='*' --no-git-commit --yes)
   VERSION=$(egrep '^version = ".*"$' frontend/app/Cargo.toml | head -n1 | egrep -o '[0-9][^"]*')

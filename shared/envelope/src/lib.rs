@@ -2,11 +2,11 @@ use sha2::{Digest, Sha256};
 
 const DIGEST_LENGTH: usize = 32;
 
-fn secret() -> &'static [u8] {
-    &[
-        0x43, 0xd2, 0x0a, 0x3e, 0x76, 0x01, 0x49, 0xfc, 0x13, 0x72, 0x12, 0x31, 0x1a, 0xa0, 0x77,
-        0x9c,
-    ]
+fn secret() -> Vec<u8> {
+    option_env!("OORT_ENVELOPE_SECRET")
+        .unwrap_or("not a secret")
+        .as_bytes()
+        .to_vec()
 }
 
 fn perturb(data: &[u8]) -> Vec<u8> {
@@ -16,7 +16,7 @@ fn perturb(data: &[u8]) -> Vec<u8> {
 fn digest(data: &[u8]) -> Vec<u8> {
     let mut hasher = Sha256::new();
     hasher.update(data);
-    hasher.update(secret());
+    hasher.update(&secret());
     hasher.finalize().to_vec()
 }
 
