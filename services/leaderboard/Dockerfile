@@ -2,6 +2,7 @@ FROM rust:1.64-slim-buster as builder
 WORKDIR /usr/src/app
 RUN apt-get update
 COPY . .
+ARG OORT_ENVELOPE_SECRET
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
