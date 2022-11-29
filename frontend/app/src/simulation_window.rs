@@ -19,6 +19,7 @@ pub enum Msg {
     WheelEvent(web_sys::WheelEvent),
     MouseEvent(web_sys::MouseEvent),
     PointerEvent(web_sys::PointerEvent),
+    BlurEvent(web_sys::FocusEvent),
     RequestSnapshot,
     ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
@@ -127,6 +128,12 @@ impl Component for SimulationWindow {
                 }
                 false
             }
+            Msg::BlurEvent(e) => {
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.on_blur_event(e);
+                }
+                false
+            }
             Msg::ReceivedSimAgentResponse(oort_simulation_worker::Response::Snapshot {
                 snapshot,
             }) => {
@@ -143,6 +150,7 @@ impl Component for SimulationWindow {
         let wheel_event_cb = context.link().callback(Msg::WheelEvent);
         let mouse_event_cb = context.link().callback(Msg::MouseEvent);
         let pointer_event_cb = context.link().callback(Msg::PointerEvent);
+        let blur_event_cb = context.link().callback(Msg::BlurEvent);
 
         create_portal(
             html! {
@@ -155,7 +163,8 @@ impl Component for SimulationWindow {
                         onwheel={wheel_event_cb}
                         onclick={mouse_event_cb}
                         onpointermove={pointer_event_cb.clone()}
-                        onpointerup={pointer_event_cb} />
+                        onpointerup={pointer_event_cb}
+                        onblur={blur_event_cb} />
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>

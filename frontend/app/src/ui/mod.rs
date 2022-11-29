@@ -405,6 +405,10 @@ impl UI {
         }
     }
 
+    pub fn on_blur_event(&mut self, _e: web_sys::FocusEvent) {
+        self.keys_down.clear();
+    }
+
     pub fn status(&self) -> Status {
         self.status
     }
