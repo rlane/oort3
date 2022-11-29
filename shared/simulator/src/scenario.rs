@@ -956,19 +956,12 @@ impl Scenario for Tutorial05 {
         ));
 
         let mut rng = new_rng(seed);
-        let size = 500.0;
-        let range = -size..size;
-        let target = point![rng.gen_range(range.clone()), rng.gen_range(range)];
-        self.target_handle = Some(ship::create(
-            sim,
-            target.coords,
-            vector![
-                rng.gen_range(0.0..std::f64::consts::TAU),
-                rng.gen_range(-400.0..400.0)
-            ],
-            rng.gen_range(-400.0..400.0),
-            fighter(1),
-        ));
+        let mut target_data = fighter(1);
+        target_data.health *= 2.0;
+        let p = Rotation2::new(rng.gen_range(0.0..TAU)).transform_vector(&vector![1000.0, 0.0]);
+        let h = rng.gen_range(0.0..std::f64::consts::TAU);
+        let v = Rotation2::new(h).transform_vector(&vector![200.0, 0.0]);
+        self.target_handle = Some(ship::create(sim, p, v, h, target_data));
 
         let target_position = sim.ship(self.target_handle.unwrap()).position();
         let target_velocity = sim.ship(self.target_handle.unwrap()).velocity();

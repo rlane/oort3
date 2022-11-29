@@ -1,5 +1,7 @@
 use oort_api::prelude::*;
 
+const SPEED: f64 = 200.0;
+
 pub struct Ship {
     target: Vec2,
     rng: oorandom::Rand64,
@@ -14,13 +16,15 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        if (self.target - position()).length() < 50.0 {
-            self.target =
-                vec2(self.rng.rand_float() * 500.0, 0.0).rotate(self.rng.rand_float() * TAU);
+        if (self.target - position()).length() < 200.0 {
+            self.target = vec2(1000.0, 0.0).rotate(self.rng.rand_float() * TAU);
         }
 
-        accelerate(self.target - position() - velocity());
-        turn_to((self.target - position()).angle());
+        debug_line(position(), self.target, 0xffffff);
+
+        let target_velocity = (self.target - position()).normalize() * SPEED;
+        accelerate((target_velocity - velocity()) * 1e6);
+        turn_to((target_velocity - velocity()).angle());
     }
 }
 
