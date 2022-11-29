@@ -4,6 +4,8 @@
 //
 // This is where the game becomes challenging! You'll need to lead the target
 // by firing towards where the target will be by the time the bullet gets there.
+//
+// p.s. You can change your username by clicking on it at the top of the page.
 use oort_api::prelude::*;
 
 const BULLET_SPEED: f64 = 1000.0; // m/s
