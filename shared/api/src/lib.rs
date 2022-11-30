@@ -620,7 +620,7 @@ pub mod dbg {
     ///
     /// `a` and `b` are positions in world coordinates.
     /// `color` is 24-bit RGB.
-    pub fn debug_line(a: Vec2, b: Vec2, color: u32) {
+    pub fn draw_line(a: Vec2, b: Vec2, color: u32) {
         unsafe {
             LINE_BUFFER.push(Line {
                 x0: a.x,
@@ -632,16 +632,22 @@ pub mod dbg {
         }
     }
 
+    #[deprecated]
+    #[doc(hidden)]
+    pub fn debug_line(a: Vec2, b: Vec2, color: u32) {
+        draw_line(a, b, color)
+    }
+
     /// Draws a regular polygon visible in debug mode.
     ///
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
-    pub fn debug_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32) {
+    pub fn draw_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32) {
         let mut angle = angle;
         let delta_angle = TAU / sides as f64;
         let p = vec2(radius, 0.0);
         for _ in 0..sides {
-            debug_line(
+            draw_line(
                 center + p.rotate(angle),
                 center + p.rotate(angle + delta_angle),
                 color,
@@ -650,28 +656,52 @@ pub mod dbg {
         }
     }
 
+    #[deprecated]
+    #[doc(hidden)]
+    pub fn debug_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32) {
+        draw_polygon(center, radius, sides, angle, color)
+    }
+
     /// Draws a triangle visible in debug mode.
     ///
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
+    pub fn draw_triangle(center: Vec2, radius: f64, color: u32) {
+        draw_polygon(center, radius, 3, TAU / 4.0, color);
+    }
+
+    #[deprecated]
+    #[doc(hidden)]
     pub fn debug_triangle(center: Vec2, radius: f64, color: u32) {
-        debug_polygon(center, radius, 3, TAU / 4.0, color);
+        draw_triangle(center, radius, color)
     }
 
     /// Draws a triangle visible in debug mode.
     ///
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
+    pub fn draw_square(center: Vec2, radius: f64, color: u32) {
+        draw_polygon(center, radius, 4, TAU / 8.0, color);
+    }
+
+    #[deprecated]
+    #[doc(hidden)]
     pub fn debug_square(center: Vec2, radius: f64, color: u32) {
-        debug_polygon(center, radius, 4, TAU / 8.0, color);
+        draw_square(center, radius, color)
     }
 
     /// Draws a triangle visible in debug mode.
     ///
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
+    pub fn draw_diamond(center: Vec2, radius: f64, color: u32) {
+        draw_polygon(center, radius, 4, 0.0, color);
+    }
+
+    #[deprecated]
+    #[doc(hidden)]
     pub fn debug_diamond(center: Vec2, radius: f64, color: u32) {
-        debug_polygon(center, radius, 4, 0.0, color);
+        draw_diamond(center, radius, color)
     }
 
     #[doc(hidden)]
