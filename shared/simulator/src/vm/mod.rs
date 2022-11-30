@@ -6,7 +6,7 @@ use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Simulation};
 use nalgebra::point;
 use nalgebra::Vector2;
-use oort_api::{Ability, Class, Line, SystemState};
+use oort_api::{Ability, Class, Line, SystemState, Text};
 use serde::{Deserialize, Serialize};
 use std::cell::{RefCell, RefMut};
 use std::ops::DerefMut;
@@ -423,6 +423,14 @@ impl ShipController for WasmShipController {
                                 .collect::<Vec<debug::Line>>(),
                         );
                     }
+                }
+            }
+
+            if self.state.get(SystemState::DrawnTextLength) > 0.0 {
+                let offset = self.state.get(SystemState::DrawnTextPointer) as u32;
+                let length = self.state.get(SystemState::DrawnTextLength) as u32;
+                if length <= 128 {
+                    if let Some(_texts) = self.read_vec::<Text>(offset, length) {}
                 }
             }
 

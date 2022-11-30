@@ -145,6 +145,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "draw_square(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a square visible when the ship is selected." }</li>
               <li><code>{ "draw_diamond(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a diamond visible when the ship is selected." }</li>
               <li><code>{ "draw_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32)" }</code>{ ": Draw a regular polygon visible when the ship is selected." }</li>
+              <li><code>{ "draw_text!(topleft: Vec2, color: u32, ...)" }</code>{ ": Draw text. Works like " }<code>{ "println!" }</code>{ "." }</li>
             </ul>
 
             <h2>{ "Miscellaneous" }</h2>

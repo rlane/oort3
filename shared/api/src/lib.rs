@@ -124,6 +124,9 @@ pub enum SystemState {
     // TODO not part of interface
     SelectedRadio,
 
+    DrawnTextPointer,
+    DrawnTextLength,
+
     Size,
     MaxSize = 128,
 }
@@ -174,7 +177,7 @@ pub enum Ability {
     Shield,
 }
 
-#[allow(missing_docs)]
+#[doc(hidden)]
 #[derive(Default, Clone)]
 pub struct Line {
     pub x0: f64,
@@ -182,6 +185,16 @@ pub struct Line {
     pub x1: f64,
     pub y1: f64,
     pub color: u32,
+}
+
+#[doc(hidden)]
+#[derive(Default, Clone)]
+pub struct Text {
+    pub x: f64,
+    pub y: f64,
+    pub color: u32,
+    pub length: u8,
+    pub text: [u8; 11],
 }
 
 /// Message sent and received on the radio.
@@ -588,13 +601,14 @@ mod api {
 #[doc(hidden)]
 #[macro_use]
 pub mod dbg {
-    use super::Line;
+    use super::{Line, Text};
     use crate::sys::write_system_state;
     use crate::vec::*;
     use std::f64::consts::TAU;
 
     static mut TEXT_BUFFER: String = String::new();
     static mut LINE_BUFFER: Vec<Line> = Vec::new();
+    static mut DRAWN_TEXT_BUFFER: Vec<Text> = Vec::new();
 
     /// Adds text to be displayed when the ship is selected by clicking on it.
     ///
@@ -704,6 +718,36 @@ pub mod dbg {
         draw_diamond(center, radius, color)
     }
 
+    /// Adds text to be drawn in the world, visible in debug mode.
+    ///
+    /// Works like [println!].
+    #[macro_export]
+    macro_rules! draw_text {
+        ($topleft:expr, $color:expr, $($arg:tt)*) => {
+            $crate::dbg::draw_text_internal($topleft, $color, std::format_args!($($arg)*))
+        };
+    }
+
+    #[allow(unused)]
+    #[doc(hidden)]
+    pub fn draw_text_internal(topleft: Vec2, color: u32, args: std::fmt::Arguments) {
+        use std::fmt::Write;
+        let mut text = String::new();
+        let _ = std::fmt::write(&mut text, args);
+        unsafe {
+            // TODO handle longer text
+            let mut buf = [0u8; 11];
+            buf.iter_mut().zip(text.bytes()).for_each(|(d, s)| *d = s);
+            DRAWN_TEXT_BUFFER.push(Text {
+                x: topleft.x,
+                y: topleft.y,
+                color,
+                length: text.len().min(buf.len()) as u8,
+                text: buf,
+            });
+        }
+    }
+
     #[doc(hidden)]
     pub fn update() {
         {
@@ -728,6 +772,17 @@ pub mod dbg {
                 slice.len() as u32 as f64,
             );
         }
+        {
+            let slice = unsafe { DRAWN_TEXT_BUFFER.as_slice() };
+            write_system_state(
+                super::SystemState::DrawnTextPointer,
+                slice.as_ptr() as u32 as f64,
+            );
+            write_system_state(
+                super::SystemState::DrawnTextLength,
+                slice.len() as u32 as f64,
+            );
+        }
     }
 
     #[doc(hidden)]
@@ -735,6 +790,7 @@ pub mod dbg {
         unsafe {
             TEXT_BUFFER.clear();
             LINE_BUFFER.clear();
+            DRAWN_TEXT_BUFFER.clear();
         }
     }
 }
@@ -798,5 +854,5 @@ pub mod prelude {
     #[doc(inline)]
     pub use super::{Ability, Class, Message};
     #[doc(inline)]
-    pub use crate::debug;
+    pub use crate::{debug, draw_text};
 }

@@ -160,6 +160,7 @@ functions below.
 - [`draw_square(center: Vec2, radius: f64, color: u32)`](prelude::draw_square): Draw a square.
 - [`draw_diamond(center: Vec2, radius: f64, color: u32)`](prelude::draw_diamond): Draw a diamond.
 - [`draw_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32)`](prelude::draw_polygon): Draw a regular polygon.
+- [`draw_text!(topleft: Vec2, color: u32, ...)`](prelude::draw_text!): Draw text.
 
 Entering debug mode by pressing the 'g' key also displays debug graphics from all ships.
 
