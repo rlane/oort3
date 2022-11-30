@@ -20,7 +20,7 @@ impl Ship {
             self.target = vec2(1000.0, 0.0).rotate(self.rng.rand_float() * TAU);
         }
 
-        debug_line(position(), self.target, 0xffffff);
+        draw_line(position(), self.target, 0xffffff);
 
         let target_velocity = (self.target - position()).normalize() * SPEED;
         accelerate((target_velocity - velocity()) * 1e6);

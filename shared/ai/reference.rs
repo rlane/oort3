@@ -121,21 +121,21 @@ impl Ship {
             self.target_position = contact.position;
             self.target_velocity = contact.velocity;
             set_radar_width((radar_width() * 0.9).max(τ / 360.0));
-            debug_diamond(self.target_position, 20.0, 0x00ff00);
+            draw_diamond(self.target_position, 20.0, 0x00ff00);
         } else if let Some(_) = receive() {
             let (new_target_position, new_target_velocity) = parse_orders(receive());
             if new_target_position.distance(self.target_position) < 100.0 {
                 self.target_position = new_target_position;
                 self.target_velocity = new_target_velocity;
                 set_radar_width(τ / 360.0);
-                debug_diamond(self.target_position, 20.0, 0xf5da42);
+                draw_diamond(self.target_position, 20.0, 0xf5da42);
             } else {
                 set_radar_width((radar_width() * 2.0).min(τ / 16.0));
-                debug_diamond(self.target_position, 20.0, 0xff0000);
+                draw_diamond(self.target_position, 20.0, 0xff0000);
             }
         } else {
             set_radar_width((radar_width() * 2.0).min(τ / 16.0));
-            debug_diamond(self.target_position, 20.0, 0xff0000);
+            draw_diamond(self.target_position, 20.0, 0xff0000);
         }
 
         set_radar_heading((self.target_position - position()).angle());

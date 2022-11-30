@@ -9,7 +9,7 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        debug_triangle(vec2(gen(), gen()), gen(), 0xffffff);
+        draw_triangle(vec2(gen(), gen()), gen(), 0xffffff);
         for i in 0..(SystemState::MaxSize as u8) {
             if i == SystemState::Explode as u8 {
                 continue;
