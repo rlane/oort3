@@ -6,6 +6,7 @@ pub mod grid_renderer;
 pub mod line_renderer;
 pub mod particle_renderer;
 pub mod ship_renderer;
+pub mod text_renderer;
 pub mod trail_renderer;
 
 #[macro_use]
@@ -15,10 +16,12 @@ use bullet_renderer::BulletRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
+use oort_api::Text;
 use oort_simulator::simulation::Line;
 use oort_simulator::snapshot::Snapshot;
 use particle_renderer::ParticleRenderer;
 use ship_renderer::ShipRenderer;
+use text_renderer::TextRenderer;
 use trail_renderer::TrailRenderer;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -34,6 +37,7 @@ pub struct Renderer {
     bullet_renderer: BulletRenderer,
     particle_renderer: ParticleRenderer,
     trail_renderer: TrailRenderer,
+    text_renderer: TextRenderer,
     projection_matrix: Matrix4<f32>,
     base_line_width: f32,
     debug: bool,
@@ -58,7 +62,8 @@ impl Renderer {
             ship_renderer: ShipRenderer::new(context.clone())?,
             bullet_renderer: BulletRenderer::new(context.clone())?,
             particle_renderer: ParticleRenderer::new(context.clone())?,
-            trail_renderer: TrailRenderer::new(context)?,
+            trail_renderer: TrailRenderer::new(context.clone())?,
+            text_renderer: TextRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
             base_line_width: 1.0,
             debug: false,
@@ -132,6 +137,8 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
         self.trail_renderer
             .update_projection_matrix(&self.projection_matrix);
+        self.text_renderer
+            .update_projection_matrix(&self.projection_matrix);
 
         self.grid_renderer.draw(zoom);
         self.trail_renderer.draw(snapshot.time as f32);
@@ -150,6 +157,18 @@ impl Renderer {
         self.bullet_renderer.draw(snapshot, self.base_line_width);
         self.ship_renderer.draw(snapshot, self.base_line_width);
         self.particle_renderer.draw(snapshot);
+
+        let mut texts: Vec<Text> = Vec::new();
+        if self.debug {
+            for (_, drawn_text) in snapshot.drawn_text.iter() {
+                texts.extend(drawn_text.iter().cloned());
+            }
+        } else if let Some(ship) = self.picked_ship {
+            if let Some(drawn_text) = snapshot.drawn_text.get(&ship) {
+                texts.extend(drawn_text.iter().cloned());
+            }
+        }
+        self.text_renderer.draw(&texts, zoom);
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {

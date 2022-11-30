@@ -23,6 +23,7 @@ regex = "1.5.6"
 serde_json = "1.0.81"
 serde = { version = "1.0.137", features = ["derive"] }
 wasm-bindgen = { version = "0.2.80", features = ["serde-serialize"] }
+image = "0.24.5"
 
 [dependencies.web-sys]
 version = "0.3.57"
@@ -42,4 +43,5 @@ features = [
   'console',
   'Storage',
   'WheelEvent',
+  'WebGlTexture',
 ]
