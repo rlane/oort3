@@ -155,11 +155,11 @@ indicating its acceleration, radar cone, etc. You can add to this with the
 functions below.
 
 - [`debug!(...)`](prelude::debug!): Add status text.
-- [`debug_line(v0: Vec2, v1: Vec2, color: u32)`](prelude::debug_line): Draw a line.
-- [`debug_triangle(center: Vec2, radius: f64, color: u32)`](prelude::debug_triangle): Draw a triangle.
-- [`debug_square(center: Vec2, radius: f64, color: u32)`](prelude::debug_square): Draw a square.
-- [`debug_diamond(center: Vec2, radius: f64, color: u32)`](prelude::debug_diamond): Draw a diamond.
-- [`debug_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32)`](prelude::debug_polygon): Draw a regular polygon.
+- [`draw_line(v0: Vec2, v1: Vec2, color: u32)`](prelude::draw_line): Draw a line.
+- [`draw_triangle(center: Vec2, radius: f64, color: u32)`](prelude::draw_triangle): Draw a triangle.
+- [`draw_square(center: Vec2, radius: f64, color: u32)`](prelude::draw_square): Draw a square.
+- [`draw_diamond(center: Vec2, radius: f64, color: u32)`](prelude::draw_diamond): Draw a diamond.
+- [`draw_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32)`](prelude::draw_polygon): Draw a regular polygon.
 
 Entering debug mode by pressing the 'g' key also displays debug graphics from all ships.
 

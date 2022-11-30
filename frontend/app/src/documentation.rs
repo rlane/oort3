@@ -140,11 +140,11 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             <h2>{ "Debugging" }</h2>
             <ul>
               <li><code>{ "debug!(...)" }</code>{ ": Add text to be displayed when the ship is selected by clicking on it. Works just like " }<code>{ "println!" }</code>{ "." }</li>
-              <li><code>{ "debug_line(v0: Vec2, v1: Vec2, color: u32)" }</code>{ ": Draw a line visible when the ship is selected. Color is 24-bit RGB." }</li>
-              <li><code>{ "debug_triangle(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a triangle visible when the ship is selected." }</li>
-              <li><code>{ "debug_square(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a square visible when the ship is selected." }</li>
-              <li><code>{ "debug_diamond(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a diamond visible when the ship is selected." }</li>
-              <li><code>{ "debug_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32)" }</code>{ ": Draw a regular polygon visible when the ship is selected." }</li>
+              <li><code>{ "draw_line(v0: Vec2, v1: Vec2, color: u32)" }</code>{ ": Draw a line visible when the ship is selected. Color is 24-bit RGB." }</li>
+              <li><code>{ "draw_triangle(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a triangle visible when the ship is selected." }</li>
+              <li><code>{ "draw_square(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a square visible when the ship is selected." }</li>
+              <li><code>{ "draw_diamond(center: Vec2, radius: f64, color: u32)" }</code>{ ": Draw a diamond visible when the ship is selected." }</li>
+              <li><code>{ "draw_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32)" }</code>{ ": Draw a regular polygon visible when the ship is selected." }</li>
             </ul>
 
             <h2>{ "Miscellaneous" }</h2>
