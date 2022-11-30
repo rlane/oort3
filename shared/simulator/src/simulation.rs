@@ -13,7 +13,7 @@ use crate::vm::{ShipController, TeamController};
 use crossbeam::channel::Sender;
 use instant::Instant;
 use nalgebra::{Rotation2, UnitComplex, Vector2, Vector4};
-use oort_api::Ability;
+use oort_api::{Ability, Text};
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 use rapier2d_f64::prelude::*;
@@ -356,6 +356,14 @@ impl Simulation {
         self.events.debug_text.insert(ship.into(), s);
     }
 
+    pub fn emit_drawn_text(&mut self, ship: ShipHandle, texts: &[Text]) {
+        self.events
+            .drawn_text
+            .entry(ship.into())
+            .or_default()
+            .extend(texts.iter().cloned());
+    }
+
     pub fn hash(&self) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::Hasher;
@@ -385,6 +393,7 @@ impl Simulation {
             scenario_lines: self.scenario.as_ref().unwrap().lines(),
             debug_lines: self.events.debug_lines.clone(),
             debug_text: self.events.debug_text.clone(),
+            drawn_text: self.events.drawn_text.clone(),
             particles: self.events.particles.clone(),
             errors: self.events.errors.clone(),
             cheats: self.cheats,
@@ -480,6 +489,7 @@ pub struct SimEvents {
     pub particles: Vec<Particle>,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,
     pub debug_text: BTreeMap<u64, String>,
+    pub drawn_text: BTreeMap<u64, Vec<Text>>,
 }
 
 impl SimEvents {
@@ -489,6 +499,7 @@ impl SimEvents {
             particles: vec![],
             debug_lines: BTreeMap::new(),
             debug_text: BTreeMap::new(),
+            drawn_text: BTreeMap::new(),
         }
     }
 
@@ -497,6 +508,7 @@ impl SimEvents {
         self.particles.clear();
         self.debug_lines.clear();
         self.debug_text.clear();
+        self.drawn_text.clear();
     }
 }
 

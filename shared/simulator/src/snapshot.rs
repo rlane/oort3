@@ -3,7 +3,7 @@ use crate::ship::ShipClass;
 use crate::simulation::{Line, Particle};
 use crate::vm;
 use nalgebra::{Point2, Vector2, Vector4};
-use oort_api::Ability;
+use oort_api::{Ability, Text};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -21,6 +21,7 @@ pub struct Snapshot {
     pub cheats: bool,
     pub debug_lines: BTreeMap<u64, Vec<Line>>,
     pub debug_text: BTreeMap<u64, String>,
+    pub drawn_text: BTreeMap<u64, Vec<Text>>,
     pub timing: Timing,
 }
 

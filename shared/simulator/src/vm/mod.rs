@@ -430,7 +430,9 @@ impl ShipController for WasmShipController {
                 let offset = self.state.get(SystemState::DrawnTextPointer) as u32;
                 let length = self.state.get(SystemState::DrawnTextLength) as u32;
                 if length <= 128 {
-                    if let Some(_texts) = self.read_vec::<Text>(offset, length) {}
+                    if let Some(texts) = self.read_vec::<Text>(offset, length) {
+                        sim.emit_drawn_text(self.handle, &texts);
+                    }
                 }
             }
 
