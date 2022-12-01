@@ -168,7 +168,7 @@ impl Renderer {
                 texts.extend(drawn_text.iter().cloned());
             }
         }
-        self.text_renderer.draw(&texts, zoom);
+        self.text_renderer.draw(&texts);
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {

@@ -2,7 +2,7 @@ use super::{buffer_arena, glutil};
 use crate::geometry;
 use image::io::Reader as ImageReader;
 use image::EncodableLayout;
-use nalgebra::Matrix4;
+use nalgebra::{point, vector, Matrix4};
 use oort_api::Text;
 use oort_simulator::debug::convert_color;
 use wasm_bindgen::prelude::*;
@@ -21,7 +21,8 @@ pub struct TextRenderer {
     glyph_size_loc: WebGlUniformLocation,
     sampler_loc: WebGlUniformLocation,
     texture: WebGlTexture,
-    projection_matrix: Matrix4<f32>,
+    pixel_projection_matrix: Matrix4<f32>,
+    world_projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
 }
 
@@ -121,7 +122,8 @@ void main() {
             glyph_size_loc,
             sampler_loc,
             texture,
-            projection_matrix: Matrix4::identity(),
+            pixel_projection_matrix: Matrix4::identity(),
+            world_projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "text_renderer",
                 context,
@@ -131,22 +133,40 @@ void main() {
         })
     }
 
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
+    pub fn update_projection_matrix(&mut self, world_projection_matrix: &Matrix4<f32>) {
+        let screen_width = self.context.drawing_buffer_width() as f32;
+        let screen_height = self.context.drawing_buffer_height() as f32;
+
+        {
+            let left = 0.0;
+            let right = screen_width;
+            let bottom = 0.0;
+            let top = screen_height;
+            let znear = -1.0;
+            let zfar = 1.0;
+            self.pixel_projection_matrix =
+                Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
+        }
+
+        self.world_projection_matrix = *world_projection_matrix;
     }
 
-    pub fn draw(&mut self, texts: &[Text], zoom: f32) {
+    pub fn draw(&mut self, texts: &[Text]) {
         if texts.is_empty() {
             return;
         }
 
+        let screen_width = self.context.drawing_buffer_width() as f32;
+        let screen_height = self.context.drawing_buffer_height() as f32;
+
         let quad_vertices = geometry::triquad();
         let num_glyphs: usize = texts.iter().map(|x| x.length as usize).sum();
-        let glyph_size = (1.0 / 100.0) / zoom;
-        let glyph_width = 1.0 / FONT_COLS as f32;
-        let glyph_height = 1.0 / FONT_ROWS as f32;
-        let pixel_width = 1.0 / (FONT_COLS * FONT_GLYPH_SIZE) as f32;
-        let pixel_height = 1.0 / (FONT_ROWS * FONT_GLYPH_SIZE) as f32;
+        let scale = 2.0;
+        let screen_glyph_size = (FONT_GLYPH_SIZE - 1) as f32 * scale;
+        let font_glyph_width = 1.0 / FONT_COLS as f32;
+        let font_glyph_height = 1.0 / FONT_ROWS as f32;
+        let font_pixel_width = 1.0 / (FONT_COLS * FONT_GLYPH_SIZE) as f32;
+        let font_pixel_height = 1.0 / (FONT_ROWS * FONT_GLYPH_SIZE) as f32;
 
         let mut positions: Vec<f32> = vec![];
         positions.reserve(2 * num_glyphs);
@@ -157,25 +177,33 @@ void main() {
         let mut extent_texcoords: Vec<f32> = vec![];
         extent_texcoords.reserve(2 * num_glyphs);
         for text in texts {
-            let mut x = text.x as f32;
+            let worldpos = vector![text.x as f32, text.y as f32];
+            let projected = self
+                .world_projection_matrix
+                .transform_point(&point![worldpos.x, worldpos.y, 0.0]);
+            let projected_pixels = vector![
+                (projected.x + 1.0) * screen_width as f32 / 2.0,
+                (projected.y + 1.0) * screen_height as f32 / 2.0
+            ];
+            let mut pos = vector![projected_pixels.x.floor(), projected_pixels.y.floor()];
             let color = convert_color(text.color);
             for i in 0..text.length {
                 let idx = (text.text[i as usize] as usize - 32).clamp(0, FONT_ROWS * FONT_COLS - 1);
                 let row = FONT_ROWS - idx / FONT_COLS - 1;
                 let col = idx % FONT_COLS;
 
-                positions.push(x);
-                positions.push(text.y as f32);
+                positions.push(pos.x);
+                positions.push(pos.y);
 
                 colors.extend_from_slice(color.as_slice());
 
-                base_texcoords.push(col as f32 * glyph_width);
-                base_texcoords.push(row as f32 * glyph_height + pixel_height);
+                base_texcoords.push(col as f32 * font_glyph_width);
+                base_texcoords.push(row as f32 * font_glyph_height + font_pixel_height);
 
-                extent_texcoords.push(glyph_width - pixel_width);
-                extent_texcoords.push(glyph_height - pixel_height);
+                extent_texcoords.push(font_glyph_width - font_pixel_width);
+                extent_texcoords.push(font_glyph_height - font_pixel_height);
 
-                x += glyph_size * 1.1;
+                pos.x += (FONT_GLYPH_SIZE as f32 + 1.0) * scale;
             }
         }
 
@@ -246,14 +274,14 @@ void main() {
         self.context.vertex_attrib_divisor(4, 1);
 
         self.context
-            .uniform1f(Some(&self.glyph_size_loc), glyph_size);
+            .uniform1f(Some(&self.glyph_size_loc), screen_glyph_size);
 
         self.context.uniform1i(Some(&self.sampler_loc), 0);
 
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
-            self.projection_matrix.data.as_slice(),
+            self.pixel_projection_matrix.data.as_slice(),
         );
 
         self.context.active_texture(gl::TEXTURE0);
