@@ -55,6 +55,7 @@ pub struct EditorWindow {
     #[allow(dead_code)]
     analyzer_interval: Interval,
     current_completion: Option<(Function, Function)>,
+    folded: bool,
 }
 
 impl Component for EditorWindow {
@@ -78,13 +79,17 @@ impl Component for EditorWindow {
             analyzer_agent,
             analyzer_interval,
             current_completion: None,
+            folded: false,
         }
     }
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::EditorAction(id) => {
-                context.props().on_editor_action.emit(id);
+                match id.as_str() {
+                    "oort-toggle-fold" => self.toggle_fold(),
+                    _ => context.props().on_editor_action.emit(id),
+                }
                 false
             }
             Msg::RequestAnalyzer => {
@@ -219,6 +224,14 @@ impl Component for EditorWindow {
                     ),
                 );
 
+                add_action(
+                    "oort-toggle-fold",
+                    "Toggle code folding",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyK as u32,
+                    ),
+                );
+
                 {
                     let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
                     let options = monaco::sys::editor::IEditorOptions::from(empty());
@@ -304,6 +317,21 @@ impl EditorWindow {
                     .delta_decorations(&self.current_analyzer_decorations, &decorations_jsarray)
             })
             .unwrap();
+    }
+
+    fn toggle_fold(&mut self) {
+        if self.folded {
+            self.editor_link.with_editor(|ed| {
+                ed.as_ref()
+                    .trigger("fold", "editor.unfoldAll", &JsValue::NULL);
+            });
+        } else {
+            self.editor_link.with_editor(|ed| {
+                ed.as_ref()
+                    .trigger("fold", "editor.foldAll", &JsValue::NULL);
+            });
+        }
+        self.folded = !self.folded;
     }
 }
 
