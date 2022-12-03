@@ -28,6 +28,7 @@ fn make_monaco_options() -> CodeEditorOptions {
 
 #[derive(Debug)]
 pub enum Msg {
+    EditorAction(String),
     RequestAnalyzer,
     AnalyzerResponse(oort_analyzer_worker::Response),
     RequestCompletion {
@@ -82,6 +83,10 @@ impl Component for EditorWindow {
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            Msg::EditorAction(id) => {
+                context.props().on_editor_action.emit(id);
+                false
+            }
             Msg::RequestAnalyzer => {
                 let text = self
                     .editor_link
@@ -156,7 +161,7 @@ impl Component for EditorWindow {
         if first_render {
             editor_link.with_editor(|editor| {
                 let add_action = |id: &'static str, label, key: Option<u32>| {
-                    let cb = context.props().on_editor_action.clone();
+                    let cb = context.link().callback(Msg::EditorAction);
                     let closure =
                         Closure::wrap(Box::new(move |_: JsValue| cb.emit(id.to_string()))
                             as Box<dyn FnMut(_)>);
