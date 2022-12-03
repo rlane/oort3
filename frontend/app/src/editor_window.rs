@@ -43,6 +43,7 @@ pub struct EditorWindowProps {
     pub host: web_sys::Element,
     pub editor_link: CodeEditorLink,
     pub on_editor_action: Callback<String>,
+    pub team: usize,
 }
 
 pub struct EditorWindow {
@@ -235,7 +236,7 @@ impl Component for EditorWindow {
 
                 js_sys::Reflect::set(
                     &web_sys::window().unwrap(),
-                    &JsValue::from_str("editor"),
+                    &format!("editor{}", context.props().team).into(),
                     editor.as_ref(),
                 )
                 .unwrap();
