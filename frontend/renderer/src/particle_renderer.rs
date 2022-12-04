@@ -6,6 +6,8 @@ use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
 
+const MAX_PARTICLES: usize = 1000;
+
 pub struct ParticleRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
@@ -15,6 +17,7 @@ pub struct ParticleRenderer {
     buffer_arena: buffer_arena::BufferArena,
     particles: Vec<Particle>,
     next_particle_index: usize,
+    max_particles_seen: usize,
 }
 
 #[repr(C, packed)]
@@ -76,7 +79,7 @@ void main() {
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         let mut particles = vec![];
-        for _ in 0..100 {
+        for _ in 0..MAX_PARTICLES {
             particles.push(Particle {
                 position: vector![0.0, 0.0],
                 velocity: vector![0.0, 0.0],
@@ -100,6 +103,7 @@ void main() {
             )?,
             particles,
             next_particle_index: 0,
+            max_particles_seen: MAX_PARTICLES,
         })
     }
 
@@ -116,6 +120,10 @@ void main() {
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
+        if snapshot.particles.len() > self.max_particles_seen {
+            self.max_particles_seen = snapshot.particles.len();
+            log::info!("Saw {} particles in snapshot", self.max_particles_seen);
+        }
         for particle in snapshot.particles.iter() {
             self.add_particle(Particle {
                 position: vector![particle.position.x as f32, particle.position.y as f32],
