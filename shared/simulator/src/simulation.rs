@@ -220,7 +220,7 @@ impl Simulation {
                             position: p,
                             velocity: v,
                             color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
-                            lifetime: 1.0,
+                            lifetime: (PHYSICS_TICK_LENGTH * 10.0) as f32,
                         });
                     }
                     let ship_destroyed = {
@@ -235,11 +235,14 @@ impl Simulation {
                                 rot.transform_vector(&vector![sim.rng.gen_range(0.0..200.0), 0.0]);
                             let p = sim.ship(ship).body().position().translation.vector
                                 + v * sim.rng.gen_range(0.0..0.1);
+                            let lifetime = (sim.ship_data.get(&ship).unwrap().mass.log2()
+                                * PHYSICS_TICK_LENGTH)
+                                as f32;
                             sim.events.particles.push(Particle {
                                 position: p,
                                 velocity: v,
                                 color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
-                                lifetime: 1.0,
+                                lifetime,
                             });
                         }
                         sim.ship_mut(ship).data_mut().destroyed = true;
