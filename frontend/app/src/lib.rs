@@ -5,7 +5,6 @@ pub mod compiler_output_window;
 pub mod documentation;
 pub mod editor_window;
 pub mod feedback;
-pub mod filesystem;
 pub mod game;
 pub mod js;
 pub mod leaderboard;

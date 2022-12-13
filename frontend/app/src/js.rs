@@ -3,11 +3,15 @@ pub mod filesystem {
 
     #[wasm_bindgen(module = "/js/filesystem.js")]
     extern "C" {
-        #[wasm_bindgen(catch)]
-        pub async fn load_file() -> Result<JsValue, JsValue>;
+        #[wasm_bindgen]
+        #[derive(Debug, Clone)]
+        pub type FileHandle;
+
+        #[wasm_bindgen(method, catch)]
+        pub async fn read(this: &FileHandle) -> Result<JsValue, JsValue>;
 
         #[wasm_bindgen(catch)]
-        pub async fn reload_file() -> Result<JsValue, JsValue>;
+        pub async fn open() -> Result<JsValue, JsValue>;
     }
 }
 

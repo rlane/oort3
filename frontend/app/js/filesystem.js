@@ -11,21 +11,21 @@ const pickerOpts = {
   multiple: false,
 };
 
-let fileHandle = null;
-
-export async function load_file() {
-  [fileHandle] = await window.showOpenFilePicker(pickerOpts);
-  if (fileHandle.kind != "file") {
-    throw "Not a file";
+export class FileHandle {
+  constructor(handle) {
+    this._handle = handle;
   }
-  let file = await fileHandle.getFile();
-  return file.text();
+
+  async read() {
+    let file = await this._handle.getFile();
+    return file.text();
+  }
 }
 
-export async function reload_file() {
-  if (fileHandle == null) {
-    return await load_file();
+export async function open() {
+  let [handle] = await window.showOpenFilePicker(pickerOpts);
+  if (handle.kind != "file") {
+    throw "Not a file";
   }
-  let file = await fileHandle.getFile();
-  return file.text();
+  return new FileHandle(handle);
 }

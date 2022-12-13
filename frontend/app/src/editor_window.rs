@@ -1,5 +1,6 @@
 #![allow(clippy::drop_non_drop)]
-use crate::filesystem;
+use crate::js;
+use crate::js::filesystem::FileHandle;
 use gloo_timers::callback::Interval;
 use js_sys::Function;
 use monaco::sys::Position;
@@ -39,6 +40,7 @@ pub enum Msg {
         reject: Function,
     },
     LoadedCodeFromDisk(String),
+    OpenedFile(FileHandle),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -58,6 +60,7 @@ pub struct EditorWindow {
     analyzer_interval: Interval,
     current_completion: Option<(Function, Function)>,
     folded: bool,
+    file_handle: Option<FileHandle>,
 }
 
 impl Component for EditorWindow {
@@ -82,19 +85,45 @@ impl Component for EditorWindow {
             analyzer_interval,
             current_completion: None,
             folded: false,
+            file_handle: None,
         }
     }
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::EditorAction(ref action) if action == "oort-load-file" => {
-                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
-                filesystem::load(Box::new(move |text| cb.emit(text)));
+                let text_cb = context.link().callback(Msg::LoadedCodeFromDisk);
+                let file_handle_cb = context.link().callback(Msg::OpenedFile);
+                wasm_bindgen_futures::spawn_local(async move {
+                    let text = match js::filesystem::open().await {
+                        Ok(file_handle) => {
+                            let file_handle = file_handle.dyn_into::<FileHandle>().unwrap();
+                            file_handle_cb.emit(file_handle.clone());
+                            file_handle.read().await
+                        }
+                        Err(e) => Err(e),
+                    };
+                    match text {
+                        Ok(text) => text_cb.emit(text.as_string().unwrap()),
+                        Err(e) => log::error!("load failed: {:?}", e),
+                    }
+                });
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-reload-file" => {
-                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
-                filesystem::reload(Box::new(move |text| cb.emit(text)));
+                if let Some(file_handle) = self.file_handle.clone() {
+                    let cb = context.link().callback(Msg::LoadedCodeFromDisk);
+                    wasm_bindgen_futures::spawn_local(async move {
+                        match file_handle.read().await {
+                            Ok(text) => cb.emit(text.as_string().unwrap()),
+                            Err(e) => log::error!("reload failed: {:?}", e),
+                        }
+                    });
+                } else {
+                    context
+                        .link()
+                        .send_message(Msg::EditorAction("oort-load-file".to_string()));
+                }
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-toggle-fold" => {
@@ -151,6 +180,10 @@ impl Component for EditorWindow {
                     editor.get_model().unwrap().set_value(&text);
                 });
                 // TODO trigger analyzer run
+                false
+            }
+            Msg::OpenedFile(file_handle) => {
+                self.file_handle = Some(file_handle);
                 false
             }
         }
