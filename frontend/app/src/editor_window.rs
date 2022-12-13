@@ -1,4 +1,5 @@
 #![allow(clippy::drop_non_drop)]
+use crate::filesystem;
 use gloo_timers::callback::Interval;
 use js_sys::Function;
 use monaco::sys::Position;
@@ -37,6 +38,7 @@ pub enum Msg {
         resolve: Function,
         reject: Function,
     },
+    LoadedCodeFromDisk(String),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -85,11 +87,22 @@ impl Component for EditorWindow {
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::EditorAction(id) => {
-                match id.as_str() {
-                    "oort-toggle-fold" => self.toggle_fold(),
-                    _ => context.props().on_editor_action.emit(id),
-                }
+            Msg::EditorAction(ref action) if action == "oort-load-file" => {
+                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
+                filesystem::load(Box::new(move |text| cb.emit(text)));
+                false
+            }
+            Msg::EditorAction(ref action) if action == "oort-reload-file" => {
+                let cb = context.link().callback(Msg::LoadedCodeFromDisk);
+                filesystem::reload(Box::new(move |text| cb.emit(text)));
+                false
+            }
+            Msg::EditorAction(ref action) if action == "oort-toggle-fold" => {
+                self.toggle_fold();
+                false
+            }
+            Msg::EditorAction(action) => {
+                context.props().on_editor_action.emit(action);
                 false
             }
             Msg::RequestAnalyzer => {
@@ -130,6 +143,14 @@ impl Component for EditorWindow {
                         .unwrap();
                     self.current_completion = None;
                 }
+                false
+            }
+            Msg::LoadedCodeFromDisk(text) => {
+                let editor_link = context.props().editor_link.clone();
+                editor_link.with_editor(|editor| {
+                    editor.get_model().unwrap().set_value(&text);
+                });
+                // TODO trigger analyzer run
                 false
             }
         }

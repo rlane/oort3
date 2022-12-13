@@ -1,13 +1,13 @@
 use crate::compiler_output_window::CompilerOutputWindow;
 use crate::documentation::Documentation;
 use crate::editor_window::EditorWindow;
+use crate::js;
 use crate::leaderboard::Leaderboard;
 use crate::services;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
 use crate::userid;
 use crate::welcome::Welcome;
-use crate::{filesystem, js};
 use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
 use oort_proto::{LeaderboardSubmission, Telemetry};
@@ -51,7 +51,6 @@ pub enum Msg {
     DismissOverlay,
     CompileFinished(Vec<Result<Code, String>>),
     CompileSlow,
-    LoadedCodeFromDisk { team: usize, text: String },
     SubmitToTournament,
     FormattedCode { team: usize, text: String },
 }
@@ -224,20 +223,6 @@ impl Component for Game {
                 self.team(team).set_editor_text(&code_to_string(&code));
                 false
             }
-            Msg::EditorAction { team, ref action } if action == "oort-load-file" => {
-                let cb = context
-                    .link()
-                    .callback(move |text| Msg::LoadedCodeFromDisk { team, text });
-                filesystem::load(Box::new(move |text| cb.emit(text)));
-                false
-            }
-            Msg::EditorAction { team, ref action } if action == "oort-reload-file" => {
-                let cb = context
-                    .link()
-                    .callback(move |text| Msg::LoadedCodeFromDisk { team, text });
-                filesystem::reload(Box::new(move |text| cb.emit(text)));
-                false
-            }
             Msg::EditorAction { team, ref action } if action == "oort-format" => {
                 let text = self.team(team).get_editor_text();
                 let cb = context
@@ -343,10 +328,6 @@ impl Component for Game {
             }
             Msg::CompileSlow => {
                 self.saw_slow_compile = true;
-                false
-            }
-            Msg::LoadedCodeFromDisk { team, text } => {
-                self.team(team).set_editor_text(&text);
                 false
             }
             Msg::FormattedCode { team, text } => {
