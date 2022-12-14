@@ -2,6 +2,7 @@
 use crate::js;
 use crate::js::filesystem::FileHandle;
 use gloo_timers::callback::Interval;
+use gloo_timers::callback::Timeout;
 use js_sys::Function;
 use monaco::sys::Position;
 use monaco::{
@@ -41,6 +42,9 @@ pub enum Msg {
     },
     LoadedCodeFromDisk(String),
     OpenedFile(FileHandle),
+    LinkedFile(FileHandle),
+    UnlinkedFile,
+    CheckLinkedFile,
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -61,6 +65,7 @@ pub struct EditorWindow {
     current_completion: Option<(Function, Function)>,
     folded: bool,
     file_handle: Option<FileHandle>,
+    linked: bool,
 }
 
 impl Component for EditorWindow {
@@ -86,6 +91,7 @@ impl Component for EditorWindow {
             current_completion: None,
             folded: false,
             file_handle: None,
+            linked: false,
         }
     }
 
@@ -124,6 +130,23 @@ impl Component for EditorWindow {
                         .link()
                         .send_message(Msg::EditorAction("oort-load-file".to_string()));
                 }
+                false
+            }
+            Msg::EditorAction(ref action) if action == "oort-link-file" => {
+                let cb = context.link().callback(Msg::LinkedFile);
+                wasm_bindgen_futures::spawn_local(async move {
+                    match js::filesystem::open().await {
+                        Ok(file_handle) => {
+                            let file_handle = file_handle.dyn_into::<FileHandle>().unwrap();
+                            cb.emit(file_handle);
+                        }
+                        Err(e) => log::error!("open failed: {:?}", e),
+                    };
+                });
+                false
+            }
+            Msg::EditorAction(ref action) if action == "oort-unlink-file" => {
+                context.link().send_message(Msg::UnlinkedFile);
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-toggle-fold" => {
@@ -177,13 +200,52 @@ impl Component for EditorWindow {
             Msg::LoadedCodeFromDisk(text) => {
                 let editor_link = context.props().editor_link.clone();
                 editor_link.with_editor(|editor| {
-                    editor.get_model().unwrap().set_value(&text);
+                    if editor.get_model().unwrap().get_value() != text {
+                        editor.get_model().unwrap().set_value(&text);
+                        // TODO trigger analyzer run
+                    }
                 });
-                // TODO trigger analyzer run
                 false
             }
             Msg::OpenedFile(file_handle) => {
                 self.file_handle = Some(file_handle);
+                self.linked = false;
+                false
+            }
+            Msg::LinkedFile(file_handle) => {
+                self.file_handle = Some(file_handle);
+                self.linked = true;
+                context.link().send_message(Msg::CheckLinkedFile);
+                false
+            }
+            Msg::UnlinkedFile => {
+                self.linked = false;
+                self.file_handle = None;
+                false
+            }
+            Msg::CheckLinkedFile => {
+                if self.linked {
+                    if let Some(file_handle) = self.file_handle.clone() {
+                        let link = context.link().clone();
+                        wasm_bindgen_futures::spawn_local(async move {
+                            match file_handle.read().await {
+                                Ok(text) => {
+                                    link.send_message(Msg::LoadedCodeFromDisk(
+                                        text.as_string().unwrap(),
+                                    ));
+                                    let timeout = Timeout::new(1_000, move || {
+                                        link.send_message(Msg::CheckLinkedFile);
+                                    });
+                                    timeout.forget();
+                                }
+                                Err(e) => {
+                                    log::error!("reload failed: {:?}", e);
+                                    link.send_message(Msg::UnlinkedFile);
+                                }
+                            }
+                        });
+                    }
+                }
                 false
             }
         }
@@ -269,6 +331,10 @@ impl Component for EditorWindow {
                         monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyY as u32,
                     ),
                 );
+
+                add_action("oort-link-file", "Link to file on disk", None);
+
+                add_action("oort-unlink-file", "Unlink from a file on disk", None);
 
                 add_action(
                     "oort-format",
