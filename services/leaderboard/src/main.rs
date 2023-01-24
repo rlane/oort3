@@ -130,7 +130,7 @@ async fn post_leaderboard_internal(
     let new_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
 
     let get_rank = |leaderboard: &LeaderboardData, userid: &str| -> Option<usize> {
-        leaderboard.lowest_time.iter().enumerate().find(|(_,entry)| entry.userid == userid).map(|(i,_)| i)
+        leaderboard.lowest_time.iter().enumerate().find(|(_,entry)| entry.userid == userid).map(|(i,_)| i + 1)
     };
 
     let old_rank = get_rank(&old_leaderboard, &obj.userid);
