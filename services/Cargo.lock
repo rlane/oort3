@@ -1303,7 +1303,7 @@ checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
 name = "oort_compiler_service"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1319,7 +1319,7 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "serde",
  "sha2",
@@ -1327,7 +1327,7 @@ dependencies = [
 
 [[package]]
 name = "oort_leaderboard_service"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1349,7 +1349,7 @@ dependencies = [
 
 [[package]]
 name = "oort_proto"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1357,7 +1357,7 @@ dependencies = [
 
 [[package]]
 name = "oort_telemetry_service"
-version = "0.29.0"
+version = "0.30.0"
 dependencies = [
  "anyhow",
  "bytes",
