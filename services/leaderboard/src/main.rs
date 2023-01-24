@@ -112,6 +112,8 @@ async fn post_leaderboard_internal(
     log::debug!("Got request obj {:?}", obj);
     let path = format!("{}.{}", obj.scenario_name, obj.userid);
 
+    let old_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
+
     if let Ok(existing_obj) = db
         .get_obj::<LeaderboardSubmission>("leaderboard", &path)
         .await
@@ -119,35 +121,45 @@ async fn post_leaderboard_internal(
         log::debug!("Got existing obj {:?}", existing_obj);
         if existing_obj.time <= obj.time {
             log::debug!("Ignoring slower time");
-            let leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
-            return render_leaderboard(&leaderboard, res).await;
+            return render_leaderboard(&old_leaderboard, res).await;
         }
     }
 
     db.update_obj("leaderboard", &path, &obj, None).await?;
 
-    let leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
+    let new_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
 
-    if let Some(first) = leaderboard.lowest_time.first() {
-        if first.userid == obj.userid {
-            if let Err(e) = discord_tx
-                .send_timeout(
-                    discord::Msg {
-                        text: format!(
-                            "New best time on {}: {} {:.2}s",
-                            obj.scenario_name, obj.username, obj.time
-                        ),
-                    },
-                    std::time::Duration::from_secs(1),
-                )
-                .await
-            {
-                log::error!("Failed to send Discord message: {:?}", e);
-            }
+    let get_rank = |leaderboard: &LeaderboardData, userid: &str| -> Option<usize> {
+        leaderboard.lowest_time.iter().enumerate().find(|(_,entry)| entry.userid == userid).map(|(i,_)| i)
+    };
+
+    let old_rank = get_rank(&old_leaderboard, &obj.userid);
+    let new_rank = get_rank(&new_leaderboard, &obj.userid);
+
+    let rank_improved = match (old_rank, new_rank) {
+        (Some(old_rank), Some(new_rank)) if old_rank > new_rank => true,
+        (None, Some(_)) => true,
+        _ => false,
+    };
+
+    if rank_improved {
+        if let Err(e) = discord_tx
+            .send_timeout(
+                discord::Msg {
+                    text: format!(
+                        "{} achieved leaderboard rank {} on scenario {} with time {:.2}s",
+                        obj.username, new_rank.unwrap(), obj.scenario_name, obj.time
+                    ),
+                },
+                std::time::Duration::from_secs(1),
+            )
+        .await
+        {
+            log::error!("Failed to send Discord message: {:?}", e);
         }
     }
 
-    render_leaderboard(&leaderboard, res).await
+    render_leaderboard(&new_leaderboard, res).await
 }
 
 struct PostLeaderboard {
