@@ -1590,6 +1590,7 @@ dependencies = [
  "lazy_static",
  "log",
  "once_cell",
+ "oort_code_encryption",
  "regex",
  "salvo",
  "salvo_extra",

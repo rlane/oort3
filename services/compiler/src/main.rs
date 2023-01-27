@@ -10,10 +10,14 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
     let _guard = LOCK.lock().await;
     log::debug!("Got compile request {:?}", req);
     let payload = req.payload().await?;
-    let code = std::str::from_utf8(payload)?;
+    let mut code = std::str::from_utf8(payload)?.to_string();
+    if code.starts_with("-----BEGIN AGE ENCRYPTED FILE-----") {
+        log::debug!("Encrypted code: {}", code);
+        code = oort_code_encryption::decrypt(&code)?;
+    }
     log::debug!("Code: {}", code);
-    oort_compiler_service::sanitizer::check(code)?;
-    std::fs::write("ai/src/user.rs", payload)?;
+    oort_compiler_service::sanitizer::check(&code)?;
+    std::fs::write("ai/src/user.rs", code.as_bytes())?;
     let start_time = std::time::Instant::now();
     let output = Command::new("./scripts/build-ai-fast.sh").output().await?;
     let elapsed = std::time::Instant::now() - start_time;
