@@ -51,6 +51,7 @@ pub struct TimeLeaderboardRow {
     pub userid: String,
     pub username: Option<String>,
     pub time: String,
+    pub encrypted_code: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

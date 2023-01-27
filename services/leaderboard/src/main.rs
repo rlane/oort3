@@ -53,6 +53,7 @@ async fn fetch_leaderboard(
                 userid: msg.userid.clone(),
                 username: Some(msg.username.clone()),
                 time: format!("{:.2}s", msg.time),
+                encrypted_code: oort_code_encryption::encrypt(&msg.code)?
             });
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
