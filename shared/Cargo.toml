@@ -7,6 +7,7 @@ members = [
     "api",
     "proto",
     "envelope",
+    "code_encryption",
 ]
 
 [patch.crates-io]

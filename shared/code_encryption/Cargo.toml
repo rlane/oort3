@@ -1,0 +1,9 @@
+[package]
+name = "oort_code_encryption"
+version = "0.30.1"
+publish = false
+edition = "2021"
+
+[dependencies]
+age = { version = "0.9.0", features = ["armor"] }
+anyhow = "1.0.68"
