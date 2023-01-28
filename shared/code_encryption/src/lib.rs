@@ -13,9 +13,11 @@ use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 
 pub const PREFIX: &'static str = "ENCRYPTED:";
+const VERSION: u8 = 0;
 
 #[derive(Serialize, Deserialize)]
 struct Encrypted {
+    version: u8,
     nonce: Vec<u8>,
     payload: Vec<u8>,
 }
@@ -62,6 +64,7 @@ pub fn encrypt(plaintext: &str) -> anyhow::Result<String> {
     let compressed = compress(plaintext)?;
     let ciphertext = cipher.encrypt(nonce, &compressed[..])?;
     let serialized = bincode::serialize(&Encrypted {
+        version: VERSION,
         nonce: nonce_data,
         payload: ciphertext,
     })?;
@@ -77,6 +80,9 @@ pub fn decrypt(mut input: &str) -> anyhow::Result<String> {
     };
     let serialized: Vec<u8> = base64::engine::general_purpose::STANDARD_NO_PAD.decode(input)?;
     let deserialized: Encrypted = bincode::deserialize(&serialized[..])?;
+    if deserialized.version != VERSION {
+        return Err(anyhow!("unsupported version"));
+    }
     let cipher = Aes256Gcm::new_from_slice(&aes_key())?;
     let nonce = Nonce::from_slice(&deserialized.nonce[..]);
     let compressed = cipher.decrypt(nonce, &deserialized.payload[..])?;
