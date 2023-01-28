@@ -14,6 +14,7 @@ FROM rust:1.64-slim-buster as builder
 WORKDIR /usr/src/app
 RUN mkdir -p services
 COPY . .
+ARG OORT_CODE_ENCRYPTION_SECRET
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \

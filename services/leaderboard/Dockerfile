@@ -3,6 +3,7 @@ WORKDIR /usr/src/app
 RUN apt-get update
 COPY . .
 ARG OORT_ENVELOPE_SECRET
+ARG OORT_CODE_ENCRYPTION_SECRET
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
