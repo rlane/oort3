@@ -1101,7 +1101,7 @@ fn make_editor_errors(error: &str) -> Vec<CompilerError> {
         .collect()
 }
 
-fn is_encrypted(code: &Code) -> bool {
+pub(crate) fn is_encrypted(code: &Code) -> bool {
     match code {
         Code::Rust(src) => src.starts_with("-----BEGIN AGE ENCRYPTED FILE-----"),
         _ => false,

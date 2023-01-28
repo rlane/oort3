@@ -9,6 +9,7 @@ use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
 use oort_analyzer_worker::{AnalyzerAgent, CompletionItem};
+use oort_simulator::simulation::Code;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -163,8 +164,12 @@ impl Component for EditorWindow {
                     .with_editor(|editor| editor.get_model().unwrap().get_value())
                     .unwrap();
                 if text != self.last_analyzed_text {
-                    self.analyzer_agent
-                        .send(oort_analyzer_worker::Request::Diagnostics(text.clone()));
+                    if crate::game::is_encrypted(&Code::Rust(text.clone())) {
+                        self.display_analyzer_diagnostics(context, &[]);
+                    } else {
+                        self.analyzer_agent
+                            .send(oort_analyzer_worker::Request::Diagnostics(text.clone()));
+                    }
                     self.last_analyzed_text = text;
                 }
                 false
