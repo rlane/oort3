@@ -76,14 +76,26 @@ impl Component for Leaderboard {
             let userid = userid::get_userid();
             let render_time_row = |row: &TimeLeaderboardRow| -> Html {
                 let class = (row.userid == userid).then(|| "own-leaderboard-entry");
-                html! { <tr class={classes!(class)}><td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td><td>{ &row.time }</td></tr> }
+                let copy_encrypted_code_cb = {
+                    let text = row.encrypted_code.clone();
+                    move |_| {
+                        crate::js::clipboard::write(&text);
+                    }
+                };
+                html! {
+                    <tr class={classes!(class)}>
+                        <td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td>
+                        <td>{ &row.time }</td>
+                        <td><a onclick={copy_encrypted_code_cb}>{ "copy" }</a></td>
+                    </tr>
+                }
             };
 
             html! {
                 <div class="leaderboard">
                     <table>
-                        <tr><th colspan=2>{ "Leaderboard" }</th></tr>
-                        <tr><th>{ "User" }</th><th>{ "Time" }</th></tr>
+                        <tr><th colspan=3>{ "Leaderboard" }</th></tr>
+                        <tr><th>{ "User" }</th><th>{ "Time" }</th><th>{ "Encrypted Code" }</th></tr>
                         <tbody>{ for data.lowest_time.iter().map(render_time_row) }</tbody>
                     </table>
                 </div>

@@ -35,3 +35,12 @@ pub mod completion {
         pub fn init();
     }
 }
+
+pub mod clipboard {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(module = "/js/clipboard.js")]
+    extern "C" {
+        pub fn write(text: &str);
+    }
+}
