@@ -1,3 +1,5 @@
+- Randomize starting location in tutorial03 and tutorial04 to make tutorial05 easier.
+
 ### 0.32.1
 
 - Send a Discord message when a new version is released.

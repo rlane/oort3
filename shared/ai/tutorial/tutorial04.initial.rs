@@ -11,8 +11,8 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        // Hint: "angle_diff(heading(), target().angle())" returns the direction
-        // your ship needs to turn to face the target.
+        // Hint: "angle_diff(heading(), (target() - position()).angle())"
+        // returns the direction your ship needs to turn to face the target.
         turn(1.0);
         fire(0);
     }

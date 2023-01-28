@@ -792,12 +792,13 @@ impl Scenario for Tutorial03 {
         let mut rng = new_rng(seed);
         self.target = Some(
             Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_point(&point![rng.gen_range(100.0..500.0), 0.0]),
+                .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]),
         );
         add_walls(sim);
         ship::create(
             sim,
-            vector![0.0, 0.0],
+            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.gen_range(100.0..500.0), 0.0]),
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),
@@ -883,10 +884,11 @@ impl Scenario for Tutorial04 {
         add_walls(sim);
         let mut rng = new_rng(seed);
         let target = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-            .transform_point(&point![rng.gen_range(100.0..500.0), 0.0]);
+            .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]);
         ship::create(
             sim,
-            vector![0.0, 0.0],
+            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.gen_range(100.0..500.0), 0.0]),
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),
