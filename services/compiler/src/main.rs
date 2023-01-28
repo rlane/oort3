@@ -11,7 +11,7 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
     log::debug!("Got compile request {:?}", req);
     let payload = req.payload().await?;
     let mut code = std::str::from_utf8(payload)?.to_string();
-    if code.starts_with("-----BEGIN AGE ENCRYPTED FILE-----") {
+    if  oort_code_encryption::is_encrypted(&code) {
         log::debug!("Encrypted code: {}", code);
         code = oort_code_encryption::decrypt(&code)?;
     }

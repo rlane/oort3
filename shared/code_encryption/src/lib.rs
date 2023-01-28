@@ -8,6 +8,10 @@ fn secret() -> String {
         .to_string()
 }
 
+pub fn is_encrypted(text: &str) -> bool {
+    text.starts_with("-----BEGIN AGE ENCRYPTED FILE-----")
+}
+
 pub fn encrypt(plaintext: &str) -> anyhow::Result<String> {
     let encryptor = age::Encryptor::with_user_passphrase(Secret::new(secret()));
     let mut encrypted = vec![];
