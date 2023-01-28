@@ -42,6 +42,11 @@ if ! git diff HEAD --quiet; then
   exit 1
 fi
 
+if head -n1 CHANGELOG.md | grep -q '^#'; then
+  echo "Changelog empty, halting release"
+  exit 1
+fi
+
 [ -e scratch/secrets.sh ] && source scratch/secrets.sh
 
 if [[ $BUMP_VERSION -eq 1 ]]; then
