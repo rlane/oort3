@@ -94,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     let status = run_simulations(&msg.scenario_name, wasm);
                     match status {
                         Some(new_time) => {
-                            if msg.time != new_time {
+                            if (msg.time - new_time).abs() >= 0.001 {
                                 log::info!("Updating time from {} to {}", msg.time, new_time);
                                 let mut new_msg = msg.clone();
                                 new_msg.time = new_time;
