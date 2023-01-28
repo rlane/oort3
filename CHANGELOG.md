@@ -1,0 +1,2 @@
+- Removed missiles from tutorial07.
+- Started a changelog.

@@ -47,6 +47,7 @@ fi
 if [[ $BUMP_VERSION -eq 1 ]]; then
   (cd frontend && cargo workspaces version --all --force='*' --no-git-commit --yes)
   VERSION=$(egrep '^version = ".*"$' frontend/app/Cargo.toml | head -n1 | egrep -o '[0-9][^"]*')
+  sed -i  "1s;^;### ${VERSION}\n\n;" CHANGELOG.md
   for WS in tools shared services; do
     (cd $WS && cargo workspaces version --all --force='*' --no-git-commit --yes custom $VERSION)
   done
