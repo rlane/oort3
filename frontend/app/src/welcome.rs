@@ -13,6 +13,7 @@ pub fn welcome(props: &WelcomeProps) -> Html {
         let cb = props.select_scenario_cb.clone();
         move |_: MouseEvent| cb.emit(name.to_string())
     };
+    let changelog = include_str!("../../../CHANGELOG.md");
     let htm = html! {
         <div class="welcome">
             <h1 class="centered">{ "Welcome to Oort!" }</h1>
@@ -51,6 +52,9 @@ pub fn welcome(props: &WelcomeProps) -> Html {
                     <a href="http://github.com/rlane/oort3/issues" target="_blank">{ "GitHub issue" }</a>{ ", or " }
                     <a href="#" onclick={props.show_feedback_cb.clone()}>{ "in-game" }</a>{ "." }</li>
             </ul>
+
+            <h2>{ "Changelog" }</h2>
+            <pre>{ changelog }</pre>
         </div>
     };
 
