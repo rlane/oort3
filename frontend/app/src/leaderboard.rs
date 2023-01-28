@@ -86,7 +86,7 @@ impl Component for Leaderboard {
                     <tr class={classes!(class)}>
                         <td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td>
                         <td>{ &row.time }</td>
-                        <td><a onclick={copy_encrypted_code_cb}>{ "copy" }</a></td>
+                        <td><a class="material-symbols-outlined" onclick={copy_encrypted_code_cb}>{ "content_copy" }</a></td>
                     </tr>
                 }
             };
