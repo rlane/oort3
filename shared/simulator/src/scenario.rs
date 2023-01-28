@@ -1101,7 +1101,7 @@ impl Scenario for Tutorial07 {
                     center + offset,
                     vector![0.0, 0.0],
                     heading,
-                    fighter(team),
+                    fighter_without_missiles(team),
                 );
             }
         }
