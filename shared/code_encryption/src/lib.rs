@@ -4,9 +4,13 @@ use aes_gcm::{
 };
 use anyhow::anyhow;
 use base64::Engine as _;
+use flate2::read::DeflateDecoder;
+use flate2::write::DeflateEncoder;
+use flate2::Compression;
 use rand::Rng as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::io::{Read, Write};
 
 pub const PREFIX: &'static str = "ENCRYPTED:";
 
@@ -38,11 +42,25 @@ fn random_nonce() -> Vec<u8> {
     data.to_vec()
 }
 
+fn compress(input: &str) -> anyhow::Result<Vec<u8>> {
+    let mut e = DeflateEncoder::new(Vec::new(), Compression::default());
+    e.write_all(input.as_bytes())?;
+    Ok(e.finish()?)
+}
+
+fn decompress(input: &[u8]) -> anyhow::Result<String> {
+    let mut deflater = DeflateDecoder::new(&input[..]);
+    let mut s = String::new();
+    deflater.read_to_string(&mut s)?;
+    Ok(s)
+}
+
 pub fn encrypt(plaintext: &str) -> anyhow::Result<String> {
     let cipher = Aes256Gcm::new_from_slice(&aes_key())?;
     let nonce_data = random_nonce();
     let nonce = Nonce::from_slice(nonce_data.as_slice());
-    let ciphertext = cipher.encrypt(nonce, plaintext.as_bytes())?;
+    let compressed = compress(plaintext)?;
+    let ciphertext = cipher.encrypt(nonce, &compressed[..])?;
     let serialized = bincode::serialize(&Encrypted {
         nonce: nonce_data,
         payload: ciphertext,
@@ -61,8 +79,8 @@ pub fn decrypt(mut input: &str) -> anyhow::Result<String> {
     let deserialized: Encrypted = bincode::deserialize(&serialized[..])?;
     let cipher = Aes256Gcm::new_from_slice(&aes_key())?;
     let nonce = Nonce::from_slice(&deserialized.nonce[..]);
-    let plaintext = cipher.decrypt(nonce, &deserialized.payload[..])?;
-    Ok(std::str::from_utf8(&plaintext)?.to_owned())
+    let compressed = cipher.decrypt(nonce, &deserialized.payload[..])?;
+    decompress(&compressed)
 }
 
 #[cfg(test)]
