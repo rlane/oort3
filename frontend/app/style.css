@@ -225,6 +225,12 @@ div.compiler-output pre {
   font-family: "Droid Sans Mono", monospace;
 }
 
+div.leaderboard {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
 .errorDecoration {
   background-color: #ff000055;
 }

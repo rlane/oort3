@@ -8,6 +8,7 @@ pub mod feedback;
 pub mod game;
 pub mod js;
 pub mod leaderboard;
+pub mod leaderboard_window;
 pub mod services;
 pub mod simulation_window;
 pub mod toolbar;

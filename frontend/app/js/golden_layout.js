@@ -1,5 +1,5 @@
 var goldenLayout;
-let configVersion = 2;
+let configVersion = 3;
 
 function make_config() {
   let editor_width_pct = 100.0 - 61.8;
@@ -69,6 +69,13 @@ function make_config() {
                 isClosable: false,
                 id: "compiler_output",
               },
+              {
+                type: "component",
+                componentName: "Leaderboard",
+                componentState: {},
+                isClosable: false,
+                id: "leaderboard",
+              },
             ],
           },
         ],
@@ -130,6 +137,13 @@ export function init() {
     function (container, componentState) {
       container.getElement()[0].style.overflow = "auto";
       container.getElement()[0].id = "compiler-output-window";
+    }
+  );
+  goldenLayout.registerComponent(
+    "Leaderboard",
+    function (container, componentState) {
+      container.getElement()[0].style.overflow = "auto";
+      container.getElement()[0].id = "leaderboard-window";
     }
   );
   goldenLayout.init();

@@ -3,6 +3,7 @@ use crate::documentation::Documentation;
 use crate::editor_window::EditorWindow;
 use crate::js;
 use crate::leaderboard::Leaderboard;
+use crate::leaderboard_window::LeaderboardWindow;
 use crate::services;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
@@ -410,6 +411,11 @@ impl Component for Game {
             .expect("a #compiler-output-window element");
         let compiler_errors = self.compiler_errors.clone();
 
+        // For LeaderboardWindow.
+        let leaderboard_window_host = gloo_utils::document()
+            .get_element_by_id("leaderboard-window")
+            .expect("a #leaderboard-window element");
+
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
@@ -419,6 +425,7 @@ impl Component for Game {
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} canvas_ref={self.simulation_canvas_ref.clone()} />
             <Documentation host={documentation_window_host} {show_feedback_cb} />
             <CompilerOutputWindow host={compiler_output_window_host} {compiler_errors} />
+            <LeaderboardWindow host={leaderboard_window_host} scenario_name={self.scenario_name.clone()} />
             { self.render_overlay(context) }
         </>
         }

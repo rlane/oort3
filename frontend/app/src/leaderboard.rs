@@ -104,4 +104,15 @@ impl Component for Leaderboard {
             html! { <pre>{ "Unknown" }</pre> }
         }
     }
+
+    fn changed(&mut self, context: &Context<Self>, old_props: &LeaderboardProps) -> bool {
+        if old_props.scenario_name != context.props().scenario_name {
+            self.data = None;
+            self.error = None;
+            context.link().send_message(Msg::SendRequest);
+            true
+        } else {
+            false
+        }
+    }
 }
