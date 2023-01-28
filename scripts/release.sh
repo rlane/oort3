@@ -125,3 +125,5 @@ fi
 if [[ $PUSH_ALL -eq 1 || $PUSH_DOC -eq 1 ]]; then
   (cd shared && cargo publish -p oort_api)
 fi
+
+scripts/send-changelog-discord-message.sh
