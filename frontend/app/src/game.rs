@@ -193,10 +193,12 @@ impl Component for Game {
                 team: _,
                 ref action,
             } if action == "oort-execute" => {
-                crate::codestorage::save(
-                    &self.scenario_name,
-                    &self.player_team().get_editor_code(),
-                );
+                if !is_encrypted(&self.player_team().get_editor_code()) {
+                    crate::codestorage::save(
+                        &self.scenario_name,
+                        &self.player_team().get_editor_code(),
+                    );
+                }
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
                 }
@@ -885,7 +887,7 @@ impl Game {
     }
 
     pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, start: bool) {
-        if !self.teams.is_empty() {
+        if !self.teams.is_empty() && !is_encrypted(&self.player_team().get_editor_code()) {
             crate::codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
         }
         self.scenario_name = scenario_name.to_string();
@@ -967,7 +969,7 @@ impl Game {
                 return false;
             }
         }
-        true
+        !is_encrypted(&self.player_team().running_source_code)
     }
 }
 
@@ -1097,4 +1099,11 @@ fn make_editor_errors(error: &str) -> Vec<CompilerError> {
             msg: m[1].to_string(),
         })
         .collect()
+}
+
+fn is_encrypted(code: &Code) -> bool {
+    match code {
+        Code::Rust(src) => src.starts_with("-----BEGIN AGE ENCRYPTED FILE-----"),
+        _ => false,
+    }
 }
