@@ -1,6 +1,6 @@
 [package]
 name = "oort_telemetry_service"
-version = "0.31.3"
+version = "0.32.0"
 publish = false
 edition = "2021"
 
