@@ -5,5 +5,17 @@ publish = false
 edition = "2021"
 
 [dependencies]
-age = { version = "0.9.0", features = ["armor"] }
+aes-gcm = { version = "0.10.1", features = ["std"] }
 anyhow = "1.0.68"
+base64 = "0.21.0"
+bincode = "1.3.3"
+rand = "0.8.5"
+serde = "1.0.152"
+sha2 = "0.10.6"
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "benchmark"
+harness = false
