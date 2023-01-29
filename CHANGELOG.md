@@ -1,3 +1,5 @@
+### 0.34.0
+
 - Added more Discord integrations.
 
 ### 0.33.0
