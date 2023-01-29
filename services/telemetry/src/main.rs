@@ -1,14 +1,18 @@
+mod discord;
+
 use chrono::prelude::*;
 use firestore::*;
-use oort_proto::TelemetryMsg;
+use oort_proto::{Telemetry, TelemetryMsg};
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
 
 fn project_id() -> &'static str {
     match std::env::var("ENVIRONMENT") {
-        Ok(x) if x == "dev" => { "oort-dev" }
-        Ok(x) if x == "prod" => { "oort-319301" }
-        _ => { panic!("Invalid ENVIRONMENT") }
+        Ok(x) if x == "dev" => "oort-dev",
+        Ok(x) if x == "prod" => "oort-319301",
+        _ => {
+            panic!("Invalid ENVIRONMENT")
+        }
     }
 }
 
@@ -29,14 +33,33 @@ fn generate_docid() -> String {
 
 async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id()).await?;
-    log::debug!("Got request {:?}", req);
     let payload = req.payload().await?;
-    log::debug!("Got payload {:?}", payload);
     let mut obj: TelemetryMsg = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();
     log::debug!("Got request obj {:?}", obj);
-    db.create_obj("telemetry", &generate_docid(), &obj)
-        .await?;
+    let docid = generate_docid();
+    db.create_obj("telemetry", &docid, &obj).await?;
+    match obj.payload {
+        Telemetry::Crash { msg } => {
+            discord::send_message(format!(
+                "User {} reported crash {}: {}",
+                obj.username, docid, msg
+            ));
+        }
+        Telemetry::SubmitToTournament { scenario_name, .. } => {
+            discord::send_message(format!(
+                "User {} submitted AI {} to tournament scenario {}",
+                obj.username, docid, scenario_name
+            ));
+        }
+        Telemetry::Feedback { text } => {
+            discord::send_message(format!(
+                "User {} submitted feedback {}: {}",
+                obj.username, docid, text
+            ));
+        }
+        _ => {}
+    }
     res.render("");
     Ok(())
 }

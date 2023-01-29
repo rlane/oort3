@@ -1,3 +1,5 @@
+- Added more Discord integrations.
+
 ### 0.33.0
 
 - Randomize starting location in tutorial03 and tutorial04 to make tutorial05 easier.
