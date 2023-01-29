@@ -1,80 +1,23 @@
-use std::env;
-use tokio::sync::mpsc;
+use std::collections::HashMap;
 
-use serenity::async_trait;
-use serenity::model::gateway::Ready;
-use serenity::model::id::ChannelId;
-use serenity::prelude::*;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+async fn send_message_internal(msg: String) -> anyhow::Result<()> {
+    if let Some(url) = option_env!("DISCORD_LEADERBOARD_WEBHOOK") {
+        let mut map = HashMap::new();
+        map.insert("content", msg.to_string());
 
-fn channel_id() -> ChannelId {
-    match std::env::var("ENVIRONMENT") {
-        Ok(x) if x == "dev" => ChannelId(1044848260893900862),
-        Ok(x) if x == "prod" => ChannelId(1045042156060016680),
-        _ => {
-            panic!("Invalid ENVIRONMENT")
-        }
+        let client = reqwest::Client::new();
+        let response = client.post(url).json(&map).send().await?;
+        let _ = response.error_for_status()?;
+    } else {
+        log::info!("Would have sent Discord message: {}", msg);
     }
+    Ok(())
 }
 
-#[derive(Clone, Debug)]
-pub struct Msg {
-    pub text: String,
-}
-
-struct Handler {
-    rx: Arc<Mutex<mpsc::Receiver<Msg>>>,
-}
-
-#[async_trait]
-impl EventHandler for Handler {
-    async fn ready(&self, ctx: Context, ready: Ready) {
-        log::info!("Connected to Discord as {}", ready.user.name);
-
-        let rx = self.rx.clone();
-        tokio::spawn(async move {
-            while let Some(msg) = rx.lock().await.recv().await {
-                log::info!("Sending Discord message {:?}", msg.text);
-                if let Err(e) = channel_id().say(&ctx.http, &msg.text).await {
-                    log::error!("Error sending message: {:?}", e);
-                }
-                // Rate limit messages.
-                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-            }
-        });
-    }
-}
-
-pub async fn start() -> Result<mpsc::Sender<Msg>, anyhow::Error> {
-    // Configure the client with your Discord bot token in the environment.
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-    // Set gateway intents, which decides what events the bot will be notified about
-    let intents = GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::DIRECT_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT;
-
-    let (tx, rx) = mpsc::channel(10);
-
-    // Create a new instance of the Client, logging in as a bot. This will
-    // automatically prepend your bot token with "Bot ", which is a requirement
-    // by Discord for bot users.
-    let mut client = Client::builder(&token, intents)
-        .event_handler(Handler {
-            rx: Arc::new(Mutex::new(rx)),
-        })
-        .await
-        .expect("Err creating client");
-
-    // Finally, start a single shard, and start listening to events.
-    //
-    // Shards will automatically attempt to reconnect, and will perform
-    // exponential backoff until it reconnects.
+pub fn send_message(msg: String) {
     tokio::spawn(async move {
-        if let Err(why) = client.start().await {
-            log::error!("Discord client error: {:?}", why);
+        if let Err(e) = send_message_internal(msg).await {
+            log::warn!("Failed to send Discord message: {}", e);
         }
     });
-
-    Ok(tx)
 }

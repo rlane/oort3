@@ -7,7 +7,6 @@ use gcloud_sdk::google::firestore::v1::Document;
 use oort_proto::{LeaderboardData, LeaderboardSubmission, TimeLeaderboardRow};
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
-use tokio::sync::mpsc;
 
 fn project_id() -> &'static str {
     match std::env::var("ENVIRONMENT") {
@@ -53,7 +52,7 @@ async fn fetch_leaderboard(
                 userid: msg.userid.clone(),
                 username: Some(msg.username.clone()),
                 time: format!("{:.2}s", msg.time),
-                encrypted_code: oort_code_encryption::encrypt(&msg.code)?
+                encrypted_code: oort_code_encryption::encrypt(&msg.code)?,
             });
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
@@ -93,11 +92,7 @@ async fn get_leaderboard(req: &mut Request, res: &mut Response) {
     }
 }
 
-async fn post_leaderboard_internal(
-    req: &mut Request,
-    res: &mut Response,
-    discord_tx: &mpsc::Sender<discord::Msg>,
-) -> anyhow::Result<()> {
+async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id()).await?;
     log::debug!("Got request {:?}", req);
     let payload = match oort_envelope::remove(req.payload().await?) {
@@ -131,7 +126,12 @@ async fn post_leaderboard_internal(
     let new_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
 
     let get_rank = |leaderboard: &LeaderboardData, userid: &str| -> Option<usize> {
-        leaderboard.lowest_time.iter().enumerate().find(|(_,entry)| entry.userid == userid).map(|(i,_)| i + 1)
+        leaderboard
+            .lowest_time
+            .iter()
+            .enumerate()
+            .find(|(_, entry)| entry.userid == userid)
+            .map(|(i, _)| i + 1)
     };
 
     let old_rank = get_rank(&old_leaderboard, &obj.userid);
@@ -144,28 +144,19 @@ async fn post_leaderboard_internal(
     };
 
     if rank_improved {
-        if let Err(e) = discord_tx
-            .send_timeout(
-                discord::Msg {
-                    text: format!(
-                        "{} achieved leaderboard rank {} on scenario {} with time {:.2}s",
-                        obj.username, new_rank.unwrap(), obj.scenario_name, obj.time
-                    ),
-                },
-                std::time::Duration::from_secs(1),
-            )
-        .await
-        {
-            log::error!("Failed to send Discord message: {:?}", e);
-        }
+        discord::send_message(format!(
+            "{} achieved leaderboard rank {} on scenario {} with time {:.2}s",
+            obj.username,
+            new_rank.unwrap(),
+            obj.scenario_name,
+            obj.time
+        ));
     }
 
     render_leaderboard(&new_leaderboard, res).await
 }
 
-struct PostLeaderboard {
-    discord_tx: mpsc::Sender<discord::Msg>,
-}
+struct PostLeaderboard {}
 
 #[async_trait]
 impl Handler for PostLeaderboard {
@@ -176,7 +167,7 @@ impl Handler for PostLeaderboard {
         res: &mut Response,
         _ctrl: &mut FlowCtrl,
     ) {
-        if let Err(e) = post_leaderboard_internal(req, res, &self.discord_tx).await {
+        if let Err(e) = post_leaderboard_internal(req, res).await {
             log::error!("error: {}", e);
             res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
             res.render(e.to_string());
@@ -209,8 +200,6 @@ async fn main() {
     log::info!("Starting oort_leaderboard_service");
     log::info!("Using project ID {}", project_id());
 
-    let discord_tx = discord::start().await.expect("starting Discord bot");
-
     let cors_handler = Cors::builder()
         .allow_any_origin()
         .allow_methods(vec!["POST", "OPTIONS"])
@@ -225,7 +214,7 @@ async fn main() {
         )
         .push(
             Router::with_path("/leaderboard")
-                .post(PostLeaderboard { discord_tx })
+                .post(PostLeaderboard {})
                 .options(nop),
         );
 

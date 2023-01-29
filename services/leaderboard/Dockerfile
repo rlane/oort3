@@ -4,6 +4,7 @@ RUN apt-get update
 COPY . .
 ARG OORT_ENVELOPE_SECRET
 ARG OORT_CODE_ENCRYPTION_SECRET
+ARG DISCORD_LEADERBOARD_WEBHOOK
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
