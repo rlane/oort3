@@ -126,4 +126,6 @@ if [[ $PUSH_ALL -eq 1 || $PUSH_DOC -eq 1 ]]; then
   (cd shared && cargo publish -p oort_api)
 fi
 
-scripts/send-changelog-discord-message.sh
+if [[ $BUMP_VERSION -eq 1 ]]; then
+  scripts/send-changelog-discord-message.sh
+fi
