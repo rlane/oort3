@@ -45,6 +45,12 @@ fi
 [ -e scratch/secrets.sh ] && source scratch/secrets.sh
 
 if [[ $BUMP_VERSION -eq 1 ]]; then
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  if [[ $BRANCH != master ]]; then
+    echo "Not on master branch, halting release"
+    exit 1
+  fi
+
   if head -n1 CHANGELOG.md | grep -q '^#'; then
     echo "Changelog empty, halting release"
     exit 1
@@ -128,4 +134,5 @@ fi
 
 if [[ $BUMP_VERSION -eq 1 ]]; then
   scripts/send-changelog-discord-message.sh
+  git push
 fi
