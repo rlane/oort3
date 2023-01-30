@@ -2,6 +2,7 @@
 cd $(realpath $(dirname $0))/..
 PROJECT=us-west1-docker.pkg.dev/oort-319301
 CONTAINER_IMAGE=$PROJECT/services/oort_compiler_service
+ZONE=us-west1-b
 docker tag oort_compiler_service:latest $CONTAINER_IMAGE
 docker push $CONTAINER_IMAGE
 gcloud run deploy oort-compiler-service \
@@ -14,7 +15,8 @@ gcloud run deploy oort-compiler-service \
   --concurrency 1 \
   --max-instances 3 \
   --service-account=oort-compiler-service@oort-319301.iam.gserviceaccount.com
-gcloud compute ssh server-1 --command="docker image prune --force" || true
+gcloud compute ssh server-1 --zone $ZONE --command="docker image prune --force" || true
 gcloud compute instances update-container \
   server-1 \
+  --zone $ZONE \
   --container-image $CONTAINER_IMAGE

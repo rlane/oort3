@@ -27,6 +27,9 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_seeder = "0.2.3"
 rusqlite = { version = "0.28.0", features = ["bundled"] }
+anyhow = "1.0.68"
+shell-words = "1.1.0"
+toml = "0.7.0"
 
 [patch.crates-io]
 rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }

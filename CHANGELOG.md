@@ -1,3 +1,5 @@
+- Parallelized release process.
+
 ### 0.34.0
 
 - Added more Discord integrations.

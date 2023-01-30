@@ -4,3 +4,4 @@ target/
 /flamegraph.svg
 perf.data*
 /scratch
+/.secrets
