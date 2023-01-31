@@ -69,6 +69,8 @@ async fn main() -> anyhow::Result<()> {
         std::env::set_var(k, v.as_str().expect("invalid secret value"));
     }
 
+    std::env::set_var("DOCKER_BUILDKIT", "1");
+
     if !args.skip_git_checks {
         sync_cmd_ok(&["git", "diff", "HEAD", "--quiet"])
             .await
@@ -226,11 +228,26 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if args.components.contains(&Component::Compiler) {
+        let secrets = secrets.clone();
         tasks.spawn(async move {
             let progress = create_progress_bar("compiler");
 
             progress.set_message("building");
-            sync_cmd_ok(&["scripts/build-compiler-service-docker-image.sh"]).await?;
+            sync_cmd_ok(&[
+                "docker",
+                "build",
+                "-f",
+                "services/compiler/Dockerfile",
+                "--tag",
+                "oort_compiler_service",
+                "--build-arg",
+                &format!(
+                    "OORT_CODE_ENCRYPTION_SECRET={}",
+                    secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                ),
+                ".",
+            ])
+            .await?;
 
             if !dry_run {
                 progress.set_message("deploying");
@@ -243,11 +260,26 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if args.components.contains(&Component::Telemetry) {
+        let secrets = secrets.clone();
         tasks.spawn(async move {
             let progress = create_progress_bar("telemetry");
 
             progress.set_message("building");
-            sync_cmd_ok(&["scripts/build-telemetry-service-docker-image.sh"]).await?;
+            sync_cmd_ok(&[
+                "docker",
+                "build",
+                "-f",
+                "services/telemetry/Dockerfile",
+                "--tag",
+                "oort_telemetry_service",
+                "--build-arg",
+                &format!(
+                    "DISCORD_TELEMETRY_WEBHOOK={}",
+                    secrets["DISCORD_TELEMETRY_WEBHOOK"].as_str().unwrap()
+                ),
+                ".",
+            ])
+            .await?;
 
             if !dry_run {
                 progress.set_message("deploying");
@@ -264,7 +296,31 @@ async fn main() -> anyhow::Result<()> {
             let progress = create_progress_bar("leaderboard");
 
             progress.set_message("building");
-            sync_cmd_ok(&["scripts/build-leaderboard-service-docker-image.sh"]).await?;
+            sync_cmd_ok(&[
+                "docker",
+                "build",
+                "-f",
+                "services/leaderboard/Dockerfile",
+                "--tag",
+                "oort_leaderboard_service",
+                "--build-arg",
+                &format!(
+                    "OORT_CODE_ENCRYPTION_SECRET={}",
+                    secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                ),
+                "--build-arg",
+                &format!(
+                    "OORT_ENVELOPE_SECRET={}",
+                    secrets["OORT_ENVELOPE_SECRET"].as_str().unwrap()
+                ),
+                "--build-arg",
+                &format!(
+                    "DISCORD_LEADERBOARD_WEBHOOK={}",
+                    secrets["DISCORD_LEADERBOARD_WEBHOOK"].as_str().unwrap()
+                ),
+                ".",
+            ])
+            .await?;
 
             if !dry_run {
                 progress.set_message("deploying");
