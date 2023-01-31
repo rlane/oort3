@@ -1,9 +1,12 @@
 use anyhow::{anyhow, bail, Result};
 use clap::Parser as _;
+use indicatif::{MultiProgress, ProgressBar};
+use once_cell::sync::Lazy;
 use std::process::{ExitStatus, Output};
 use tokio::process::Command;
 
 const WORKSPACES: &[&str] = &["frontend", "tools", "shared", "services"];
+static PROGRESS: Lazy<MultiProgress> = Lazy::new(MultiProgress::new);
 
 #[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
 enum Component {
@@ -178,7 +181,9 @@ async fn main() -> anyhow::Result<()> {
 
     if args.components.contains(&Component::App) {
         tasks.spawn(async move {
-            log::info!("Building frontend (prebuild)");
+            let progress = create_progress_bar("frontend");
+
+            progress.set_message("prebuild");
             sync_cmd_ok(&[
                 "cargo",
                 "build",
@@ -191,7 +196,7 @@ async fn main() -> anyhow::Result<()> {
             ])
             .await?;
 
-            log::info!("Building frontend (trunk)");
+            progress.set_message("running trunk");
             if std::fs::metadata("frontend/app/dist").is_ok() {
                 std::fs::remove_dir_all("frontend/app/dist")?;
             }
@@ -206,7 +211,7 @@ async fn main() -> anyhow::Result<()> {
             .await?;
 
             if !dry_run {
-                log::info!("Deploying frontend");
+                progress.set_message("deploying");
                 sync_cmd_ok(&[
                     "sh",
                     "-c",
@@ -215,59 +220,67 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
             }
 
-            log::info!("Finished frontend");
+            progress.finish_with_message("done");
             anyhow::Ok(())
         });
     }
 
     if args.components.contains(&Component::Compiler) {
         tasks.spawn(async move {
-            log::info!("Building compiler service");
+            let progress = create_progress_bar("compiler");
+
+            progress.set_message("building");
             sync_cmd_ok(&["scripts/build-compiler-service-docker-image.sh"]).await?;
 
             if !dry_run {
-                log::info!("Deploying compiler service");
+                progress.set_message("deploying");
                 sync_cmd_ok(&["scripts/deploy-compiler-service.sh"]).await?;
             }
 
-            log::info!("Finished compiler service");
+            progress.finish_with_message("done");
             Ok(())
         });
     }
 
     if args.components.contains(&Component::Telemetry) {
         tasks.spawn(async move {
-            log::info!("Building telemetry service");
+            let progress = create_progress_bar("telemetry");
+
+            progress.set_message("building");
             sync_cmd_ok(&["scripts/build-telemetry-service-docker-image.sh"]).await?;
 
             if !dry_run {
-                log::info!("Deploying telemetry service");
+                progress.set_message("deploying");
                 sync_cmd_ok(&["scripts/deploy-telemetry-service.sh"]).await?;
             }
 
-            log::info!("Finished telemetry service");
+            progress.finish_with_message("done");
             Ok(())
         });
     }
 
     if args.components.contains(&Component::Leaderboard) {
         tasks.spawn(async move {
-            log::info!("Building leaderboard service");
+            let progress = create_progress_bar("leaderboard");
+
+            progress.set_message("building");
             sync_cmd_ok(&["scripts/build-leaderboard-service-docker-image.sh"]).await?;
 
             if !dry_run {
-                log::info!("Deploying leaderboard service");
+                progress.set_message("deploying");
                 sync_cmd_ok(&["scripts/deploy-leaderboard-service.sh"]).await?;
             }
 
-            log::info!("Finished leaderboard service");
+            progress.finish_with_message("done");
             Ok(())
         });
     }
 
     if args.components.contains(&Component::Doc) {
         tasks.spawn(async move {
-            log::info!("Building docs");
+            let progress = create_progress_bar("doc");
+
+            progress.set_message("building");
             sync_cmd_ok(&[
                 "cargo",
                 "doc",
@@ -279,7 +292,7 @@ async fn main() -> anyhow::Result<()> {
             .await?;
 
             if !dry_run && bump_version {
-                log::info!("Pushing docs");
+                progress.set_message("publishing");
                 sync_cmd_ok(&[
                     "cargo",
                     "publish",
@@ -291,7 +304,7 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
             }
 
-            log::info!("Finished docs");
+            progress.finish_with_message("done");
             Ok(())
         });
     }
@@ -300,7 +313,7 @@ async fn main() -> anyhow::Result<()> {
     while let Some(res) = tasks.join_next().await {
         let res = res.map_err(anyhow::Error::msg).and_then(|x| x);
         if let Err(e) = &res {
-            log::error!("Task failed: {}", e);
+            PROGRESS.suspend(|| log::error!("Task failed: {}", e));
             failed = true;
         }
     }
@@ -367,7 +380,7 @@ impl ExtendedExitStatus for ExitStatus {
 }
 
 fn cmd_argv(argv: &[&str]) -> Command {
-    log::info!("Executing {:?}", shell_words::join(argv));
+    PROGRESS.suspend(|| log::info!("Executing {:?}", shell_words::join(argv)));
     let mut cmd = Command::new(argv[0]);
     cmd.kill_on_drop(true);
     cmd.args(&argv[1..]);
@@ -377,11 +390,13 @@ fn cmd_argv(argv: &[&str]) -> Command {
 async fn sync_cmd(argv: &[&str]) -> Result<Output> {
     let result = cmd_argv(argv).output().await;
     if let Ok(output) = &result {
-        if !output.stdout.is_empty() {
-            log::debug!("stdout:\n{}", output.stdout_string());
-        }
-        if !output.stderr.is_empty() {
-            log::debug!("stderr:\n{}", output.stderr_string());
+        if log::log_enabled!(log::Level::Debug) {
+            if !output.stdout.is_empty() {
+                PROGRESS.suspend(|| log::debug!("stdout:\n{}", output.stdout_string()));
+            }
+            if !output.stderr.is_empty() {
+                PROGRESS.suspend(|| log::debug!("stderr:\n{}", output.stderr_string()));
+            }
         }
     }
     result.map_err(anyhow::Error::msg)
@@ -398,4 +413,18 @@ async fn sync_cmd_ok(argv: &[&str]) -> Result<Output> {
         );
     }
     Ok(output)
+}
+
+fn create_progress_bar(prefix: &'static str) -> ProgressBar {
+    let progress = PROGRESS.add(ProgressBar::new_spinner());
+    progress.enable_steady_tick(std::time::Duration::from_millis(66));
+    progress.set_prefix(prefix);
+    progress.set_message("starting");
+    progress.set_style(
+        progress
+            .style()
+            .template("[{elapsed_precise}] {prefix}: {msg} {spinner}")
+            .unwrap(),
+    );
+    progress
 }
