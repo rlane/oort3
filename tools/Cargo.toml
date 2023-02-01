@@ -44,8 +44,8 @@ opt-level = 0
 
 [profile.release]
 debug = true
-lto = true
+lto = "thin"
 
 [profile.bench]
 debug = true
-lto = false
+lto = "thin"
