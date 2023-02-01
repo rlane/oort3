@@ -5,6 +5,7 @@ use once_cell::sync::Lazy;
 use std::process::{ExitStatus, Output};
 use tokio::process::Command;
 
+const PROJECT: &str = "us-west1-docker.pkg.dev/oort-319301";
 const WORKSPACES: &[&str] = &["frontend", "tools", "shared", "services"];
 static PROGRESS: Lazy<MultiProgress> = Lazy::new(MultiProgress::new);
 
@@ -250,8 +251,66 @@ async fn main() -> anyhow::Result<()> {
             .await?;
 
             if !dry_run {
+                let container_image = format!("{PROJECT}/services/oort_compiler_service");
+                let zone = "us-west1-b";
+
+                progress.set_message("tagging");
+                sync_cmd_ok(&[
+                    "docker",
+                    "tag",
+                    "oort_compiler_service:latest",
+                    &container_image,
+                ])
+                .await?;
+
+                progress.set_message("pushing image");
+                sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
                 progress.set_message("deploying");
-                sync_cmd_ok(&["scripts/deploy-compiler-service.sh"]).await?;
+                sync_cmd_ok(&[
+                    "gcloud",
+                    "run",
+                    "deploy",
+                    "oort-compiler-service",
+                    "--image",
+                    &container_image,
+                    "--allow-unauthenticated",
+                    "--region=us-west1",
+                    "--cpu=1",
+                    "--memory=1G",
+                    "--timeout=20s",
+                    "--concurrency=1",
+                    "--max-instances=3",
+                    "--service-account=oort-compiler-service@oort-319301.iam.gserviceaccount.com",
+                ])
+                .await?;
+
+                progress.set_message("pruning VM");
+                sync_cmd_ok(&[
+                    "gcloud",
+                    "compute",
+                    "ssh",
+                    "server-1",
+                    "--zone",
+                    zone,
+                    "--command",
+                    "docker image prune --force",
+                ])
+                .await?;
+
+                progress.set_message("deploying to VM");
+                sync_cmd_ok(&[
+                    "gcloud",
+                    "compute",
+                    "instances",
+                    "update-container",
+                    "server-1",
+                    "--zone",
+                    zone,
+                    "--container-image",
+                    &container_image,
+                ])
+                .await?;
             }
 
             progress.finish_with_message("done");
@@ -282,8 +341,38 @@ async fn main() -> anyhow::Result<()> {
             .await?;
 
             if !dry_run {
+                let container_image = format!("{PROJECT}/services/oort_telemetry_service");
+
+                progress.set_message("tagging");
+                sync_cmd_ok(&[
+                    "docker",
+                    "tag",
+                    "oort_telemetry_service:latest",
+                    &container_image,
+                ])
+                .await?;
+
+                progress.set_message("pushing image");
+                sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
                 progress.set_message("deploying");
-                sync_cmd_ok(&["scripts/deploy-telemetry-service.sh"]).await?;
+                sync_cmd_ok(&[
+                    "gcloud",
+                    "run",
+                    "deploy",
+                    "oort-telemetry-service",
+                    "--image",
+                    &container_image,
+                    "--allow-unauthenticated",
+                    "--region=us-west1",
+                    "--cpu=1",
+                    "--memory=1G",
+                    "--timeout=20s",
+                    "--concurrency=1",
+                    "--max-instances=3",
+                    "--service-account=oort-telemetry-service@oort-319301.iam.gserviceaccount.com",
+                ])
+                .await?;
             }
 
             progress.finish_with_message("done");
@@ -323,8 +412,24 @@ async fn main() -> anyhow::Result<()> {
             .await?;
 
             if !dry_run {
+                let container_image = format!("{PROJECT}/services/oort_leaderboard_service");
+
+                progress.set_message("tagging");
+                sync_cmd_ok(&[
+                    "docker",
+                    "tag",
+                    "oort_leaderboard_service:latest",
+                    &container_image,
+                ])
+                .await?;
+
+                progress.set_message("pushing image");
+                sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
                 progress.set_message("deploying");
-                sync_cmd_ok(&["scripts/deploy-leaderboard-service.sh"]).await?;
+                sync_cmd_ok(&[
+                    "gcloud", "run", "deploy", "oort-leaderboard-service", "--image", &container_image, "--allow-unauthenticated", "--region=us-west1", "--cpu=1", "--memory=1G", "--timeout=20s", "--concurrency=1", "--max-instances=3", "--service-account=oort-leaderboard-service@oort-319301.iam.gserviceaccount.com",
+                ]).await?;
             }
 
             progress.finish_with_message("done");
