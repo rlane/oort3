@@ -1,4 +1,4 @@
-- Parallelized release process.
+- Sped up release process.
 
 ### 0.34.0
 

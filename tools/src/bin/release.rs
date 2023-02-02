@@ -78,6 +78,8 @@ async fn main() -> anyhow::Result<()> {
             .map_err(|_| anyhow!("Uncommitted changes, halting release"))?;
     }
 
+    let mut version = "unknown".to_string();
+    let mut changelog = "unknown".to_string();
     let bump_version = !args.skip_version_bump;
     if bump_version {
         if args.components != ALL_COMPONENTS {
@@ -94,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
             bail!("Not on master branch, halting release");
         }
 
-        let changelog = sync_cmd_ok(&["sed", "/^#/Q", "CHANGELOG.md"])
+        changelog = sync_cmd_ok(&["sed", "/^#/Q", "CHANGELOG.md"])
             .await?
             .stdout_string();
         if changelog.is_empty() {
@@ -117,7 +119,7 @@ async fn main() -> anyhow::Result<()> {
         .await?
         .check_success()?;
 
-        let version = {
+        version = {
             let manifest = std::fs::read_to_string("frontend/app/Cargo.toml")?;
             let manifest = manifest.parse::<toml::Table>()?;
             manifest["package"]["version"]
@@ -452,6 +454,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if args.components.contains(&Component::Leaderboard) {
+        let secrets = secrets.clone();
         tasks.spawn(async move {
             let progress = create_progress_bar("leaderboard");
 
@@ -558,9 +561,17 @@ async fn main() -> anyhow::Result<()> {
         sync_cmd_ok(&["git", "push"]).await?;
     }
 
-    if !dry_run && !args.skip_discord {
+    if bump_version && !dry_run && !args.skip_discord {
         log::info!("Sending Discord message");
-        sync_cmd_ok(&["scripts/send-changelog-discord-message.sh"]).await?;
+        let mut map = std::collections::HashMap::new();
+        map.insert(
+            "content",
+            format!("Released version {}:\n{}", version, changelog),
+        );
+        let client = reqwest::Client::new();
+        let url = secrets["DISCORD_CHANGELOG_WEBHOOK"].as_str().unwrap();
+        let response = client.post(url).json(&map).send().await?;
+        response.error_for_status()?;
     }
 
     log::info!("Finished");
