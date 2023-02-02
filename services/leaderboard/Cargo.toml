@@ -12,13 +12,10 @@ salvo = "0.36"
 salvo_extra = { version="0.36", features=["cors"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "process"] }
 anyhow = "1.0"
-bytes = "1.1"
 log = "0.4.17"
 stackdriver_logger = "0.8.0"
 firestore = "0.6.1"
 gcloud-sdk = "0.18.1"
-serde = { version = "1.0", features = ["derive"] }
 serde_json ="1.0"
-rand = "0.8.5"
 chrono = "0.4.22"
 reqwest = { version = "0.11.14", default-features=false, features = ["json", "rustls-tls"] }

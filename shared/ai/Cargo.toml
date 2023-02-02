@@ -13,4 +13,3 @@ crate-type = ["cdylib"]
 
 [dependencies]
 oort_api = { path = "../api" }
-oorandom = "11.1.3"

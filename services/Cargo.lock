@@ -1335,7 +1335,6 @@ dependencies = [
 name = "oort_envelope"
 version = "0.34.2"
 dependencies = [
- "serde",
  "sha2",
 ]
 
@@ -1344,7 +1343,6 @@ name = "oort_leaderboard_service"
 version = "0.34.2"
 dependencies = [
  "anyhow",
- "bytes",
  "chrono",
  "firestore",
  "gcloud-sdk",
@@ -1352,11 +1350,9 @@ dependencies = [
  "oort_code_encryption",
  "oort_envelope",
  "oort_proto",
- "rand 0.8.5",
  "reqwest",
  "salvo",
  "salvo_extra",
- "serde",
  "serde_json",
  "stackdriver_logger",
  "tokio",
@@ -1375,17 +1371,14 @@ name = "oort_telemetry_service"
 version = "0.34.2"
 dependencies = [
  "anyhow",
- "bytes",
  "chrono",
  "firestore",
- "gcloud-sdk",
  "log",
  "oort_proto",
  "rand 0.8.5",
  "reqwest",
  "salvo",
  "salvo_extra",
- "serde",
  "serde_json",
  "stackdriver_logger",
  "tokio",
