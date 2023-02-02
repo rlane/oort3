@@ -6,7 +6,7 @@ use std::process::{ExitStatus, Output};
 use tokio::process::Command;
 
 const PROJECT: &str = "us-west1-docker.pkg.dev/oort-319301";
-const WORKSPACES: &[&str] = &["frontend", "tools", "shared", "services"];
+const WORKSPACES: &[&str] = &["frontend", "tools", "shared", "services", "tools"];
 static PROGRESS: Lazy<MultiProgress> = Lazy::new(MultiProgress::new);
 
 #[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
@@ -16,6 +16,7 @@ enum Component {
     Leaderboard,
     Compiler,
     Doc,
+    Tools,
 }
 
 const ALL_COMPONENTS: &[Component] = &[
@@ -24,6 +25,7 @@ const ALL_COMPONENTS: &[Component] = &[
     Component::Leaderboard,
     Component::Compiler,
     Component::Doc,
+    Component::Tools,
 ];
 
 #[derive(clap::Parser, Debug)]
@@ -33,7 +35,7 @@ struct Arguments {
         long,
         value_enum,
         value_delimiter = ',',
-        default_value = "app,telemetry,leaderboard,compiler,doc"
+        default_value = "app,telemetry,leaderboard,compiler,doc,tools"
     )]
     /// Components to push.
     components: Vec<Component>,
@@ -562,6 +564,36 @@ async fn main() -> anyhow::Result<()> {
                     "oort_api",
                 ])
                 .await?;
+            }
+
+            progress.finish_with_message("done");
+            Ok(())
+        });
+    }
+
+    if args.components.contains(&Component::Tools) {
+        tasks.spawn(async move {
+            use std::os::unix::fs::MetadataExt;
+            use std::path::PathBuf;
+
+            let progress = create_progress_bar("tools");
+
+            progress.set_message("building");
+            sync_cmd_ok(&["cargo", "build", "--manifest-path", "tools/Cargo.toml"]).await?;
+
+            std::fs::create_dir_all("scratch/tools")?;
+
+            for entry in std::fs::read_dir("tools/target/debug")? {
+                let entry = entry?;
+                if entry.metadata()?.is_file() && entry.metadata()?.mode() & 1 != 0 {
+                    let dst: PathBuf = [
+                        std::ffi::OsStr::new("scratch/tools"),
+                        entry.path().file_name().unwrap(),
+                    ]
+                    .iter()
+                    .collect();
+                    std::fs::copy(entry.path(), dst)?;
+                }
             }
 
             progress.finish_with_message("done");
