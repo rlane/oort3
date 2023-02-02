@@ -188,16 +188,31 @@ async fn main() -> anyhow::Result<()> {
         tasks.spawn(async move {
             let progress = create_progress_bar("frontend");
 
-            progress.set_message("prebuild");
+            progress.set_message("prebuild (app)");
             sync_cmd_ok(&[
                 "cargo",
                 "build",
+                "--target=wasm32-unknown-unknown",
                 "--manifest-path",
-                "frontend/Cargo.toml",
+                "frontend/app/Cargo.toml",
                 "--release",
-                "--bins",
-                "--target",
-                "wasm32-unknown-unknown",
+                "--bin",
+                "app",
+                "--bin",
+                "oort_simulation_worker",
+            ])
+            .await?;
+
+            progress.set_message("prebuild (analyzer)");
+            sync_cmd_ok(&[
+                "cargo",
+                "build",
+                "--target=wasm32-unknown-unknown",
+                "--manifest-path",
+                "frontend/analyzer_worker/Cargo.toml",
+                "--release",
+                "--bin",
+                "oort_analyzer_worker",
             ])
             .await?;
 
