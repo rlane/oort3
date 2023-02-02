@@ -23,6 +23,13 @@ enum SubCommand {
         #[clap(short = 'n', long, value_parser, default_value_t = 10)]
         limit: usize,
     },
+    Download {
+        scenario: String,
+        #[clap(short = 'n', long, value_parser, default_value_t = 10)]
+        limit: usize,
+        #[clap(short, long, value_parser)]
+        out_dir: String,
+    },
     Get {
         docid: String,
     },
@@ -36,6 +43,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args = Arguments::parse();
     match args.cmd {
         SubCommand::List { scenario, limit } => cmd_list(&args.project_id, &scenario, limit).await,
+        SubCommand::Download {
+            scenario,
+            limit,
+            out_dir,
+        } => cmd_download(&args.project_id, &scenario, limit, &out_dir).await,
         SubCommand::Get { docid } => cmd_get(&args.project_id, docid).await,
     }
 }
@@ -89,6 +101,48 @@ async fn cmd_list(
 
     println!("Scenario: {}", scenario_name);
     println!("{}", table);
+
+    Ok(())
+}
+
+async fn cmd_download(
+    project_id: &str,
+    scenario_name: &str,
+    limit: usize,
+    out_dir: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let db = FirestoreDb::new(project_id).await?;
+
+    let docs: Vec<Document> = db
+        .query_doc(
+            FirestoreQueryParams::new("leaderboard".into())
+                .with_filter(FirestoreQueryFilter::Composite(
+                    FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
+                        FirestoreQueryFilterCompare::Equal(
+                            "scenario_name".into(),
+                            scenario_name.into(),
+                        ),
+                    ))]),
+                ))
+                .with_order_by(vec![
+                    FirestoreQueryOrder::new("time".to_owned(), FirestoreQueryDirection::Ascending),
+                    FirestoreQueryOrder::new(
+                        "timestamp".to_owned(),
+                        FirestoreQueryDirection::Ascending,
+                    ),
+                ])
+                .with_limit(limit as u32),
+        )
+        .await?;
+
+    std::fs::create_dir_all(&out_dir).unwrap();
+    for doc in docs.iter() {
+        if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
+            let filename = format!("{}/{}.rs", &out_dir, msg.username);
+            std::fs::write(&filename, &msg.code).unwrap();
+            println!("Wrote {}", filename);
+        }
+    }
 
     Ok(())
 }
