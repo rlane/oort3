@@ -2,7 +2,6 @@
 name = "oort-app"
 version = "0.34.1"
 edition = "2021"
-build = "build.rs"
 publish = false
 
 [lib]
@@ -15,6 +14,7 @@ oort_analyzer_worker = { path = "../analyzer_worker" }
 oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
 oort_proto = { path = "../../shared/proto" }
 oort_envelope = { path = "../../shared/envelope" }
+oort_version = { path = "../../shared/version" }
 bincode = "1.3.3"
 chrono = "0.4.19"
 console_error_panic_hook = "0.1.7"
@@ -75,6 +75,3 @@ features = [
   'DomRect',
   'Navigator',
 ]
-
-[build-dependencies]
-built = { version = "0.5", features = ["git2", "chrono", "semver"] }

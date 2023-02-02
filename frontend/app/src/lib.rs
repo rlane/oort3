@@ -16,22 +16,11 @@ pub mod ui;
 pub mod userid;
 pub mod welcome;
 
+use oort_version::version;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yew::prelude::*;
 use yew_router::prelude::*;
-
-pub mod built_info {
-    include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
-pub fn version() -> String {
-    let mut fragments = vec![built_info::GIT_VERSION.unwrap_or("unknown")];
-    if built_info::GIT_DIRTY == Some(true) {
-        fragments.push("dirty");
-    }
-    fragments.join("-")
-}
 
 #[derive(Clone, Routable, PartialEq, Eq)]
 pub enum Route {

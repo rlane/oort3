@@ -1,0 +1,12 @@
+[package]
+name = "oort_version"
+version = "0.34.1"
+publish = false
+edition = "2021"
+build = "build.rs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[build-dependencies]
+built = { version = "0.5", features = ["git2", "chrono", "semver"] }
