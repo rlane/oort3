@@ -230,6 +230,16 @@ async fn main() -> anyhow::Result<()> {
             ])
             .await?;
 
+            let du_output = sync_cmd_ok(&["du", "-sh", "frontend/app/dist"])
+                .await?
+                .stdout_string();
+            PROGRESS.suspend(|| {
+                log::info!(
+                    "Output size: {}",
+                    du_output.split_whitespace().next().unwrap_or_default()
+                )
+            });
+
             if !dry_run {
                 progress.set_message("deploying");
                 sync_cmd_ok(&[
