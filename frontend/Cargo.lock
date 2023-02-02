@@ -1768,9 +1768,6 @@ dependencies = [
  "ra_ap_cfg",
  "ra_ap_ide",
  "ra_ap_ide_db",
- "serde",
- "wasm-bindgen",
- "yew",
  "yew-agent",
 ]
 
