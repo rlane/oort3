@@ -1730,7 +1730,6 @@ dependencies = [
  "monaco",
  "nalgebra",
  "no-comment",
- "oort_analyzer_worker",
  "oort_envelope",
  "oort_proto",
  "oort_renderer",

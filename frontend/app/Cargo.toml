@@ -10,7 +10,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 oort_renderer = { path = "../renderer" }
 oort_simulation_worker = { path = "../simulation_worker" }
-oort_analyzer_worker = { path = "../analyzer_worker" }
 oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
 oort_proto = { path = "../../shared/proto" }
 oort_envelope = { path = "../../shared/envelope" }

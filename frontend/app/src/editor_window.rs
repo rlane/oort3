@@ -1,4 +1,5 @@
 #![allow(clippy::drop_non_drop)]
+use crate::analyzer_stub::{self, AnalyzerAgent, CompletionItem};
 use crate::js;
 use crate::js::filesystem::FileHandle;
 use gloo_timers::callback::Interval;
@@ -8,7 +9,6 @@ use monaco::sys::Position;
 use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
-use oort_analyzer_worker::{AnalyzerAgent, CompletionItem};
 use oort_simulator::simulation::Code;
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
@@ -34,7 +34,7 @@ fn make_monaco_options() -> CodeEditorOptions {
 pub enum Msg {
     EditorAction(String),
     RequestAnalyzer,
-    AnalyzerResponse(oort_analyzer_worker::Response),
+    AnalyzerResponse(analyzer_stub::Response),
     RequestCompletion {
         line: u32,
         col: u32,
@@ -168,13 +168,13 @@ impl Component for EditorWindow {
                         self.display_analyzer_diagnostics(context, &[]);
                     } else {
                         self.analyzer_agent
-                            .send(oort_analyzer_worker::Request::Diagnostics(text.clone()));
+                            .send(analyzer_stub::Request::Diagnostics(text.clone()));
                     }
                     self.last_analyzed_text = text;
                 }
                 false
             }
-            Msg::AnalyzerResponse(oort_analyzer_worker::Response::Diagnostics(diags)) => {
+            Msg::AnalyzerResponse(analyzer_stub::Response::Diagnostics(diags)) => {
                 self.display_analyzer_diagnostics(context, &diags);
                 false
             }
@@ -186,10 +186,10 @@ impl Component for EditorWindow {
             } => {
                 self.current_completion = Some((resolve, reject));
                 self.analyzer_agent
-                    .send(oort_analyzer_worker::Request::Completion(line, col));
+                    .send(analyzer_stub::Request::Completion(line, col));
                 false
             }
-            Msg::AnalyzerResponse(oort_analyzer_worker::Response::Completion(completions)) => {
+            Msg::AnalyzerResponse(analyzer_stub::Response::Completion(completions)) => {
                 if let Some((resolve, _)) = self.current_completion.clone() {
                     let this = JsValue::null();
                     let results = CompletionList {
@@ -392,7 +392,7 @@ impl EditorWindow {
     pub fn display_analyzer_diagnostics(
         &mut self,
         _context: &Context<Self>,
-        diags: &[oort_analyzer_worker::Diagnostic],
+        diags: &[analyzer_stub::Diagnostic],
     ) {
         use monaco::sys::{
             editor::IModelDecorationOptions, editor::IModelDeltaDecoration, IMarkdownString, Range,

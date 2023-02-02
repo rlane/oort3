@@ -1,3 +1,4 @@
+mod analyzer_stub;
 pub mod benchmark;
 pub mod code_size;
 pub mod codestorage;
