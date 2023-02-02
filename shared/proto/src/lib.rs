@@ -1,3 +1,5 @@
+pub mod analyzer;
+
 use chrono::serde::ts_milliseconds;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

@@ -1,5 +1,5 @@
 use ide_db::SnippetCap;
-use serde::{Deserialize, Serialize};
+pub use oort_proto::analyzer::*;
 use std::default::Default;
 use std::sync::Arc;
 use yew_agent::{HandlerId, Private, WorkerLink};
@@ -11,38 +11,6 @@ use ide::{
 };
 use ide_db::base_db::{CrateName, CrateOrigin, Dependency, Env, FileSet, VfsPath};
 use ide_db::imports::insert_use::{ImportGranularity, InsertUseConfig, PrefixKind};
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Diagnostic {
-    pub message: String,
-    pub start_line: u32,
-    pub start_column: u32,
-    pub end_line: u32,
-    pub end_column: u32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[allow(non_snake_case)]
-pub struct CompletionItem {
-    pub label: String,
-    pub kind: i64,
-    pub detail: String,
-    pub insertText: String,
-    pub insertTextRules: u32,
-    pub filterText: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Request {
-    Diagnostics(String),
-    Completion(u32, u32),
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Response {
-    Diagnostics(Vec<Diagnostic>),
-    Completion(Vec<CompletionItem>),
-}
 
 static FAKE_STD: &str = r#"
 #[macro_export]

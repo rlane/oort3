@@ -1765,6 +1765,7 @@ dependencies = [
  "console_log",
  "instant",
  "log",
+ "oort_proto",
  "ra_ap_cfg",
  "ra_ap_ide",
  "ra_ap_ide_db",
