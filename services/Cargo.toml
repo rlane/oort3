@@ -5,6 +5,7 @@ members = [
     "compiler",
     "telemetry",
     "leaderboard",
+    "shortcode",
 ]
 
 [profile.dev.package.'*']

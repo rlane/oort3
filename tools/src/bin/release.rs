@@ -15,6 +15,7 @@ enum Component {
     Telemetry,
     Leaderboard,
     Compiler,
+    Shortcode,
     Doc,
     Tools,
 }
@@ -24,6 +25,7 @@ const ALL_COMPONENTS: &[Component] = &[
     Component::Telemetry,
     Component::Leaderboard,
     Component::Compiler,
+    Component::Shortcode,
     Component::Doc,
     Component::Tools,
 ];
@@ -35,7 +37,7 @@ struct Arguments {
         long,
         value_enum,
         value_delimiter = ',',
-        default_value = "app,telemetry,leaderboard,compiler,doc,tools"
+        default_value = "app,telemetry,leaderboard,compiler,shortcode,doc,tools"
     )]
     /// Components to push.
     components: Vec<Component>,
@@ -531,6 +533,67 @@ async fn main() -> anyhow::Result<()> {
                 sync_cmd_ok(&[
                     "gcloud", "run", "deploy", "oort-leaderboard-service", "--image", &container_image, "--allow-unauthenticated", "--region=us-west1", "--cpu=1", "--memory=1G", "--timeout=20s", "--concurrency=1", "--max-instances=3", "--service-account=oort-leaderboard-service@oort-319301.iam.gserviceaccount.com",
                 ]).await?;
+            }
+
+            progress.finish_with_message("done");
+            Ok(())
+        });
+    }
+    if args.components.contains(&Component::Shortcode) {
+        let secrets = secrets.clone();
+        tasks.spawn(async move {
+            let progress = create_progress_bar("shortcode");
+
+            progress.set_message("building");
+            sync_cmd_ok(&[
+                "docker",
+                "build",
+                "-f",
+                "services/shortcode/Dockerfile",
+                "--tag",
+                "oort_shortcode_service",
+                "--build-arg",
+                &format!(
+                    "OORT_CODE_ENCRYPTION_SECRET={}",
+                    secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                ),
+                ".",
+            ])
+            .await?;
+
+            if !dry_run {
+                let container_image = format!("{PROJECT}/services/oort_shortcode_service");
+
+                progress.set_message("tagging");
+                sync_cmd_ok(&[
+                    "docker",
+                    "tag",
+                    "oort_shortcode_service:latest",
+                    &container_image,
+                ])
+                .await?;
+
+                progress.set_message("pushing image");
+                sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
+                progress.set_message("deploying");
+                sync_cmd_ok(&[
+                    "gcloud",
+                    "run",
+                    "deploy",
+                    "oort-shortcode-service",
+                    "--image",
+                    &container_image,
+                    "--allow-unauthenticated",
+                    "--region=us-west1",
+                    "--cpu=1",
+                    "--memory=1G",
+                    "--timeout=20s",
+                    "--concurrency=1",
+                    "--max-instances=3",
+                    "--service-account=oort-shortcode-service@oort-319301.iam.gserviceaccount.com",
+                ])
+                .await?;
             }
 
             progress.finish_with_message("done");
