@@ -8,7 +8,7 @@ fn builtin_ai_data() -> &'static [u8] {
 }
 
 pub fn load_source(name: &str) -> Result<Code, String> {
-    let name = format!("{}.rs", name);
+    let name = format!("{name}.rs");
     let mut a = Archive::new(Decoder::new(builtin_ai_data()).unwrap());
     for file in a.entries().unwrap() {
         let mut file = file.unwrap();
@@ -24,7 +24,7 @@ pub fn load_source(name: &str) -> Result<Code, String> {
 }
 
 pub fn load_compiled(name: &str) -> Result<Code, String> {
-    let name = format!("{}.wasm", name);
+    let name = format!("{name}.wasm");
     let mut a = Archive::new(Decoder::new(builtin_ai_data()).unwrap());
     for file in a.entries().unwrap() {
         let mut file = file.unwrap();

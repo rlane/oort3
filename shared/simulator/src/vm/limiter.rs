@@ -6,7 +6,7 @@ pub fn rewrite(wasm: &[u8]) -> Result<Vec<u8>, super::Error> {
         Ok(m) => m,
         Err(e) => {
             return Err(super::Error {
-                msg: format!("{:?}", e),
+                msg: format!("{e:?}"),
             })
         }
     };
@@ -103,10 +103,10 @@ mod tests {
 
     fn check_wat(actual_wasm: &[u8], expected_wat: &str) {
         let expected_wat = expected_wat.trim();
-        let actual_wat = wasm2wat(&actual_wasm);
+        let actual_wat = wasm2wat(actual_wasm);
         if actual_wat != expected_wat {
-            println!("Expected WAT: {}", expected_wat);
-            println!("Actual WAT: {}", actual_wat);
+            println!("Expected WAT: {expected_wat}");
+            println!("Actual WAT: {actual_wat}");
         }
         assert_eq!(actual_wat, expected_wat);
     }

@@ -114,7 +114,7 @@ async fn main() {
         .push(Router::with_path("/compile").post(compile).options(nop))
         .push(Router::with_path("/format").post(format).options(nop));
     log::info!("Starting oort_compiler_service v1");
-    Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
+    Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
         .serve(router)
         .await;
 }

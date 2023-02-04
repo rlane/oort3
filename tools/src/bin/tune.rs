@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if let Some(wasm) = compile(&http_client, src.to_string(), src_code) {
             codes.push(Code::Wasm(wasm));
         } else {
-            panic!("Failed to compile {:?}", src);
+            panic!("Failed to compile {src:?}");
         }
     }
 
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let objective_function = ObjectiveFunction {
         scenario_name: args.scenario_name.to_string(),
-        player_src_code: player_src_code.clone(),
+        player_src_code,
         bounds: bounds.to_vec(),
         enemy_code: codes[1].clone(),
     };
@@ -104,7 +104,7 @@ impl ObjFunc for ObjectiveFunction {
         let player_code = if let Some(wasm) = compile(
             &http_client,
             "player code".to_string(),
-            player_src_code.clone(),
+            player_src_code,
         ) {
             Code::Wasm(wasm)
         } else {

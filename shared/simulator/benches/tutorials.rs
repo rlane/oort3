@@ -27,7 +27,7 @@ fn tutorials() {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("tutorials", |b| b.iter(|| tutorials()));
+    c.bench_function("tutorials", |b| b.iter(tutorials));
 }
 
 pub fn criterion_config() -> Criterion {

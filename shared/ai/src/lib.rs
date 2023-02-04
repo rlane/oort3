@@ -25,7 +25,7 @@ pub fn export_tick_ship(key: i32) {
             .as_mut()
             .unwrap()
             .entry(key)
-            .or_insert_with(|| user::Ship::new());
+            .or_insert_with(user::Ship::new);
         ship.tick();
         oort_api::dbg::update();
     }

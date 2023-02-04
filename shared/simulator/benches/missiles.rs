@@ -11,7 +11,7 @@ fn missile_stress() {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("missile-stress", |b| b.iter(|| missile_stress()));
+    c.bench_function("missile-stress", |b| b.iter(missile_stress));
 }
 
 pub fn criterion_config() -> Criterion {

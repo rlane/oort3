@@ -745,7 +745,7 @@ impl Game {
                         { "Average time: " }
                         {
                             if let Some(average_time) = summary.average_time {
-                                format!("{:.2} seconds", average_time)
+                                format!("{average_time:.2} seconds")
                             } else {
                                 "none".to_string()
                             }
@@ -767,7 +767,7 @@ impl Game {
         html! {
             <div class="centered">
                 <h1>{ "Mission Complete" }</h1>
-                { "Time: " }{ format!("{:.2}", score_time) }{ " seconds" }<br/>
+                { "Time: " }{ format!("{score_time:.2}") }{ " seconds" }<br/>
                 { "Code size: " }{ code_size }{ " bytes" }<br/><br/>
                 { background_status }<br/><br/>
                 <br/><br/>
@@ -1066,7 +1066,7 @@ pub fn code_to_string(code: &Code) -> String {
         Code::None => "".to_string(),
         Code::Rust(s) => s.clone(),
         Code::Wasm(_) => "// wasm".to_string(),
-        Code::Builtin(name) => format!("#builtin:{}", name),
+        Code::Builtin(name) => format!("#builtin:{name}"),
     }
 }
 

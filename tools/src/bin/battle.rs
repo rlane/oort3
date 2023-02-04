@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if let Some(wasm) = compile(&http_client, src.to_string(), src_code).await {
             codes.push(Code::Wasm(wasm));
         } else {
-            panic!("Failed to compile {:?}", src);
+            panic!("Failed to compile {src:?}");
         }
     }
 

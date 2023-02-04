@@ -10,7 +10,7 @@ fn check_solution(scenario_name: &str) {
         let check_once = |seed: u32| -> u64 {
             let scenario = scenario::load(scenario_name);
             let mut codes = scenario.initial_code();
-            codes[0] = scenario.solution().clone();
+            codes[0] = scenario.solution();
             let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
 
             let mut i = 0;
@@ -22,9 +22,7 @@ fn check_solution(scenario_name: &str) {
             assert_eq!(
                 sim.status(),
                 scenario::Status::Victory { team: 0 },
-                "tutorial {} did not succeed with seed {}",
-                scenario_name,
-                seed
+                "tutorial {scenario_name} did not succeed with seed {seed}"
             );
             sim.hash()
         };
@@ -34,8 +32,7 @@ fn check_solution(scenario_name: &str) {
             .collect();
         assert_eq!(
             hashes[0], hashes[1],
-            "tutorial {} was not deterministic",
-            scenario_name
+            "tutorial {scenario_name} was not deterministic"
         );
         log::info!(
             "{} seed {} took {:?}",

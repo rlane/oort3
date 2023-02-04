@@ -218,7 +218,7 @@ async fn main() {
                 .options(nop),
         );
 
-    Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
+    Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
         .serve(router)
         .await;
 }

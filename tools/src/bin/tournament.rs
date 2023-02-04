@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 rating: Default::default(),
             });
         } else {
-            panic!("Failed to compile {:?}", src);
+            panic!("Failed to compile {src:?}");
         }
     }
 
@@ -55,8 +55,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             format!("{:.0}", competitor.rating.rating),
         ]);
     }
-    println!("Scenario: {}", scenario_name);
-    println!("{}", table);
+    println!("Scenario: {scenario_name}");
+    println!("{table}");
 
     Ok(())
 }

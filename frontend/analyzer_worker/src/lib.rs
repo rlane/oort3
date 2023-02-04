@@ -24,7 +24,7 @@ pub fn create_source_root(name: &str, f: FileId) -> SourceRoot {
     let mut file_set = FileSet::default();
     file_set.insert(
         f,
-        VfsPath::new_virtual_path(format!("/{}/src/lib.rs", name)),
+        VfsPath::new_virtual_path(format!("/{name}/src/lib.rs")),
     );
     SourceRoot::new_library(file_set)
 }

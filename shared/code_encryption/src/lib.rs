@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 
-pub const PREFIX: &'static str = "ENCRYPTED:";
+pub const PREFIX: &str = "ENCRYPTED:";
 const VERSION: u8 = 0;
 
 #[derive(Serialize, Deserialize)]
@@ -51,7 +51,7 @@ fn compress(input: &str) -> anyhow::Result<Vec<u8>> {
 }
 
 fn decompress(input: &[u8]) -> anyhow::Result<String> {
-    let mut deflater = DeflateDecoder::new(&input[..]);
+    let mut deflater = DeflateDecoder::new(input);
     let mut s = String::new();
     deflater.read_to_string(&mut s)?;
     Ok(s)
@@ -69,7 +69,7 @@ pub fn encrypt(plaintext: &str) -> anyhow::Result<String> {
         payload: ciphertext,
     })?;
     let base64 = base64::engine::general_purpose::STANDARD_NO_PAD.encode(serialized);
-    Ok(format!("{}{}", PREFIX, base64))
+    Ok(format!("{PREFIX}{base64}"))
 }
 
 pub fn decrypt(mut input: &str) -> anyhow::Result<String> {

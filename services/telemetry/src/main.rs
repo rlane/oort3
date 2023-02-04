@@ -106,7 +106,7 @@ async fn main() {
 
     log::info!("Starting oort_telemetry_service");
     log::info!("Using project ID {}", project_id());
-    Server::new(TcpListener::bind(&format!("0.0.0.0:{}", port)))
+    Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
         .serve(router)
         .await;
 }

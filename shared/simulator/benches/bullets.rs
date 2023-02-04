@@ -11,7 +11,7 @@ fn many_bullets() {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("many_bullets", |b| b.iter(|| many_bullets()));
+    c.bench_function("many_bullets", |b| b.iter(many_bullets));
 }
 
 pub fn criterion_config() -> Criterion {

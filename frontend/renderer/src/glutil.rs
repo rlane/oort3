@@ -151,7 +151,7 @@ impl VertexAttribBuilder {
             /*type_=*/ self.type_,
             /*normalized=*/ self.normalized,
             /*stride=*/ self.stride,
-            self.base as i32 + self.offset as i32,
+            self.base as i32 + self.offset,
         );
         self.context.vertex_attrib_divisor(self.indx, self.divisor);
         self.context.enable_vertex_attrib_array(self.indx);

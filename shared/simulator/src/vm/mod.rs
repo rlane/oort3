@@ -34,7 +34,7 @@ impl From<wasm_bindgen::JsValue> for Error {
 impl From<wasmer::InstantiationError> for Error {
     fn from(err: wasmer::InstantiationError) -> Self {
         Self {
-            msg: format!("Wasmer instantiation error: {:?}", err),
+            msg: format!("Wasmer instantiation error: {err:?}"),
         }
     }
 }
@@ -545,7 +545,7 @@ where
     match err {
         Ok(val) => Ok(val),
         Err(err) => Err(Error {
-            msg: format!("Wasmer error: {:?}", err),
+            msg: format!("Wasmer error: {err:?}"),
         }),
     }
 }
@@ -554,7 +554,7 @@ fn translate_runtime_error<T>(err: Result<T, wasmer::RuntimeError>) -> Result<T,
     match err {
         Ok(val) => Ok(val),
         Err(err) => Err(Error {
-            msg: format!("Ship runtime error: {}", err),
+            msg: format!("Ship runtime error: {err}"),
         }),
     }
 }

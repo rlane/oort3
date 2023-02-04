@@ -23,8 +23,8 @@ fn test_world_edge() {
         let vy = rng.gen_range(-s..s);
         ship::create(
             &mut sim,
-            vector![x as f64, y as f64],
-            vector![vx as f64, vy as f64],
+            vector![x, y],
+            vector![vx, vy],
             h as f64,
             fighter(0),
         );

@@ -140,7 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             docid.clone(),
         ]);
     }
-    println!("{}", table);
+    println!("{table}");
 
     if args.dry_run {
         log::info!("Dry run, skipping");
@@ -181,7 +181,7 @@ fn run_simulations(scenario_name: &str, wasm: Vec<u8>) -> Option<f64> {
     if results.iter().any(|x| x.is_none()) {
         return None;
     }
-    Some(results.iter().map(|x| x.unwrap()).sum::<f64>() as f64 / results.len() as f64)
+    Some(results.iter().map(|x| x.unwrap()).sum::<f64>() / results.len() as f64)
 }
 
 fn run_simulation(scenario_name: &str, seed: u32, wasm: Vec<u8>) -> Option<f64> {

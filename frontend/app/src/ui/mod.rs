@@ -225,7 +225,7 @@ impl UI {
             status_msgs.push(format!("{:.0} fps", self.fps.fps()));
             if self.debug {
                 let (a, b, c) = self.frame_timer.get_latency();
-                status_msgs.push(format!("UI {:.1}/{:.1}/{:.1} ms", a, b, c,));
+                status_msgs.push(format!("UI {a:.1}/{b:.1}/{c:.1} ms",));
                 if let Some(snapshot) = self.snapshot.as_ref() {
                     status_msgs.push(format!("PHYS {:.1} ms", snapshot.timing.physics * 1e3));
                     status_msgs.push(format!("SCRIPT {:.1} ms", snapshot.timing.script * 1e3));
@@ -333,11 +333,11 @@ impl UI {
         // Move camera target to keep cursor in the same location.
         let zoom_target = self
             .renderer
-            .unproject(e.offset_x() as i32, e.offset_y() as i32);
+            .unproject(e.offset_x(), e.offset_y());
         self.renderer.set_view(self.zoom, self.camera_target);
         let new_zoom_target = self
             .renderer
-            .unproject(e.offset_x() as i32, e.offset_y() as i32);
+            .unproject(e.offset_x(), e.offset_y());
         let diff = new_zoom_target - zoom_target;
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
     }
@@ -345,7 +345,7 @@ impl UI {
     pub fn on_mouse_event(&mut self, e: web_sys::MouseEvent) {
         let target = self
             .renderer
-            .unproject(e.offset_x() as i32, e.offset_y() as i32)
+            .unproject(e.offset_x(), e.offset_y())
             + vector![self.camera_target.x as f64, self.camera_target.y as f64];
         let extra_radius =
             (self.renderer.unproject(10, 0) - self.renderer.unproject(0, 0)).magnitude();

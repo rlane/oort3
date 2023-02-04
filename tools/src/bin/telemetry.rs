@@ -125,8 +125,8 @@ async fn cmd_get(
                 scenario_name,
                 code,
             } => {
-                println!("// User: {}", user);
-                println!("// Scenario: {}", scenario_name);
+                println!("// User: {user}");
+                println!("// Scenario: {scenario_name}");
                 println!("{}", code.trim());
             }
             Telemetry::FinishScenario {
@@ -137,8 +137,8 @@ async fn cmd_get(
                 success,
                 ..
             } => {
-                println!("// User: {}", user);
-                println!("// Scenario: {}", scenario_name);
+                println!("// User: {user}");
+                println!("// Scenario: {scenario_name}");
                 println!(
                     "// Success: {} Time: {:.2}s Size: {}",
                     success,
@@ -152,23 +152,23 @@ async fn cmd_get(
                 scenario_name,
                 code,
             } => {
-                println!("// User: {}", user);
-                println!("// Scenario: {}", scenario_name);
+                println!("// User: {user}");
+                println!("// Scenario: {scenario_name}");
                 println!("{}", code.trim());
             },
             Telemetry::Feedback {
                 text,
             } => {
                 let datetime: DateTime<Local> = DateTime::from(msg.timestamp);
-                println!("// User: {}", user);
-                println!("// Date: {}", datetime);
+                println!("// User: {user}");
+                println!("// Date: {datetime}");
                 println!("// Build: {}", msg.build);
                 println!("{}", text.trim());
             }
         }
     } else {
         let doc = db.get_doc_by_id("", COLLECTION_NAME, &docid).await?;
-        println!("Failed to parse {:?}", doc);
+        println!("Failed to parse {doc:?}");
     }
 
     Ok(())
@@ -263,8 +263,8 @@ async fn cmd_top(
         }
     }
 
-    println!("Scenario: {}", scenario);
-    println!("{}", table);
+    println!("Scenario: {scenario}");
+    println!("{table}");
 
     if let Some(out_dir) = out_dir {
         std::fs::create_dir_all(&out_dir).unwrap();

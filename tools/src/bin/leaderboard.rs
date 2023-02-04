@@ -99,8 +99,8 @@ async fn cmd_list(
         }
     }
 
-    println!("Scenario: {}", scenario_name);
-    println!("{}", table);
+    println!("Scenario: {scenario_name}");
+    println!("{table}");
 
     Ok(())
 }
@@ -135,12 +135,12 @@ async fn cmd_download(
         )
         .await?;
 
-    std::fs::create_dir_all(&out_dir).unwrap();
+    std::fs::create_dir_all(out_dir).unwrap();
     for doc in docs.iter() {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
             let filename = format!("{}/{}.rs", &out_dir, msg.username);
             std::fs::write(&filename, &msg.code).unwrap();
-            println!("Wrote {}", filename);
+            println!("Wrote {filename}");
         }
     }
 
@@ -159,12 +159,12 @@ async fn cmd_get(
         let datetime: DateTime<Local> = DateTime::from(msg.timestamp);
         println!("// User: {}", msg.username);
         println!("// Scenario: {}", msg.scenario_name);
-        println!("// Date: {}", datetime);
+        println!("// Date: {datetime}");
         println!("// Time: {:.2}s Size: {}", msg.time, msg.code_size);
         println!("{}", msg.code.trim());
     } else {
         let doc = db.get_doc_by_id("", "leaderboard", &docid).await?;
-        println!("Failed to parse {:?}", doc);
+        println!("Failed to parse {doc:?}");
     }
 
     Ok(())

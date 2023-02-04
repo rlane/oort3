@@ -623,7 +623,7 @@ async fn main() -> anyhow::Result<()> {
         let mut map = std::collections::HashMap::new();
         map.insert(
             "content",
-            format!("Released version {}:\n{}", version, changelog),
+            format!("Released version {version}:\n{changelog}"),
         );
         let client = reqwest::Client::new();
         let url = secrets["DISCORD_CHANGELOG_WEBHOOK"].as_str().unwrap();

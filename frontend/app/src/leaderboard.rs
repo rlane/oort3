@@ -75,7 +75,7 @@ impl Component for Leaderboard {
         } else if let Some(ref data) = self.data {
             let userid = userid::get_userid();
             let render_time_row = |row: &TimeLeaderboardRow| -> Html {
-                let class = (row.userid == userid).then(|| "own-leaderboard-entry");
+                let class = (row.userid == userid).then_some("own-leaderboard-entry");
                 let copy_encrypted_code_cb = {
                     let text = row.encrypted_code.clone();
                     move |_| {

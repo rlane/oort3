@@ -308,7 +308,7 @@ impl Component for EditorWindow {
                         js_sys::Reflect::set(
                             &action,
                             &JsValue::from_str("keybindings"),
-                            &js_sys::JSON::parse(&format!("[{}]", key)).unwrap(),
+                            &js_sys::JSON::parse(&format!("[{key}]")).unwrap(),
                         )
                         .unwrap();
                     }

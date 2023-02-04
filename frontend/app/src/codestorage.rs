@@ -10,7 +10,7 @@ pub fn load(scenario_name: &str) -> Vec<Code> {
         .expect("failed to get local storage")
         .unwrap();
     let mut result = scenario::load(scenario_name).initial_code();
-    match storage.get_item(&format!("/code/{}", scenario_name)) {
+    match storage.get_item(&format!("/code/{scenario_name}")) {
         Ok(Some(code)) => result[0] = str_to_code(&code),
         Ok(None) => {
             info!("No saved code, using starter code");
@@ -28,7 +28,7 @@ pub fn save(scenario_name: &str, code: &Code) {
         .local_storage()
         .expect("failed to get local storage")
         .unwrap();
-    if let Err(msg) = storage.set_item(&format!("/code/{}", scenario_name), &code_to_string(code)) {
+    if let Err(msg) = storage.set_item(&format!("/code/{scenario_name}"), &code_to_string(code)) {
         error!("Failed to save code: {:?}", msg);
     }
 }

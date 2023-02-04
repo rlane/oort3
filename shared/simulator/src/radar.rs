@@ -607,8 +607,7 @@ mod test {
             let got = sim.ship(ship0).radar().unwrap().result.is_some();
             assert_eq!(
                 got, expected,
-                "p0={:?} p1={:?} h={} w={} expected={} got={}",
-                p0, p1, h, w, expected, got
+                "p0={p0:?} p1={p1:?} h={h} w={w} expected={expected} got={got}"
             );
         }
     }

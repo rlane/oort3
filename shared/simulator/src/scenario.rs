@@ -162,7 +162,7 @@ pub trait Scenario {
 
 pub fn add_walls(sim: &mut Simulation) {
     let mut make_edge = |x: f64, y: f64, a: f64| {
-        let edge_length = WORLD_SIZE as f64;
+        let edge_length = WORLD_SIZE;
         let edge_width = 10.0;
         let rigid_body = RigidBodyBuilder::fixed()
             .translation(vector![x, y])

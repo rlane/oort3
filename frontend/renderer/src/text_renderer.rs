@@ -182,8 +182,8 @@ void main() {
                 .world_projection_matrix
                 .transform_point(&point![worldpos.x, worldpos.y, 0.0]);
             let projected_pixels = vector![
-                (projected.x + 1.0) * screen_width as f32 / 2.0,
-                (projected.y + 1.0) * screen_height as f32 / 2.0
+                (projected.x + 1.0) * screen_width / 2.0,
+                (projected.y + 1.0) * screen_height / 2.0
             ];
             let mut pos = vector![projected_pixels.x.floor(), projected_pixels.y.floor()];
             let color = convert_color(text.color);
