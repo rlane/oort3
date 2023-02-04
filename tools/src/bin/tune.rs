@@ -36,16 +36,23 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     log::info!("Running initial simulations");
-    let fitness = run_simulations(&args.scenario_name, codes.clone());
-    log::info!("Initial fitness: {}", fitness);
+    let initial_fitness = run_simulations(&args.scenario_name, codes.clone());
+    log::info!("Initial fitness: {}", initial_fitness);
 
     let player_src_code = std::fs::read_to_string(&args.player_code).unwrap();
     let (initial_values, bounds) = extract_tunables(&player_src_code);
     assert!(!initial_values.is_empty());
 
+    {
+        let test_src_code = rewrite_tunables(&player_src_code, &initial_values);
+        let (test_initial_values, test_bounds) = extract_tunables(&test_src_code);
+        assert_eq!(test_initial_values, initial_values);
+        assert_eq!(test_bounds, bounds);
+    }
+
     let objective_function = ObjectiveFunction {
         scenario_name: args.scenario_name.to_string(),
-        player_src_code,
+        player_src_code: player_src_code.clone(),
         bounds: bounds.to_vec(),
         enemy_code: codes[1].clone(),
     };
@@ -72,6 +79,12 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         s.best_fitness(),
         s.best_parameters()
     );
+
+    if s.best_fitness() < initial_fitness {
+        log::info!("Writing back to {}", args.player_code);
+        let new_src_code = rewrite_tunables(&player_src_code, s.best_parameters());
+        std::fs::write(&args.player_code, new_src_code)?;
+    }
 
     Ok(())
 }
@@ -153,11 +166,12 @@ fn extract_tunables(src_code: &str) -> (Vec<f64>, Vec<[f64; 2]>) {
 
 fn rewrite_tunables(src_code: &str, values: &[f64]) -> String {
     let re = regex::Regex::new(TUNABLE_RE).unwrap();
+    let value_re = regex::Regex::new("([0-9.-]+)$").unwrap();
     let mut i = 0;
-    re.replace_all(src_code, move |_: &regex::Captures| {
-        let r = format!("{:?}", values[i]);
+    re.replace_all(src_code, move |caps: &regex::Captures| {
+        let r = value_re.replace(caps.get(0).unwrap().as_str(), format!("{:?}", values[i]));
         i += 1;
-        r
+        r.to_string()
     })
     .to_string()
 }
