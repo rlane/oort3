@@ -1,8 +1,8 @@
 use clap::Parser as _;
+use metaheuristics_nature::utility::prelude::*;
 use metaheuristics_nature::{Bounded, ObjFunc, Solver};
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
-use rayon::prelude::*;
 use std::default::Default;
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -50,9 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         enemy_code: codes[1].clone(),
     };
 
-    let std: Vec<f64> = bounds.iter().map(|b| (b[1] - b[0]) / 2.0).collect();
-
-    let pool = metaheuristics_nature::utility::gaussian_pool_inclusive(&initial_values, &std);
+    let pool = generate_pool(&initial_values);
 
     let s = Solver::build(metaheuristics_nature::Rga::default(), objective_function)
         .pop_num(args.population)
@@ -101,15 +99,12 @@ impl ObjFunc for ObjectiveFunction {
 
         let compile_start_time = std::time::Instant::now();
         let http_client = reqwest::blocking::Client::new();
-        let player_code = if let Some(wasm) = compile(
-            &http_client,
-            "player code".to_string(),
-            player_src_code,
-        ) {
-            Code::Wasm(wasm)
-        } else {
-            panic!("Failed to compile player source code");
-        };
+        let player_code =
+            if let Some(wasm) = compile(&http_client, "player code".to_string(), player_src_code) {
+                Code::Wasm(wasm)
+            } else {
+                panic!("Failed to compile player source code");
+            };
         let compile_duration = std::time::Instant::now() - compile_start_time;
 
         let sim_start_time = std::time::Instant::now();
@@ -127,6 +122,19 @@ impl ObjFunc for ObjectiveFunction {
             sim_duration
         );
         fitness
+    }
+}
+
+fn generate_pool<F: ObjFunc>(initial_values: &[f64]) -> impl Fn(&Ctx<F>, &Rng) -> Array2<f64> {
+    let initial_values = initial_values.to_owned();
+    move |ctx, rng| {
+        let mut pool = Array2::from_shape_fn(ctx.pool_size(), |(_, s)| initial_values[s]);
+        for i in 0..(ctx.pool_size()[0] - 1) {
+            let s = i % initial_values.len();
+            pool[[i + 1, s]] =
+                ctx.clamp(s, rng.normal(initial_values[s], ctx.bound_width(s) / 8.0));
+        }
+        pool
     }
 }
 
