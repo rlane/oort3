@@ -173,6 +173,13 @@ async fn main() -> anyhow::Result<()> {
             .await?;
         }
 
+        let previous_changelog_contents =
+            std::str::from_utf8(&std::fs::read("CHANGELOG.md")?)?.to_owned();
+        std::fs::write(
+            "CHANGELOG.md",
+            &format!("### {version}\n{previous_changelog_contents}"),
+        )?;
+
         sync_cmd_ok(&[
             "git",
             "commit",
