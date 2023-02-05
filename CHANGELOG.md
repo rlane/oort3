@@ -1,3 +1,4 @@
+- Added support for fetching leaderboard entries via URL parameters.
 - Sped up release process.
 
 ### 0.34.0
