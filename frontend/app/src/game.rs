@@ -40,11 +40,13 @@ fn empty() -> JsValue {
     js_sys::Object::new().into()
 }
 
+#[derive(Debug)]
 pub enum Msg {
     Render,
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
+    Start,
     SelectScenario(String),
-    SelectScenarioAndStart(String, u32),
+    SelectScenarioAndRun(String, u32),
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
@@ -54,6 +56,8 @@ pub enum Msg {
     CompileSlow,
     SubmitToTournament,
     FormattedCode { team: usize, text: String },
+    ReplaceCode { team: usize, text: String },
+    ShowError(String),
 }
 
 enum Overlay {
@@ -61,11 +65,14 @@ enum Overlay {
     MissionComplete,
     Compiling,
     Feedback,
+    Error(String),
 }
 
 #[derive(Deserialize, Debug, Default)]
 struct QueryParams {
     pub seed: Option<u32>,
+    pub player0: Option<String>,
+    pub player1: Option<String>,
 }
 
 pub struct Game {
@@ -87,6 +94,7 @@ pub struct Game {
     editor_links: Vec<CodeEditorLink>,
     compilation_cache: HashMap<Code, Code>,
     seed: Option<u32>,
+    shortcodes: Vec<Option<String>>,
 }
 
 pub struct Team {
@@ -118,7 +126,7 @@ impl Component for Game {
 
         let compilation_cache = HashMap::new();
 
-        let q = parse_query_params(context);
+        let query_params = parse_query_params(context);
 
         Self {
             render_handle,
@@ -138,11 +146,16 @@ impl Component for Game {
             teams: Vec::new(),
             editor_links: vec![CodeEditorLink::default(), CodeEditorLink::default()],
             compilation_cache,
-            seed: q.seed,
+            seed: query_params.seed,
+            shortcodes: vec![query_params.player0, query_params.player1],
         }
     }
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
+        if let Msg::Render = msg {
+        } else {
+            log::debug!("Received update {:?}", msg);
+        }
         match msg {
             Msg::Render => {
                 if self.frame % 6 == 0 {
@@ -175,16 +188,45 @@ impl Component for Game {
             }
             Msg::RegisterSimulationWindowLink(link) => {
                 self.simulation_window_link = Some(link);
-                context
-                    .link()
-                    .send_message(Msg::SelectScenario(context.props().scenario.clone()));
+                context.link().send_message(Msg::Start);
                 false
+            }
+            Msg::Start => {
+                let scenario_name = context.props().scenario.clone();
+                let shortcodes = self.shortcodes.clone();
+                context.link().send_future_batch(async move {
+                    let mut msgs = vec![];
+                    msgs.push(Msg::SelectScenario(scenario_name));
+                    if shortcodes.iter().all(Option::is_none) {
+                        msgs
+                    } else {
+                        for (team, shortcode) in shortcodes.iter().enumerate() {
+                            if let Some(shortcode) = shortcode {
+                                match services::get_shortcode(shortcode).await {
+                                    Ok(text) => msgs.push(Msg::ReplaceCode { team, text }),
+                                    Err(e) => {
+                                        msgs.push(Msg::ShowError(format!(
+                                            "Failed to get shortcode: {e:?}"
+                                        )));
+                                        return msgs;
+                                    }
+                                }
+                            }
+                        }
+                        msgs.push(Msg::EditorAction {
+                            team: 0,
+                            action: "oort-execute".to_string(),
+                        }); // TODO
+                        msgs
+                    }
+                });
+                true
             }
             Msg::SelectScenario(scenario_name) => {
                 self.change_scenario(context, &scenario_name, false);
                 true
             }
-            Msg::SelectScenarioAndStart(scenario_name, seed) => {
+            Msg::SelectScenarioAndRun(scenario_name, seed) => {
                 self.seed = Some(seed);
                 self.change_scenario(context, &scenario_name, true);
                 true
@@ -280,6 +322,10 @@ impl Component for Game {
                 self.overlay = Some(Overlay::Feedback);
                 true
             }
+            Msg::ShowError(e) => {
+                self.overlay = Some(Overlay::Error(e));
+                true
+            }
             Msg::DismissOverlay => {
                 self.overlay = None;
                 self.background_agents.clear();
@@ -335,6 +381,10 @@ impl Component for Game {
             }
             Msg::FormattedCode { team, text } => {
                 self.team(team).set_editor_text_preserving_cursor(&text);
+                false
+            }
+            Msg::ReplaceCode { team, text } => {
+                self.team(team).set_editor_text(&text);
                 false
             }
             Msg::SubmitToTournament => {
@@ -530,6 +580,7 @@ impl Game {
                         Some(Overlay::MissionComplete) => self.render_mission_complete_overlay(context),
                         Some(Overlay::Compiling) => html! { <h1 class="compiling">{ "Compiling..." }</h1> },
                         Some(Overlay::Feedback) => html! { <crate::feedback::Feedback {close_overlay_cb} /> },
+                        Some(Overlay::Error(e)) => html! { <><h1>{ "Error" }</h1><span>{ e }</span></> },
                         None => unreachable!(),
                     }
                 }</div>
@@ -661,7 +712,7 @@ impl Game {
                     .unwrap();
                 vec![
                     Msg::DismissOverlay,
-                    Msg::SelectScenarioAndStart(scenario_name.clone(), seed),
+                    Msg::SelectScenarioAndRun(scenario_name.clone(), seed),
                 ]
             })
         };
@@ -893,7 +944,7 @@ impl Game {
         self.background_nonce = 0;
     }
 
-    pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, start: bool) {
+    pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, run: bool) {
         if !self.teams.is_empty() && !is_encrypted(&self.player_team().get_editor_code()) {
             crate::codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
         }
@@ -917,7 +968,7 @@ impl Game {
         } else if let Some(compiled_code) =
             self.compilation_cache.get(&player_team.initial_source_code)
         {
-            if start {
+            if run {
                 player_team.running_source_code = player_team.initial_source_code.clone();
                 player_team.running_compiled_code = compiled_code.clone();
             }

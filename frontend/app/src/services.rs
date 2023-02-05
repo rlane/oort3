@@ -1,4 +1,5 @@
 use crate::userid;
+use anyhow::anyhow;
 use chrono::Utc;
 use oort_proto::{LeaderboardData, LeaderboardSubmission};
 use oort_proto::{Telemetry, TelemetryMsg};
@@ -46,6 +47,15 @@ pub fn leaderboard_url() -> String {
         "http://localhost:8083".to_owned()
     } else {
         "https://leaderboard.oort.rs".to_owned()
+    }
+}
+
+pub fn shortcode_url() -> String {
+    if is_local() {
+        log::info!("Using shortcode service on localhost");
+        "http://localhost:8084".to_owned()
+    } else {
+        "https://shortcode.oort.rs".to_owned()
     }
 }
 
@@ -137,4 +147,17 @@ pub fn format(text: String, cb: yew::Callback<String>) {
             }
         }
     });
+}
+
+pub async fn get_shortcode(shortcode: &str) -> anyhow::Result<String> {
+    let response =
+        reqwasm::http::Request::get(&format!("{}/shortcode/{}", shortcode_url(), shortcode))
+            .send()
+            .await?;
+    let text = response.text().await?;
+    if response.ok() {
+        Ok(text)
+    } else {
+        Err(anyhow!(text))
+    }
 }
