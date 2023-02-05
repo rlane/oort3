@@ -25,7 +25,7 @@ enum Shortcode {
 }
 
 fn parse_id(id: &str) -> anyhow::Result<Shortcode> {
-    let leaderboard_re = Regex::new(r"^leaderboard:([a-zA-A0-9_-]+):(\w+)$")?;
+    let leaderboard_re = Regex::new(r"^leaderboard:([a-zA-Z0-9_-]+):(\w+)$")?;
     if let Some(caps) = leaderboard_re.captures(id) {
         let username = caps.get(1).unwrap().as_str().to_string();
         let scenario_name = caps.get(2).unwrap().as_str().to_string();
