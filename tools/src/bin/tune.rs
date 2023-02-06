@@ -3,7 +3,12 @@ use metaheuristics_nature::utility::prelude::*;
 use metaheuristics_nature::{Bounded, ObjFunc, Solver};
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
+use std::cell::RefCell;
 use std::default::Default;
+
+thread_local! {
+  static COMPILERS: std::cell::RefCell<oort_compiler::Compiler> = RefCell::new(oort_compiler::Compiler::new());
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("tune=info")).init();
@@ -23,12 +28,11 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let args = Arguments::parse();
 
-    let http_client = reqwest::blocking::Client::new();
     let mut codes = vec![];
     for src in &[&args.player_code, &args.enemy_code] {
         log::info!("Compiling {:?}", src);
         let src_code = std::fs::read_to_string(src).unwrap();
-        if let Some(wasm) = compile(&http_client, src.to_string(), src_code) {
+        if let Some(wasm) = compile(src.to_string(), src_code) {
             codes.push(Code::Wasm(wasm));
         } else {
             panic!("Failed to compile {src:?}");
@@ -111,13 +115,11 @@ impl ObjFunc for ObjectiveFunction {
         let player_src_code = rewrite_tunables(&self.player_src_code, x);
 
         let compile_start_time = std::time::Instant::now();
-        let http_client = reqwest::blocking::Client::new();
-        let player_code =
-            if let Some(wasm) = compile(&http_client, "player code".to_string(), player_src_code) {
-                Code::Wasm(wasm)
-            } else {
-                panic!("Failed to compile player source code");
-            };
+        let player_code = if let Some(wasm) = compile("player code".to_string(), player_src_code) {
+            Code::Wasm(wasm)
+        } else {
+            panic!("Failed to compile player source code");
+        };
         let compile_duration = std::time::Instant::now() - compile_start_time;
 
         let sim_start_time = std::time::Instant::now();
@@ -176,17 +178,17 @@ fn rewrite_tunables(src_code: &str, values: &[f64]) -> String {
     .to_string()
 }
 
-fn compile(client: &reqwest::blocking::Client, name: String, code: String) -> Option<Vec<u8>> {
-    let url = "http://localhost:8081/compile";
-    let result = client.post(url).body(code).send();
-    let response = result.unwrap().error_for_status();
-    match response {
-        Ok(response) => Some(response.bytes().unwrap().as_ref().into()),
-        Err(e) => {
-            log::warn!("Failed to compile {:?}: {}", name, e);
-            None
+fn compile(name: String, code: String) -> Option<Vec<u8>> {
+    COMPILERS.with(|compiler_cell| {
+        let mut compiler = compiler_cell.borrow_mut();
+        match compiler.compile(&code) {
+            Ok(wasm) => Some(wasm),
+            Err(e) => {
+                log::warn!("Failed to compile {:?}: {}", name, e);
+                None
+            }
         }
-    }
+    })
 }
 
 fn run_simulations(scenario_name: &str, codes: Vec<Code>) -> f64 {
