@@ -4,20 +4,16 @@ const SPEED: f64 = 200.0;
 
 pub struct Ship {
     target: Vec2,
-    rng: oorandom::Rand64,
 }
 
 impl Ship {
     pub fn new() -> Ship {
-        Ship {
-            target: position(),
-            rng: oorandom::Rand64::new(seed()),
-        }
+        Ship { target: position() }
     }
 
     pub fn tick(&mut self) {
         if (self.target - position()).length() < 200.0 {
-            self.target = vec2(1000.0, 0.0).rotate(self.rng.rand_float() * TAU);
+            self.target = vec2(1000.0, 0.0).rotate(rand(0.0, TAU));
         }
 
         draw_line(position(), self.target, 0xffffff);
