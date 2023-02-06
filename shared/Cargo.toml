@@ -9,6 +9,7 @@ members = [
     "envelope",
     "code_encryption",
     "version",
+    "compiler",
 ]
 
 [patch.crates-io]
