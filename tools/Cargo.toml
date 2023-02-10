@@ -7,7 +7,7 @@ resolver = "2"
 
 [dependencies]
 oort_proto = { path = "../shared/proto" }
-oort_simulator = { path = "../shared/simulator" }
+oort_simulator = { path = "../shared/simulator", features = ["precompile"] }
 oort_compiler = { path = "../shared/compiler" }
 firestore = "0.6.1"
 gcloud-sdk = "0.18.1"

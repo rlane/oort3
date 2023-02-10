@@ -33,6 +33,8 @@ pub enum Code {
     Rust(String),
     Wasm(Vec<u8>),
     Builtin(String),
+    #[cfg(feature = "precompile")]
+    Precompiled(bytes::Bytes),
 }
 
 pub struct Simulation {

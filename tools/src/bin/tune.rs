@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         log::info!("Compiling {:?}", src);
         let src_code = std::fs::read_to_string(src).unwrap();
         if let Some(wasm) = compile(src.to_string(), src_code) {
-            codes.push(Code::Wasm(wasm));
+            codes.push(oort_simulator::vm::precompile(&wasm).unwrap());
         } else {
             panic!("Failed to compile {src:?}");
         }
@@ -116,7 +116,7 @@ impl ObjFunc for ObjectiveFunction {
 
         let compile_start_time = std::time::Instant::now();
         let player_code = if let Some(wasm) = compile("player code".to_string(), player_src_code) {
-            Code::Wasm(wasm)
+            oort_simulator::vm::precompile(&wasm).unwrap()
         } else {
             panic!("Failed to compile player source code");
         };

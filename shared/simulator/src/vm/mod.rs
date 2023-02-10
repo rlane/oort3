@@ -55,7 +55,9 @@ pub trait ShipController {
 
 pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
     match code {
-        Code::Wasm(b) => WasmTeamController::create(b),
+        Code::Wasm(_) => WasmTeamController::create(code),
+        #[cfg(feature = "precompile")]
+        Code::Precompiled(_) => WasmTeamController::create(code),
         Code::Builtin(name) => match builtin::load_compiled(name) {
             Ok(code) => new_team_controller(&code),
             Err(e) => Err(Error { msg: e }),
@@ -67,7 +69,7 @@ pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error
 const MAX_VMS: usize = 1;
 
 pub struct WasmTeamController {
-    code: Vec<u8>,
+    code: Code,
     vms: Vec<WasmVm>,
     index: usize,
 }
@@ -89,6 +91,14 @@ pub struct WasmVm {
     reset_gas: wasmer::Function,
 }
 
+#[cfg(feature = "precompile")]
+pub fn precompile(code: &[u8]) -> Result<Code, Error> {
+    let code = limiter::rewrite(code)?;
+    let store = Store::default();
+    let module = translate_error(Module::new(&store, code))?;
+    Ok(Code::Precompiled(translate_error(module.serialize())?))
+}
+
 impl WasmVm {
     fn store(&self) -> RefMut<'_, Store> {
         self.store.borrow_mut()
@@ -96,10 +106,9 @@ impl WasmVm {
 }
 
 impl WasmTeamController {
-    pub fn create(code: &[u8]) -> Result<Box<dyn TeamController>, Error> {
-        let code = limiter::rewrite(code)?;
+    pub fn create(code: &Code) -> Result<Box<dyn TeamController>, Error> {
         Ok(Box::new(WasmTeamController {
-            code,
+            code: code.clone(),
             vms: Vec::new(),
             index: 0,
         }))
@@ -152,9 +161,19 @@ impl TeamController for WasmTeamController {
 }
 
 impl WasmVm {
-    pub fn create(code: &[u8]) -> Result<WasmVm, Error> {
+    pub fn create(code: &Code) -> Result<WasmVm, Error> {
         let mut store = Store::default();
-        let module = translate_error(Module::new(&store, code))?;
+        let module = match code {
+            Code::Wasm(wasm) => {
+                let wasm = limiter::rewrite(wasm)?;
+                translate_error(Module::new(&store, wasm))?
+            }
+            #[cfg(feature = "precompile")]
+            Code::Precompiled(bytes) => {
+                translate_error(unsafe { Module::deserialize(&store, bytes.clone()) })?
+            }
+            _ => unreachable!(),
+        };
         let import_object = imports! {};
         let instance = Instance::new(&mut store, &module, &import_object)?;
 
