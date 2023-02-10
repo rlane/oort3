@@ -5,7 +5,12 @@ use std::collections::HashMap;
 // For compatibility.
 pub use oort_api::prelude;
 
-static mut SHIPS: Option<HashMap<i32, user::Ship>> = None;
+struct ShipWrapper {
+    user_ship: user::Ship,
+    rng: oort_api::rng_state::RngState,
+}
+
+static mut SHIPS: Option<HashMap<i32, ShipWrapper>> = None;
 
 fn ensure_initialized() {
     unsafe {
@@ -25,8 +30,12 @@ pub fn export_tick_ship(key: i32) {
             .as_mut()
             .unwrap()
             .entry(key)
-            .or_insert_with(user::Ship::new);
-        ship.tick();
+            .or_insert_with(|| ShipWrapper {
+                user_ship: user::Ship::new(),
+                rng: oort_api::rng_state::RngState::new(),
+            });
+        oort_api::rng_state::set(&mut ship.rng);
+        ship.user_ship.tick();
         oort_api::dbg::update();
     }
 }

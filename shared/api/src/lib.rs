@@ -238,22 +238,40 @@ mod math {
 }
 
 mod rng {
-    use super::api::seed;
-
-    static mut RNG: Option<oorandom::Rand64> = None;
-
     fn rng() -> &'static mut oorandom::Rand64 {
-        unsafe {
-            if RNG.is_none() {
-                RNG = Some(oorandom::Rand64::new(seed()));
-            }
-            RNG.as_mut().unwrap()
-        }
+        unsafe { &mut super::rng_state::get().rng }
     }
 
     /// Returns a random number between `low` and `high`.
     pub fn rand(low: f64, high: f64) -> f64 {
         rng().rand_float() * (high - low) + low
+    }
+}
+
+#[doc(hidden)]
+pub mod rng_state {
+    #[derive(Clone)]
+    pub struct RngState {
+        pub rng: Box<oorandom::Rand64>,
+    }
+
+    static mut RNG_STATE: *mut RngState = std::ptr::null_mut();
+
+    impl RngState {
+        #[allow(clippy::new_without_default)]
+        pub fn new() -> Self {
+            Self {
+                rng: Box::new(oorandom::Rand64::new(super::api::seed())),
+            }
+        }
+    }
+
+    pub unsafe fn get() -> &'static mut RngState {
+        &mut *RNG_STATE
+    }
+
+    pub unsafe fn set(s: &mut RngState) {
+        RNG_STATE = s
     }
 }
 
