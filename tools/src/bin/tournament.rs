@@ -24,21 +24,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     scenario::load_safe(&scenario_name).expect("Unknown scenario");
 
-    let http_client = reqwest::Client::new();
+    let mut compiler = oort_compiler::Compiler::new();
     let mut competitors = vec![];
     for src in &srcs {
         log::info!("Compiling {:?}", src);
         let path = Path::new(src);
         let name = path.file_stem().unwrap().to_str().unwrap();
         let src_code = std::fs::read_to_string(src).unwrap();
-        if let Some(wasm) = compile(&http_client, src.to_string(), src_code).await {
-            competitors.push(Competitor {
-                name: name.to_string(),
-                code: Code::Wasm(wasm),
-                rating: Default::default(),
-            });
-        } else {
-            panic!("Failed to compile {src:?}");
+        match compiler.compile(&src_code) {
+            Ok(wasm) => {
+                competitors.push(Competitor {
+                    name: name.to_string(),
+                    code: Code::Wasm(wasm),
+                    rating: Default::default(),
+                });
+            }
+            Err(e) => {
+                panic!("Failed to compile {src:?}: {e}");
+            }
         }
     }
 
@@ -59,19 +62,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("{table}");
 
     Ok(())
-}
-
-async fn compile(client: &reqwest::Client, name: String, code: String) -> Option<Vec<u8>> {
-    let url = "http://localhost:8081/compile";
-    let result = client.post(url).body(code).send().await;
-    let response = result.unwrap().error_for_status();
-    match response {
-        Ok(response) => Some(response.bytes().await.unwrap().as_ref().into()),
-        Err(e) => {
-            log::warn!("Failed to compile {:?}: {}", name, e);
-            None
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

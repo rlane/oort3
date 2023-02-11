@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args = Arguments::parse();
 
     let db = FirestoreDb::new(&args.project_id).await?;
-    let http_client = reqwest::Client::new();
+    let mut compiler = oort_compiler::Compiler::new();
     let mut updates: Vec<(String, LeaderboardSubmission, Option<LeaderboardSubmission>)> =
         Vec::new();
 
@@ -89,38 +89,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     docid
                 );
 
-                if let Some(wasm) = compile(&http_client, docid.clone(), msg.code.clone()).await {
-                    log::info!("Successfully compiled to WASM");
-                    let status = run_simulations(&msg.scenario_name, wasm);
-                    match status {
-                        Some(new_time) => {
-                            if (msg.time - new_time).abs() >= 0.001 {
-                                log::info!("Updating time from {} to {}", msg.time, new_time);
-                                let mut new_msg = msg.clone();
-                                new_msg.time = new_time;
-                                updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
-                            } else {
-                                log::info!("Time unchanged");
-                            }
-                        }
-                        None => {
-                            log::warn!(
-                                "Simulation failed for userid={} scenario_name={} docid={}",
-                                msg.username,
-                                msg.scenario_name,
-                                docid,
-                            );
-                            updates.push((doc.name.to_string(), msg.clone(), None));
+                let wasm = match compiler.compile(&msg.code) {
+                    Ok(wasm) => wasm,
+                    Err(e) => {
+                        log::warn!(
+                            "Compilation failed for userid={} scenario_name={} docid={}: {}",
+                            msg.username,
+                            msg.scenario_name,
+                            docid,
+                            e
+                        );
+                        updates.push((doc.name.to_string(), msg.clone(), None));
+                        continue;
+                    }
+                };
+
+                log::info!("Successfully compiled to WASM");
+                let status = run_simulations(&msg.scenario_name, wasm);
+                match status {
+                    Some(new_time) => {
+                        if (msg.time - new_time).abs() >= 0.001 {
+                            log::info!("Updating time from {} to {}", msg.time, new_time);
+                            let mut new_msg = msg.clone();
+                            new_msg.time = new_time;
+                            updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
+                        } else {
+                            log::info!("Time unchanged");
                         }
                     }
-                } else {
-                    log::warn!(
-                        "Compilation failed for userid={} scenario_name={} docid={}",
-                        msg.username,
-                        msg.scenario_name,
-                        docid,
-                    );
-                    updates.push((doc.name.to_string(), msg.clone(), None));
+                    None => {
+                        log::warn!(
+                            "Simulation failed for userid={} scenario_name={} docid={}",
+                            msg.username,
+                            msg.scenario_name,
+                            docid,
+                        );
+                        updates.push((doc.name.to_string(), msg.clone(), None));
+                    }
                 }
             }
         }
@@ -157,19 +162,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     Ok(())
-}
-
-async fn compile(client: &reqwest::Client, docid: String, code: String) -> Option<Vec<u8>> {
-    let url = "http://localhost:8081/compile";
-    let result = client.post(url).body(code).send().await;
-    let response = result.unwrap().error_for_status();
-    match response {
-        Ok(response) => Some(response.bytes().await.unwrap().as_ref().into()),
-        Err(e) => {
-            log::warn!("Failed to compile {:?}: {}", docid, e);
-            None
-        }
-    }
 }
 
 fn run_simulations(scenario_name: &str, wasm: Vec<u8>) -> Option<f64> {

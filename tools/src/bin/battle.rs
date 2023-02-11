@@ -15,16 +15,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let scenario_name = args[1].clone();
     let srcs = args[2..].to_vec();
 
-    let http_client = reqwest::Client::new();
+    let mut compiler = oort_compiler::Compiler::new();
     let mut codes = vec![];
     for src in &srcs {
         log::info!("Compiling {:?}", src);
         let src_code = std::fs::read_to_string(src).unwrap();
-        if let Some(wasm) = compile(&http_client, src.to_string(), src_code).await {
-            codes.push(Code::Wasm(wasm));
-        } else {
-            panic!("Failed to compile {src:?}");
-        }
+        codes.push(Code::Wasm(compiler.compile(&src_code)?));
     }
 
     log::info!("Running simulations");
@@ -36,19 +32,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         _ => log::info!("Draw"),
     }
     Ok(())
-}
-
-async fn compile(client: &reqwest::Client, name: String, code: String) -> Option<Vec<u8>> {
-    let url = "http://localhost:8081/compile";
-    let result = client.post(url).body(code).send().await;
-    let response = result.unwrap().error_for_status();
-    match response {
-        Ok(response) => Some(response.bytes().await.unwrap().as_ref().into()),
-        Err(e) => {
-            log::warn!("Failed to compile {:?}: {}", name, e);
-            None
-        }
-    }
 }
 
 #[derive(Default, Debug)]
