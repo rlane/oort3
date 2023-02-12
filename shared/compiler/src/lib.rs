@@ -2,18 +2,30 @@ use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 
 pub struct Compiler {
-    tmp_dir: tempdir::TempDir,
+    #[allow(dead_code)]
+    tmp_dir: Option<tempdir::TempDir>,
+    dir: PathBuf,
 }
 
 impl Compiler {
     pub fn new() -> Compiler {
+        let tmp_dir = tempdir::TempDir::new("oort_compiler").unwrap();
+        let dir = tmp_dir.path().to_path_buf();
         Self {
-            tmp_dir: tempdir::TempDir::new("oort_compiler").unwrap(),
+            tmp_dir: Some(tmp_dir),
+            dir,
+        }
+    }
+
+    pub fn new_with_dir(dir: &Path) -> Compiler {
+        Self {
+            tmp_dir: None,
+            dir: dir.to_path_buf(),
         }
     }
 
     pub fn compile(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
-        let tmp_path = self.tmp_dir.path();
+        let tmp_path = &self.dir;
 
         if std::fs::metadata(tmp_path.join("Cargo.toml")).is_ok() {
             return self.compile_fast(code);
@@ -80,7 +92,7 @@ impl Compiler {
     }
 
     pub fn compile_fast(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
-        let tmp_path = self.tmp_dir.path();
+        let tmp_path = &self.dir;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
 
         let output = std::process::Command::new("rustc")

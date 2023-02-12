@@ -122,7 +122,9 @@ async fn main() {
         Err(_e) => {}
     };
 
-    let compiler = Compiler::new();
+    let dir = "/tmp/oort-ai";
+    std::fs::create_dir_all(dir).unwrap();
+    let compiler = Compiler::new_with_dir(std::path::Path::new(dir));
 
     let cors_handler = Cors::builder()
         .allow_any_origin()
