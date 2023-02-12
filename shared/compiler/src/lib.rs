@@ -67,22 +67,16 @@ impl Compiler {
                 "--target",
                 "wasm32-unknown-unknown",
             ])
-            .env("RUSTFLAGS", "-C opt-level=s -C link-arg=-zstack-size=16384")
+            .env(
+                "RUSTFLAGS",
+                "-C opt-level=s -C link-arg=-zstack-size=16384 -C llvm-args=-rng-seed=42",
+            )
             .output()?;
         if !output.status.success() {
             bail!("cargo failed: {}", std::str::from_utf8(&output.stderr)?);
         }
 
-        if false {
-            let output = std::process::Command::new("find")
-                .arg(tmp_path.as_os_str().to_str().unwrap())
-                .output()?;
-            println!("find result: {}", std::str::from_utf8(&output.stdout)?);
-        }
-
-        Ok(std::fs::read(tmp_path.join(
-            "target/wasm32-unknown-unknown/release/oort_ai.wasm",
-        ))?)
+        self.compile_fast(code)
     }
 
     pub fn compile_fast(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
@@ -118,14 +112,6 @@ impl Compiler {
                 ),
                 "--extern",
                 &format!(
-                    "oorandom={}",
-                    find_rlib(tmp_path, "oorandom")
-                        .as_os_str()
-                        .to_str()
-                        .unwrap()
-                ),
-                "--extern",
-                &format!(
                     "oort_api={}",
                     find_rlib(tmp_path, "oort_api")
                         .as_os_str()
@@ -136,6 +122,10 @@ impl Compiler {
                 "opt-level=s",
                 "-C",
                 "link-arg=-zstack-size=16384",
+                "-C",
+                "llvm-args=-rng-seed=42",
+                "--remap-path-prefix",
+                &format!("{}=/tmp/oort-ai", tmp_path.display()),
             ])
             .output()?;
         if !output.status.success() {
