@@ -1,3 +1,6 @@
+- Created a compiler library for use in tools.
+- Fixed an issue where the RNG was shared between ships.
+
 ### 0.35.0
 
 - Added support for fetching leaderboard entries via URL parameters.
