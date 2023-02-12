@@ -15,7 +15,7 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.20", features = ["full"] }
 log = "0.4.17"
 env_logger = "0.9.0"
-reqwest = { version = "0.11.11", features = ["json", "blocking"] }
+reqwest = { version = "0.11.11", default-features = false, features = ["json", "blocking", "rustls-tls"] }
 rayon = "1.5.3"
 serde_json = "1.0"
 chrono = "0.4.22"
@@ -39,7 +39,6 @@ tempdir = "0.3.7"
 glob = "0.3.1"
 tar = "0.4.38"
 libflate = "1.2.0"
-wabt = "0.10.0"
 
 [patch.crates-io]
 rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }

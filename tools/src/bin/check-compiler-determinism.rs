@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser as _;
 use rayon::prelude::*;
+use std::io::Write;
 use std::path::PathBuf;
 
 fn main() -> Result<()> {
@@ -64,7 +65,7 @@ fn main() -> Result<()> {
                 out_path.set_extension("wat.0");
                 for d in diffs.iter() {
                     out_path.set_extension(d.to_string());
-                    std::fs::write(&out_path, wasm2wat(&wasms[*d]))?;
+                    std::fs::write(&out_path, wasm2wat(&wasms[*d])?)?;
                 }
 
                 Err(anyhow::anyhow!("Compiler was not deterministic"))
@@ -77,10 +78,15 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn wasm2wat(wasm: &[u8]) -> Vec<u8> {
-    wabt::Wasm2Wat::new()
-        .convert(wasm)
-        .unwrap()
-        .as_ref()
-        .to_vec()
+fn wasm2wat(wasm: &[u8]) -> Result<Vec<u8>> {
+    let mut child = std::process::Command::new("wasm2wat")
+        .args(["-"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()?;
+    let mut child_stdin = child.stdin.take().unwrap();
+    child_stdin.write_all(wasm)?;
+    drop(child_stdin);
+    let output = child.wait_with_output()?;
+    Ok(output.stdout)
 }
