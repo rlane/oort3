@@ -1,3 +1,4 @@
+### 0.36.0
 - Created a compiler library for use in tools.
 - Fixed an issue where the RNG was shared between ships.
 
