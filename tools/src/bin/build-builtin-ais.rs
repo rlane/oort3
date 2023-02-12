@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser as _;
 use glob::glob;
-use libflate::gzip::Encoder;
+use libflate::gzip::{EncodeOptions, Encoder, HeaderBuilder};
 use rayon::prelude::*;
 use std::cell::RefCell;
 use std::io::Write;
@@ -53,7 +53,9 @@ fn main() -> Result<()> {
         .collect();
 
     let writer = std::fs::File::create(args.output)?;
-    let encoder = Encoder::new(writer).unwrap();
+    let header = HeaderBuilder::new().modification_time(0).finish();
+    let options = EncodeOptions::new().header(header);
+    let encoder = Encoder::with_options(writer, options).unwrap();
     let mut ar = tar::Builder::new(encoder);
 
     for r in results.iter() {
