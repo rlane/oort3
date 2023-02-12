@@ -5,6 +5,7 @@ pub struct Compiler {
     #[allow(dead_code)]
     tmp_dir: Option<tempdir::TempDir>,
     dir: PathBuf,
+    offline: bool,
 }
 
 impl Compiler {
@@ -14,6 +15,7 @@ impl Compiler {
         Self {
             tmp_dir: Some(tmp_dir),
             dir,
+            offline: true,
         }
     }
 
@@ -21,7 +23,12 @@ impl Compiler {
         Self {
             tmp_dir: None,
             dir: dir.to_path_buf(),
+            offline: true,
         }
+    }
+
+    pub fn enable_online(&mut self) {
+        self.offline = false;
     }
 
     pub fn compile(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
@@ -74,7 +81,7 @@ impl Compiler {
                 tmp_path.join("target").as_os_str().to_str().unwrap(),
                 "-v",
                 "-j1",
-                "--offline",
+                if self.offline { "--offline" } else { "-v" },
                 "--release",
                 "--target",
                 "wasm32-unknown-unknown",

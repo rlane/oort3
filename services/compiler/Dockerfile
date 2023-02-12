@@ -12,7 +12,6 @@ RUN \
 # builder
 FROM rust:1.67-slim-buster as builder
 WORKDIR /usr/src/app
-RUN mkdir -p services
 COPY . .
 ARG OORT_CODE_ENCRYPTION_SECRET
 RUN \
@@ -28,17 +27,8 @@ RUN rustup component add rustfmt
 RUN useradd -m app
 USER app:1000
 WORKDIR /home/app
-RUN mkdir -p .cargo
-ENV CARGO_HOME /home/app/.cargo
-COPY --chown=app --from=fetcher /registry .cargo/registry
 COPY --from=builder /usr/local/cargo/bin/oort_compiler_service /usr/local/bin/oort_compiler_service
-COPY --chown=app Cargo.toml.user Cargo.toml
-COPY --chown=app Cargo.lock.user Cargo.lock
-COPY --chown=app scripts/build-ai.sh scripts/build-ai-fast.sh scripts/
-COPY --chown=app shared/ai ai
-COPY --chown=app shared/api api
-RUN cargo fetch
-RUN ./scripts/build-ai.sh
 ENV PORT 8080
 ENV RUST_LOG info
+RUN oort_compiler_service --prepare
 CMD ["oort_compiler_service"]

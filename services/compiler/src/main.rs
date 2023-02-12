@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use clap::Parser as _;
 use once_cell::sync::Lazy;
 use oort_compiler::Compiler;
 use salvo::prelude::*;
@@ -109,6 +110,13 @@ async fn nop(_req: &mut Request, res: &mut Response) {
 async fn main() {
     stackdriver_logger::init_with_cargo!();
 
+    #[derive(clap::Parser, Debug)]
+    struct Arguments {
+        #[clap(short, long)]
+        prepare: bool,
+    }
+    let args = Arguments::parse();
+
     let mut port: u16 = 8080;
     match std::env::var("PORT") {
         Ok(p) => {
@@ -124,7 +132,15 @@ async fn main() {
 
     let dir = "/tmp/oort-ai";
     std::fs::create_dir_all(dir).unwrap();
-    let compiler = Compiler::new_with_dir(std::path::Path::new(dir));
+    let mut compiler = Compiler::new_with_dir(std::path::Path::new(dir));
+
+    if args.prepare {
+        compiler.enable_online();
+        compiler
+            .compile(include_str!("../../../shared/ai/empty.rs"))
+            .unwrap();
+        return;
+    }
 
     let cors_handler = Cors::builder()
         .allow_any_origin()
