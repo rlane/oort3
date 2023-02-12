@@ -59,6 +59,9 @@ struct Arguments {
 
     #[clap(long)]
     skip_discord: bool,
+
+    #[clap(long)]
+    skip_components_check: bool,
 }
 
 #[tokio::main]
@@ -86,7 +89,7 @@ async fn main() -> anyhow::Result<()> {
     let mut changelog = "unknown".to_string();
     let bump_version = !args.skip_version_bump;
     if bump_version {
-        if args.components != ALL_COMPONENTS {
+        if args.components != ALL_COMPONENTS && !args.skip_components_check {
             bail!("Attempted to bump version without pushing all components");
         }
 
