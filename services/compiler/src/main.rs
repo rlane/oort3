@@ -1,13 +1,18 @@
 use bytes::Bytes;
 use once_cell::sync::Lazy;
+use oort_compiler::Compiler;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
+use std::sync::{Arc, Mutex};
 use tokio::process::Command;
 
 static LOCK: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
 
-async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let _guard = LOCK.lock().await;
+async fn compile_internal(
+    compiler: Arc<Mutex<Compiler>>,
+    req: &mut Request,
+    res: &mut Response,
+) -> anyhow::Result<()> {
     log::debug!("Got compile request {:?}", req);
     let payload = req.payload().await?;
     let mut code = std::str::from_utf8(payload)?.to_string();
@@ -17,32 +22,45 @@ async fn compile_internal(req: &mut Request, res: &mut Response) -> anyhow::Resu
     }
     log::debug!("Code: {}", code);
     oort_compiler_service::sanitizer::check(&code)?;
-    std::fs::write("ai/src/user.rs", code.as_bytes())?;
     let start_time = std::time::Instant::now();
-    let output = Command::new("./scripts/build-ai-fast.sh").output().await?;
+    let result = tokio::runtime::Handle::current()
+        .spawn_blocking(move || compiler.lock().unwrap().compile(&code))
+        .await?;
     let elapsed = std::time::Instant::now() - start_time;
-    if !output.status.success() {
-        log::info!("Compile failed in {:?}", elapsed);
-        res.set_status_code(StatusCode::BAD_REQUEST);
-        let stdout = std::str::from_utf8(&output.stdout)?;
-        let stderr = std::str::from_utf8(&output.stderr)?;
-        log::debug!("Compile failed: stderr={}\nstdout={}", stderr, stdout);
-        res.render(stderr.to_string());
-        return Ok(());
+    match result {
+        Ok(wasm) => {
+            log::info!("Compile succeeded in {:?}", elapsed);
+            res.write_body(Bytes::copy_from_slice(&wasm))?;
+            Ok(())
+        }
+        Err(e) => {
+            log::info!("Compile failed in {:?}", elapsed);
+            res.set_status_code(StatusCode::BAD_REQUEST);
+            log::debug!("Compile failed: {}", e);
+            res.render(e.to_string());
+            Ok(())
+        }
     }
-    log::info!("Compile succeeded in {:?}", elapsed);
-    log::debug!("Compile finished: {}", std::str::from_utf8(&output.stderr)?);
-    let wasm = std::fs::read("output.wasm")?;
-    res.write_body(Bytes::copy_from_slice(&wasm))?;
-    Ok(())
 }
 
-#[handler]
-async fn compile(req: &mut Request, res: &mut Response) {
-    if let Err(e) = compile_internal(req, res).await {
-        log::error!("compile request error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
+struct CompileHandler {
+    compiler: Arc<Mutex<Compiler>>,
+}
+
+#[async_trait]
+impl Handler for CompileHandler {
+    async fn handle(
+        &self,
+        req: &mut Request,
+        _depot: &mut Depot,
+        res: &mut Response,
+        _ctrl: &mut FlowCtrl,
+    ) {
+        if let Err(e) = compile_internal(self.compiler.clone(), req, res).await {
+            log::error!("compile request error: {}", e);
+            res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
+            res.render(e.to_string());
+        }
     }
 }
 
@@ -104,6 +122,8 @@ async fn main() {
         Err(_e) => {}
     };
 
+    let compiler = Compiler::new();
+
     let cors_handler = Cors::builder()
         .allow_any_origin()
         .allow_methods(vec!["POST", "OPTIONS"])
@@ -111,7 +131,13 @@ async fn main() {
         .build();
 
     let router = Router::with_hoop(cors_handler)
-        .push(Router::with_path("/compile").post(compile).options(nop))
+        .push(
+            Router::with_path("/compile")
+                .post(CompileHandler {
+                    compiler: Arc::new(Mutex::new(compiler)),
+                })
+                .options(nop),
+        )
         .push(Router::with_path("/format").post(format).options(nop));
     log::info!("Starting oort_compiler_service v1");
     Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
