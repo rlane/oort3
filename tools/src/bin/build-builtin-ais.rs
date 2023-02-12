@@ -62,6 +62,7 @@ fn main() -> Result<()> {
         let data = source_code.as_bytes();
         let mut header = Header::new_gnu();
         header.set_size(data.len() as u64);
+        header.set_mode(0o700);
         header.set_cksum();
         ar.append_data(&mut header, path, data).unwrap();
     }
@@ -72,6 +73,7 @@ fn main() -> Result<()> {
         path.set_extension("wasm");
         let mut header = Header::new_gnu();
         header.set_size(wasm.len() as u64);
+        header.set_mode(0o700);
         header.set_cksum();
         ar.append_data(&mut header, path, &wasm[..]).unwrap();
     }
