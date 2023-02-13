@@ -611,39 +611,6 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    if args.components.contains(&Component::Doc) {
-        tasks.spawn(async move {
-            let progress = create_progress_bar("doc");
-
-            progress.set_message("building");
-            sync_cmd_ok(&[
-                "cargo",
-                "doc",
-                "--manifest-path",
-                "shared/Cargo.toml",
-                "-p",
-                "oort_api",
-            ])
-            .await?;
-
-            if !dry_run && bump_version {
-                progress.set_message("publishing");
-                sync_cmd_ok(&[
-                    "cargo",
-                    "publish",
-                    "--manifest-path",
-                    "shared/Cargo.toml",
-                    "-p",
-                    "oort_api",
-                ])
-                .await?;
-            }
-
-            progress.finish_with_message("done");
-            Ok(())
-        });
-    }
-
     if args.components.contains(&Component::Tools) {
         tasks.spawn(async move {
             use std::os::unix::fs::MetadataExt;
@@ -684,6 +651,32 @@ async fn main() -> anyhow::Result<()> {
     }
     if failed {
         bail!("Release task failed");
+    }
+
+    if args.components.contains(&Component::Doc) {
+        log::info!("Building docs");
+        sync_cmd_ok(&[
+            "cargo",
+            "doc",
+            "--manifest-path",
+            "shared/Cargo.toml",
+            "-p",
+            "oort_api",
+        ])
+        .await?;
+
+        if !dry_run && bump_version {
+            log::info!("Publishing docs");
+            sync_cmd_ok(&[
+                "cargo",
+                "publish",
+                "--manifest-path",
+                "shared/Cargo.toml",
+                "-p",
+                "oort_api",
+            ])
+            .await?;
+        }
     }
 
     if !dry_run && !args.skip_github {
