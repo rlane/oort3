@@ -32,13 +32,13 @@ regex = "1.5.6"
 serde_json = "1.0.81"
 serde = { version = "1.0.137", features = ["derive"] }
 wasm-bindgen = { version = "0.2.80", features = ["serde-serialize"] }
-yew = { version = "0.19.3", features = ["csr"] }
-yew-agent = "0.1.0"
+yew = { version = "0.20.0", features = ["csr"] }
+yew-agent = "0.2.0"
 gloo-render = "0.1.1"
 reqwasm = "0.5.0"
 wasm-bindgen-futures = "0.4.30"
 monaco = { version = "0.3.0", features = ["yew-components"] }
-yew-router = "0.16"
+yew-router = "0.17"
 sha2 = "0.10.2"
 gloo-utils = "0.1.5"
 gloo-timers = "0.2.4"

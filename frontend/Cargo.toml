@@ -9,11 +9,8 @@ members = [
 ]
 
 [patch.crates-io]
-yew = { git = "https://github.com/yewstack/yew", rev = "73d9c04782b5bb6103ac82431396970b5893fc31" }
-yew-agent = { git = "https://github.com/yewstack/yew", rev = "73d9c04782b5bb6103ac82431396970b5893fc31" }
-yew-router = { git = "https://github.com/yewstack/yew", rev = "73d9c04782b5bb6103ac82431396970b5893fc31" }
 rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
-monaco = { git = "https://github.com/rlane/rust-monaco", rev = "09ff7c17ad31b1c0f94f8441c6f092050edbec95" }
+monaco = { git = "https://github.com/rlane/rust-monaco", rev = "fb9b66155ef17850ddc50e686e3912bdb037d313" }
 rayon = { path = "../rayno" }
 
 [profile.dev.package.'*']
