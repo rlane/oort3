@@ -13,7 +13,7 @@ oort_api = { path = "../../shared/api" }
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 js-sys = "0.3.57"
 log = "0.4.17"
-memoffset = "0.7.1"
+memoffset = "0.8.0"
 nalgebra = { version = "0.32.1", features = ["serde-serialize"] }
 wasm-bindgen = { version = "0.2.80", features = ["serde-serialize"] }
 image = "0.24.5"
