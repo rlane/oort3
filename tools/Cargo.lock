@@ -761,12 +761,12 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.9.3"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
+checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
 dependencies = [
- "atty",
  "humantime",
+ "is-terminal",
  "log",
  "regex",
  "termcolor",
@@ -2681,9 +2681,9 @@ dependencies = [
 
 [[package]]
 name = "skillratings"
-version = "0.12.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b6a615a7c427917f422a31cf2af49122f6347187ff3624d756188892d75d12"
+checksum = "ca93202059c9d58d5532db08e7e487ca7b8f7fd07c8548b059b49aa5bf8205d7"
 
 [[package]]
 name = "slab"

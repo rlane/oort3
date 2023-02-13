@@ -5,7 +5,8 @@ use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
 use skillratings::{
-    config::Glicko2Config, glicko2::glicko2, outcomes::Outcomes, rating::Glicko2Rating,
+    glicko2::{glicko2, Glicko2Config, Glicko2Rating},
+    Outcomes,
 };
 use std::default::Default;
 use std::path::Path;
@@ -97,9 +98,9 @@ fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> Vec<
             let i0 = indices[0];
             let i1 = indices[1];
             let (r0, r1) = glicko2(
-                competitors[i0].rating,
-                competitors[i1].rating,
-                outcome,
+                &competitors[i0].rating,
+                &competitors[i1].rating,
+                &outcome,
                 &config,
             );
             competitors[i0].rating = r0;
