@@ -430,17 +430,19 @@ impl ShipController for WasmShipController {
                 let length = self.state.get(SystemState::DebugLinesLength) as u32;
                 if length <= 128 {
                     if let Some(lines) = self.read_vec::<Line>(offset, length) {
-                        sim.emit_debug_lines(
-                            self.handle,
-                            &lines
-                                .iter()
-                                .map(|v| crate::debug::Line {
-                                    a: point![v.x0, v.y0],
-                                    b: point![v.x1, v.y1],
-                                    color: debug::convert_color(v.color),
-                                })
-                                .collect::<Vec<debug::Line>>(),
-                        );
+                        if validate_lines(&lines) {
+                            sim.emit_debug_lines(
+                                self.handle,
+                                &lines
+                                    .iter()
+                                    .map(|v| crate::debug::Line {
+                                        a: point![v.x0, v.y0],
+                                        b: point![v.x1, v.y1],
+                                        color: debug::convert_color(v.color),
+                                    })
+                                    .collect::<Vec<debug::Line>>(),
+                            );
+                        }
                     }
                 }
             }
@@ -450,7 +452,9 @@ impl ShipController for WasmShipController {
                 let length = self.state.get(SystemState::DrawnTextLength) as u32;
                 if length <= 128 {
                     if let Some(texts) = self.read_vec::<Text>(offset, length) {
-                        sim.emit_drawn_text(self.handle, &texts);
+                        if validate_texts(&texts) {
+                            sim.emit_drawn_text(self.handle, &texts);
+                        }
                     }
                 }
             }
@@ -576,4 +580,20 @@ fn translate_runtime_error<T>(err: Result<T, wasmer::RuntimeError>) -> Result<T,
             msg: format!("Ship runtime error: {err}"),
         }),
     }
+}
+
+fn validate_floats(vs: &[f64]) -> bool {
+    vs.iter().all(|v| v.is_finite())
+}
+
+fn validate_lines(lines: &[Line]) -> bool {
+    lines
+        .iter()
+        .all(|l| validate_floats(&[l.x0, l.y0, l.x1, l.y1]))
+}
+
+fn validate_texts(texts: &[Text]) -> bool {
+    texts
+        .iter()
+        .all(|t| validate_floats(&[t.x, t.y]) && t.length as usize <= t.text.len())
 }
