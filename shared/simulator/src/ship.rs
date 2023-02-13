@@ -847,7 +847,12 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         // Torque.
         {
-            let inertia_sqrt = 1.0 / self.body().mass_properties().inv_principal_inertia_sqrt;
+            let inertia_sqrt = 1.0
+                / self
+                    .body()
+                    .mass_properties()
+                    .local_mprops
+                    .inv_principal_inertia_sqrt;
             let torque = self.data().angular_acceleration * inertia_sqrt * inertia_sqrt;
             self.body().reset_torques(false);
             self.body().add_torque(torque, true);

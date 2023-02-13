@@ -22,7 +22,7 @@ flate2 = "1.0.24"
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 js-sys = "0.3.57"
 log = "0.4.17"
-nalgebra = { version = "0.31.0", features = ["serde-serialize"] }
+nalgebra = { version = "0.32.1", features = ["serde-serialize"] }
 no-comment = "0.0.3"
 petname = "1.1.2"
 rand = "0.8.5"

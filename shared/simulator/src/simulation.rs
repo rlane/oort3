@@ -182,6 +182,7 @@ impl Simulation {
             &mut self.impulse_joints,
             &mut self.multibody_joints,
             &mut self.ccd_solver,
+            None,
             &physics_hooks,
             &self.event_collector,
         );
@@ -312,7 +313,6 @@ impl Simulation {
         let physics_start_time = Instant::now();
 
         self.query_pipeline.update_with_mode(
-            &self.island_manager,
             &self.bodies,
             &self.colliders,
             QueryPipelineMode::SweepTestWithNextPosition,
