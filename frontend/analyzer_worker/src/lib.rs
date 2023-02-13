@@ -22,10 +22,7 @@ macro_rules! format_args {
 
 pub fn create_source_root(name: &str, f: FileId) -> SourceRoot {
     let mut file_set = FileSet::default();
-    file_set.insert(
-        f,
-        VfsPath::new_virtual_path(format!("/{name}/src/lib.rs")),
-    );
+    file_set.insert(f, VfsPath::new_virtual_path(format!("/{name}/src/lib.rs")));
     SourceRoot::new_library(file_set)
 }
 
@@ -48,6 +45,7 @@ pub fn create_crate(crate_graph: &mut CrateGraph, f: FileId) -> CrateId {
             repo: None,
             name: None,
         },
+        None,
     )
 }
 
