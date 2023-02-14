@@ -24,19 +24,20 @@ fn ensure_initialized() {
 #[no_mangle]
 pub fn export_tick_ship(key: i32) {
     ensure_initialized();
+    oort_api::dbg::reset();
     unsafe {
-        oort_api::dbg::reset();
-        let ship = SHIPS
-            .as_mut()
-            .unwrap()
-            .entry(key)
-            .or_insert_with(|| ShipWrapper {
+        let ship = SHIPS.as_mut().unwrap().entry(key).or_insert_with(|| {
+            let rng = oort_api::rng_state::RngState::new();
+            oort_api::rng_state::set(rng.clone());
+            ShipWrapper {
                 user_ship: user::Ship::new(),
-                rng: oort_api::rng_state::RngState::new(),
-            });
-        oort_api::rng_state::set(&mut ship.rng);
+                rng,
+            }
+        });
+        oort_api::rng_state::set(ship.rng.clone());
         ship.user_ship.tick();
         oort_api::dbg::update();
+        ship.rng = oort_api::rng_state::get().clone();
     }
 }
 

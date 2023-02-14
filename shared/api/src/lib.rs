@@ -253,26 +253,26 @@ mod rng {
 pub mod rng_state {
     #[derive(Clone)]
     pub struct RngState {
-        pub rng: Box<oorandom::Rand64>,
+        pub rng: oorandom::Rand64,
     }
 
-    static mut RNG_STATE: *mut RngState = std::ptr::null_mut();
+    static mut RNG_STATE: Option<RngState> = None;
 
     impl RngState {
         #[allow(clippy::new_without_default)]
         pub fn new() -> Self {
             Self {
-                rng: Box::new(oorandom::Rand64::new(super::api::seed())),
+                rng: oorandom::Rand64::new(super::api::seed()),
             }
         }
     }
 
     pub unsafe fn get() -> &'static mut RngState {
-        &mut *RNG_STATE
+        RNG_STATE.as_mut().unwrap()
     }
 
-    pub unsafe fn set(s: &mut RngState) {
-        RNG_STATE = s
+    pub unsafe fn set(s: RngState) {
+        RNG_STATE = Some(s)
     }
 }
 
