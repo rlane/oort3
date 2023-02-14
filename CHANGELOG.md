@@ -1,3 +1,4 @@
+### 0.36.1
 - Updated dependencies.
 - Added validation for text and debug line APIs.
 
