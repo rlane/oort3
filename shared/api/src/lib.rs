@@ -211,13 +211,13 @@ pub mod sys {
         [0.0; SystemState::MaxSize as usize];
 
     pub fn read_system_state(index: SystemState) -> f64 {
-        unsafe { SYSTEM_STATE[index as usize] }
+        let system_state = unsafe { &SYSTEM_STATE };
+        system_state[index as usize]
     }
 
     pub fn write_system_state(index: SystemState, value: f64) {
-        unsafe {
-            SYSTEM_STATE[index as usize] = value;
-        }
+        let system_state = unsafe { &mut SYSTEM_STATE };
+        system_state[index as usize] = value;
     }
 }
 
@@ -239,7 +239,8 @@ mod math {
 
 mod rng {
     fn rng() -> &'static mut oorandom::Rand64 {
-        unsafe { &mut super::rng_state::get().rng }
+        let rng_state = unsafe { super::rng_state::get() };
+        &mut rng_state.rng
     }
 
     /// Returns a random number between `low` and `high`.
@@ -483,9 +484,8 @@ mod api {
             assert!(sel < MAX_RADIOS);
             let stride = 7;
             let offset = stride * sel;
-            let add_offset = |x| unsafe {
-                ::std::mem::transmute::<u8, SystemState>((x as u8) + offset as u8) as SystemState
-            };
+            let add_offset =
+                |x| unsafe { ::std::mem::transmute::<u8, SystemState>((x as u8) + offset as u8) };
             RadioIndices {
                 channel: add_offset(SystemState::Radio0Channel),
                 send: add_offset(SystemState::Radio0Send),
@@ -643,10 +643,9 @@ pub mod dbg {
     #[doc(hidden)]
     pub fn write(args: std::fmt::Arguments) {
         use std::fmt::Write;
-        unsafe {
-            let _ = std::fmt::write(&mut TEXT_BUFFER, args);
-            TEXT_BUFFER.push('\n');
-        }
+        let buf = unsafe { &mut TEXT_BUFFER };
+        let _ = std::fmt::write(buf, args);
+        buf.push('\n');
     }
 
     /// Draws a line visible in debug mode.
@@ -654,15 +653,14 @@ pub mod dbg {
     /// `a` and `b` are positions in world coordinates.
     /// `color` is 24-bit RGB.
     pub fn draw_line(a: Vec2, b: Vec2, color: u32) {
-        unsafe {
-            LINE_BUFFER.push(Line {
-                x0: a.x,
-                y0: a.y,
-                x1: b.x,
-                y1: b.y,
-                color,
-            });
-        }
+        let buf = unsafe { &mut LINE_BUFFER };
+        buf.push(Line {
+            x0: a.x,
+            y0: a.y,
+            x1: b.x,
+            y1: b.y,
+            color,
+        });
     }
 
     #[deprecated]
@@ -753,24 +751,26 @@ pub mod dbg {
         use std::fmt::Write;
         let mut text = String::new();
         let _ = std::fmt::write(&mut text, args);
-        unsafe {
-            // TODO handle longer text
-            let mut buf = [0u8; 11];
-            buf.iter_mut().zip(text.bytes()).for_each(|(d, s)| *d = s);
-            DRAWN_TEXT_BUFFER.push(Text {
-                x: topleft.x,
-                y: topleft.y,
-                color,
-                length: text.len().min(buf.len()) as u8,
-                text: buf,
-            });
-        }
+        let buf = unsafe { &mut DRAWN_TEXT_BUFFER };
+        // TODO handle longer text
+        let mut text_buf = [0u8; 11];
+        text_buf
+            .iter_mut()
+            .zip(text.bytes())
+            .for_each(|(d, s)| *d = s);
+        buf.push(Text {
+            x: topleft.x,
+            y: topleft.y,
+            color,
+            length: text.len().min(buf.len()) as u8,
+            text: text_buf,
+        });
     }
 
     #[doc(hidden)]
     pub fn update() {
         {
-            let slice = unsafe { TEXT_BUFFER.as_bytes() };
+            let slice = unsafe { &mut TEXT_BUFFER }.as_bytes();
             write_system_state(
                 super::SystemState::DebugTextPointer,
                 slice.as_ptr() as u32 as f64,
@@ -781,7 +781,7 @@ pub mod dbg {
             );
         }
         {
-            let slice = unsafe { LINE_BUFFER.as_slice() };
+            let slice = unsafe { &mut LINE_BUFFER }.as_slice();
             write_system_state(
                 super::SystemState::DebugLinesPointer,
                 slice.as_ptr() as u32 as f64,
@@ -792,7 +792,7 @@ pub mod dbg {
             );
         }
         {
-            let slice = unsafe { DRAWN_TEXT_BUFFER.as_slice() };
+            let slice = unsafe { &mut DRAWN_TEXT_BUFFER }.as_slice();
             write_system_state(
                 super::SystemState::DrawnTextPointer,
                 slice.as_ptr() as u32 as f64,
