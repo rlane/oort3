@@ -1,3 +1,5 @@
+- Added a button to the mission complete screen to copy a shortcode for the player's AI.
+
 ### 0.36.1
 - Updated dependencies.
 - Added validation for text and debug line APIs.
