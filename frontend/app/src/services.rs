@@ -1,6 +1,7 @@
 use crate::userid;
 use anyhow::anyhow;
 use chrono::Utc;
+use oort_proto::ShortcodeUpload;
 use oort_proto::{LeaderboardData, LeaderboardSubmission};
 use oort_proto::{Telemetry, TelemetryMsg};
 use reqwasm::http::Request;
@@ -154,6 +155,28 @@ pub async fn get_shortcode(shortcode: &str) -> anyhow::Result<String> {
         reqwasm::http::Request::get(&format!("{}/shortcode/{}", shortcode_url(), shortcode))
             .send()
             .await?;
+    let text = response.text().await?;
+    if response.ok() {
+        Ok(text)
+    } else {
+        Err(anyhow!(text))
+    }
+}
+
+pub async fn upload_shortcode(code: &str) -> anyhow::Result<String> {
+    let userid = userid::get_userid();
+    let username = userid::get_username();
+    let msg = ShortcodeUpload {
+        userid,
+        username,
+        timestamp: Utc::now(),
+        code: code.to_string(),
+    };
+    let body = serde_json::to_string(&msg).unwrap();
+    let response = reqwasm::http::Request::post(&format!("{}/shortcode", shortcode_url()))
+        .body(body)
+        .send()
+        .await?;
     let text = response.text().await?;
     if response.ok() {
         Ok(text)

@@ -55,6 +55,7 @@ pub enum Msg {
     CompileFinished(Vec<Result<Code, String>>),
     CompileSlow,
     SubmitToTournament,
+    UploadShortcode,
     FormattedCode { team: usize, text: String },
     ReplaceCode { team: usize, text: String },
     ShowError(String),
@@ -391,6 +392,21 @@ impl Component for Game {
                 services::send_telemetry(Telemetry::SubmitToTournament {
                     scenario_name: self.scenario_name.clone(),
                     code: code_to_string(&self.player_team().running_source_code),
+                });
+                false
+            }
+            Msg::UploadShortcode => {
+                let code = code_to_string(&self.player_team().running_source_code);
+                wasm_bindgen_futures::spawn_local(async move {
+                    match services::upload_shortcode(&code).await {
+                        Ok(shortcode) => {
+                            log::info!("Got shortcode {}", shortcode);
+                            crate::js::clipboard::write(&shortcode);
+                        }
+                        Err(e) => {
+                            log::error!("Error uploading to shortcode: {}", e);
+                        }
+                    }
                 });
                 false
             }
@@ -770,11 +786,20 @@ impl Game {
                     .batch_callback(move |_| vec![Msg::SubmitToTournament, Msg::DismissOverlay]);
                 html! {
                     <>
-                        <br /><button onclick={cb}>{ "Submit to tournament" }</button><br/>
+                        <button onclick={cb}>{ "Submit to tournament" }</button>
+                        { "\u{00a0}" }  // nbsp
                     </>
                 }
             } else {
                 html! {}
+            };
+            let upload_shortcode_button = {
+                let cb = context.link().callback(move |_| Msg::UploadShortcode);
+                html! {
+                    <>
+                        <button onclick={cb}>{ "Copy shortcode" }</button>
+                    </>
+                }
             };
             let leaderboard_submission =
                 summary
@@ -804,7 +829,10 @@ impl Game {
                     </span>
                     { failures }
                     { best_and_worst_seeds }
+                    <br />
                     { submit_button }
+                    { upload_shortcode_button }
+                    <br />
                     { next_scenario_link }
                     <br />
                     <Leaderboard scenario_name={ self.scenario_name.clone() }
