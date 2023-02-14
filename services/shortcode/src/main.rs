@@ -1,7 +1,8 @@
 use anyhow::{anyhow, bail};
+use chrono::Utc;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
-use oort_proto::LeaderboardSubmission;
+use oort_proto::{LeaderboardSubmission, ShortcodeUpload};
 use regex::Regex;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
@@ -22,10 +23,14 @@ enum Shortcode {
         username: String,
         scenario_name: String,
     },
+    Uploaded {
+        docid: String,
+    },
 }
 
 fn parse_id(id: &str) -> anyhow::Result<Shortcode> {
     let leaderboard_re = Regex::new(r"^leaderboard:([a-zA-Z0-9_-]+):(\w+)$")?;
+    let uploaded_re = Regex::new(r"^([a-zA-Z0-9]+)$")?;
     if let Some(caps) = leaderboard_re.captures(id) {
         let username = caps.get(1).unwrap().as_str().to_string();
         let scenario_name = caps.get(2).unwrap().as_str().to_string();
@@ -33,6 +38,9 @@ fn parse_id(id: &str) -> anyhow::Result<Shortcode> {
             username,
             scenario_name,
         })
+    } else if let Some(caps) = uploaded_re.captures(id) {
+        let docid = caps.get(1).unwrap().as_str().to_string();
+        Ok(Shortcode::Uploaded { docid })
     } else {
         bail!("id did not match any known formats")
     }
@@ -87,6 +95,10 @@ async fn get_shortcode_internal(req: &mut Request, res: &mut Response) -> anyhow
             username,
             scenario_name,
         } => fetch_leaderboard(&db, &scenario_name, &username).await?,
+        Shortcode::Uploaded { docid } => {
+            let obj = db.get_obj::<ShortcodeUpload>("shortcode", &docid).await?;
+            oort_code_encryption::encrypt(&obj.code)?
+        }
     };
 
     res.render(code);
@@ -96,6 +108,41 @@ async fn get_shortcode_internal(req: &mut Request, res: &mut Response) -> anyhow
 #[handler]
 async fn get_shortcode(req: &mut Request, res: &mut Response) {
     if let Err(e) = get_shortcode_internal(req, res).await {
+        log::error!("error: {}", e);
+        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
+        res.render(e.to_string());
+    }
+}
+
+fn generate_docid() -> String {
+    use rand::Rng;
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                            abcdefghijklmnopqrstuvwxyz\
+                            0123456789";
+    let mut rng = rand::thread_rng();
+
+    (0..16)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+    let db = FirestoreDb::new(project_id()).await?;
+    let payload = req.payload().await?;
+    let mut obj: ShortcodeUpload = serde_json::from_slice(&payload)?;
+    obj.timestamp = Utc::now();
+    let docid = generate_docid();
+    db.create_obj("shortcode", &docid, &obj).await?;
+    res.render(docid);
+    Ok(())
+}
+
+#[handler]
+async fn post(req: &mut Request, res: &mut Response) {
+    if let Err(e) = post_internal(req, res).await {
         log::error!("error: {}", e);
         res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
         res.render(e.to_string());
@@ -133,11 +180,13 @@ pub async fn main() {
         .allow_header("content-type")
         .build();
 
-    let router = Router::with_hoop(cors_handler).push(
-        Router::with_path("/shortcode/<id>")
-            .get(get_shortcode)
-            .options(nop),
-    );
+    let router = Router::with_hoop(cors_handler)
+        .push(
+            Router::with_path("/shortcode/<id>")
+                .get(get_shortcode)
+                .options(nop),
+        )
+        .push(Router::with_path("/shortcode").post(post).options(nop));
 
     Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
         .serve(router)

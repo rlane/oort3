@@ -1474,14 +1474,17 @@ name = "oort_shortcode_service"
 version = "0.36.1"
 dependencies = [
  "anyhow",
+ "chrono",
  "firestore",
  "gcloud-sdk",
  "log",
  "oort_code_encryption",
  "oort_proto",
+ "rand 0.8.5",
  "regex",
  "salvo",
  "salvo_extra",
+ "serde_json",
  "stackdriver_logger",
  "tokio",
 ]

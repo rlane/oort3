@@ -70,3 +70,13 @@ pub struct LeaderboardSubmission {
 }
 
 impl Eq for LeaderboardSubmission {}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct ShortcodeUpload {
+    pub userid: String,
+    pub username: String,
+    #[serde(default)]
+    #[serde(with = "ts_milliseconds")]
+    pub timestamp: DateTime<Utc>,
+    pub code: String,
+}
