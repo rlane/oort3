@@ -4,6 +4,8 @@ use indicatif::{MultiProgress, ProgressBar};
 use once_cell::sync::Lazy;
 use std::process::{ExitStatus, Output};
 use tokio::process::Command;
+use tokio_retry::strategy::ExponentialBackoff;
+use tokio_retry::Retry;
 
 const PROJECT: &str = "us-west1-docker.pkg.dev/oort-319301";
 const WORKSPACES: &[&str] = &["frontend", "tools", "shared", "services", "tools"];
@@ -199,7 +201,7 @@ async fn main() -> anyhow::Result<()> {
     let mut tasks = tokio::task::JoinSet::new();
 
     if args.components.contains(&Component::App) {
-        tasks.spawn(async move {
+        tasks.spawn(Retry::spawn(retry_strategy(), move || async move {
             let progress = create_progress_bar("frontend");
 
             progress.set_message("prebuild (app)");
@@ -266,49 +268,51 @@ async fn main() -> anyhow::Result<()> {
 
             progress.finish_with_message("done");
             anyhow::Ok(())
-        });
+        }));
     }
 
     if args.components.contains(&Component::Compiler) {
         let secrets = secrets.clone();
-        tasks.spawn(async move {
-            let progress = create_progress_bar("compiler");
+        tasks.spawn(Retry::spawn(retry_strategy(), move || {
+            let secrets = secrets.clone();
+            async move {
+                let progress = create_progress_bar("compiler");
 
-            progress.set_message("building");
-            sync_cmd_ok(&[
-                "docker",
-                "build",
-                "-f",
-                "services/compiler/Dockerfile",
-                "--tag",
-                "oort_compiler_service",
-                "--build-arg",
-                &format!(
-                    "OORT_CODE_ENCRYPTION_SECRET={}",
-                    secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
-                ),
-                ".",
-            ])
-            .await?;
-
-            if !dry_run {
-                let container_image = format!("{PROJECT}/services/oort_compiler_service");
-                let zone = "us-west1-b";
-
-                progress.set_message("tagging");
+                progress.set_message("building");
                 sync_cmd_ok(&[
                     "docker",
-                    "tag",
-                    "oort_compiler_service:latest",
-                    &container_image,
+                    "build",
+                    "-f",
+                    "services/compiler/Dockerfile",
+                    "--tag",
+                    "oort_compiler_service",
+                    "--build-arg",
+                    &format!(
+                        "OORT_CODE_ENCRYPTION_SECRET={}",
+                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                    ),
+                    ".",
                 ])
                 .await?;
 
-                progress.set_message("pushing image");
-                sync_cmd_ok(&["docker", "push", &container_image]).await?;
+                if !dry_run {
+                    let container_image = format!("{PROJECT}/services/oort_compiler_service");
+                    let zone = "us-west1-b";
 
-                progress.set_message("deploying to Cloud Run");
-                sync_cmd_ok(&[
+                    progress.set_message("tagging");
+                    sync_cmd_ok(&[
+                        "docker",
+                        "tag",
+                        "oort_compiler_service:latest",
+                        &container_image,
+                    ])
+                    .await?;
+
+                    progress.set_message("pushing image");
+                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
+                    progress.set_message("deploying to Cloud Run");
+                    sync_cmd_ok(&[
                     "gcloud",
                     "run",
                     "deploy",
@@ -326,149 +330,152 @@ async fn main() -> anyhow::Result<()> {
                 ])
                 .await?;
 
-                progress.set_message("getting access token");
-                let token = sync_cmd_ok(&[
-                    "gcloud",
-                    "auth",
-                    "print-access-token",
-                    "--impersonate-service-account",
-                    "docker@oort-319301.iam.gserviceaccount.com",
-                ])
-                .await?
-                .stdout_string()
-                .trim()
-                .to_owned();
+                    progress.set_message("getting access token");
+                    let token = sync_cmd_ok(&[
+                        "gcloud",
+                        "auth",
+                        "print-access-token",
+                        "--impersonate-service-account",
+                        "docker@oort-319301.iam.gserviceaccount.com",
+                    ])
+                    .await?
+                    .stdout_string()
+                    .trim()
+                    .to_owned();
 
-                progress.set_message("VM: logging in to Artifact Registry");
-                sync_cmd_ok(&[
-                    "gcloud",
-                    "compute",
-                    "ssh",
-                    "server-1",
-                    "--zone",
-                    zone,
-                    "--",
-                    "docker",
-                    "login",
-                    "-u",
-                    "oauth2accesstoken",
-                    "--password",
-                    &token,
-                    "https://us-west1-docker.pkg.dev",
-                ])
-                .await?;
+                    progress.set_message("VM: logging in to Artifact Registry");
+                    sync_cmd_ok(&[
+                        "gcloud",
+                        "compute",
+                        "ssh",
+                        "server-1",
+                        "--zone",
+                        zone,
+                        "--",
+                        "docker",
+                        "login",
+                        "-u",
+                        "oauth2accesstoken",
+                        "--password",
+                        &token,
+                        "https://us-west1-docker.pkg.dev",
+                    ])
+                    .await?;
 
-                progress.set_message("VM: pulling image");
-                sync_cmd_ok(&[
-                    "gcloud",
-                    "compute",
-                    "ssh",
-                    "server-1",
-                    "--zone",
-                    zone,
-                    "--",
-                    "docker",
-                    "pull",
-                    "us-west1-docker.pkg.dev/oort-319301/services/oort_compiler_service",
-                ])
-                .await?;
+                    progress.set_message("VM: pulling image");
+                    sync_cmd_ok(&[
+                        "gcloud",
+                        "compute",
+                        "ssh",
+                        "server-1",
+                        "--zone",
+                        zone,
+                        "--",
+                        "docker",
+                        "pull",
+                        "us-west1-docker.pkg.dev/oort-319301/services/oort_compiler_service",
+                    ])
+                    .await?;
 
-                progress.set_message("VM: deleting old container");
-                sync_cmd_ok(&[
-                    "gcloud",
-                    "compute",
-                    "ssh",
-                    "server-1",
-                    "--zone",
-                    zone,
-                    "--",
-                    "docker",
-                    "container",
-                    "rm",
-                    "-f",
-                    "compiler_service",
-                ])
-                .await?;
+                    progress.set_message("VM: deleting old container");
+                    sync_cmd_ok(&[
+                        "gcloud",
+                        "compute",
+                        "ssh",
+                        "server-1",
+                        "--zone",
+                        zone,
+                        "--",
+                        "docker",
+                        "container",
+                        "rm",
+                        "-f",
+                        "compiler_service",
+                    ])
+                    .await?;
 
-                progress.set_message("VM: starting new container");
-                sync_cmd_ok(&[
-                    "gcloud",
-                    "compute",
-                    "ssh",
-                    "server-1",
-                    "--zone",
-                    zone,
-                    "--",
-                    "docker",
-                    "run",
-                    "--name=compiler_service",
-                    "--hostname=server-1",
-                    "--network=host",
-                    "--restart=always",
-                    "--log-opt",
-                    "max-size=500m",
-                    "--log-opt",
-                    "max-file=3",
-                    "--log-opt",
-                    "tag={{.Name}}",
-                    "--runtime=runc",
-                    "--detach=true",
-                    "us-west1-docker.pkg.dev/oort-319301/services/oort_compiler_service",
-                ])
-                .await?;
+                    progress.set_message("VM: starting new container");
+                    sync_cmd_ok(&[
+                        "gcloud",
+                        "compute",
+                        "ssh",
+                        "server-1",
+                        "--zone",
+                        zone,
+                        "--",
+                        "docker",
+                        "run",
+                        "--name=compiler_service",
+                        "--hostname=server-1",
+                        "--network=host",
+                        "--restart=always",
+                        "--log-opt",
+                        "max-size=500m",
+                        "--log-opt",
+                        "max-file=3",
+                        "--log-opt",
+                        "tag={{.Name}}",
+                        "--runtime=runc",
+                        "--detach=true",
+                        "us-west1-docker.pkg.dev/oort-319301/services/oort_compiler_service",
+                    ])
+                    .await?;
 
-                progress.set_message("VM: pruning images");
-                sync_cmd_ok(&[
-                    "gcloud", "compute", "ssh", "server-1", "--zone", zone, "--", "docker",
-                    "image", "prune", "--force",
-                ])
-                .await?;
+                    progress.set_message("VM: pruning images");
+                    sync_cmd_ok(&[
+                        "gcloud", "compute", "ssh", "server-1", "--zone", zone, "--", "docker",
+                        "image", "prune", "--force",
+                    ])
+                    .await?;
+                }
+
+                progress.finish_with_message("done");
+                Ok(())
             }
-
-            progress.finish_with_message("done");
-            Ok(())
-        });
+        }));
     }
 
     if args.components.contains(&Component::Telemetry) {
         let secrets = secrets.clone();
-        tasks.spawn(async move {
-            let progress = create_progress_bar("telemetry");
+        tasks.spawn(Retry::spawn(retry_strategy(), move || {
+            let secrets = secrets.clone();
+            async move {
+                let progress = create_progress_bar("telemetry");
 
-            progress.set_message("building");
-            sync_cmd_ok(&[
-                "docker",
-                "build",
-                "-f",
-                "services/telemetry/Dockerfile",
-                "--tag",
-                "oort_telemetry_service",
-                "--build-arg",
-                &format!(
-                    "DISCORD_TELEMETRY_WEBHOOK={}",
-                    secrets["DISCORD_TELEMETRY_WEBHOOK"].as_str().unwrap()
-                ),
-                ".",
-            ])
-            .await?;
-
-            if !dry_run {
-                let container_image = format!("{PROJECT}/services/oort_telemetry_service");
-
-                progress.set_message("tagging");
+                progress.set_message("building");
                 sync_cmd_ok(&[
                     "docker",
-                    "tag",
-                    "oort_telemetry_service:latest",
-                    &container_image,
+                    "build",
+                    "-f",
+                    "services/telemetry/Dockerfile",
+                    "--tag",
+                    "oort_telemetry_service",
+                    "--build-arg",
+                    &format!(
+                        "DISCORD_TELEMETRY_WEBHOOK={}",
+                        secrets["DISCORD_TELEMETRY_WEBHOOK"].as_str().unwrap()
+                    ),
+                    ".",
                 ])
                 .await?;
 
-                progress.set_message("pushing image");
-                sync_cmd_ok(&["docker", "push", &container_image]).await?;
+                if !dry_run {
+                    let container_image = format!("{PROJECT}/services/oort_telemetry_service");
 
-                progress.set_message("deploying");
-                sync_cmd_ok(&[
+                    progress.set_message("tagging");
+                    sync_cmd_ok(&[
+                        "docker",
+                        "tag",
+                        "oort_telemetry_service:latest",
+                        &container_image,
+                    ])
+                    .await?;
+
+                    progress.set_message("pushing image");
+                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
+                    progress.set_message("deploying");
+                    sync_cmd_ok(&[
                     "gcloud",
                     "run",
                     "deploy",
@@ -485,16 +492,19 @@ async fn main() -> anyhow::Result<()> {
                     "--service-account=oort-telemetry-service@oort-319301.iam.gserviceaccount.com",
                 ])
                 .await?;
-            }
+                }
 
-            progress.finish_with_message("done");
-            Ok(())
-        });
+                progress.finish_with_message("done");
+                Ok(())
+            }
+        }));
     }
 
     if args.components.contains(&Component::Leaderboard) {
         let secrets = secrets.clone();
-        tasks.spawn(async move {
+        tasks.spawn(Retry::spawn(retry_strategy(), move || {
+            let secrets = secrets.clone();
+            async move {
             let progress = create_progress_bar("leaderboard");
 
             progress.set_message("building");
@@ -547,47 +557,50 @@ async fn main() -> anyhow::Result<()> {
 
             progress.finish_with_message("done");
             Ok(())
-        });
+        }}));
     }
+
     if args.components.contains(&Component::Shortcode) {
         let secrets = secrets.clone();
-        tasks.spawn(async move {
-            let progress = create_progress_bar("shortcode");
+        tasks.spawn(Retry::spawn(retry_strategy(), move || {
+            let secrets = secrets.clone();
+            async move {
+                let progress = create_progress_bar("shortcode");
 
-            progress.set_message("building");
-            sync_cmd_ok(&[
-                "docker",
-                "build",
-                "-f",
-                "services/shortcode/Dockerfile",
-                "--tag",
-                "oort_shortcode_service",
-                "--build-arg",
-                &format!(
-                    "OORT_CODE_ENCRYPTION_SECRET={}",
-                    secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
-                ),
-                ".",
-            ])
-            .await?;
-
-            if !dry_run {
-                let container_image = format!("{PROJECT}/services/oort_shortcode_service");
-
-                progress.set_message("tagging");
+                progress.set_message("building");
                 sync_cmd_ok(&[
                     "docker",
-                    "tag",
-                    "oort_shortcode_service:latest",
-                    &container_image,
+                    "build",
+                    "-f",
+                    "services/shortcode/Dockerfile",
+                    "--tag",
+                    "oort_shortcode_service",
+                    "--build-arg",
+                    &format!(
+                        "OORT_CODE_ENCRYPTION_SECRET={}",
+                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                    ),
+                    ".",
                 ])
                 .await?;
 
-                progress.set_message("pushing image");
-                sync_cmd_ok(&["docker", "push", &container_image]).await?;
+                if !dry_run {
+                    let container_image = format!("{PROJECT}/services/oort_shortcode_service");
 
-                progress.set_message("deploying");
-                sync_cmd_ok(&[
+                    progress.set_message("tagging");
+                    sync_cmd_ok(&[
+                        "docker",
+                        "tag",
+                        "oort_shortcode_service:latest",
+                        &container_image,
+                    ])
+                    .await?;
+
+                    progress.set_message("pushing image");
+                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
+                    progress.set_message("deploying");
+                    sync_cmd_ok(&[
                     "gcloud",
                     "run",
                     "deploy",
@@ -604,11 +617,12 @@ async fn main() -> anyhow::Result<()> {
                     "--service-account=oort-shortcode-service@oort-319301.iam.gserviceaccount.com",
                 ])
                 .await?;
-            }
+                }
 
-            progress.finish_with_message("done");
-            Ok(())
-        });
+                progress.finish_with_message("done");
+                Ok(())
+            }
+        }));
     }
 
     if args.components.contains(&Component::Tools) {
@@ -793,4 +807,8 @@ fn create_progress_bar(prefix: &'static str) -> ProgressBar {
             .unwrap(),
     );
     progress
+}
+
+fn retry_strategy() -> std::iter::Take<ExponentialBackoff> {
+    ExponentialBackoff::from_millis(1000).take(3)
 }
