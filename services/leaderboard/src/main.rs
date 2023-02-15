@@ -199,6 +199,10 @@ async fn main() {
 
     log::info!("Starting oort_leaderboard_service");
     log::info!("Using project ID {}", project_id());
+    log::info!(
+        "hashed envelope secret: {:?}",
+        &oort_envelope::hashed_secret()
+    );
 
     let cors_handler = Cors::builder()
         .allow_any_origin()

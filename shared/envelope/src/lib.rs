@@ -9,6 +9,13 @@ fn secret() -> Vec<u8> {
         .to_vec()
 }
 
+pub fn hashed_secret() -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update("foo");
+    hasher.update(&secret());
+    hasher.finalize().to_vec()
+}
+
 fn perturb(data: &[u8]) -> Vec<u8> {
     data.iter().map(|x| !x).collect()
 }

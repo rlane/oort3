@@ -67,6 +67,10 @@ pub fn run_app() -> Result<(), JsValue> {
     let userid = userid::get_userid();
     log::info!("userid {}", &userid);
     log::info!("username {}", &userid::get_username());
+    log::info!(
+        "hashed envelope secret: {:?}",
+        &oort_envelope::hashed_secret()
+    );
     js::golden_layout::init();
     js::completion::init();
     yew::Renderer::<Main>::with_root(
