@@ -1796,7 +1796,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort-app"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -1840,7 +1840,7 @@ dependencies = [
 
 [[package]]
 name = "oort_analyzer_worker"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "console_error_panic_hook",
  "console_log",
@@ -1855,7 +1855,7 @@ dependencies = [
 
 [[package]]
 name = "oort_api"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "oorandom",
  "serde",
@@ -1863,14 +1863,14 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "sha2",
 ]
 
 [[package]]
 name = "oort_proto"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1878,7 +1878,7 @@ dependencies = [
 
 [[package]]
 name = "oort_renderer"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "image",
  "instant",
@@ -1894,7 +1894,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulation_worker"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "oort_simulator",
  "serde",
@@ -1903,7 +1903,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulator"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "bytes",
  "crossbeam",
@@ -1931,7 +1931,7 @@ dependencies = [
 
 [[package]]
 name = "oort_version"
-version = "0.36.1"
+version = "0.37.0"
 dependencies = [
  "built",
 ]

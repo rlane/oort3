@@ -1,6 +1,6 @@
 [package]
 name = "oort_leaderboard_service"
-version = "0.36.1"
+version = "0.37.0"
 publish = false
 edition = "2021"
 

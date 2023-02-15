@@ -1,6 +1,6 @@
 [package]
 name = "oort_ai"
-version = "0.36.1"
+version = "0.37.0"
 edition = "2021"
 authors = ["Rich Lane"]
 description = "A space fleet programming game."
