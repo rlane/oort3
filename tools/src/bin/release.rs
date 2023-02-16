@@ -182,7 +182,7 @@ async fn main() -> anyhow::Result<()> {
             std::str::from_utf8(&std::fs::read("CHANGELOG.md")?)?.to_owned();
         std::fs::write(
             "CHANGELOG.md",
-            &format!("### {version}\n{previous_changelog_contents}"),
+            &format!("### {version}\n\n{previous_changelog_contents}"),
         )?;
 
         sync_cmd_ok(&[
