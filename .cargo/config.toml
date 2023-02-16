@@ -1,0 +1,3 @@
+[alias]
+oort-release = "run --manifest-path tools/Cargo.toml --bin release --"
+oort-rebuild-ai = "run --manifest-path tools/Cargo.toml --bin build-builtin-ais --"
