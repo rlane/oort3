@@ -74,7 +74,7 @@ fn main() -> Result<()> {
         "trunk",
         "serve",
         "--dist",
-        "frontend/app/dist",
+        "frontend/app/dist-debug",
         "frontend/app/index.html",
         "--watch=frontend",
         "--watch=shared/ai/builtin-ai.tar.gz",
