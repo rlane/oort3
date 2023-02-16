@@ -8,16 +8,12 @@ pub struct Ship {}
 
 impl Ship {
     pub fn new() -> Ship {
+        set_radar_heading(rand(0.0, TAU));
         Ship {}
     }
 
     pub fn tick(&mut self) {
-        if current_time() < 5.0 {
-            accelerate(vec2(100.0, 0.0).rotate(heading()));
-            return;
-        }
-
-        set_radar_width(TAU / 60.0);
+        set_radar_width(TAU / 120.0);
         if let Some(contact) = scan() {
             accelerate(0.01 * (contact.position - position()) - 0.1 * velocity());
             turn_to(lead_target(contact.position, contact.velocity));
@@ -25,7 +21,7 @@ impl Ship {
             set_radar_heading((contact.position - position()).angle());
         } else {
             turn(0.0);
-            set_radar_heading(radar_heading() + TAU / 60.0);
+            set_radar_heading(radar_heading() + radar_width());
         }
     }
 }

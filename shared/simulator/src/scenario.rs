@@ -1166,7 +1166,7 @@ impl Scenario for Tutorial08 {
         {
             for _ in 0..3 {
                 let position = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                    .transform_point(&point![rng.gen_range(3500.0..4500.0), 0.0]);
+                    .transform_point(&point![rng.gen_range(6000.0..8000.0), 0.0]);
                 ship::create(
                     sim,
                     position.coords,
