@@ -207,6 +207,10 @@ void main() {
             }
         }
 
+        if positions.is_empty() {
+            return;
+        }
+
         self.context.use_program(Some(&self.program));
 
         let (buffer, vertices_offset) = self.buffer_arena.write(&quad_vertices);
