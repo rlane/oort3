@@ -71,6 +71,8 @@ async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("release=info"))
         .init();
 
+    let start_time = std::time::Instant::now();
+
     let args = Arguments::parse();
     let dry_run = args.dry_run;
 
@@ -711,7 +713,8 @@ async fn main() -> anyhow::Result<()> {
         response.error_for_status()?;
     }
 
-    log::info!("Finished");
+    let end_time = std::time::Instant::now();
+    log::info!("Finished in {:?}", end_time - start_time);
     Ok(())
 }
 
