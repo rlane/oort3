@@ -1,3 +1,6 @@
+- Moved enemies further away in tutorial08.
+- Fixed a crash when rendering empty text.
+
 ### 0.37.0
 - Added a button to the mission complete screen to copy a shortcode for the player's AI.
 
