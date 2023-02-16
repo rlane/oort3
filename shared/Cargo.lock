@@ -1359,14 +1359,14 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort_ai"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "oort_api",
 ]
 
 [[package]]
 name = "oort_api"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "oorandom",
  "serde",
@@ -1374,7 +1374,7 @@ dependencies = [
 
 [[package]]
 name = "oort_code_encryption"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1389,7 +1389,7 @@ dependencies = [
 
 [[package]]
 name = "oort_compiler"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -1399,14 +1399,14 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "sha2",
 ]
 
 [[package]]
 name = "oort_proto"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1414,7 +1414,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulator"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "approx",
  "bincode",
@@ -1450,7 +1450,7 @@ dependencies = [
 
 [[package]]
 name = "oort_version"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "built",
 ]

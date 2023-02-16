@@ -1,3 +1,5 @@
+### 0.38.0
+
 - Moved enemies further away in tutorial08.
 - Fixed a crash when rendering empty text.
 
