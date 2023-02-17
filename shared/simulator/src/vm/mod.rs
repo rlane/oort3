@@ -119,7 +119,12 @@ impl TeamController {
             )?;
 
             generate_system_state(sim, handle, state);
-            vm.write_system_state(state);
+            let memory_view = vm.memory_view();
+            let slice = vm
+                .system_state_ptr
+                .slice(&memory_view, SystemState::Size as u32)
+                .expect("system state write");
+            slice.write_slice(&state.state).expect("system state write");
         }
 
         let (index, _) = handle.0.into_raw_parts();
@@ -130,13 +135,20 @@ impl TeamController {
         )?;
 
         {
-            vm.read_system_state(state);
+            let memory_view = vm.memory_view();
+            let slice = vm
+                .system_state_ptr
+                .slice(&memory_view, SystemState::Size as u32)
+                .expect("system state read");
+            slice
+                .read_slice(&mut state.state)
+                .expect("system state read");
             apply_system_state(sim, handle, state);
 
             if state.get(SystemState::DebugTextLength) > 0.0 {
                 let offset = state.get(SystemState::DebugTextPointer) as u32;
                 let length = state.get(SystemState::DebugTextLength) as u32;
-                if let Some(s) = vm.read_string(offset, length) {
+                if let Some(s) = WasmVm::read_string(&memory_view, offset, length) {
                     sim.emit_debug_text(handle, s);
                 }
             }
@@ -145,7 +157,7 @@ impl TeamController {
                 let offset = state.get(SystemState::DebugLinesPointer) as u32;
                 let length = state.get(SystemState::DebugLinesLength) as u32;
                 if length <= 128 {
-                    if let Some(lines) = vm.read_vec::<Line>(offset, length) {
+                    if let Some(lines) = WasmVm::read_vec::<Line>(&memory_view, offset, length) {
                         if validate_lines(&lines) {
                             sim.emit_debug_lines(
                                 handle,
@@ -167,7 +179,7 @@ impl TeamController {
                 let offset = state.get(SystemState::DrawnTextPointer) as u32;
                 let length = state.get(SystemState::DrawnTextLength) as u32;
                 if length <= 128 {
-                    if let Some(texts) = vm.read_vec::<Text>(offset, length) {
+                    if let Some(texts) = WasmVm::read_vec::<Text>(&memory_view, offset, length) {
                         if validate_texts(&texts) {
                             sim.emit_drawn_text(handle, &texts);
                         }
@@ -242,41 +254,23 @@ impl WasmVm {
         self.memory.view(self.store().deref())
     }
 
-    fn read_system_state(&mut self, state: &mut LocalSystemState) {
-        let memory_view = self.memory_view();
-        let slice = self
-            .system_state_ptr
-            .slice(&memory_view, SystemState::Size as u32)
-            .expect("system state read");
-        slice
-            .read_slice(&mut state.state)
-            .expect("system state read");
-    }
-
-    fn write_system_state(&mut self, state: &LocalSystemState) {
-        let memory_view = self.memory_view();
-        let slice = self
-            .system_state_ptr
-            .slice(&memory_view, SystemState::Size as u32)
-            .expect("system state write");
-        slice.write_slice(&state.state).expect("system state write");
-    }
-
-    fn read_string(&self, offset: u32, length: u32) -> Option<String> {
-        let memory_view = self.memory_view();
+    fn read_string(memory_view: &MemoryView, offset: u32, length: u32) -> Option<String> {
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let mut bytes: Vec<u8> = Vec::new();
         bytes.resize(length as usize, 0);
-        let slice = ptr.slice(&memory_view, length).ok()?;
+        let slice = ptr.slice(memory_view, length).ok()?;
         slice.read_slice(&mut bytes).ok()?;
         String::from_utf8(bytes).ok()
     }
 
-    fn read_vec<T: Default + Clone>(&self, offset: u32, length: u32) -> Option<Vec<T>> {
-        let memory_view = self.memory_view();
+    fn read_vec<T: Default + Clone>(
+        memory_view: &MemoryView,
+        offset: u32,
+        length: u32,
+    ) -> Option<Vec<T>> {
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let byte_length = length.saturating_mul(std::mem::size_of::<T>() as u32);
-        let slice = ptr.slice(&memory_view, byte_length).ok()?;
+        let slice = ptr.slice(memory_view, byte_length).ok()?;
         let byte_vec = slice.read_to_vec().ok()?;
         let src_ptr = unsafe { std::mem::transmute::<*const u8, *const T>(byte_vec.as_ptr()) };
         let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
