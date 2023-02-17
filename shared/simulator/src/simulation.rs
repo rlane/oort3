@@ -168,6 +168,16 @@ impl Simulation {
     pub fn step(self: &mut Simulation) {
         self.events.clear();
 
+        let new_ships = std::mem::take(&mut self.new_ships);
+        for (team, handle) in new_ships.iter() {
+            if let Some(team_ctrl) = self.get_team_controller(*team) {
+                if let Err(e) = team_ctrl.borrow_mut().add_ship(*handle, self) {
+                    log::warn!("Ship creation error: {:?}", e);
+                    self.events.errors.push(e);
+                }
+            }
+        }
+
         let physics_start_time = Instant::now();
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
@@ -302,16 +312,6 @@ impl Simulation {
 
         for (_, team_controller) in teams.iter() {
             team_controller.borrow_mut().tick(self);
-        }
-
-        let new_ships = std::mem::take(&mut self.new_ships);
-        for (team, handle) in new_ships.iter() {
-            if let Some(team_ctrl) = self.get_team_controller(*team) {
-                if let Err(e) = team_ctrl.borrow_mut().add_ship(*handle, self) {
-                    log::warn!("Ship creation error: {:?}", e);
-                    self.events.errors.push(e);
-                }
-            }
         }
 
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
