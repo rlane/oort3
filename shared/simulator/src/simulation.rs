@@ -293,7 +293,9 @@ impl Simulation {
         self.timing.physics = (Instant::now() - physics_start_time).as_secs_f64();
 
         let script_start_time = Instant::now();
-        let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
+        let mut handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
+        handle_snapshot.sort_by_key(|handle| (self.ship(*handle).data().team, handle.0));
+
         for handle in handle_snapshot {
             let mut explode = false;
             if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
