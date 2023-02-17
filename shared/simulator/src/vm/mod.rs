@@ -56,38 +56,6 @@ pub struct TeamController {
     states: HashMap<ShipHandle, LocalSystemState>,
 }
 
-#[derive(Clone)]
-pub struct WasmVm {
-    store: Rc<RefCell<wasmer::Store>>,
-    memory: wasmer::Memory,
-    system_state_ptr: WasmPtr<f64>,
-    tick_ship: wasmer::Function,
-    delete_ship: wasmer::Function,
-    reset_gas: wasmer::Function,
-}
-
-#[cfg(feature = "precompile")]
-pub fn precompile(code: &[u8]) -> Result<Code, Error> {
-    let code = limiter::rewrite(code)?;
-    let store = Store::default();
-    let module = translate_error(Module::new(&store, code))?;
-    Ok(Code::Precompiled(translate_error(module.serialize())?))
-}
-
-impl WasmVm {
-    fn store(&self) -> Ref<'_, Store> {
-        self.store.borrow()
-    }
-
-    fn store_mut(&self) -> RefMut<'_, Store> {
-        self.store.borrow_mut()
-    }
-
-    pub fn memory_view(&self) -> MemoryView {
-        self.memory.view(self.store().deref())
-    }
-}
-
 impl TeamController {
     pub fn create(code: &Code) -> Result<Box<TeamController>, Error> {
         Ok(Box::new(TeamController {
@@ -140,7 +108,7 @@ impl TeamController {
         }
     }
 
-    pub fn tick_ship(&mut self, sim: &mut Simulation, handle: ShipHandle) -> Result<(), Error> {
+    fn tick_ship(&mut self, sim: &mut Simulation, handle: ShipHandle) -> Result<(), Error> {
         let vm = &mut self.vm;
         let state = self.states.get_mut(&handle).unwrap();
 
@@ -212,6 +180,16 @@ impl TeamController {
     }
 }
 
+#[derive(Clone)]
+pub struct WasmVm {
+    store: Rc<RefCell<wasmer::Store>>,
+    memory: wasmer::Memory,
+    system_state_ptr: WasmPtr<f64>,
+    tick_ship: wasmer::Function,
+    delete_ship: wasmer::Function,
+    reset_gas: wasmer::Function,
+}
+
 impl WasmVm {
     pub fn create(code: &Code) -> Result<WasmVm, Error> {
         let mut store = Store::default();
@@ -250,6 +228,18 @@ impl WasmVm {
             delete_ship,
             reset_gas,
         })
+    }
+
+    fn store(&self) -> Ref<'_, Store> {
+        self.store.borrow()
+    }
+
+    fn store_mut(&self) -> RefMut<'_, Store> {
+        self.store.borrow_mut()
+    }
+
+    fn memory_view(&self) -> MemoryView {
+        self.memory.view(self.store().deref())
     }
 
     fn read_system_state(&mut self, state: &mut LocalSystemState) {
@@ -294,29 +284,18 @@ impl WasmVm {
     }
 }
 
-fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::Hasher;
-    let mut s = DefaultHasher::new();
-    let (i, j) = handle.0.into_raw_parts();
-    s.write_u32(sim_seed);
-    s.write_u32(i);
-    s.write_u32(j);
-    s.finish() as i64
-}
-
 struct LocalSystemState {
     pub state: [f64; SystemState::Size as usize],
 }
 
 impl LocalSystemState {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             state: [0.0; SystemState::Size as usize],
         }
     }
 
-    pub fn get(&self, index: SystemState) -> f64 {
+    fn get(&self, index: SystemState) -> f64 {
         let v = self.state[index as usize];
         if v.is_nan() || v.is_infinite() {
             0.0
@@ -325,7 +304,7 @@ impl LocalSystemState {
         }
     }
 
-    pub fn set(&mut self, index: SystemState, value: f64) {
+    fn set(&mut self, index: SystemState, value: f64) {
         self.state[index as usize] = value;
     }
 }
@@ -546,4 +525,23 @@ fn validate_texts(texts: &[Text]) -> bool {
     texts
         .iter()
         .all(|t| validate_floats(&[t.x, t.y]) && t.length as usize <= t.text.len())
+}
+
+#[cfg(feature = "precompile")]
+pub fn precompile(code: &[u8]) -> Result<Code, Error> {
+    let code = limiter::rewrite(code)?;
+    let store = Store::default();
+    let module = translate_error(Module::new(&store, code))?;
+    Ok(Code::Precompiled(translate_error(module.serialize())?))
+}
+
+fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+    let mut s = DefaultHasher::new();
+    let (i, j) = handle.0.into_raw_parts();
+    s.write_u32(sim_seed);
+    s.write_u32(i);
+    s.write_u32(j);
+    s.finish() as i64
 }
