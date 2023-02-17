@@ -1,3 +1,6 @@
+- Added a serve binary to run a development server.
+- Improved simulation performance.
+
 ### 0.38.0
 
 - Moved enemies further away in tutorial08.
