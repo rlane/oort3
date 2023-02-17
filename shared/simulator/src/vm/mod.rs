@@ -184,35 +184,29 @@ impl WasmVm {
             reset_gas,
         })
     }
-}
 
-impl ShipController {
-    pub fn read_system_state(&mut self) {
-        let memory_view = self.vm.memory_view();
+    fn read_system_state(&mut self, state: &mut LocalSystemState) {
+        let memory_view = self.memory_view();
         let slice = self
-            .vm
             .system_state_ptr
             .slice(&memory_view, SystemState::Size as u32)
             .expect("system state read");
         slice
-            .read_slice(&mut self.state.state)
+            .read_slice(&mut state.state)
             .expect("system state read");
     }
 
-    pub fn write_system_state(&self) {
-        let memory_view = self.vm.memory_view();
+    fn write_system_state(&mut self, state: &LocalSystemState) {
+        let memory_view = self.memory_view();
         let slice = self
-            .vm
             .system_state_ptr
             .slice(&memory_view, SystemState::Size as u32)
             .expect("system state write");
-        slice
-            .write_slice(&self.state.state)
-            .expect("system state write");
+        slice.write_slice(&state.state).expect("system state write");
     }
 
-    pub fn read_string(&self, offset: u32, length: u32) -> Option<String> {
-        let memory_view = self.vm.memory_view();
+    fn read_string(&self, offset: u32, length: u32) -> Option<String> {
+        let memory_view = self.memory_view();
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let mut bytes: Vec<u8> = Vec::new();
         bytes.resize(length as usize, 0);
@@ -221,8 +215,8 @@ impl ShipController {
         String::from_utf8(bytes).ok()
     }
 
-    pub fn read_vec<T: Default + Clone>(&self, offset: u32, length: u32) -> Option<Vec<T>> {
-        let memory_view = self.vm.memory_view();
+    fn read_vec<T: Default + Clone>(&self, offset: u32, length: u32) -> Option<Vec<T>> {
+        let memory_view = self.memory_view();
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
         let byte_length = length.saturating_mul(std::mem::size_of::<T>() as u32);
         let slice = ptr.slice(&memory_view, byte_length).ok()?;
@@ -231,47 +225,51 @@ impl ShipController {
         let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
         Some(src_slice.to_vec())
     }
+}
 
+impl ShipController {
     pub fn tick(&mut self, sim: &mut Simulation) -> Result<(), Error> {
+        let vm = &mut self.vm;
+        let handle = self.handle;
+        let state = &mut self.state;
+
         {
             translate_runtime_error(
-                self.vm
-                    .reset_gas
-                    .call(self.vm.store_mut().deref_mut(), &[GAS_PER_TICK.into()]),
+                vm.reset_gas
+                    .call(vm.store_mut().deref_mut(), &[GAS_PER_TICK.into()]),
             )?;
 
-            generate_system_state(sim, self.handle, &mut self.state);
-            self.write_system_state();
+            generate_system_state(sim, handle, state);
+            vm.write_system_state(state);
         }
 
-        let (index, _) = self.handle.0.into_raw_parts();
+        let (index, _) = handle.0.into_raw_parts();
         let index = index as i32;
         translate_runtime_error(
-            self.vm
-                .tick_ship
-                .call(self.vm.store_mut().deref_mut(), &[index.into()]),
+            vm.tick_ship
+                .call(vm.store_mut().deref_mut(), &[index.into()]),
         )?;
 
         {
-            self.read_system_state();
-            apply_system_state(sim, self.handle, &mut self.state);
+            vm.read_system_state(state);
+            apply_system_state(sim, handle, state);
 
-            if self.state.get(SystemState::DebugTextLength) > 0.0 {
-                let offset = self.state.get(SystemState::DebugTextPointer) as u32;
-                let length = self.state.get(SystemState::DebugTextLength) as u32;
-                if let Some(s) = self.read_string(offset, length) {
-                    sim.emit_debug_text(self.handle, s);
+            if state.get(SystemState::DebugTextLength) > 0.0 {
+                let offset = state.get(SystemState::DebugTextPointer) as u32;
+                let length = state.get(SystemState::DebugTextLength) as u32;
+                if let Some(s) = vm.read_string(offset, length) {
+                    sim.emit_debug_text(handle, s);
                 }
             }
 
-            if self.state.get(SystemState::DebugLinesLength) > 0.0 {
-                let offset = self.state.get(SystemState::DebugLinesPointer) as u32;
-                let length = self.state.get(SystemState::DebugLinesLength) as u32;
+            if state.get(SystemState::DebugLinesLength) > 0.0 {
+                let offset = state.get(SystemState::DebugLinesPointer) as u32;
+                let length = state.get(SystemState::DebugLinesLength) as u32;
                 if length <= 128 {
-                    if let Some(lines) = self.read_vec::<Line>(offset, length) {
+                    if let Some(lines) = vm.read_vec::<Line>(offset, length) {
                         if validate_lines(&lines) {
                             sim.emit_debug_lines(
-                                self.handle,
+                                handle,
                                 &lines
                                     .iter()
                                     .map(|v| crate::debug::Line {
@@ -286,13 +284,13 @@ impl ShipController {
                 }
             }
 
-            if self.state.get(SystemState::DrawnTextLength) > 0.0 {
-                let offset = self.state.get(SystemState::DrawnTextPointer) as u32;
-                let length = self.state.get(SystemState::DrawnTextLength) as u32;
+            if state.get(SystemState::DrawnTextLength) > 0.0 {
+                let offset = state.get(SystemState::DrawnTextPointer) as u32;
+                let length = state.get(SystemState::DrawnTextLength) as u32;
                 if length <= 128 {
-                    if let Some(texts) = self.read_vec::<Text>(offset, length) {
+                    if let Some(texts) = vm.read_vec::<Text>(offset, length) {
                         if validate_texts(&texts) {
-                            sim.emit_drawn_text(self.handle, &texts);
+                            sim.emit_drawn_text(handle, &texts);
                         }
                     }
                 }
