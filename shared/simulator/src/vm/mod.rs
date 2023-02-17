@@ -240,101 +240,7 @@ impl ShipController {
                     .call(self.vm.store_mut().deref_mut(), &[GAS_PER_TICK.into()]),
             )?;
 
-            self.state.set(
-                SystemState::Class,
-                translate_class(sim.ship(self.handle).data().class) as u32 as f64,
-            );
-
-            let position = sim.ship(self.handle).position();
-            self.state.set(SystemState::PositionX, position.x);
-            self.state.set(SystemState::PositionY, position.y);
-
-            let velocity = sim.ship(self.handle).velocity();
-            self.state.set(SystemState::VelocityX, velocity.x);
-            self.state.set(SystemState::VelocityY, velocity.y);
-
-            self.state
-                .set(SystemState::Heading, sim.ship(self.handle).heading());
-            self.state.set(
-                SystemState::AngularVelocity,
-                sim.ship(self.handle).angular_velocity(),
-            );
-
-            if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
-                self.state
-                    .set(SystemState::RadarHeading, radar.get_heading());
-                self.state.set(SystemState::RadarWidth, radar.get_width());
-                self.state
-                    .set(SystemState::RadarMinDistance, radar.get_min_distance());
-                self.state
-                    .set(SystemState::RadarMaxDistance, radar.get_max_distance());
-
-                if let Some(contact) = radar.scan() {
-                    self.state.set(SystemState::RadarContactFound, 1.0);
-                    self.state
-                        .set(SystemState::RadarContactPositionX, contact.position.x);
-                    self.state
-                        .set(SystemState::RadarContactPositionY, contact.position.y);
-                    self.state
-                        .set(SystemState::RadarContactVelocityX, contact.velocity.x);
-                    self.state
-                        .set(SystemState::RadarContactVelocityY, contact.velocity.y);
-                    self.state.set(
-                        SystemState::RadarContactClass,
-                        translate_class(contact.class) as u32 as f64,
-                    );
-                } else {
-                    self.state.set(SystemState::RadarContactFound, 0.0);
-                }
-            } else if let Some(target) = sim.ship(self.handle).data().target.as_ref() {
-                self.state
-                    .set(SystemState::RadarContactPositionX, target.position.x);
-                self.state
-                    .set(SystemState::RadarContactPositionY, target.position.y);
-                self.state
-                    .set(SystemState::RadarContactVelocityX, target.velocity.x);
-                self.state
-                    .set(SystemState::RadarContactVelocityY, target.velocity.y);
-            }
-
-            {
-                let ship = sim.ship(self.handle);
-                let data = ship.data();
-                self.state.set(
-                    SystemState::MaxForwardAcceleration,
-                    data.max_forward_acceleration,
-                );
-                self.state.set(
-                    SystemState::MaxBackwardAcceleration,
-                    data.max_backward_acceleration,
-                );
-                self.state.set(
-                    SystemState::MaxLateralAcceleration,
-                    data.max_lateral_acceleration,
-                );
-                self.state.set(
-                    SystemState::MaxAngularAcceleration,
-                    data.max_angular_acceleration,
-                );
-            }
-
-            for (i, radio) in sim.ship(self.handle).data().radios.iter().enumerate() {
-                let idxs = oort_api::prelude::radio_internal::radio_indices(i);
-                self.state.set(idxs.channel, radio.get_channel() as f64);
-                if let Some(msg) = radio.get_received() {
-                    self.state.set(idxs.receive, 1.0);
-                    self.state.set(idxs.data[0], msg[0]);
-                    self.state.set(idxs.data[1], msg[1]);
-                    self.state.set(idxs.data[2], msg[2]);
-                    self.state.set(idxs.data[3], msg[3]);
-                } else {
-                    self.state.set(idxs.receive, 0.0);
-                }
-                self.state.set(idxs.send, 0.0);
-            }
-
-            self.state.set(SystemState::CurrentTick, sim.tick() as f64);
-
+            generate_system_state(sim, self.handle, &mut self.state);
             self.write_system_state();
         }
 
@@ -348,52 +254,7 @@ impl ShipController {
 
         {
             self.read_system_state();
-
-            sim.ship_mut(self.handle).accelerate(Vec2::new(
-                self.state.get(SystemState::AccelerateX),
-                self.state.get(SystemState::AccelerateY),
-            ));
-            self.state.set(SystemState::AccelerateX, 0.0);
-            self.state.set(SystemState::AccelerateY, 0.0);
-
-            sim.ship_mut(self.handle)
-                .torque(self.state.get(SystemState::Torque));
-            self.state.set(SystemState::Torque, 0.0);
-
-            for (i, (aim, fire)) in [
-                (SystemState::Aim0, SystemState::Fire0),
-                (SystemState::Aim1, SystemState::Fire1),
-                (SystemState::Aim2, SystemState::Fire2),
-                (SystemState::Aim3, SystemState::Fire3),
-            ]
-            .iter()
-            .enumerate()
-            {
-                if self.state.get(*fire) > 0.0 {
-                    sim.ship_mut(self.handle)
-                        .aim(i as i64, self.state.get(*aim));
-                    sim.ship_mut(self.handle).fire(i as i64);
-                    self.state.set(*fire, 0.0);
-                }
-            }
-
-            if let Some(radar) = sim.ship_mut(self.handle).data_mut().radar.as_mut() {
-                radar.set_heading(self.state.get(SystemState::RadarHeading));
-                radar.set_width(self.state.get(SystemState::RadarWidth));
-                radar.set_min_distance(self.state.get(SystemState::RadarMinDistance));
-                radar.set_max_distance(self.state.get(SystemState::RadarMaxDistance));
-            }
-
-            if let Some(ability) = translate_ability(self.state.get(SystemState::ActivateAbility)) {
-                if ability != Ability::None {
-                    sim.ship_mut(self.handle).activate_ability(ability);
-                }
-            }
-
-            if self.state.get(SystemState::Explode) > 0.0 {
-                sim.ship_mut(self.handle).explode();
-                self.state.set(SystemState::Explode, 0.0);
-            }
+            apply_system_state(sim, self.handle, &mut self.state);
 
             if self.state.get(SystemState::DebugTextLength) > 0.0 {
                 let offset = self.state.get(SystemState::DebugTextPointer) as u32;
@@ -436,27 +297,8 @@ impl ShipController {
                     }
                 }
             }
-
-            for (i, radio) in sim
-                .ship_mut(self.handle)
-                .data_mut()
-                .radios
-                .iter_mut()
-                .enumerate()
-            {
-                let idxs = oort_api::prelude::radio_internal::radio_indices(i);
-                radio.set_channel(self.state.get(idxs.channel) as usize);
-                if self.state.get(idxs.send) != 0.0 {
-                    let msg = [
-                        self.state.get(idxs.data[0]),
-                        self.state.get(idxs.data[1]),
-                        self.state.get(idxs.data[2]),
-                        self.state.get(idxs.data[3]),
-                    ];
-                    radio.set_sent(Some(msg));
-                }
-            }
         }
+
         Ok(())
     }
 
@@ -506,6 +348,157 @@ impl LocalSystemState {
 
     pub fn set(&mut self, index: SystemState, value: f64) {
         self.state[index as usize] = value;
+    }
+}
+
+fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
+    state.set(
+        SystemState::Class,
+        translate_class(sim.ship(handle).data().class) as u32 as f64,
+    );
+
+    let position = sim.ship(handle).position();
+    state.set(SystemState::PositionX, position.x);
+    state.set(SystemState::PositionY, position.y);
+
+    let velocity = sim.ship(handle).velocity();
+    state.set(SystemState::VelocityX, velocity.x);
+    state.set(SystemState::VelocityY, velocity.y);
+
+    state.set(SystemState::Heading, sim.ship(handle).heading());
+    state.set(
+        SystemState::AngularVelocity,
+        sim.ship(handle).angular_velocity(),
+    );
+
+    if let Some(radar) = sim.ship_mut(handle).data_mut().radar.as_mut() {
+        state.set(SystemState::RadarHeading, radar.get_heading());
+        state.set(SystemState::RadarWidth, radar.get_width());
+        state.set(SystemState::RadarMinDistance, radar.get_min_distance());
+        state.set(SystemState::RadarMaxDistance, radar.get_max_distance());
+
+        if let Some(contact) = radar.scan() {
+            state.set(SystemState::RadarContactFound, 1.0);
+            state.set(SystemState::RadarContactPositionX, contact.position.x);
+            state.set(SystemState::RadarContactPositionY, contact.position.y);
+            state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
+            state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
+            state.set(
+                SystemState::RadarContactClass,
+                translate_class(contact.class) as u32 as f64,
+            );
+        } else {
+            state.set(SystemState::RadarContactFound, 0.0);
+        }
+    } else if let Some(target) = sim.ship(handle).data().target.as_ref() {
+        state.set(SystemState::RadarContactPositionX, target.position.x);
+        state.set(SystemState::RadarContactPositionY, target.position.y);
+        state.set(SystemState::RadarContactVelocityX, target.velocity.x);
+        state.set(SystemState::RadarContactVelocityY, target.velocity.y);
+    }
+
+    {
+        let ship = sim.ship(handle);
+        let data = ship.data();
+        state.set(
+            SystemState::MaxForwardAcceleration,
+            data.max_forward_acceleration,
+        );
+        state.set(
+            SystemState::MaxBackwardAcceleration,
+            data.max_backward_acceleration,
+        );
+        state.set(
+            SystemState::MaxLateralAcceleration,
+            data.max_lateral_acceleration,
+        );
+        state.set(
+            SystemState::MaxAngularAcceleration,
+            data.max_angular_acceleration,
+        );
+    }
+
+    for (i, radio) in sim.ship(handle).data().radios.iter().enumerate() {
+        let idxs = oort_api::prelude::radio_internal::radio_indices(i);
+        state.set(idxs.channel, radio.get_channel() as f64);
+        if let Some(msg) = radio.get_received() {
+            state.set(idxs.receive, 1.0);
+            state.set(idxs.data[0], msg[0]);
+            state.set(idxs.data[1], msg[1]);
+            state.set(idxs.data[2], msg[2]);
+            state.set(idxs.data[3], msg[3]);
+        } else {
+            state.set(idxs.receive, 0.0);
+        }
+        state.set(idxs.send, 0.0);
+    }
+
+    state.set(SystemState::CurrentTick, sim.tick() as f64);
+}
+
+fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
+    sim.ship_mut(handle).accelerate(Vec2::new(
+        state.get(SystemState::AccelerateX),
+        state.get(SystemState::AccelerateY),
+    ));
+    state.set(SystemState::AccelerateX, 0.0);
+    state.set(SystemState::AccelerateY, 0.0);
+
+    sim.ship_mut(handle).torque(state.get(SystemState::Torque));
+    state.set(SystemState::Torque, 0.0);
+
+    for (i, (aim, fire)) in [
+        (SystemState::Aim0, SystemState::Fire0),
+        (SystemState::Aim1, SystemState::Fire1),
+        (SystemState::Aim2, SystemState::Fire2),
+        (SystemState::Aim3, SystemState::Fire3),
+    ]
+    .iter()
+    .enumerate()
+    {
+        if state.get(*fire) > 0.0 {
+            sim.ship_mut(handle).aim(i as i64, state.get(*aim));
+            sim.ship_mut(handle).fire(i as i64);
+            state.set(*fire, 0.0);
+        }
+    }
+
+    if let Some(radar) = sim.ship_mut(handle).data_mut().radar.as_mut() {
+        radar.set_heading(state.get(SystemState::RadarHeading));
+        radar.set_width(state.get(SystemState::RadarWidth));
+        radar.set_min_distance(state.get(SystemState::RadarMinDistance));
+        radar.set_max_distance(state.get(SystemState::RadarMaxDistance));
+    }
+
+    if let Some(ability) = translate_ability(state.get(SystemState::ActivateAbility)) {
+        if ability != Ability::None {
+            sim.ship_mut(handle).activate_ability(ability);
+        }
+    }
+
+    if state.get(SystemState::Explode) > 0.0 {
+        sim.ship_mut(handle).explode();
+        state.set(SystemState::Explode, 0.0);
+    }
+
+    for (i, radio) in sim
+        .ship_mut(handle)
+        .data_mut()
+        .radios
+        .iter_mut()
+        .enumerate()
+    {
+        let idxs = oort_api::prelude::radio_internal::radio_indices(i);
+        radio.set_channel(state.get(idxs.channel) as usize);
+        if state.get(idxs.send) != 0.0 {
+            let msg = [
+                state.get(idxs.data[0]),
+                state.get(idxs.data[1]),
+                state.get(idxs.data[2]),
+                state.get(idxs.data[3]),
+            ];
+            radio.set_sent(Some(msg));
+        }
     }
 }
 
