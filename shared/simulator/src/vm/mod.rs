@@ -53,13 +53,7 @@ pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
 
 pub struct TeamController {
     vm: WasmVm,
-    ships: HashMap<ShipHandle, ShipController>,
-}
-
-pub struct ShipController {
-    handle: ShipHandle,
-    vm: WasmVm,
-    state: LocalSystemState,
+    states: HashMap<ShipHandle, LocalSystemState>,
 }
 
 #[derive(Clone)]
@@ -98,50 +92,123 @@ impl TeamController {
     pub fn create(code: &Code) -> Result<Box<TeamController>, Error> {
         Ok(Box::new(TeamController {
             vm: WasmVm::create(code)?,
-            ships: HashMap::new(),
+            states: HashMap::new(),
         }))
     }
 
     pub fn add_ship(&mut self, handle: ShipHandle, sim: &Simulation) -> Result<(), Error> {
-        let mut ctrl = ShipController {
-            handle,
-            vm: self.vm.clone(),
-            state: LocalSystemState::new(),
-        };
+        let mut state = LocalSystemState::new();
 
-        ctrl.state.set(
+        state.set(
             SystemState::Seed,
             (make_seed(sim.seed(), handle) & 0xffffff) as f64,
         );
         if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
-            ctrl.state.set(SystemState::RadarHeading, radar.heading);
-            ctrl.state.set(SystemState::RadarWidth, radar.width);
-            ctrl.state
-                .set(SystemState::RadarMinDistance, radar.min_distance);
-            ctrl.state
-                .set(SystemState::RadarMaxDistance, radar.max_distance);
+            state.set(SystemState::RadarHeading, radar.heading);
+            state.set(SystemState::RadarWidth, radar.width);
+            state.set(SystemState::RadarMinDistance, radar.min_distance);
+            state.set(SystemState::RadarMaxDistance, radar.max_distance);
         }
 
-        self.ships.insert(handle, ctrl);
+        self.states.insert(handle, state);
 
         Ok(())
     }
 
     pub fn remove_ship(&mut self, handle: ShipHandle) {
-        self.ships.remove(&handle);
+        self.states.remove(&handle);
+        let (index, _) = handle.0.into_raw_parts();
+        let index = index as i32;
+        if let Err(e) = translate_runtime_error(
+            self.vm
+                .delete_ship
+                .call(self.vm.store_mut().deref_mut(), &[index.into()]),
+        ) {
+            log::warn!("Failed to delete ship: {:?}", e);
+        }
     }
 
     pub fn tick(&mut self, sim: &mut Simulation) {
-        let mut handles: Vec<_> = self.ships.keys().cloned().collect();
+        let mut handles: Vec<_> = self.states.keys().cloned().collect();
         handles.sort_by_key(|x| x.0);
 
         for handle in handles {
-            let ctrl = self.ships.get_mut(&handle).unwrap();
-            if let Err(e) = ctrl.tick(sim) {
+            if let Err(e) = self.tick_ship(sim, handle) {
                 log::warn!("{}", e.msg);
                 sim.ship_mut(handle).explode();
             }
         }
+    }
+
+    pub fn tick_ship(&mut self, sim: &mut Simulation, handle: ShipHandle) -> Result<(), Error> {
+        let vm = &mut self.vm;
+        let state = self.states.get_mut(&handle).unwrap();
+
+        {
+            translate_runtime_error(
+                vm.reset_gas
+                    .call(vm.store_mut().deref_mut(), &[GAS_PER_TICK.into()]),
+            )?;
+
+            generate_system_state(sim, handle, state);
+            vm.write_system_state(state);
+        }
+
+        let (index, _) = handle.0.into_raw_parts();
+        let index = index as i32;
+        translate_runtime_error(
+            vm.tick_ship
+                .call(vm.store_mut().deref_mut(), &[index.into()]),
+        )?;
+
+        {
+            vm.read_system_state(state);
+            apply_system_state(sim, handle, state);
+
+            if state.get(SystemState::DebugTextLength) > 0.0 {
+                let offset = state.get(SystemState::DebugTextPointer) as u32;
+                let length = state.get(SystemState::DebugTextLength) as u32;
+                if let Some(s) = vm.read_string(offset, length) {
+                    sim.emit_debug_text(handle, s);
+                }
+            }
+
+            if state.get(SystemState::DebugLinesLength) > 0.0 {
+                let offset = state.get(SystemState::DebugLinesPointer) as u32;
+                let length = state.get(SystemState::DebugLinesLength) as u32;
+                if length <= 128 {
+                    if let Some(lines) = vm.read_vec::<Line>(offset, length) {
+                        if validate_lines(&lines) {
+                            sim.emit_debug_lines(
+                                handle,
+                                &lines
+                                    .iter()
+                                    .map(|v| crate::debug::Line {
+                                        a: point![v.x0, v.y0],
+                                        b: point![v.x1, v.y1],
+                                        color: debug::convert_color(v.color),
+                                    })
+                                    .collect::<Vec<debug::Line>>(),
+                            );
+                        }
+                    }
+                }
+            }
+
+            if state.get(SystemState::DrawnTextLength) > 0.0 {
+                let offset = state.get(SystemState::DrawnTextPointer) as u32;
+                let length = state.get(SystemState::DrawnTextLength) as u32;
+                if length <= 128 {
+                    if let Some(texts) = vm.read_vec::<Text>(offset, length) {
+                        if validate_texts(&texts) {
+                            sim.emit_drawn_text(handle, &texts);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -224,92 +291,6 @@ impl WasmVm {
         let src_ptr = unsafe { std::mem::transmute::<*const u8, *const T>(byte_vec.as_ptr()) };
         let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
         Some(src_slice.to_vec())
-    }
-}
-
-impl ShipController {
-    pub fn tick(&mut self, sim: &mut Simulation) -> Result<(), Error> {
-        let vm = &mut self.vm;
-        let handle = self.handle;
-        let state = &mut self.state;
-
-        {
-            translate_runtime_error(
-                vm.reset_gas
-                    .call(vm.store_mut().deref_mut(), &[GAS_PER_TICK.into()]),
-            )?;
-
-            generate_system_state(sim, handle, state);
-            vm.write_system_state(state);
-        }
-
-        let (index, _) = handle.0.into_raw_parts();
-        let index = index as i32;
-        translate_runtime_error(
-            vm.tick_ship
-                .call(vm.store_mut().deref_mut(), &[index.into()]),
-        )?;
-
-        {
-            vm.read_system_state(state);
-            apply_system_state(sim, handle, state);
-
-            if state.get(SystemState::DebugTextLength) > 0.0 {
-                let offset = state.get(SystemState::DebugTextPointer) as u32;
-                let length = state.get(SystemState::DebugTextLength) as u32;
-                if let Some(s) = vm.read_string(offset, length) {
-                    sim.emit_debug_text(handle, s);
-                }
-            }
-
-            if state.get(SystemState::DebugLinesLength) > 0.0 {
-                let offset = state.get(SystemState::DebugLinesPointer) as u32;
-                let length = state.get(SystemState::DebugLinesLength) as u32;
-                if length <= 128 {
-                    if let Some(lines) = vm.read_vec::<Line>(offset, length) {
-                        if validate_lines(&lines) {
-                            sim.emit_debug_lines(
-                                handle,
-                                &lines
-                                    .iter()
-                                    .map(|v| crate::debug::Line {
-                                        a: point![v.x0, v.y0],
-                                        b: point![v.x1, v.y1],
-                                        color: debug::convert_color(v.color),
-                                    })
-                                    .collect::<Vec<debug::Line>>(),
-                            );
-                        }
-                    }
-                }
-            }
-
-            if state.get(SystemState::DrawnTextLength) > 0.0 {
-                let offset = state.get(SystemState::DrawnTextPointer) as u32;
-                let length = state.get(SystemState::DrawnTextLength) as u32;
-                if length <= 128 {
-                    if let Some(texts) = vm.read_vec::<Text>(offset, length) {
-                        if validate_texts(&texts) {
-                            sim.emit_drawn_text(handle, &texts);
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn delete(&mut self) {
-        let (index, _) = self.handle.0.into_raw_parts();
-        let index = index as i32;
-        if let Err(e) = translate_runtime_error(
-            self.vm
-                .delete_ship
-                .call(self.vm.store_mut().deref_mut(), &[index.into()]),
-        ) {
-            log::warn!("Failed to delete ship: {:?}", e);
-        }
     }
 }
 
