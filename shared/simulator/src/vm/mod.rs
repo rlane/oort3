@@ -5,7 +5,6 @@ use crate::debug;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Simulation};
 use nalgebra::point;
-use nalgebra::Vector2;
 use oort_api::{Ability, Class, Line, SystemState, Text};
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
@@ -38,26 +37,11 @@ impl From<wasmer::InstantiationError> for Error {
         }
     }
 }
-
-pub trait TeamController {
-    fn create_ship_controller(
-        &mut self,
-        handle: ShipHandle,
-        sim: &mut Simulation,
-    ) -> Result<Box<dyn ShipController>, Error>;
-}
-
-pub trait ShipController {
-    fn tick(&mut self) -> Result<(), Error>;
-    fn delete(&mut self);
-    fn write_target(&mut self, position: Vector2<f64>, velocity: Vector2<f64>);
-}
-
-pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error> {
+pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
     match code {
-        Code::Wasm(_) => WasmTeamController::create(code),
+        Code::Wasm(_) => TeamController::create(code),
         #[cfg(feature = "precompile")]
-        Code::Precompiled(_) => WasmTeamController::create(code),
+        Code::Precompiled(_) => TeamController::create(code),
         Code::Builtin(name) => match builtin::load_compiled(name) {
             Ok(code) => new_team_controller(&code),
             Err(e) => Err(Error { msg: e }),
@@ -68,13 +52,13 @@ pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamController>, Error
 
 const MAX_VMS: usize = 1;
 
-pub struct WasmTeamController {
+pub struct TeamController {
     code: Code,
     vms: Vec<WasmVm>,
     index: usize,
 }
 
-struct WasmShipController {
+pub struct ShipController {
     sim: *mut Simulation,
     handle: ShipHandle,
     vm: WasmVm,
@@ -113,9 +97,9 @@ impl WasmVm {
     }
 }
 
-impl WasmTeamController {
-    pub fn create(code: &Code) -> Result<Box<dyn TeamController>, Error> {
-        Ok(Box::new(WasmTeamController {
+impl TeamController {
+    pub fn create(code: &Code) -> Result<Box<TeamController>, Error> {
+        Ok(Box::new(TeamController {
             code: code.clone(),
             vms: Vec::new(),
             index: 0,
@@ -136,15 +120,13 @@ impl WasmTeamController {
         self.index += 1;
         Ok(vm)
     }
-}
 
-impl TeamController for WasmTeamController {
-    fn create_ship_controller(
+    pub fn create_ship_controller(
         &mut self,
         handle: ShipHandle,
         sim: &mut Simulation,
-    ) -> Result<Box<dyn ShipController>, Error> {
-        let mut ctrl = WasmShipController {
+    ) -> Result<Box<ShipController>, Error> {
+        let mut ctrl = ShipController {
             handle,
             sim,
             vm: self.assign_vm()?,
@@ -209,7 +191,7 @@ impl WasmVm {
     }
 }
 
-impl WasmShipController {
+impl ShipController {
     pub fn read_system_state(&mut self) {
         let memory_view = self.vm.memory_view();
         let slice = self
@@ -254,21 +236,8 @@ impl WasmShipController {
         let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
         Some(src_slice.to_vec())
     }
-}
 
-fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::Hasher;
-    let mut s = DefaultHasher::new();
-    let (i, j) = handle.0.into_raw_parts();
-    s.write_u32(sim_seed);
-    s.write_u32(i);
-    s.write_u32(j);
-    s.finish() as i64
-}
-
-impl ShipController for WasmShipController {
-    fn tick(&mut self) -> Result<(), Error> {
+    pub fn tick(&mut self) -> Result<(), Error> {
         {
             let sim = unsafe { &mut *self.sim };
 
@@ -490,7 +459,7 @@ impl ShipController for WasmShipController {
         Ok(())
     }
 
-    fn delete(&mut self) {
+    pub fn delete(&mut self) {
         let (index, _) = self.handle.0.into_raw_parts();
         let index = index as i32;
         if let Err(e) = translate_runtime_error(
@@ -502,7 +471,7 @@ impl ShipController for WasmShipController {
         }
     }
 
-    fn write_target(&mut self, position: Vec2, velocity: Vec2) {
+    pub fn write_target(&mut self, position: Vec2, velocity: Vec2) {
         self.state
             .set(SystemState::RadarContactPositionX, position.x);
         self.state
@@ -512,6 +481,17 @@ impl ShipController for WasmShipController {
         self.state
             .set(SystemState::RadarContactVelocityY, velocity.y);
     }
+}
+
+fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+    let mut s = DefaultHasher::new();
+    let (i, j) = handle.0.into_raw_parts();
+    s.write_u32(sim_seed);
+    s.write_u32(i);
+    s.write_u32(j);
+    s.finish() as i64
 }
 
 struct LocalSystemState {

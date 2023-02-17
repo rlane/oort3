@@ -41,8 +41,8 @@ pub struct Simulation {
     scenario: Option<Box<dyn Scenario>>,
     pub ships: IndexSet<ShipHandle>,
     pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
-    team_controllers: HashMap<i32, Rc<RefCell<Box<dyn TeamController>>>>,
-    pub(crate) ship_controllers: HashMap<ShipHandle, Box<dyn ShipController>>,
+    team_controllers: HashMap<i32, Rc<RefCell<Box<TeamController>>>>,
+    pub(crate) ship_controllers: HashMap<ShipHandle, Box<ShipController>>,
     pub bullets: IndexSet<BulletHandle>,
     pub(crate) bullet_data: HashMap<BulletHandle, BulletData>,
     pub(crate) bodies: RigidBodySet,
@@ -440,10 +440,7 @@ impl Simulation {
         snapshot
     }
 
-    pub fn get_team_controller(
-        &mut self,
-        team: i32,
-    ) -> Option<Rc<RefCell<Box<dyn TeamController>>>> {
+    pub fn get_team_controller(&mut self, team: i32) -> Option<Rc<RefCell<Box<TeamController>>>> {
         self.team_controllers.get_mut(&team).map(|x| x.clone())
     }
 }
