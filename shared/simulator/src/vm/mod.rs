@@ -8,6 +8,7 @@ use nalgebra::point;
 use oort_api::{Ability, Class, Line, SystemState, Text};
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use wasmer::{imports, Instance, MemoryView, Module, Store, WasmPtr};
@@ -50,16 +51,12 @@ pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
     }
 }
 
-const MAX_VMS: usize = 1;
-
 pub struct TeamController {
-    code: Code,
-    vms: Vec<WasmVm>,
-    index: usize,
+    vm: WasmVm,
+    ships: HashMap<ShipHandle, ShipController>,
 }
 
 pub struct ShipController {
-    sim: *mut Simulation,
     handle: ShipHandle,
     vm: WasmVm,
     state: LocalSystemState,
@@ -100,36 +97,15 @@ impl WasmVm {
 impl TeamController {
     pub fn create(code: &Code) -> Result<Box<TeamController>, Error> {
         Ok(Box::new(TeamController {
-            code: code.clone(),
-            vms: Vec::new(),
-            index: 0,
+            vm: WasmVm::create(code)?,
+            ships: HashMap::new(),
         }))
     }
 
-    pub fn assign_vm(&mut self) -> Result<WasmVm, Error> {
-        if self.index > MAX_VMS {
-            self.index = 0;
-        }
-
-        if self.index == self.vms.len() {
-            let vm = WasmVm::create(&self.code)?;
-            self.vms.push(vm);
-        }
-
-        let vm = self.vms[self.index].clone();
-        self.index += 1;
-        Ok(vm)
-    }
-
-    pub fn create_ship_controller(
-        &mut self,
-        handle: ShipHandle,
-        sim: &mut Simulation,
-    ) -> Result<Box<ShipController>, Error> {
+    pub fn add_ship(&mut self, handle: ShipHandle, sim: &Simulation) -> Result<(), Error> {
         let mut ctrl = ShipController {
             handle,
-            sim,
-            vm: self.assign_vm()?,
+            vm: self.vm.clone(),
             state: LocalSystemState::new(),
         };
 
@@ -146,7 +122,26 @@ impl TeamController {
                 .set(SystemState::RadarMaxDistance, radar.max_distance);
         }
 
-        Ok(Box::new(ctrl))
+        self.ships.insert(handle, ctrl);
+
+        Ok(())
+    }
+
+    pub fn remove_ship(&mut self, handle: ShipHandle) {
+        self.ships.remove(&handle);
+    }
+
+    pub fn tick(&mut self, sim: &mut Simulation) {
+        let mut handles: Vec<_> = self.ships.keys().cloned().collect();
+        handles.sort_by_key(|x| x.0);
+
+        for handle in handles {
+            let ctrl = self.ships.get_mut(&handle).unwrap();
+            if let Err(e) = ctrl.tick(sim) {
+                log::warn!("{}", e.msg);
+                sim.ship_mut(handle).explode();
+            }
+        }
     }
 }
 
@@ -237,10 +232,8 @@ impl ShipController {
         Some(src_slice.to_vec())
     }
 
-    pub fn tick(&mut self) -> Result<(), Error> {
+    pub fn tick(&mut self, sim: &mut Simulation) -> Result<(), Error> {
         {
-            let sim = unsafe { &mut *self.sim };
-
             translate_runtime_error(
                 self.vm
                     .reset_gas
@@ -293,6 +286,15 @@ impl ShipController {
                 } else {
                     self.state.set(SystemState::RadarContactFound, 0.0);
                 }
+            } else if let Some(target) = sim.ship(self.handle).data().target.as_ref() {
+                self.state
+                    .set(SystemState::RadarContactPositionX, target.position.x);
+                self.state
+                    .set(SystemState::RadarContactPositionY, target.position.y);
+                self.state
+                    .set(SystemState::RadarContactVelocityX, target.velocity.x);
+                self.state
+                    .set(SystemState::RadarContactVelocityY, target.velocity.y);
             }
 
             {
@@ -346,7 +348,6 @@ impl ShipController {
 
         {
             self.read_system_state();
-            let sim = unsafe { &mut *self.sim };
 
             sim.ship_mut(self.handle).accelerate(Vec2::new(
                 self.state.get(SystemState::AccelerateX),
@@ -469,17 +470,6 @@ impl ShipController {
         ) {
             log::warn!("Failed to delete ship: {:?}", e);
         }
-    }
-
-    pub fn write_target(&mut self, position: Vec2, velocity: Vec2) {
-        self.state
-            .set(SystemState::RadarContactPositionX, position.x);
-        self.state
-            .set(SystemState::RadarContactPositionY, position.y);
-        self.state
-            .set(SystemState::RadarContactVelocityX, velocity.x);
-        self.state
-            .set(SystemState::RadarContactVelocityY, velocity.y);
     }
 }
 

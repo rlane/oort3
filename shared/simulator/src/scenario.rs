@@ -698,18 +698,14 @@ impl Scenario for Tutorial02 {
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         add_walls(sim);
-        ship::create(
+        let handle = ship::create(
             sim,
             vector![-1000.0, 0.0],
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),
         );
-        if let Some(&handle) = sim.ships.iter().next() {
-            if let Some(c) = sim.ship_controllers.get_mut(&handle) {
-                c.write_target(Self::TARGET, vector![0.0, 0.0]);
-            }
-        }
+        sim.write_target(handle, Self::TARGET, vector![0.0, 0.0]);
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -795,7 +791,7 @@ impl Scenario for Tutorial03 {
                 .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]),
         );
         add_walls(sim);
-        ship::create(
+        let handle = ship::create(
             sim,
             Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(100.0..500.0), 0.0]),
@@ -803,11 +799,7 @@ impl Scenario for Tutorial03 {
             0.0,
             fighter_without_missiles_or_radar(0),
         );
-        if let Some(&handle) = sim.ships.iter().next() {
-            if let Some(c) = sim.ship_controllers.get_mut(&handle) {
-                c.write_target(self.target.unwrap().coords, vector![0.0, 0.0]);
-            }
-        }
+        sim.write_target(handle, self.target.unwrap().coords, vector![0.0, 0.0]);
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -885,7 +877,7 @@ impl Scenario for Tutorial04 {
         let mut rng = new_rng(seed);
         let target = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
             .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]);
-        ship::create(
+        let handle = ship::create(
             sim,
             Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(100.0..500.0), 0.0]),
@@ -893,11 +885,7 @@ impl Scenario for Tutorial04 {
             0.0,
             fighter_without_missiles_or_radar(0),
         );
-        if let Some(&handle) = sim.ships.iter().next() {
-            if let Some(c) = sim.ship_controllers.get_mut(&handle) {
-                c.write_target(target.coords, vector![0.0, 0.0]);
-            }
-        }
+        sim.write_target(handle, target.coords, vector![0.0, 0.0]);
         ship::create(
             sim,
             target.coords,
@@ -967,9 +955,11 @@ impl Scenario for Tutorial05 {
 
         let target_position = sim.ship(self.target_handle.unwrap()).position();
         let target_velocity = sim.ship(self.target_handle.unwrap()).velocity();
-        if let Some(c) = sim.ship_controllers.get_mut(&self.ship_handle.unwrap()) {
-            c.write_target(target_position.vector, target_velocity);
-        }
+        sim.write_target(
+            self.ship_handle.unwrap(),
+            target_position.vector,
+            target_velocity,
+        );
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -979,9 +969,11 @@ impl Scenario for Tutorial05 {
         {
             let target_position = sim.ship(self.target_handle.unwrap()).position();
             let target_velocity = sim.ship(self.target_handle.unwrap()).velocity();
-            if let Some(c) = sim.ship_controllers.get_mut(&self.ship_handle.unwrap()) {
-                c.write_target(target_position.vector, target_velocity);
-            }
+            sim.write_target(
+                self.ship_handle.unwrap(),
+                target_position.vector,
+                target_velocity,
+            );
         }
     }
 
@@ -1423,12 +1415,8 @@ impl Scenario for PrimitiveDuel {
         let ship1_position = sim.ship(self.ship1.unwrap()).position().vector;
         let ship1_velocity = sim.ship(self.ship1.unwrap()).velocity();
 
-        if let Some(c) = sim.ship_controllers.get_mut(&self.ship0.unwrap()) {
-            c.write_target(ship1_position, ship1_velocity);
-        }
-        if let Some(c) = sim.ship_controllers.get_mut(&self.ship1.unwrap()) {
-            c.write_target(ship0_position, ship0_velocity);
-        }
+        sim.write_target(self.ship0.unwrap(), ship1_position, ship1_velocity);
+        sim.write_target(self.ship1.unwrap(), ship0_position, ship0_velocity);
     }
 }
 

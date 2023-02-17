@@ -6,10 +6,10 @@ use crate::radar;
 use crate::radio;
 use crate::scenario;
 use crate::scenario::Scenario;
-use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle};
+use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle, Target};
 use crate::snapshot::*;
 use crate::vm;
-use crate::vm::{ShipController, TeamController};
+use crate::vm::TeamController;
 use crossbeam::channel::Sender;
 use instant::Instant;
 use nalgebra::{Rotation2, UnitComplex, Vector2, Vector4};
@@ -42,7 +42,7 @@ pub struct Simulation {
     pub ships: IndexSet<ShipHandle>,
     pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
     team_controllers: HashMap<i32, Rc<RefCell<Box<TeamController>>>>,
-    pub(crate) ship_controllers: HashMap<ShipHandle, Box<ShipController>>,
+    pub new_ships: Vec<(/*team*/ i32, ShipHandle)>,
     pub bullets: IndexSet<BulletHandle>,
     pub(crate) bullet_data: HashMap<BulletHandle, BulletData>,
     pub(crate) bodies: RigidBodySet,
@@ -75,7 +75,7 @@ impl Simulation {
             ships: IndexSet::new(),
             ship_data: HashMap::new(),
             team_controllers: HashMap::new(),
-            ship_controllers: HashMap::new(),
+            new_ships: Vec::new(),
             bullets: IndexSet::new(),
             bullet_data: HashMap::new(),
             bodies: RigidBodySet::new(),
@@ -293,21 +293,30 @@ impl Simulation {
         self.timing.physics = (Instant::now() - physics_start_time).as_secs_f64();
 
         let script_start_time = Instant::now();
-        let mut handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
-        handle_snapshot.sort_by_key(|handle| (self.ship(*handle).data().team, handle.0));
+        let mut teams: Vec<_> = self
+            .team_controllers
+            .iter()
+            .map(|(k, v)| (*k, Rc::clone(v)))
+            .collect();
+        teams.sort_by_key(|(k, _)| *k);
 
-        for handle in handle_snapshot {
-            let mut explode = false;
-            if let Some(ship_controller) = self.ship_controllers.get_mut(&handle) {
-                if let Err(e) = ship_controller.tick() {
-                    log::warn!("{}", e.msg);
-                    explode = true;
+        for (_, team_controller) in teams.iter() {
+            team_controller.borrow_mut().tick(self);
+        }
+
+        let new_ships = std::mem::take(&mut self.new_ships);
+        for (team, handle) in new_ships.iter() {
+            if let Some(team_ctrl) = self.get_team_controller(*team) {
+                if let Err(e) = team_ctrl.borrow_mut().add_ship(*handle, self) {
+                    log::warn!("Ship creation error: {:?}", e);
+                    self.events.errors.push(e);
                 }
             }
+        }
+
+        let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
+        for handle in handle_snapshot {
             debug::emit_ship(self, handle);
-            if explode {
-                self.ship_mut(handle).explode();
-            }
             self.ship_mut(handle).tick();
         }
         self.timing.script = (Instant::now() - script_start_time).as_secs_f64();
@@ -369,6 +378,13 @@ impl Simulation {
             .entry(ship.into())
             .or_default()
             .extend(texts.iter().cloned());
+    }
+
+    pub fn write_target(&mut self, ship: ShipHandle, p: Vector2<f64>, v: Vector2<f64>) {
+        self.ship_mut(ship).data_mut().target = Some(Box::new(Target {
+            position: p,
+            velocity: v,
+        }));
     }
 
     pub fn hash(&self) -> u64 {

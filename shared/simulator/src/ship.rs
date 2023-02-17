@@ -115,6 +115,13 @@ pub struct ShipData {
     pub radar_cross_section: f64,
     pub radios: Vec<Radio>,
     pub abilities: Vec<ShipAbility>,
+    pub target: Option<Box<Target>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Target {
+    pub position: Vector2<f64>,
+    pub velocity: Vector2<f64>,
 }
 
 impl Default for ShipData {
@@ -138,6 +145,7 @@ impl Default for ShipData {
             radar_cross_section: 10.0,
             radios: vec![],
             abilities: vec![],
+            target: None,
         }
     }
 }
@@ -494,19 +502,9 @@ pub fn create(
     }
 
     sim.ships.insert(handle);
+    sim.new_ships.push((data.team, handle));
     sim.ship_data.insert(handle, data);
 
-    if let Some(team_ctrl) = sim.get_team_controller(team) {
-        match team_ctrl.borrow_mut().create_ship_controller(handle, sim) {
-            Ok(ship_ctrl) => {
-                sim.ship_controllers.insert(handle, ship_ctrl);
-            }
-            Err(e) => {
-                log::warn!("Ship creation error: {:?}", e);
-                sim.events.errors.push(e);
-            }
-        }
-    }
     handle
 }
 
@@ -881,8 +879,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         // Destruction.
         if self.data().destroyed {
-            if let Some(mut controller) = self.simulation.ship_controllers.remove(&self.handle) {
-                controller.delete();
+            if let Some(team_ctrl) = self.simulation.get_team_controller(self.data().team) {
+                team_ctrl.borrow_mut().remove_ship(self.handle);
             }
             self.simulation.ships.remove(self.handle);
             self.simulation.bodies.remove(
