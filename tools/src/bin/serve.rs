@@ -3,13 +3,17 @@ use clap::Parser as _;
 use std::process::{Child, Command};
 
 #[derive(clap::Parser, Debug)]
-struct Arguments {}
+struct Arguments {
+    #[clap(long)]
+    /// Build the frontend in release mode.
+    release: bool,
+}
 
 fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("serve=info"))
         .init();
 
-    let _ = Arguments::parse();
+    let args = Arguments::parse();
 
     let secrets = std::fs::read_to_string(".secrets/secrets.toml")?.parse::<toml::Table>()?;
     for (k, v) in secrets.iter() {
@@ -80,6 +84,7 @@ fn main() -> Result<()> {
         "--watch=shared/ai/builtin-ai.tar.gz",
         "--watch=shared/api",
         "--watch=shared/simulator",
+        if args.release { "--release" } else { "" },
     ])
     .spawn()?
     .wait()?;
@@ -90,7 +95,8 @@ fn main() -> Result<()> {
 fn cmd(argv: &[&str]) -> Command {
     log::info!("Executing {:?}", shell_words::join(argv));
     let mut cmd = Command::new(argv[0]);
-    cmd.args(&argv[1..]);
+    let args: Vec<_> = argv[1..].iter().filter(|x| !x.is_empty()).collect();
+    cmd.args(&args);
     cmd
 }
 
