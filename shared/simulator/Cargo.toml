@@ -68,5 +68,9 @@ name = "tutorials"
 harness = false
 
 [[bench]]
+name = "fleet"
+harness = false
+
+[[bench]]
 name = "serialization"
 harness = false
