@@ -16,6 +16,7 @@ impl HasIndex for BulletHandle {
     }
 }
 
+#[derive(Default, Clone)]
 pub struct BulletData {
     pub mass: f64,
     pub team: i32,
@@ -46,7 +47,7 @@ pub fn create(
             .insert_with_parent(collider, body_handle, &mut sim.bodies);
     }
     let handle = BulletHandle(body_handle.0);
-    sim.bullet_data.insert(handle, data);
+    sim.bullet_data.insert(handle.index(), data);
     sim.bullets.insert(handle);
     handle
 }
@@ -65,7 +66,10 @@ impl<'a> BulletAccessor<'a> {
     }
 
     pub fn data(&self) -> &BulletData {
-        self.simulation.bullet_data.get(&self.handle).unwrap()
+        self.simulation
+            .bullet_data
+            .get(self.handle.index())
+            .unwrap()
     }
 
     pub fn position(&self) -> Vector2<f64> {
@@ -91,7 +95,10 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
     }
 
     pub fn data_mut(&mut self) -> &mut BulletData {
-        self.simulation.bullet_data.get_mut(&self.handle).unwrap()
+        self.simulation
+            .bullet_data
+            .get_mut(self.handle.index())
+            .unwrap()
     }
 
     pub fn tick(&mut self, dt: f64) {

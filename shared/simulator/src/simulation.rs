@@ -16,6 +16,7 @@ use nalgebra::{Rotation2, UnitComplex, Vector2, Vector4};
 use oort_api::{Ability, Text};
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
+use rapier2d_f64::data::Coarena;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -44,7 +45,7 @@ pub struct Simulation {
     team_controllers: HashMap<i32, Rc<RefCell<Box<TeamController>>>>,
     pub new_ships: Vec<(/*team*/ i32, ShipHandle)>,
     pub bullets: IndexSet<BulletHandle>,
-    pub(crate) bullet_data: HashMap<BulletHandle, BulletData>,
+    pub(crate) bullet_data: Coarena<BulletData>,
     pub(crate) bodies: RigidBodySet,
     pub(crate) impulse_joints: ImpulseJointSet,
     pub(crate) multibody_joints: MultibodyJointSet,
@@ -77,7 +78,7 @@ impl Simulation {
             team_controllers: HashMap::new(),
             new_ships: Vec::new(),
             bullets: IndexSet::new(),
-            bullet_data: HashMap::new(),
+            bullet_data: Coarena::new(),
             bodies: RigidBodySet::new(),
             impulse_joints: ImpulseJointSet::new(),
             multibody_joints: MultibodyJointSet::new(),
