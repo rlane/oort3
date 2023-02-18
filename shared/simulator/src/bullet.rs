@@ -202,3 +202,10 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
         );
     }
 }
+
+pub fn tick(sim: &mut Simulation) {
+    let bullets: Vec<BulletHandle> = sim.bullets.iter().cloned().collect();
+    for handle in bullets {
+        sim.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
+    }
+}

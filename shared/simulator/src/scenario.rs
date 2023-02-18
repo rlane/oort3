@@ -427,10 +427,7 @@ impl Scenario for MissileTest {
             self.current_iteration += 1;
             self.tick_in_iteration = 0;
             while !sim.bullets.is_empty() {
-                let bullets: Vec<_> = sim.bullets.iter().cloned().collect();
-                for handle in bullets {
-                    sim.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
-                }
+                bullet::tick(sim);
             }
             self.init(sim, 0);
         } else if sim.ships.contains(target) {

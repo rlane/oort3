@@ -1,4 +1,4 @@
-use crate::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
+use crate::bullet::{self, BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
 use crate::debug;
 pub use crate::debug::Line;
 use crate::index_set::{HasIndex, IndexSet};
@@ -330,10 +330,7 @@ impl Simulation {
             QueryPipelineMode::SweepTestWithNextPosition,
         );
 
-        let bullets: Vec<BulletHandle> = self.bullets.iter().cloned().collect();
-        for handle in bullets {
-            self.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
-        }
+        bullet::tick(self);
 
         self.timing.physics += (Instant::now() - physics_start_time).as_secs_f64();
 
