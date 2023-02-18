@@ -1,3 +1,5 @@
+### 0.38.1
+
 - Added a serve binary to run a development server.
 - Improved simulation performance.
 
