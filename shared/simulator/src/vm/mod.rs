@@ -204,7 +204,10 @@ pub struct WasmVm {
 
 impl WasmVm {
     pub fn create(code: &Code) -> Result<WasmVm, Error> {
+        #[cfg(feature = "js")]
         let mut store = Store::default();
+        #[cfg(feature = "sys")]
+        let mut store = Store::new(wasmer_compiler_singlepass::Singlepass::new());
         let module = match code {
             Code::Wasm(wasm) => {
                 let wasm = limiter::rewrite(wasm)?;
