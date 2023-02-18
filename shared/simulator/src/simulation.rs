@@ -1,7 +1,7 @@
 use crate::bullet::{BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
 use crate::debug;
 pub use crate::debug::Line;
-use crate::index_set::IndexSet;
+use crate::index_set::{HasIndex, IndexSet};
 use crate::radar;
 use crate::radio;
 use crate::scenario;
@@ -41,7 +41,7 @@ pub enum Code {
 pub struct Simulation {
     scenario: Option<Box<dyn Scenario>>,
     pub ships: IndexSet<ShipHandle>,
-    pub(crate) ship_data: HashMap<ShipHandle, ShipData>,
+    pub(crate) ship_data: Coarena<ShipData>,
     team_controllers: HashMap<i32, Rc<RefCell<Box<TeamController>>>>,
     pub new_ships: Vec<(/*team*/ i32, ShipHandle)>,
     pub bullets: IndexSet<BulletHandle>,
@@ -74,7 +74,7 @@ impl Simulation {
         let mut sim = Box::new(Simulation {
             scenario: None,
             ships: IndexSet::new(),
-            ship_data: HashMap::new(),
+            ship_data: Coarena::new(),
             team_controllers: HashMap::new(),
             new_ships: Vec::new(),
             bullets: IndexSet::new(),
@@ -238,7 +238,7 @@ impl Simulation {
                         });
                     }
                     let ship_destroyed = {
-                        let ship_data = sim.ship_data.get_mut(&ship).unwrap();
+                        let ship_data = sim.ship_data.get_mut(ship.index()).unwrap();
                         ship_data.health -= damage;
                         ship_data.health <= 0.0
                     };
@@ -249,7 +249,7 @@ impl Simulation {
                                 rot.transform_vector(&vector![sim.rng.gen_range(0.0..200.0), 0.0]);
                             let p = sim.ship(ship).body().position().translation.vector
                                 + v * sim.rng.gen_range(0.0..0.1);
-                            let lifetime = (sim.ship_data.get(&ship).unwrap().mass.log2()
+                            let lifetime = (sim.ship_data.get(ship.index()).unwrap().mass.log2()
                                 * PHYSICS_TICK_LENGTH)
                                 as f32;
                             sim.events.particles.push(Particle {

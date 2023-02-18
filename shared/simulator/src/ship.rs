@@ -503,7 +503,7 @@ pub fn create(
 
     sim.ships.insert(handle);
     sim.new_ships.push((data.team, handle));
-    sim.ship_data.insert(handle, data);
+    sim.ship_data.insert(handle.index(), data);
 
     handle
 }
@@ -515,7 +515,7 @@ pub struct ShipAccessor<'a> {
 
 impl<'a> ShipAccessor<'a> {
     pub fn exists(&self) -> bool {
-        self.simulation.ship_data.contains_key(&self.handle)
+        self.simulation.ship_data.get(self.handle.index()).is_some()
     }
 
     pub fn body(&self) -> &'a RigidBody {
@@ -542,7 +542,7 @@ impl<'a> ShipAccessor<'a> {
     }
 
     pub fn data(&self) -> &ShipData {
-        self.simulation.ship_data.get(&self.handle).unwrap()
+        self.simulation.ship_data.get(self.handle.index()).unwrap()
     }
 
     pub fn radar(&self) -> Option<&Radar> {
@@ -593,11 +593,14 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn data(&self) -> &ShipData {
-        self.simulation.ship_data.get(&self.handle).unwrap()
+        self.simulation.ship_data.get(self.handle.index()).unwrap()
     }
 
     pub fn data_mut(&mut self) -> &mut ShipData {
-        self.simulation.ship_data.get_mut(&self.handle).unwrap()
+        self.simulation
+            .ship_data
+            .get_mut(self.handle.index())
+            .unwrap()
     }
 
     pub fn radar_mut(&mut self) -> Option<&mut Radar> {
@@ -815,7 +818,11 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     pub fn tick(&mut self) {
         // Guns.
         {
-            let ship_data = self.simulation.ship_data.get_mut(&self.handle).unwrap();
+            let ship_data = self
+                .simulation
+                .ship_data
+                .get_mut(self.handle.index())
+                .unwrap();
             for gun in ship_data.guns.iter_mut() {
                 gun.cycle_time_remaining =
                     (gun.cycle_time_remaining - simulation::PHYSICS_TICK_LENGTH).max(0.0);
@@ -891,7 +898,9 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 &mut self.simulation.multibody_joints,
                 /*remove_attached_colliders=*/ true,
             );
-            self.simulation.ship_data.remove(&self.handle);
+            self.simulation
+                .ship_data
+                .remove(self.handle.index(), ShipData::default());
         }
     }
 
