@@ -361,12 +361,8 @@ impl Simulation {
         &self.events
     }
 
-    pub fn emit_debug_lines(&mut self, ship: ShipHandle, lines: &[Line]) {
-        self.events
-            .debug_lines
-            .entry(ship.into())
-            .or_default()
-            .extend(lines.iter().cloned());
+    pub fn emit_debug_lines(&mut self, ship: ShipHandle, lines: Vec<Line>) {
+        self.events.debug_lines.push((ship.into(), lines));
     }
 
     pub fn emit_debug_text(&mut self, ship: ShipHandle, s: String) {
@@ -508,7 +504,7 @@ pub struct Particle {
 pub struct SimEvents {
     pub errors: Vec<vm::Error>,
     pub particles: Vec<Particle>,
-    pub debug_lines: BTreeMap<u64, Vec<Line>>,
+    pub debug_lines: Vec<(u64, Vec<Line>)>,
     pub debug_text: BTreeMap<u64, String>,
     pub drawn_text: BTreeMap<u64, Vec<Text>>,
 }
@@ -518,7 +514,7 @@ impl SimEvents {
         Self {
             errors: vec![],
             particles: vec![],
-            debug_lines: BTreeMap::new(),
+            debug_lines: Vec::new(),
             debug_text: BTreeMap::new(),
             drawn_text: BTreeMap::new(),
         }

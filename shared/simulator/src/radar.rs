@@ -235,6 +235,7 @@ fn noise(rng: &mut SeededRng, rssi: f64) -> Vector2<f64> {
 fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
     let color = vector![0.1, 0.2, 0.3, 1.0];
     let mut lines = vec![];
+    lines.reserve(48);
     let w = emitter.end_bearing - emitter.start_bearing;
     let center = emitter.center;
     let mut draw_arc = |r| {
@@ -273,7 +274,7 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
             ],
         color,
     });
-    sim.emit_debug_lines(emitter.handle, &lines);
+    sim.emit_debug_lines(emitter.handle, lines);
 }
 
 fn draw_contact(sim: &mut Simulation, emitter_handle: ShipHandle, contact: &ScanResult) {
@@ -306,7 +307,7 @@ fn draw_contact(sim: &mut Simulation, emitter_handle: ShipHandle, contact: &Scan
             color,
         },
     ];
-    sim.emit_debug_lines(emitter_handle, &lines);
+    sim.emit_debug_lines(emitter_handle, lines);
 }
 
 #[cfg(test)]

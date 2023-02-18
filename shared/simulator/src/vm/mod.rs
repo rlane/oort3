@@ -161,7 +161,7 @@ impl TeamController {
                         if validate_lines(&lines) {
                             sim.emit_debug_lines(
                                 handle,
-                                &lines
+                                lines
                                     .iter()
                                     .map(|v| crate::debug::Line {
                                         a: point![v.x0, v.y0],

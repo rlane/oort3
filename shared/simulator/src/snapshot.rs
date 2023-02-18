@@ -19,7 +19,7 @@ pub struct Snapshot {
     pub particles: Vec<Particle>,
     pub errors: Vec<vm::Error>,
     pub cheats: bool,
-    pub debug_lines: BTreeMap<u64, Vec<Line>>,
+    pub debug_lines: Vec<(u64, Vec<Line>)>,
     pub debug_text: BTreeMap<u64, String>,
     pub drawn_text: BTreeMap<u64, Vec<Text>>,
     pub timing: Timing,

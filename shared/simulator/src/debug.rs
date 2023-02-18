@@ -32,7 +32,7 @@ pub fn emit_ship(sim: &mut Simulation, handle: ShipHandle) {
             .transform_vector(&sim.ship(handle).data().acceleration),
         color: vector![0.0, 1.0, 0.2, 1.0],
     });
-    sim.emit_debug_lines(handle, &lines);
+    sim.emit_debug_lines(handle, lines);
 }
 
 pub fn convert_color(c: u32) -> Vector4<f32> {

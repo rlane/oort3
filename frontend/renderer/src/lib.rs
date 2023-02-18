@@ -148,8 +148,10 @@ impl Renderer {
                 lines.extend(debug_lines.iter().cloned());
             }
         } else if let Some(ship) = self.picked_ship {
-            if let Some(debug_lines) = snapshot.debug_lines.get(&ship) {
-                lines.extend(debug_lines.iter().cloned());
+            for (ship2, debug_lines) in snapshot.debug_lines.iter() {
+                if ship == *ship2 {
+                    lines.extend(debug_lines.iter().cloned());
+                }
             }
         }
         lines.extend(snapshot.scenario_lines.iter().cloned());
