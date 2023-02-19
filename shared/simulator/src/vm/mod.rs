@@ -1,6 +1,7 @@
 pub mod builtin;
 mod limiter;
 
+use crate::color;
 use crate::debug;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Simulation};
@@ -166,7 +167,7 @@ impl TeamController {
                                     .map(|v| crate::debug::Line {
                                         a: point![v.x0, v.y0],
                                         b: point![v.x1, v.y1],
-                                        color: debug::convert_color(v.color),
+                                        color: color::from_u24(v.color),
                                     })
                                     .collect::<Vec<debug::Line>>(),
                             );

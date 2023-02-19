@@ -4,7 +4,7 @@ use crate::ship::{
     ShipData, ShipHandle,
 };
 use crate::simulation::{Code, Line, Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
-use crate::{bullet, collision, ship};
+use crate::{bullet, collision, color, ship};
 use bullet::BulletData;
 use nalgebra::{vector, Point2, Rotation2, Vector2};
 use rand::seq::SliceRandom;
@@ -508,7 +508,7 @@ impl Scenario for BulletStressScenario {
                 BulletData {
                     mass: 0.1,
                     team: 0,
-                    color: vector![1.00, 0.63, 0.00, 0.30],
+                    color: color::to_u32(vector![1.00, 0.63, 0.00, 0.30]),
                     ttl: 100.0,
                 },
             );

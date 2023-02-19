@@ -4,7 +4,7 @@ use super::index_set::{HasIndex, Index};
 use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
 use crate::{collision, simulation};
 use bitvec::vec::BitVec;
-use nalgebra::{Vector2, Vector4};
+use nalgebra::Vector2;
 use rapier2d_f64::prelude::*;
 use static_aabb2d_index::*;
 
@@ -27,10 +27,10 @@ impl From<BulletHandle> for RigidBodyHandle {
 
 #[derive(Default, Clone)]
 pub struct BulletData {
-    pub mass: f64,
+    pub mass: f32,
     pub team: i32,
     pub ttl: f32,
-    pub color: Vector4<f32>,
+    pub color: u32,
 }
 
 pub fn body(sim: &Simulation, handle: BulletHandle) -> &RigidBody {
@@ -63,7 +63,7 @@ pub fn create(
     let body_handle = sim.bodies.insert(rigid_body);
     let handle = BulletHandle(body_handle.0);
     if COLOR_COLLIDERS {
-        data.color = vector![1.0, 0.0, 0.0, 1.0];
+        data.color = 0xff0000ff;
     }
     sim.bullet_data.insert(handle.index(), data);
     sim.bullets.insert(handle);
@@ -153,11 +153,11 @@ pub fn tick(sim: &mut Simulation) {
 
         if COLOR_COLLIDERS {
             if needs_collider {
-                data_mut(sim, handle).color = vector![0.0, 1.0, 0.0, 1.0];
+                data_mut(sim, handle).color = 0x00ff00ff;
             } else if coarse_grid_hit {
-                data_mut(sim, handle).color = vector![0.0, 0.0, 1.0, 1.0];
+                data_mut(sim, handle).color = 0x0000ffff;
             } else {
-                data_mut(sim, handle).color = vector![1.0, 0.0, 0.0, 1.0];
+                data_mut(sim, handle).color = 0xff0000ff;
             }
         }
     }
@@ -200,9 +200,6 @@ fn build_indices(
 }
 
 fn add_collider(sim: &mut Simulation, handle: BulletHandle) {
-    if COLOR_COLLIDERS {
-        data_mut(sim, handle).color = vector![0.0, 1.0, 0.0, 1.0];
-    }
     let team = data(sim, handle).team;
     let collider = ColliderBuilder::ball(1.0)
         .restitution(1.0)

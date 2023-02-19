@@ -2,7 +2,7 @@ use crate::scenario::Status;
 use crate::ship::ShipClass;
 use crate::simulation::{Line, Particle};
 use crate::vm;
-use nalgebra::{Point2, Vector2, Vector4};
+use nalgebra::{Point2, Vector2};
 use oort_api::{Ability, Text};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -42,7 +42,7 @@ pub struct ShipSnapshot {
 pub struct BulletSnapshot {
     pub position: Point2<f64>,
     pub velocity: Vector2<f64>,
-    pub color: Vector4<f32>,
+    pub color: u32,
     pub ttl: f32,
 }
 

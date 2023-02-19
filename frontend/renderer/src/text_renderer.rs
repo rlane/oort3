@@ -4,7 +4,7 @@ use image::io::Reader as ImageReader;
 use image::EncodableLayout;
 use nalgebra::{point, vector, Matrix4};
 use oort_api::Text;
-use oort_simulator::debug::convert_color;
+use oort_simulator::color;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlTexture, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -186,7 +186,7 @@ void main() {
                 (projected.y + 1.0) * screen_height / 2.0
             ];
             let mut pos = vector![projected_pixels.x.floor(), projected_pixels.y.floor()];
-            let color = convert_color(text.color);
+            let color = color::from_u24(text.color);
             for i in 0..text.length {
                 let idx = (text.text[i as usize] as usize - 32).clamp(0, FONT_ROWS * FONT_COLS - 1);
                 let row = FONT_ROWS - idx / FONT_COLS - 1;

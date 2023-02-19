@@ -85,7 +85,7 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                     return;
                 }
                 let dv = bullet_velocity - sim.ship(ship).velocity();
-                let energy = 0.5 * bullet::data(sim, bullet).mass * dv.magnitude_squared();
+                let energy = 0.5 * bullet::data(sim, bullet).mass as f64 * dv.magnitude_squared();
                 let damage = energy * DAMAGE_FACTOR;
                 for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
                     let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));

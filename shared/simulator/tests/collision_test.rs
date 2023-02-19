@@ -1,11 +1,11 @@
-use nalgebra::{vector, Vector4};
+use nalgebra::vector;
 use oort_simulator::ship::{fighter, missile};
 use oort_simulator::simulation::{self, Code, WORLD_SIZE};
 use oort_simulator::{bullet, scenario, ship};
 use rand::Rng;
 use test_log::test;
 
-const BULLET_COLOR: Vector4<f32> = vector![1.00, 0.63, 0.00, 0.30];
+const BULLET_COLOR: u32 = 0xffffffff;
 
 #[test]
 fn test_world_edge() {

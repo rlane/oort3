@@ -1,6 +1,7 @@
 use super::{buffer_arena, geometry, glutil};
 use glutil::VertexAttribBuilder;
 use nalgebra::{Matrix4, Point2, Vector2, Vector4};
+use oort_simulator::color;
 use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use oort_simulator::snapshot::Snapshot;
 use wasm_bindgen::prelude::*;
@@ -99,7 +100,7 @@ void main() {
             let p: Point2<f32> = bullet.position.cast();
             let v: Vector2<f32> = bullet.velocity.cast();
             let dt = PHYSICS_TICK_LENGTH as f32;
-            let mut color = bullet.color;
+            let mut color = color::from_u32(bullet.color);
             if bullet.ttl < 0.3 {
                 color.w *= bullet.ttl + 0.3;
             }

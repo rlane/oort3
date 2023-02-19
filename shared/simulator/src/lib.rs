@@ -1,5 +1,6 @@
 pub mod bullet;
 pub mod collision;
+pub mod color;
 pub mod debug;
 pub mod index_set;
 pub mod model;
