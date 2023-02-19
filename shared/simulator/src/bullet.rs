@@ -63,6 +63,8 @@ pub fn create(
 }
 
 pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
+    sim.bullet_data
+        .remove(handle.index(), BulletData::default());
     sim.bullets.remove(handle);
     sim.bodies.remove(
         RigidBodyHandle(handle.index()),
@@ -75,52 +77,49 @@ pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
 }
 
 pub fn tick(sim: &mut Simulation) {
+    let dt = PHYSICS_TICK_LENGTH;
     let bullets: Vec<BulletHandle> = sim.bullets.iter().cloned().collect();
     for handle in bullets {
-        tick_one(sim, handle, PHYSICS_TICK_LENGTH);
-    }
-}
+        let team = {
+            let data = data_mut(sim, handle);
+            data.ttl -= dt as f32;
+            if data.ttl <= 0.0 {
+                destroy(sim, handle);
+                continue;
+            }
+            data.team
+        };
 
-fn tick_one(sim: &mut Simulation, handle: BulletHandle, dt: f64) {
-    let team = {
-        let data = data_mut(sim, handle);
-        data.ttl -= dt as f32;
-        if data.ttl <= 0.0 {
-            destroy(sim, handle);
-            return;
-        }
-        data.team
-    };
+        let has_collider;
+        let mut needs_collider = false;
+        {
+            let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
+            has_collider = !body.colliders().is_empty();
 
-    let has_collider;
-    let mut needs_collider = false;
-    {
-        let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
-        has_collider = !body.colliders().is_empty();
+            let aabb = Aabb::from_half_extents(
+                body.position().translation.vector.into(),
+                vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
+            );
 
-        let aabb = Aabb::from_half_extents(
-            body.position().translation.vector.into(),
-            vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
-        );
-
-        sim.query_pipeline
-            .colliders_with_aabb_intersecting_aabb(&aabb, |&collider_handle| {
-                let get_index = |h| sim.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
-                if let Some(index) = get_index(collider_handle) {
-                    if sim.ships.contains(ShipHandle(index))
-                        && sim.ship(ShipHandle(index)).data().team != team
-                    {
-                        needs_collider = true;
+            sim.query_pipeline
+                .colliders_with_aabb_intersecting_aabb(&aabb, |&collider_handle| {
+                    let get_index = |h| sim.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
+                    if let Some(index) = get_index(collider_handle) {
+                        if sim.ships.contains(ShipHandle(index))
+                            && sim.ship(ShipHandle(index)).data().team != team
+                        {
+                            needs_collider = true;
+                        }
                     }
-                }
-                true
-            });
-    }
+                    true
+                });
+        }
 
-    if needs_collider && !has_collider {
-        add_collider(sim, handle);
-    } else if has_collider && !needs_collider {
-        remove_collider(sim, handle);
+        if needs_collider && !has_collider {
+            add_collider(sim, handle);
+        } else if has_collider && !needs_collider {
+            remove_collider(sim, handle);
+        }
     }
 }
 
