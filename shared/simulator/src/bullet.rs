@@ -58,37 +58,16 @@ pub fn create(
     handle
 }
 
-pub struct BulletAccessor<'a> {
-    pub(crate) simulation: &'a Simulation,
-    pub(crate) handle: BulletHandle,
-}
-
-impl<'a> BulletAccessor<'a> {
-    pub fn data(&self) -> &BulletData {
-        self.simulation
-            .bullet_data
-            .get(self.handle.index())
-            .unwrap()
-    }
-}
-
 pub struct BulletAccessorMut<'a> {
     pub(crate) simulation: &'a mut Simulation,
     pub(crate) handle: BulletHandle,
 }
 
 impl<'a: 'b, 'b> BulletAccessorMut<'a> {
-    pub fn data_mut(&mut self) -> &mut BulletData {
-        self.simulation
-            .bullet_data
-            .get_mut(self.handle.index())
-            .unwrap()
-    }
-
     pub fn tick(&mut self, dt: f64) {
         let team;
         {
-            let data = self.data_mut();
+            let data = data_mut(self.simulation, self.handle);
             data.ttl -= dt as f32;
             if data.ttl <= 0.0 {
                 self.destroy();
@@ -143,9 +122,10 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
     }
 
     pub fn add_collider(&mut self) {
+        let team = data(self.simulation, self.handle).team;
         let collider = ColliderBuilder::ball(1.0)
             .restitution(1.0)
-            .collision_groups(collision::bullet_interaction_groups(self.data_mut().team))
+            .collision_groups(collision::bullet_interaction_groups(team))
             .active_events(ActiveEvents::COLLISION_EVENTS)
             .sensor(true)
             .build();
@@ -200,4 +180,12 @@ pub fn body(sim: &Simulation, handle: BulletHandle) -> &RigidBody {
 
 pub fn body_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut RigidBody {
     sim.bodies.get_mut(handle.into()).unwrap()
+}
+
+pub fn data(sim: &Simulation, handle: BulletHandle) -> &BulletData {
+    sim.bullet_data.get(handle.index()).unwrap()
+}
+
+pub fn data_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut BulletData {
+    sim.bullet_data.get_mut(handle.index()).unwrap()
 }

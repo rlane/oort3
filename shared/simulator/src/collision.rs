@@ -77,15 +77,15 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                             false,
                         );
                     }
-                    sim.bullet_mut(bullet).data_mut().team = sim.ship(ship).data().team;
+                    bullet::data_mut(sim, bullet).team = sim.ship(ship).data().team;
                     return;
                 }
-                if sim.bullet(bullet).data().team == sim.ship(ship).data().team {
+                if bullet::data(sim, bullet).team == sim.ship(ship).data().team {
                     sim.bullet_mut(bullet).destroy();
                     return;
                 }
                 let dv = bullet_velocity - sim.ship(ship).velocity();
-                let energy = 0.5 * sim.bullet(bullet).data().mass * dv.magnitude_squared();
+                let energy = 0.5 * bullet::data(sim, bullet).mass * dv.magnitude_squared();
                 let damage = energy * DAMAGE_FACTOR;
                 for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
                     let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
@@ -119,7 +119,7 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                         });
                     }
                     sim.ship_mut(ship).data_mut().destroyed = true;
-                    sim.bullet_mut(bullet).data_mut().mass *= 0.5;
+                    bullet::data_mut(sim, bullet).mass *= 0.5;
                     let rotation = UnitComplex::new(sim.rng.gen_range(-0.1..0.1));
                     let new_bullet_velocity = rotation.transform_vector(&bullet_velocity);
                     bullet::body_mut(sim, bullet).set_linvel(new_bullet_velocity, false);

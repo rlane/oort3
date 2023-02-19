@@ -1,4 +1,4 @@
-use crate::bullet::{self, BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
+use crate::bullet::{self, BulletAccessorMut, BulletData, BulletHandle};
 use crate::collision;
 use crate::debug;
 pub use crate::debug::Line;
@@ -144,13 +144,6 @@ impl Simulation {
 
     pub fn ship_mut(self: &mut Simulation, handle: ShipHandle) -> ShipAccessorMut {
         ShipAccessorMut {
-            simulation: self,
-            handle,
-        }
-    }
-
-    pub fn bullet(self: &Simulation, handle: BulletHandle) -> BulletAccessor {
-        BulletAccessor {
             simulation: self,
             handle,
         }
