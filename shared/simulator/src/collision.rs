@@ -81,7 +81,7 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                     return;
                 }
                 if bullet::data(sim, bullet).team == sim.ship(ship).data().team {
-                    sim.bullet_mut(bullet).destroy();
+                    bullet::destroy(sim, bullet);
                     return;
                 }
                 let dv = bullet_velocity - sim.ship(ship).velocity();
@@ -124,7 +124,7 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                     let new_bullet_velocity = rotation.transform_vector(&bullet_velocity);
                     bullet::body_mut(sim, bullet).set_linvel(new_bullet_velocity, false);
                 } else {
-                    sim.bullet_mut(bullet).destroy();
+                    bullet::destroy(sim, bullet);
                 }
             };
             if let (Some(idx1), Some(idx2)) = (get_index(*h1), get_index(*h2)) {
@@ -141,13 +141,13 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                     if sim.ships.contains(ShipHandle(idx2)) {
                         handle_hit(sim, ShipHandle(idx2), BulletHandle(idx1));
                     } else {
-                        sim.bullet_mut(BulletHandle(idx1)).destroy();
+                        bullet::destroy(sim, BulletHandle(idx1));
                     }
                 } else if sim.bullets.contains(BulletHandle(idx2)) {
                     if sim.ships.contains(ShipHandle(idx1)) {
                         handle_hit(sim, ShipHandle(idx1), BulletHandle(idx2));
                     } else {
-                        sim.bullet_mut(BulletHandle(idx2)).destroy();
+                        bullet::destroy(sim, BulletHandle(idx2));
                     }
                 }
             }

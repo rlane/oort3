@@ -70,7 +70,7 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
             let data = data_mut(self.simulation, self.handle);
             data.ttl -= dt as f32;
             if data.ttl <= 0.0 {
-                self.destroy();
+                destroy(self.simulation, self.handle);
                 return;
             }
             team = data.team;
@@ -153,18 +153,6 @@ impl<'a: 'b, 'b> BulletAccessorMut<'a> {
             );
         }
     }
-
-    pub fn destroy(&mut self) {
-        self.simulation.bullets.remove(self.handle);
-        self.simulation.bodies.remove(
-            RigidBodyHandle(self.handle.index()),
-            &mut self.simulation.island_manager,
-            &mut self.simulation.colliders,
-            &mut self.simulation.impulse_joints,
-            &mut self.simulation.multibody_joints,
-            /*remove_attached_colliders=*/ true,
-        );
-    }
 }
 
 pub fn tick(sim: &mut Simulation) {
@@ -188,4 +176,16 @@ pub fn data(sim: &Simulation, handle: BulletHandle) -> &BulletData {
 
 pub fn data_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut BulletData {
     sim.bullet_data.get_mut(handle.index()).unwrap()
+}
+
+pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
+    sim.bullets.remove(handle);
+    sim.bodies.remove(
+        RigidBodyHandle(handle.index()),
+        &mut sim.island_manager,
+        &mut sim.colliders,
+        &mut sim.impulse_joints,
+        &mut sim.multibody_joints,
+        /*remove_attached_colliders=*/ true,
+    );
 }
