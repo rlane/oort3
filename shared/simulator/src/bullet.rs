@@ -30,6 +30,22 @@ pub struct BulletData {
     pub color: Vector4<f32>,
 }
 
+pub fn body(sim: &Simulation, handle: BulletHandle) -> &RigidBody {
+    sim.bodies.get(handle.into()).unwrap()
+}
+
+pub fn body_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut RigidBody {
+    sim.bodies.get_mut(handle.into()).unwrap()
+}
+
+pub fn data(sim: &Simulation, handle: BulletHandle) -> &BulletData {
+    sim.bullet_data.get(handle.index()).unwrap()
+}
+
+pub fn data_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut BulletData {
+    sim.bullet_data.get_mut(handle.index()).unwrap()
+}
+
 pub fn create(
     sim: &mut Simulation,
     position: Vector2<f64>,
@@ -58,126 +74,6 @@ pub fn create(
     handle
 }
 
-pub struct BulletAccessorMut<'a> {
-    pub(crate) simulation: &'a mut Simulation,
-    pub(crate) handle: BulletHandle,
-}
-
-impl<'a: 'b, 'b> BulletAccessorMut<'a> {
-    pub fn tick(&mut self, dt: f64) {
-        let team;
-        {
-            let data = data_mut(self.simulation, self.handle);
-            data.ttl -= dt as f32;
-            if data.ttl <= 0.0 {
-                destroy(self.simulation, self.handle);
-                return;
-            }
-            team = data.team;
-        }
-
-        if LAZY_COLLIDERS {
-            let has_collider;
-            let mut needs_collider = false;
-            {
-                let body = self
-                    .simulation
-                    .bodies
-                    .get_mut(RigidBodyHandle(self.handle.index()))
-                    .unwrap();
-                has_collider = !body.colliders().is_empty();
-
-                let aabb = Aabb::from_half_extents(
-                    body.position().translation.vector.into(),
-                    vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
-                );
-
-                self.simulation
-                    .query_pipeline
-                    .colliders_with_aabb_intersecting_aabb(&aabb, |&collider_handle| {
-                        let get_index = |h| {
-                            self.simulation
-                                .colliders
-                                .get(h)
-                                .and_then(|x| x.parent())
-                                .map(|x| x.0)
-                        };
-                        if let Some(index) = get_index(collider_handle) {
-                            if self.simulation.ships.contains(ShipHandle(index))
-                                && self.simulation.ship(ShipHandle(index)).data().team != team
-                            {
-                                needs_collider = true;
-                            }
-                        }
-                        true
-                    });
-            }
-
-            if needs_collider && !has_collider {
-                self.add_collider();
-            } else if has_collider && !needs_collider {
-                self.remove_collider();
-            }
-        }
-    }
-
-    pub fn add_collider(&mut self) {
-        let team = data(self.simulation, self.handle).team;
-        let collider = ColliderBuilder::ball(1.0)
-            .restitution(1.0)
-            .collision_groups(collision::bullet_interaction_groups(team))
-            .active_events(ActiveEvents::COLLISION_EVENTS)
-            .sensor(true)
-            .build();
-        self.simulation.colliders.insert_with_parent(
-            collider,
-            RigidBodyHandle(self.handle.index()),
-            &mut self.simulation.bodies,
-        );
-    }
-
-    pub fn remove_collider(&mut self) {
-        let colliders = self
-            .simulation
-            .bodies
-            .get_mut(RigidBodyHandle(self.handle.index()))
-            .unwrap()
-            .colliders()
-            .to_vec();
-        for collider_handle in colliders {
-            self.simulation.colliders.remove(
-                collider_handle,
-                &mut self.simulation.island_manager,
-                &mut self.simulation.bodies,
-                true,
-            );
-        }
-    }
-}
-
-pub fn tick(sim: &mut Simulation) {
-    let bullets: Vec<BulletHandle> = sim.bullets.iter().cloned().collect();
-    for handle in bullets {
-        sim.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
-    }
-}
-
-pub fn body(sim: &Simulation, handle: BulletHandle) -> &RigidBody {
-    sim.bodies.get(handle.into()).unwrap()
-}
-
-pub fn body_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut RigidBody {
-    sim.bodies.get_mut(handle.into()).unwrap()
-}
-
-pub fn data(sim: &Simulation, handle: BulletHandle) -> &BulletData {
-    sim.bullet_data.get(handle.index()).unwrap()
-}
-
-pub fn data_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut BulletData {
-    sim.bullet_data.get_mut(handle.index()).unwrap()
-}
-
 pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
     sim.bullets.remove(handle);
     sim.bodies.remove(
@@ -188,4 +84,86 @@ pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
         &mut sim.multibody_joints,
         /*remove_attached_colliders=*/ true,
     );
+}
+
+pub fn tick(sim: &mut Simulation) {
+    let bullets: Vec<BulletHandle> = sim.bullets.iter().cloned().collect();
+    for handle in bullets {
+        tick_one(sim, handle, PHYSICS_TICK_LENGTH);
+    }
+}
+
+fn tick_one(sim: &mut Simulation, handle: BulletHandle, dt: f64) {
+    let team;
+    {
+        let data = data_mut(sim, handle);
+        data.ttl -= dt as f32;
+        if data.ttl <= 0.0 {
+            destroy(sim, handle);
+            return;
+        }
+        team = data.team;
+    }
+
+    if LAZY_COLLIDERS {
+        let has_collider;
+        let mut needs_collider = false;
+        {
+            let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
+            has_collider = !body.colliders().is_empty();
+
+            let aabb = Aabb::from_half_extents(
+                body.position().translation.vector.into(),
+                vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
+            );
+
+            sim.query_pipeline
+                .colliders_with_aabb_intersecting_aabb(&aabb, |&collider_handle| {
+                    let get_index = |h| sim.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
+                    if let Some(index) = get_index(collider_handle) {
+                        if sim.ships.contains(ShipHandle(index))
+                            && sim.ship(ShipHandle(index)).data().team != team
+                        {
+                            needs_collider = true;
+                        }
+                    }
+                    true
+                });
+        }
+
+        if needs_collider && !has_collider {
+            add_collider(sim, handle);
+        } else if has_collider && !needs_collider {
+            remove_collider(sim, handle);
+        }
+    }
+}
+
+fn add_collider(sim: &mut Simulation, handle: BulletHandle) {
+    let team = data(sim, handle).team;
+    let collider = ColliderBuilder::ball(1.0)
+        .restitution(1.0)
+        .collision_groups(collision::bullet_interaction_groups(team))
+        .active_events(ActiveEvents::COLLISION_EVENTS)
+        .sensor(true)
+        .build();
+    sim.colliders
+        .insert_with_parent(collider, RigidBodyHandle(handle.index()), &mut sim.bodies);
+}
+
+fn remove_collider(sim: &mut Simulation, handle: BulletHandle) {
+    let colliders = sim
+        .bodies
+        .get_mut(RigidBodyHandle(handle.index()))
+        .unwrap()
+        .colliders()
+        .to_vec();
+    for collider_handle in colliders {
+        sim.colliders.remove(
+            collider_handle,
+            &mut sim.island_manager,
+            &mut sim.bodies,
+            true,
+        );
+    }
 }
