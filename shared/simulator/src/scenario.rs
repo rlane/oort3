@@ -189,6 +189,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "basic" => Some(Box::new(BasicScenario {})),
         "gunnery" => Some(Box::new(GunneryScenario {})),
         "missile_test" => Some(Box::new(MissileTest::new())),
+        "stress" => Some(Box::new(StressScenario {})),
         "asteroid-stress" => Some(Box::new(AsteroidStressScenario {})),
         "bullet-stress" => Some(Box::new(BulletStressScenario {})),
         "missile-stress" => Some(Box::new(MissileStressScenario {})),
@@ -454,6 +455,45 @@ impl Scenario for MissileTest {
 
     fn solution(&self) -> Code {
         builtin("missile")
+    }
+}
+
+struct StressScenario {}
+
+impl Scenario for StressScenario {
+    fn name(&self) -> String {
+        "stress".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        let mut rng = new_rng(seed);
+        add_walls(sim);
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
+
+        let bound = (WORLD_SIZE / 2.0) * 0.9;
+        for team in [0, 1] {
+            for _ in 0..100 {
+                ship::create(
+                    sim,
+                    vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
+                    vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
+                    rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                    fighter(team),
+                );
+            }
+        }
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![reference_ai(), reference_ai()]
+    }
+
+    fn solution(&self) -> Code {
+        builtin("reference")
+    }
+
+    fn status(&self, sim: &Simulation) -> Status {
+        check_tournament_victory(sim)
     }
 }
 

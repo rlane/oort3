@@ -74,5 +74,9 @@ name = "fleet"
 harness = false
 
 [[bench]]
+name = "stress"
+harness = false
+
+[[bench]]
 name = "serialization"
 harness = false
