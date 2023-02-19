@@ -282,6 +282,11 @@ impl Simulation {
             s.write_i64(fixedpoint(ship.angular_velocity()));
             s.write_i64(fixedpoint(ship.data().health));
         }
+        for handle in self.bullets.iter() {
+            let body = bullet::body(self, *handle);
+            s.write_i64(fixedpoint(body.translation().x));
+            s.write_i64(fixedpoint(body.translation().y));
+        }
         s.finish()
     }
 
