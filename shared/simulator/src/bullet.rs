@@ -5,8 +5,6 @@ use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
 use nalgebra::{Vector2, Vector4};
 use rapier2d_f64::prelude::*;
 
-const LAZY_COLLIDERS: bool = true;
-
 #[derive(Hash, PartialEq, Eq, Copy, Clone)]
 pub struct BulletHandle(pub Index);
 
@@ -58,16 +56,6 @@ pub fn create(
         .ccd_enabled(true)
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
-    if !LAZY_COLLIDERS {
-        let collider = ColliderBuilder::ball(1.0)
-            .restitution(1.0)
-            .collision_groups(collision::bullet_interaction_groups(data.team))
-            .active_events(ActiveEvents::COLLISION_EVENTS)
-            .sensor(true)
-            .build();
-        sim.colliders
-            .insert_with_parent(collider, body_handle, &mut sim.bodies);
-    }
     let handle = BulletHandle(body_handle.0);
     sim.bullet_data.insert(handle.index(), data);
     sim.bullets.insert(handle);
@@ -94,48 +82,45 @@ pub fn tick(sim: &mut Simulation) {
 }
 
 fn tick_one(sim: &mut Simulation, handle: BulletHandle, dt: f64) {
-    let team;
-    {
+    let team = {
         let data = data_mut(sim, handle);
         data.ttl -= dt as f32;
         if data.ttl <= 0.0 {
             destroy(sim, handle);
             return;
         }
-        team = data.team;
+        data.team
+    };
+
+    let has_collider;
+    let mut needs_collider = false;
+    {
+        let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
+        has_collider = !body.colliders().is_empty();
+
+        let aabb = Aabb::from_half_extents(
+            body.position().translation.vector.into(),
+            vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
+        );
+
+        sim.query_pipeline
+            .colliders_with_aabb_intersecting_aabb(&aabb, |&collider_handle| {
+                let get_index = |h| sim.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
+                if let Some(index) = get_index(collider_handle) {
+                    if sim.ships.contains(ShipHandle(index))
+                        && sim.ship(ShipHandle(index)).data().team != team
+                    {
+                        needs_collider = true;
+                    }
+                }
+                true
+            });
     }
 
-    if LAZY_COLLIDERS {
-        let has_collider;
-        let mut needs_collider = false;
-        {
-            let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
-            has_collider = !body.colliders().is_empty();
-
-            let aabb = Aabb::from_half_extents(
-                body.position().translation.vector.into(),
-                vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
-            );
-
-            sim.query_pipeline
-                .colliders_with_aabb_intersecting_aabb(&aabb, |&collider_handle| {
-                    let get_index = |h| sim.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
-                    if let Some(index) = get_index(collider_handle) {
-                        if sim.ships.contains(ShipHandle(index))
-                            && sim.ship(ShipHandle(index)).data().team != team
-                        {
-                            needs_collider = true;
-                        }
-                    }
-                    true
-                });
-        }
-
-        if needs_collider && !has_collider {
-            add_collider(sim, handle);
-        } else if has_collider && !needs_collider {
-            remove_collider(sim, handle);
-        }
+    if needs_collider && !has_collider {
+        add_collider(sim, handle);
+    } else if has_collider && !needs_collider {
+        remove_collider(sim, handle);
     }
 }
 
