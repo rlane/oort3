@@ -6,7 +6,7 @@ use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
 use oort_simulator::scenario::Status;
 use oort_simulator::ship::ShipClass;
-use oort_simulator::simulation;
+use oort_simulator::simulation::{self, PHYSICS_TICK_LENGTH};
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
 use std::collections::{HashMap, VecDeque};
 use web_sys::{Element, HtmlCanvasElement};
@@ -219,6 +219,15 @@ impl UI {
 
         if self.pending_snapshots.len() <= 1 && !fast_forward {
             status_msgs.push("SLOW SIM".to_owned());
+        }
+
+        if self.debug {
+            if let Some(snapshot) = self.snapshot.as_ref() {
+                status_msgs.push(format!(
+                    "TICK {}",
+                    (snapshot.time / PHYSICS_TICK_LENGTH).round() as i64
+                ));
+            }
         }
 
         if self.frame % 10 == 0 {
