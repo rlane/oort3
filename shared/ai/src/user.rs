@@ -1,5 +1,3 @@
-
-
 pub struct Ship {}
 
 impl Ship {

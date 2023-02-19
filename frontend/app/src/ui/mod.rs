@@ -331,21 +331,15 @@ impl UI {
         self.zoom = self.zoom.clamp(MIN_ZOOM, MAX_ZOOM);
 
         // Move camera target to keep cursor in the same location.
-        let zoom_target = self
-            .renderer
-            .unproject(e.offset_x(), e.offset_y());
+        let zoom_target = self.renderer.unproject(e.offset_x(), e.offset_y());
         self.renderer.set_view(self.zoom, self.camera_target);
-        let new_zoom_target = self
-            .renderer
-            .unproject(e.offset_x(), e.offset_y());
+        let new_zoom_target = self.renderer.unproject(e.offset_x(), e.offset_y());
         let diff = new_zoom_target - zoom_target;
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
     }
 
     pub fn on_mouse_event(&mut self, e: web_sys::MouseEvent) {
-        let target = self
-            .renderer
-            .unproject(e.offset_x(), e.offset_y())
+        let target = self.renderer.unproject(e.offset_x(), e.offset_y())
             + vector![self.camera_target.x as f64, self.camera_target.y as f64];
         let extra_radius =
             (self.renderer.unproject(10, 0) - self.renderer.unproject(0, 0)).magnitude();

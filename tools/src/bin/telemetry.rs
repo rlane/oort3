@@ -155,10 +155,8 @@ async fn cmd_get(
                 println!("// User: {user}");
                 println!("// Scenario: {scenario_name}");
                 println!("{}", code.trim());
-            },
-            Telemetry::Feedback {
-                text,
-            } => {
+            }
+            Telemetry::Feedback { text } => {
                 let datetime: DateTime<Local> = DateTime::from(msg.timestamp);
                 println!("// User: {user}");
                 println!("// Date: {datetime}");
