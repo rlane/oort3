@@ -1,7 +1,7 @@
 use nalgebra::vector;
-use oort_simulator::ship;
 use oort_simulator::ship::{fighter, frigate, target};
 use oort_simulator::simulation::{self, Code};
+use oort_simulator::{bullet, ship};
 use test_log::test;
 
 #[test]
@@ -101,7 +101,7 @@ fn test_penetration() {
     sim.ship_mut(ship0).fire_gun(0);
     let bullet = *sim.bullets.iter().next().unwrap();
     let initial_bullet_mass = sim.bullet(bullet).data().mass;
-    let initial_velocity = *sim.bullet(bullet).body().linvel();
+    let initial_velocity = *bullet::body(&mut sim, bullet).linvel();
 
     for _ in 0..100 {
         sim.step();
@@ -111,5 +111,5 @@ fn test_penetration() {
     assert!(sim.ships.contains(ship0));
     assert!(!sim.ships.contains(ship1));
     assert_ne!(sim.bullet(bullet).data().mass, initial_bullet_mass);
-    assert_ne!(*sim.bullet(bullet).body().linvel(), initial_velocity);
+    assert_ne!(*bullet::body(&sim, bullet).linvel(), initial_velocity);
 }

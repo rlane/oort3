@@ -1,8 +1,8 @@
 use nalgebra::vector;
 use oort_api::Ability;
-use oort_simulator::ship;
 use oort_simulator::ship::{cruiser, fighter, frigate, missile, torpedo, ShipClass};
 use oort_simulator::simulation::{self, Code, PHYSICS_TICK_LENGTH};
+use oort_simulator::{bullet, ship};
 use test_log::test;
 
 #[test]
@@ -39,8 +39,7 @@ fn test_shaped_charge() {
 
     assert!(!sim.bullets.is_empty());
     for &handle in sim.bullets.iter() {
-        let bullet = sim.bullet(handle);
-        let v = *bullet.body().linvel();
+        let v = *bullet::body(&sim, handle).linvel();
         let max_angle = 0.05;
         assert!(v.angle(&vector![1.0, 0.0]) <= max_angle);
         assert!(v.angle(&vector![1.0, 0.0]) >= -max_angle);

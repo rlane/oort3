@@ -2,7 +2,7 @@ use crate::bullet::{self, BulletAccessor, BulletAccessorMut, BulletData, BulletH
 use crate::collision;
 use crate::debug;
 pub use crate::debug::Line;
-use crate::index_set::IndexSet;
+use crate::index_set::{HasIndex, IndexSet};
 use crate::radar;
 use crate::radio;
 use crate::scenario;
@@ -338,12 +338,13 @@ impl Simulation {
         }
 
         for &handle in self.bullets.iter() {
-            let bullet = self.bullet(handle);
+            let body = self.bodies.get(handle.into()).unwrap();
+            let data = self.bullet_data.get(handle.index()).unwrap();
             snapshot.bullets.push(BulletSnapshot {
-                position: bullet.body().position().translation.vector.into(),
-                velocity: *bullet.body().linvel(),
-                color: bullet.data().color,
-                ttl: bullet.data().ttl,
+                position: body.position().translation.vector.into(),
+                velocity: *body.linvel(),
+                color: data.color,
+                ttl: data.ttl,
             });
         }
 

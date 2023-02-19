@@ -16,6 +16,12 @@ impl HasIndex for BulletHandle {
     }
 }
 
+impl From<BulletHandle> for RigidBodyHandle {
+    fn from(handle: BulletHandle) -> Self {
+        RigidBodyHandle(handle.index())
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct BulletData {
     pub mass: f64,
@@ -58,22 +64,11 @@ pub struct BulletAccessor<'a> {
 }
 
 impl<'a> BulletAccessor<'a> {
-    pub fn body(&self) -> &'a RigidBody {
-        self.simulation
-            .bodies
-            .get(RigidBodyHandle(self.handle.index()))
-            .unwrap()
-    }
-
     pub fn data(&self) -> &BulletData {
         self.simulation
             .bullet_data
             .get(self.handle.index())
             .unwrap()
-    }
-
-    pub fn position(&self) -> Vector2<f64> {
-        *self.body().translation()
     }
 }
 
@@ -83,17 +78,6 @@ pub struct BulletAccessorMut<'a> {
 }
 
 impl<'a: 'b, 'b> BulletAccessorMut<'a> {
-    pub fn position(&'a mut self) -> Vector2<f64> {
-        *self.body().translation()
-    }
-
-    pub fn body(&'a mut self) -> &'a mut RigidBody {
-        self.simulation
-            .bodies
-            .get_mut(RigidBodyHandle(self.handle.index()))
-            .unwrap()
-    }
-
     pub fn data_mut(&mut self) -> &mut BulletData {
         self.simulation
             .bullet_data
@@ -208,4 +192,12 @@ pub fn tick(sim: &mut Simulation) {
     for handle in bullets {
         sim.bullet_mut(handle).tick(PHYSICS_TICK_LENGTH);
     }
+}
+
+pub fn body(sim: &Simulation, handle: BulletHandle) -> &RigidBody {
+    sim.bodies.get(handle.into()).unwrap()
+}
+
+pub fn body_mut(sim: &mut Simulation, handle: BulletHandle) -> &mut RigidBody {
+    sim.bodies.get_mut(handle.into()).unwrap()
 }

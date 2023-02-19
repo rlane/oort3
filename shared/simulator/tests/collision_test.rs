@@ -163,7 +163,7 @@ fn test_missile_bullet_collision_same_team() {
     }
 
     assert_eq!(sim.ship(msl).velocity().x, 0.0);
-    assert_eq!(sim.bullet(blt).body().linvel().x, 1000.0);
+    assert_eq!(bullet::body(&mut sim, blt).linvel().x, 1000.0);
 }
 
 #[test]

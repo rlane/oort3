@@ -1,4 +1,4 @@
-use crate::bullet::BulletHandle;
+use crate::bullet::{self, BulletHandle};
 use crate::index_set::HasIndex;
 use crate::ship::ShipHandle;
 use crate::simulation::{Particle, Simulation, PHYSICS_TICK_LENGTH};
@@ -60,20 +60,23 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
     for event in events {
         if let CollisionEvent::Started(h1, h2, _flags) = event {
             let get_index = |h| sim.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
-            let handle_hit = |sim: &mut Simulation, ship, bullet| {
+            let handle_hit = |sim: &mut Simulation, ship, bullet: BulletHandle| {
+                let (bullet_position, bullet_velocity) = {
+                    let body = bullet::body(sim, bullet);
+                    (body.position().translation.vector, *body.linvel())
+                };
                 if sim.ship(ship).is_ability_active(Ability::Shield) {
-                    let dp = sim.bullet(bullet).body().position().translation.vector
-                        - sim.ship(ship).position().vector;
+                    let dp = bullet_position - sim.ship(ship).position().vector;
                     let normal = dp.normalize();
-                    let old_velocity = sim.bullet(bullet).body().linvel();
-                    let new_velocity = normal * old_velocity.magnitude();
-                    sim.bullet_mut(bullet)
-                        .body()
-                        .set_linvel(new_velocity, false);
-                    let pos = sim.bullet_mut(bullet).position();
-                    sim.bullet_mut(bullet)
-                        .body()
-                        .set_translation(pos + new_velocity * PHYSICS_TICK_LENGTH, false);
+                    let new_bullet_velocity = normal * bullet_velocity.magnitude();
+                    {
+                        let body = bullet::body_mut(sim, bullet);
+                        body.set_linvel(new_bullet_velocity, false);
+                        body.set_translation(
+                            bullet_position + new_bullet_velocity * PHYSICS_TICK_LENGTH,
+                            false,
+                        );
+                    }
                     sim.bullet_mut(bullet).data_mut().team = sim.ship(ship).data().team;
                     return;
                 }
@@ -81,14 +84,13 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                     sim.bullet_mut(bullet).destroy();
                     return;
                 }
-                let dv = sim.bullet(bullet).body().linvel() - sim.ship(ship).velocity();
+                let dv = bullet_velocity - sim.ship(ship).velocity();
                 let energy = 0.5 * sim.bullet(bullet).data().mass * dv.magnitude_squared();
                 let damage = energy * DAMAGE_FACTOR;
                 for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
                     let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
                     let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..500.0), 0.0]);
-                    let p = sim.bullet(bullet).body().position().translation.vector
-                        + v * sim.rng.gen_range(0.0..0.1);
+                    let p = bullet_position + v * sim.rng.gen_range(0.0..0.1);
                     sim.events.particles.push(Particle {
                         position: p,
                         velocity: v,
@@ -119,11 +121,8 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                     sim.ship_mut(ship).data_mut().destroyed = true;
                     sim.bullet_mut(bullet).data_mut().mass *= 0.5;
                     let rotation = UnitComplex::new(sim.rng.gen_range(-0.1..0.1));
-                    let new_velocity =
-                        rotation.transform_vector(sim.bullet(bullet).body().linvel());
-                    sim.bullet_mut(bullet)
-                        .body()
-                        .set_linvel(new_velocity, false);
+                    let new_bullet_velocity = rotation.transform_vector(&bullet_velocity);
+                    bullet::body_mut(sim, bullet).set_linvel(new_bullet_velocity, false);
                 } else {
                     sim.bullet_mut(bullet).destroy();
                 }
