@@ -50,7 +50,6 @@ pub struct Simulation {
     pub(crate) colliders: ColliderSet,
     integration_parameters: IntegrationParameters,
     physics_pipeline: PhysicsPipeline,
-    pub(crate) query_pipeline: QueryPipeline,
     pub(crate) island_manager: IslandManager,
     broad_phase: BroadPhase,
     narrow_phase: NarrowPhase,
@@ -87,7 +86,6 @@ impl Simulation {
                 ..Default::default()
             },
             physics_pipeline: PhysicsPipeline::new(),
-            query_pipeline: QueryPipeline::new(),
             island_manager: IslandManager::new(),
             broad_phase: BroadPhase::new(),
             narrow_phase: NarrowPhase::new(),
@@ -209,15 +207,7 @@ impl Simulation {
         self.timing.script = (Instant::now() - script_start_time).as_secs_f64();
 
         let physics_start_time = Instant::now();
-
-        self.query_pipeline.update_with_mode(
-            &self.bodies,
-            &self.colliders,
-            QueryPipelineMode::SweepTestWithNextPosition,
-        );
-
         bullet::tick(self);
-
         self.timing.physics += (Instant::now() - physics_start_time).as_secs_f64();
 
         let mut scenario = std::mem::take(&mut self.scenario);

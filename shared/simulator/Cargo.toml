@@ -30,6 +30,7 @@ tar = "0.4.38"
 libflate = "1.2.0"
 walrus = { version = "0.19.0", git = "https://github.com/scrtlabs/walrus", rev = "c5777d4" }
 bytes = { version = "1.4.0", features = ["serde"] }
+static_aabb2d_index = { version = "0.7.0", features = ["unsafe_optimizations"] }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 wasmer-compiler-singlepass = { version = "3.2.0-alpha.1" }

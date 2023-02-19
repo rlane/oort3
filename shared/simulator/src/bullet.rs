@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+
 use super::index_set::{HasIndex, Index};
 use crate::collision;
-use crate::ship::ShipHandle;
 use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH};
 use nalgebra::{Vector2, Vector4};
 use rapier2d_f64::prelude::*;
+use static_aabb2d_index::*;
+
+const COLOR_COLLIDERS: bool = false;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone)]
 pub struct BulletHandle(pub Index);
@@ -48,7 +52,7 @@ pub fn create(
     sim: &mut Simulation,
     position: Vector2<f64>,
     velocity: Vector2<f64>,
-    data: BulletData,
+    mut data: BulletData,
 ) -> BulletHandle {
     let rigid_body = RigidBodyBuilder::dynamic()
         .translation(position)
@@ -57,6 +61,9 @@ pub fn create(
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
     let handle = BulletHandle(body_handle.0);
+    if COLOR_COLLIDERS {
+        data.color = vector![1.0, 0.0, 0.0, 1.0];
+    }
     sim.bullet_data.insert(handle.index(), data);
     sim.bullets.insert(handle);
     handle
@@ -78,6 +85,9 @@ pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
 
 pub fn tick(sim: &mut Simulation) {
     let dt = PHYSICS_TICK_LENGTH;
+    let indices_by_team = build_indices(sim, dt);
+    let mut stack = Vec::new();
+    let shape = rapier2d_f64::geometry::Ball { radius: 1.0 };
     let bullets: Vec<BulletHandle> = sim.bullets.iter().cloned().collect();
     for handle in bullets {
         let team = {
@@ -96,23 +106,26 @@ pub fn tick(sim: &mut Simulation) {
             let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
             has_collider = !body.colliders().is_empty();
 
-            let aabb = Aabb::from_half_extents(
-                body.position().translation.vector.into(),
-                vector![1.0, 1.0] * body.linvel().magnitude() * 2.0 * PHYSICS_TICK_LENGTH,
+            let aabb = shape.compute_swept_aabb(
+                body.position(),
+                &body.predict_position_using_velocity_and_forces(dt),
             );
 
-            sim.query_pipeline
-                .colliders_with_aabb_intersecting_aabb(&aabb, |&collider_handle| {
-                    let get_index = |h| sim.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
-                    if let Some(index) = get_index(collider_handle) {
-                        if sim.ships.contains(ShipHandle(index))
-                            && sim.ship(ShipHandle(index)).data().team != team
-                        {
-                            needs_collider = true;
-                        }
-                    }
-                    true
-                });
+            for (other_team, index) in indices_by_team.iter() {
+                if team != *other_team {
+                    needs_collider = needs_collider
+                        || index
+                            .query_iter_with_stack(
+                                aabb.mins.x,
+                                aabb.mins.y,
+                                aabb.maxs.x,
+                                aabb.maxs.y,
+                                &mut stack,
+                            )
+                            .next()
+                            .is_some();
+                }
+            }
         }
 
         if needs_collider && !has_collider {
@@ -123,7 +136,34 @@ pub fn tick(sim: &mut Simulation) {
     }
 }
 
+fn build_indices(sim: &Simulation, dt: f64) -> HashMap<i32, StaticAABB2DIndex<f64>> {
+    let mut aabbs_by_team: HashMap<i32, Vec<Aabb>> = HashMap::new();
+
+    for handle in sim.ships.iter() {
+        let body = sim.ship(*handle).body();
+        let collider_handle = body.colliders()[0];
+        let collider = sim.colliders.get(collider_handle).unwrap();
+        let aabb =
+            collider.compute_swept_aabb(&body.predict_position_using_velocity_and_forces(dt));
+        let team = sim.ship(*handle).data().team;
+        aabbs_by_team.entry(team).or_default().push(aabb);
+    }
+
+    let mut indices_by_team: HashMap<i32, StaticAABB2DIndex<f64>> = HashMap::new();
+    for (team, aabbs) in aabbs_by_team {
+        let mut builder = StaticAABB2DIndexBuilder::new(aabbs.len());
+        for aabb in aabbs {
+            builder.add(aabb.mins.x, aabb.mins.y, aabb.maxs.x, aabb.maxs.y);
+        }
+        indices_by_team.insert(team, builder.build().unwrap());
+    }
+    indices_by_team
+}
+
 fn add_collider(sim: &mut Simulation, handle: BulletHandle) {
+    if COLOR_COLLIDERS {
+        data_mut(sim, handle).color = vector![0.0, 1.0, 0.0, 1.0];
+    }
     let team = data(sim, handle).team;
     let collider = ColliderBuilder::ball(1.0)
         .restitution(1.0)
@@ -136,6 +176,9 @@ fn add_collider(sim: &mut Simulation, handle: BulletHandle) {
 }
 
 fn remove_collider(sim: &mut Simulation, handle: BulletHandle) {
+    if COLOR_COLLIDERS {
+        data_mut(sim, handle).color = vector![1.0, 0.0, 0.0, 1.0];
+    }
     let colliders = sim
         .bodies
         .get_mut(RigidBodyHandle(handle.index()))

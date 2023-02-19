@@ -17,5 +17,5 @@ fn run(scenario_name: &str) -> u64 {
 
 #[test]
 fn test_frigate_vs_cruiser() {
-    assert_eq!(run("frigate_vs_cruiser"), 15044307371063929937);
+    assert_eq!(run("frigate_vs_cruiser"), 18252782732018435727);
 }
