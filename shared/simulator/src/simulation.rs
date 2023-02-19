@@ -1,7 +1,8 @@
 use crate::bullet::{self, BulletAccessor, BulletAccessorMut, BulletData, BulletHandle};
+use crate::collision;
 use crate::debug;
 pub use crate::debug::Line;
-use crate::index_set::{HasIndex, IndexSet};
+use crate::index_set::IndexSet;
 use crate::radar;
 use crate::radio;
 use crate::scenario;
@@ -12,21 +13,18 @@ use crate::vm;
 use crate::vm::TeamController;
 use crossbeam::channel::Sender;
 use instant::Instant;
-use nalgebra::{Rotation2, UnitComplex, Vector2, Vector4};
-use oort_api::{Ability, Text};
-use rand::Rng;
+use nalgebra::{Vector2, Vector4};
+use oort_api::Text;
 use rand_chacha::ChaCha8Rng;
 use rapier2d_f64::data::Coarena;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
-use std::f64::consts::TAU;
 use std::rc::Rc;
 
 pub const WORLD_SIZE: f64 = 20000.0;
 pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
-const DAMAGE_FACTOR: f64 = 0.00014;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Eq, Hash, PartialEq)]
 pub enum Code {
@@ -64,7 +62,7 @@ pub struct Simulation {
     pub cheats: bool,
     seed: u32,
     timing: Timing,
-    rng: ChaCha8Rng,
+    pub(crate) rng: ChaCha8Rng,
 }
 
 impl Simulation {
@@ -198,106 +196,8 @@ impl Simulation {
             &self.event_collector,
         );
 
-        while let Ok(event) = self.contact_recv.try_recv() {
-            if let CollisionEvent::Started(h1, h2, _flags) = event {
-                let get_index = |h| self.colliders.get(h).and_then(|x| x.parent()).map(|x| x.0);
-                let handle_hit = |sim: &mut Simulation, ship, bullet| {
-                    if sim.ship(ship).is_ability_active(Ability::Shield) {
-                        let dp = sim.bullet(bullet).body().position().translation.vector
-                            - sim.ship(ship).position().vector;
-                        let normal = dp.normalize();
-                        let old_velocity = sim.bullet(bullet).body().linvel();
-                        let new_velocity = normal * old_velocity.magnitude();
-                        sim.bullet_mut(bullet)
-                            .body()
-                            .set_linvel(new_velocity, false);
-                        let pos = sim.bullet_mut(bullet).position();
-                        sim.bullet_mut(bullet)
-                            .body()
-                            .set_translation(pos + new_velocity * PHYSICS_TICK_LENGTH, false);
-                        sim.bullet_mut(bullet).data_mut().team = sim.ship(ship).data().team;
-                        return;
-                    }
-                    if sim.bullet(bullet).data().team == sim.ship(ship).data().team {
-                        sim.bullet_mut(bullet).destroy();
-                        return;
-                    }
-                    let dv = sim.bullet(bullet).body().linvel() - sim.ship(ship).velocity();
-                    let energy = 0.5 * sim.bullet(bullet).data().mass * dv.magnitude_squared();
-                    let damage = energy * DAMAGE_FACTOR;
-                    for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
-                        let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
-                        let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..500.0), 0.0]);
-                        let p = sim.bullet(bullet).body().position().translation.vector
-                            + v * sim.rng.gen_range(0.0..0.1);
-                        sim.events.particles.push(Particle {
-                            position: p,
-                            velocity: v,
-                            color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
-                            lifetime: (PHYSICS_TICK_LENGTH * 10.0) as f32,
-                        });
-                    }
-                    let ship_destroyed = {
-                        let ship_data = sim.ship_data.get_mut(ship.index()).unwrap();
-                        ship_data.health -= damage;
-                        ship_data.health <= 0.0
-                    };
-                    if ship_destroyed {
-                        for _ in 0..10 {
-                            let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
-                            let v =
-                                rot.transform_vector(&vector![sim.rng.gen_range(0.0..200.0), 0.0]);
-                            let p = sim.ship(ship).body().position().translation.vector
-                                + v * sim.rng.gen_range(0.0..0.1);
-                            let lifetime = (sim.ship_data.get(ship.index()).unwrap().mass.log2()
-                                * PHYSICS_TICK_LENGTH)
-                                as f32;
-                            sim.events.particles.push(Particle {
-                                position: p,
-                                velocity: v,
-                                color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
-                                lifetime,
-                            });
-                        }
-                        sim.ship_mut(ship).data_mut().destroyed = true;
-                        sim.bullet_mut(bullet).data_mut().mass *= 0.5;
-                        let rotation = UnitComplex::new(sim.rng.gen_range(-0.1..0.1));
-                        let new_velocity =
-                            rotation.transform_vector(sim.bullet(bullet).body().linvel());
-                        sim.bullet_mut(bullet)
-                            .body()
-                            .set_linvel(new_velocity, false);
-                    } else {
-                        sim.bullet_mut(bullet).destroy();
-                    }
-                };
-                if let (Some(idx1), Some(idx2)) = (get_index(h1), get_index(h2)) {
-                    if self.ships.contains(ShipHandle(idx1))
-                        && self.ships.contains(ShipHandle(idx2))
-                        && self.ship(ShipHandle(idx1)).data().team
-                            != self.ship(ShipHandle(idx2)).data().team
-                    {
-                        self.ship_mut(ShipHandle(idx1)).handle_collision();
-                        self.ship_mut(ShipHandle(idx2)).handle_collision();
-                    }
-
-                    if self.bullets.contains(BulletHandle(idx1)) {
-                        if self.ships.contains(ShipHandle(idx2)) {
-                            handle_hit(self, ShipHandle(idx2), BulletHandle(idx1));
-                        } else {
-                            self.bullet_mut(BulletHandle(idx1)).destroy();
-                        }
-                    } else if self.bullets.contains(BulletHandle(idx2)) {
-                        if self.ships.contains(ShipHandle(idx1)) {
-                            handle_hit(self, ShipHandle(idx1), BulletHandle(idx2));
-                        } else {
-                            self.bullet_mut(BulletHandle(idx2)).destroy();
-                        }
-                    }
-                }
-            }
-        }
-
+        let collision_events: Vec<_> = self.contact_recv.try_iter().collect();
+        collision::handle_collisions(self, &collision_events);
         radar::tick(self);
         radio::tick(self);
 
