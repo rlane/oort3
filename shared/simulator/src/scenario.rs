@@ -2017,7 +2017,7 @@ impl Scenario for Belt {
         for team in 0..2 {
             let signum = if team == 0 { -1.0 } else { 1.0 };
             let center = point![rng.gen_range(-6000.0..6000.0), signum * 8000.0];
-            let heading = if team == 0 { -TAU / 4.0 } else { TAU / 4.0 };
+            let heading = if team == 0 { TAU / 4.0 } else { -TAU / 4.0 };
             let num_fighters = 8;
             let num_frigates = 2;
             for i in 0..(num_fighters / 2) {
