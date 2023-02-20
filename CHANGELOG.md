@@ -1,3 +1,6 @@
+- Further improved simulation performance.
+- Fixed initial headings in the belt scenario.
+
 ### 0.38.1
 
 - Added a serve binary to run a development server.
