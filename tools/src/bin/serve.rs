@@ -15,9 +15,13 @@ fn main() -> Result<()> {
 
     let args = Arguments::parse();
 
-    let secrets = std::fs::read_to_string(".secrets/secrets.toml")?.parse::<toml::Table>()?;
-    for (k, v) in secrets.iter() {
-        std::env::set_var(k, v.as_str().expect("invalid secret value"));
+    if let Ok(contents) = std::fs::read_to_string(".secrets/secrets.toml") {
+        let secrets = contents.parse::<toml::Table>()?;
+        for (k, v) in secrets.iter() {
+            std::env::set_var(k, v.as_str().expect("invalid secret value"));
+        }
+    } else {
+        log::info!("Missing secrets file");
     }
 
     cmd(&[
