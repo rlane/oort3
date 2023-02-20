@@ -27,7 +27,9 @@ opt-level = 0
 [profile.release]
 debug = true
 lto = "thin"
+incremental = true
 
 [profile.bench]
 debug = true
 lto = "thin"
+incremental = true
