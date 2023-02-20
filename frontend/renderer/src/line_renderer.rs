@@ -72,67 +72,69 @@ void main() {
             return;
         }
 
-        let mut vertices: Vec<f32> = vec![];
-        vertices.reserve(4 * lines.len());
-        let mut colors: Vec<f32> = vec![];
-        colors.reserve(8 * lines.len());
-        for line in lines {
-            vertices.push(line.a.x as f32);
-            vertices.push(line.a.y as f32);
-            vertices.push(line.b.x as f32);
-            vertices.push(line.b.y as f32);
+        for lines in lines.chunks(1000) {
+            let mut vertices: Vec<f32> = vec![];
+            vertices.reserve(4 * lines.len());
+            let mut colors: Vec<f32> = vec![];
+            colors.reserve(8 * lines.len());
+            for line in lines {
+                vertices.push(line.a.x as f32);
+                vertices.push(line.a.y as f32);
+                vertices.push(line.b.x as f32);
+                vertices.push(line.b.y as f32);
 
-            colors.push(line.color[0]);
-            colors.push(line.color[1]);
-            colors.push(line.color[2]);
-            colors.push(line.color[3]);
+                colors.push(line.color[0]);
+                colors.push(line.color[1]);
+                colors.push(line.color[2]);
+                colors.push(line.color[3]);
 
-            colors.push(line.color[0]);
-            colors.push(line.color[1]);
-            colors.push(line.color[2]);
-            colors.push(line.color[3]);
+                colors.push(line.color[0]);
+                colors.push(line.color[1]);
+                colors.push(line.color[2]);
+                colors.push(line.color[3]);
+            }
+
+            self.context.use_program(Some(&self.program));
+
+            let (buffer, vertices_offset) = self.buffer_arena.write(&vertices);
+            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
+
+            self.context.vertex_attrib_pointer_with_i32(
+                /*indx=*/ 0,
+                /*size=*/ 2,
+                /*type_=*/ gl::FLOAT,
+                /*normalized=*/ false,
+                /*stride=*/ 0,
+                vertices_offset as i32,
+            );
+            self.context.enable_vertex_attrib_array(0);
+
+            let (buffer, colors_offset) = self.buffer_arena.write(&colors);
+            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
+
+            self.context.vertex_attrib_pointer_with_i32(
+                /*indx=*/ 1,
+                /*size=*/ 4,
+                /*type_=*/ gl::FLOAT,
+                /*normalized=*/ false,
+                /*stride=*/ 0,
+                colors_offset as i32,
+            );
+            self.context.enable_vertex_attrib_array(1);
+
+            self.context.uniform_matrix4fv_with_f32_array(
+                Some(&self.transform_loc),
+                false,
+                self.projection_matrix.data.as_slice(),
+            );
+
+            self.context.line_width(1.0);
+
+            self.context
+                .draw_arrays(gl::LINES, 0, (vertices.len() / 2) as i32);
+
+            self.context.disable_vertex_attrib_array(0);
+            self.context.disable_vertex_attrib_array(1);
         }
-
-        self.context.use_program(Some(&self.program));
-
-        let (buffer, vertices_offset) = self.buffer_arena.write(&vertices);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            vertices_offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(0);
-
-        let (buffer, colors_offset) = self.buffer_arena.write(&colors);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 1,
-            /*size=*/ 4,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            colors_offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(1);
-
-        self.context.uniform_matrix4fv_with_f32_array(
-            Some(&self.transform_loc),
-            false,
-            self.projection_matrix.data.as_slice(),
-        );
-
-        self.context.line_width(1.0);
-
-        self.context
-            .draw_arrays(gl::LINES, 0, (vertices.len() / 2) as i32);
-
-        self.context.disable_vertex_attrib_array(0);
-        self.context.disable_vertex_attrib_array(1);
     }
 }

@@ -73,88 +73,88 @@ void main() {
     }
 
     pub fn draw(&mut self, snapshot: &Snapshot, base_line_width: f32) {
-        let num_instances = snapshot.bullets.len();
-
-        if num_instances == 0 {
+        if snapshot.bullets.is_empty() {
             return;
         }
 
         self.context.use_program(Some(&self.program));
 
-        // vertex
-        let vertices = geometry::quad();
-        VertexAttribBuilder::new(&self.context)
-            .data(&mut self.buffer_arena, &vertices)
-            .index(0)
-            .size(2)
-            .build();
+        for bullets in snapshot.bullets.chunks(1000) {
+            // vertex
+            let vertices = geometry::quad();
+            VertexAttribBuilder::new(&self.context)
+                .data(&mut self.buffer_arena, &vertices)
+                .index(0)
+                .size(2)
+                .build();
 
-        struct BulletAttribs {
-            color: Vector4<f32>,
-            transform: Matrix4<f32>,
-        }
-
-        let mut attribs = vec![];
-        attribs.reserve(num_instances);
-        for bullet in snapshot.bullets.iter() {
-            let p: Point2<f32> = bullet.position.cast();
-            let v: Vector2<f32> = bullet.velocity.cast();
-            let dt = PHYSICS_TICK_LENGTH as f32;
-            let mut color = color::from_u32(bullet.color);
-            if bullet.ttl < 0.3 {
-                color.w *= bullet.ttl + 0.3;
+            struct BulletAttribs {
+                color: Vector4<f32>,
+                transform: Matrix4<f32>,
             }
-            attribs.push(BulletAttribs {
-                color,
-                transform: geometry::line_transform(p - 2.0 * v * dt, p, base_line_width),
-            });
+
+            let mut attribs = vec![];
+            attribs.reserve(bullets.len());
+            for bullet in bullets.iter() {
+                let p: Point2<f32> = bullet.position.cast();
+                let v: Vector2<f32> = bullet.velocity.cast();
+                let dt = PHYSICS_TICK_LENGTH as f32;
+                let mut color = color::from_u32(bullet.color);
+                if bullet.ttl < 0.3 {
+                    color.w *= bullet.ttl + 0.3;
+                }
+                attribs.push(BulletAttribs {
+                    color,
+                    transform: geometry::line_transform(p - 2.0 * v * dt, p, base_line_width),
+                });
+            }
+
+            let vab = VertexAttribBuilder::new(&self.context)
+                .data(&mut self.buffer_arena, &attribs)
+                .size(4)
+                .divisor(1);
+            vab.index(1)
+                .offset(offset_of!(BulletAttribs, color))
+                .build();
+            vab.index(2)
+                .offset(offset_of!(BulletAttribs, transform))
+                .build();
+            vab.index(3)
+                .offset(offset_of!(BulletAttribs, transform) + 16)
+                .build();
+            vab.index(4)
+                .offset(offset_of!(BulletAttribs, transform) + 32)
+                .build();
+            vab.index(5)
+                .offset(offset_of!(BulletAttribs, transform) + 48)
+                .build();
+
+            // projection
+            self.context.uniform_matrix4fv_with_f32_array(
+                Some(&self.projection_loc),
+                false,
+                self.projection_matrix.data.as_slice(),
+            );
+
+            self.context.draw_arrays_instanced(
+                gl::TRIANGLE_STRIP,
+                0,
+                vertices.len() as i32,
+                bullets.len() as i32,
+            );
+
+            self.context.vertex_attrib_divisor(1, 0);
+            self.context.vertex_attrib_divisor(2, 0);
+            self.context.vertex_attrib_divisor(3, 0);
+            self.context.vertex_attrib_divisor(4, 0);
+            self.context.vertex_attrib_divisor(5, 0);
+
+            self.context.disable_vertex_attrib_array(0);
+            self.context.disable_vertex_attrib_array(1);
+            self.context.disable_vertex_attrib_array(2);
+            self.context.disable_vertex_attrib_array(3);
+            self.context.disable_vertex_attrib_array(4);
+            self.context.disable_vertex_attrib_array(5);
         }
-
-        let vab = VertexAttribBuilder::new(&self.context)
-            .data(&mut self.buffer_arena, &attribs)
-            .size(4)
-            .divisor(1);
-        vab.index(1)
-            .offset(offset_of!(BulletAttribs, color))
-            .build();
-        vab.index(2)
-            .offset(offset_of!(BulletAttribs, transform))
-            .build();
-        vab.index(3)
-            .offset(offset_of!(BulletAttribs, transform) + 16)
-            .build();
-        vab.index(4)
-            .offset(offset_of!(BulletAttribs, transform) + 32)
-            .build();
-        vab.index(5)
-            .offset(offset_of!(BulletAttribs, transform) + 48)
-            .build();
-
-        // projection
-        self.context.uniform_matrix4fv_with_f32_array(
-            Some(&self.projection_loc),
-            false,
-            self.projection_matrix.data.as_slice(),
-        );
-
-        self.context.draw_arrays_instanced(
-            gl::TRIANGLE_STRIP,
-            0,
-            vertices.len() as i32,
-            num_instances as i32,
-        );
-
-        self.context.vertex_attrib_divisor(1, 0);
-        self.context.vertex_attrib_divisor(2, 0);
-        self.context.vertex_attrib_divisor(3, 0);
-        self.context.vertex_attrib_divisor(4, 0);
-        self.context.vertex_attrib_divisor(5, 0);
-
-        self.context.disable_vertex_attrib_array(0);
-        self.context.disable_vertex_attrib_array(1);
-        self.context.disable_vertex_attrib_array(2);
-        self.context.disable_vertex_attrib_array(3);
-        self.context.disable_vertex_attrib_array(4);
-        self.context.disable_vertex_attrib_array(5);
     }
 }

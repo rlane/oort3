@@ -53,6 +53,8 @@ impl BufferArena {
     pub fn write_buf(&mut self, data: &[u8]) -> (WebGlBuffer, u32) {
         assert!(!data.is_empty());
         let data_length = data.len() as u32;
+        assert!(self.offset <= self.buffer_size);
+        assert!(data_length <= self.buffer_size);
         if (self.buffer_size - self.offset) < data_length {
             std::mem::swap(&mut self.active_buffer, &mut self.standby_buffer);
             self.context
