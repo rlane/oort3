@@ -7,7 +7,7 @@ use yew::prelude::*;
 #[derive(Debug)]
 pub enum Msg {
     SendRequest,
-    ReceiveResponse(Result<LeaderboardData, reqwasm::Error>),
+    ReceiveResponse(Result<LeaderboardData, anyhow::Error>),
 }
 
 #[derive(Properties, Clone, PartialEq, Eq)]
@@ -43,7 +43,7 @@ impl Component for Leaderboard {
                 let callback =
                     context
                         .link()
-                        .callback(|response: Result<LeaderboardData, reqwasm::Error>| {
+                        .callback(|response: Result<LeaderboardData, anyhow::Error>| {
                             Msg::ReceiveResponse(response)
                         });
                 if let Some(submission) = context.props().submission.as_ref() {
