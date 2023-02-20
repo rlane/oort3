@@ -6,7 +6,9 @@ use nalgebra::{vector, Point2, Vector2};
 use oort_api::Ability;
 use rand::Rng;
 use rand_distr::StandardNormal;
+use rapier2d_f64::prelude::*;
 use rng::SeededRng;
+use static_aabb2d_index::{StaticAABB2DIndex, StaticAABB2DIndexBuilder};
 use std::collections::HashMap;
 use std::f64::consts::TAU;
 use std::ops::Range;
@@ -105,14 +107,24 @@ pub struct ScanResult {
     pub velocity: Vector2<f64>,
 }
 
-#[inline(never)]
-pub fn tick(sim: &mut Simulation) {
-    let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
+struct ReflectorTeam {
+    reflectors: Vec<RadarReflector>,
+    index: StaticAABB2DIndex<f64>,
+}
 
+#[inline(never)]
+fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
+    let mut aabbs_by_team: HashMap<i32, Vec<Aabb>> = HashMap::new();
     let mut reflectors_by_team: HashMap<i32, Vec<RadarReflector>> = HashMap::new();
-    for handle in handle_snapshot.iter() {
+
+    for handle in sim.ships.iter() {
         let ship = sim.ship(*handle);
         let ship_data = ship.data();
+        let body = sim.ship(*handle).body();
+        let aabb =
+            Aabb::from_half_extents(point![0.0, 0.0] + body.translation(), vector![1.0, 1.0]);
+        aabbs_by_team.entry(ship_data.team).or_default().push(aabb);
+
         let mut class = ship_data.class;
         let mut radar_cross_section = ship_data.radar_cross_section;
         if ship.is_ability_active(Ability::Decoy) {
@@ -130,6 +142,34 @@ pub fn tick(sim: &mut Simulation) {
             });
     }
 
+    let mut indices_by_team: HashMap<i32, StaticAABB2DIndex<f64>> = HashMap::new();
+    for (team, aabbs) in aabbs_by_team {
+        let mut builder = StaticAABB2DIndexBuilder::new(aabbs.len());
+        for aabb in aabbs {
+            builder.add(aabb.mins.x, aabb.mins.y, aabb.maxs.x, aabb.maxs.y);
+        }
+        indices_by_team.insert(team, builder.build().unwrap());
+    }
+
+    let mut result: HashMap<i32, ReflectorTeam> = HashMap::new();
+    for (team, reflectors) in reflectors_by_team.drain() {
+        result.insert(
+            team,
+            ReflectorTeam {
+                reflectors,
+                index: indices_by_team.remove(&team).unwrap(),
+            },
+        );
+    }
+
+    result
+}
+
+#[inline(never)]
+pub fn tick(sim: &mut Simulation) {
+    let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
+    let indices_by_team = build_reflector_team(sim);
+
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
         let ship_data = ship.data();
@@ -137,8 +177,9 @@ pub fn tick(sim: &mut Simulation) {
         if let Some(radar) = ship_data.radar.as_ref() {
             let h = radar.heading;
             let w = radar.width;
-            let max_distance =
-                compute_max_detection_range(radar, 40.0 /*cruiser*/).min(radar.max_distance);
+            let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
+                .min(radar.max_distance)
+                .min(simulation::WORLD_SIZE);
             let emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,
@@ -151,19 +192,27 @@ pub fn tick(sim: &mut Simulation) {
                 end_bearing: h + 0.5 * w,
                 min_distance: radar.min_distance,
                 max_distance,
-                square_distance_range: radar.min_distance.powi(2)..radar.max_distance.powi(2),
+                square_distance_range: radar.min_distance.powi(2)..max_distance.powi(2),
             };
             let mut rng = rng::new_rng(sim.tick());
+            let aabb = make_aabb(&emitter);
 
             let mut best_rssi = emitter.min_rssi;
             let mut best_reflector: Option<&RadarReflector> = None;
 
-            for (reflector_team, reflectors) in reflectors_by_team.iter() {
-                if emitter.team == *reflector_team {
+            for (team2, reflector_team) in indices_by_team.iter() {
+                if emitter.team == *team2 {
                     continue;
                 }
 
-                for reflector in reflectors.iter() {
+                for reflector_idx in reflector_team.index.query_iter(
+                    aabb.mins.x,
+                    aabb.mins.y,
+                    aabb.maxs.x,
+                    aabb.maxs.y,
+                ) {
+                    let reflector = &reflector_team.reflectors[reflector_idx];
+
                     if !check_inside_beam(&emitter, &reflector.position) {
                         continue;
                     }
@@ -195,6 +244,24 @@ pub fn tick(sim: &mut Simulation) {
             }
         }
     }
+}
+
+fn make_aabb(emitter: &RadarEmitter) -> Aabb {
+    let mut points = vec![];
+    points.reserve(48);
+    let w = emitter.end_bearing - emitter.start_bearing;
+    let center = emitter.center;
+    let mut generate_arc = |r| {
+        let n = (((20.0 / TAU) * w) as i32).max(3);
+        for i in 0..(n + 1) {
+            let frac = (i as f64) / (n as f64);
+            let angle = emitter.start_bearing + w * frac;
+            points.push(center + vector![r * angle.cos(), r * angle.sin()]);
+        }
+    };
+    generate_arc(emitter.min_distance * 0.9);
+    generate_arc(emitter.max_distance * 1.1);
+    Aabb::from_points(&points)
 }
 
 fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
