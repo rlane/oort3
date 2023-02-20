@@ -16,9 +16,12 @@ fn main() -> Result<()> {
     let args = Arguments::parse();
 
     if let Ok(contents) = std::fs::read_to_string(".secrets/secrets.toml") {
+        let dev_mode_secrets = ["GOOGLE_APPLICATION_CREDENTIALS"];
         let secrets = contents.parse::<toml::Table>()?;
         for (k, v) in secrets.iter() {
-            std::env::set_var(k, v.as_str().expect("invalid secret value"));
+            if dev_mode_secrets.contains(&k.as_str()) {
+                std::env::set_var(k, v.as_str().expect("invalid secret value"));
+            }
         }
     } else {
         log::info!("Missing secrets file");
