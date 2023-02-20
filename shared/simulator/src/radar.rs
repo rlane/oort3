@@ -7,6 +7,7 @@ use oort_api::Ability;
 use rand::Rng;
 use rand_distr::StandardNormal;
 use rng::SeededRng;
+use std::collections::HashMap;
 use std::f64::consts::TAU;
 use std::ops::Range;
 
@@ -94,7 +95,6 @@ struct RadarReflector {
     position: Point2<f64>,
     velocity: Vector2<f64>,
     radar_cross_section: f64,
-    team: i32,
     class: ShipClass,
 }
 
@@ -109,27 +109,26 @@ pub struct ScanResult {
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
 
-    let reflectors: Vec<RadarReflector> = handle_snapshot
-        .iter()
-        .cloned()
-        .map(|handle| {
-            let ship = sim.ship(handle);
-            let ship_data = ship.data();
-            let mut class = ship_data.class;
-            let mut radar_cross_section = ship_data.radar_cross_section;
-            if ship.is_ability_active(Ability::Decoy) {
-                class = ShipClass::Cruiser;
-                radar_cross_section = ship::CRUISER_RADAR_CROSS_SECTION / 2.0;
-            }
-            RadarReflector {
-                team: ship_data.team,
+    let mut reflectors_by_team: HashMap<i32, Vec<RadarReflector>> = HashMap::new();
+    for handle in handle_snapshot.iter() {
+        let ship = sim.ship(*handle);
+        let ship_data = ship.data();
+        let mut class = ship_data.class;
+        let mut radar_cross_section = ship_data.radar_cross_section;
+        if ship.is_ability_active(Ability::Decoy) {
+            class = ShipClass::Cruiser;
+            radar_cross_section = ship::CRUISER_RADAR_CROSS_SECTION / 2.0;
+        }
+        reflectors_by_team
+            .entry(ship_data.team)
+            .or_default()
+            .push(RadarReflector {
                 position: ship.position().vector.into(),
                 velocity: ship.velocity(),
                 radar_cross_section,
                 class,
-            }
-        })
-        .collect();
+            });
+    }
 
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
@@ -158,19 +157,22 @@ pub fn tick(sim: &mut Simulation) {
 
             let mut best_rssi = emitter.min_rssi;
             let mut best_reflector: Option<&RadarReflector> = None;
-            for reflector in &reflectors {
-                if emitter.team == reflector.team {
+
+            for (reflector_team, reflectors) in reflectors_by_team.iter() {
+                if emitter.team == *reflector_team {
                     continue;
                 }
 
-                if !check_inside_beam(&emitter, &reflector.position) {
-                    continue;
-                }
+                for reflector in reflectors.iter() {
+                    if !check_inside_beam(&emitter, &reflector.position) {
+                        continue;
+                    }
 
-                let rssi = compute_rssi(&emitter, reflector);
-                if rssi > best_rssi {
-                    best_reflector = Some(reflector);
-                    best_rssi = rssi;
+                    let rssi = compute_rssi(&emitter, reflector);
+                    if rssi > best_rssi {
+                        best_reflector = Some(reflector);
+                        best_rssi = rssi;
+                    }
                 }
             }
 
