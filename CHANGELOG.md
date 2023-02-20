@@ -1,3 +1,5 @@
+### 0.38.2
+
 - Further improved simulation performance.
 - Fixed initial headings in the belt scenario.
 
