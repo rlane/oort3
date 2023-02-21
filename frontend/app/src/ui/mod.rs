@@ -111,11 +111,10 @@ impl UI {
     }
 
     pub fn render(&mut self) {
-        if self.quit || !self.needs_render {
+        if self.quit {
             return;
         }
-        self.needs_render =
-            !(self.paused || self.status != Status::Running) || !self.keys_down.is_empty();
+        self.needs_render = false;
 
         let now = instant::now();
         if now - self.last_render_time > 20.0 {
@@ -470,6 +469,12 @@ impl UI {
 
     pub fn frame(&self) -> u64 {
         self.frame
+    }
+
+    pub fn needs_render(&self) -> bool {
+        self.needs_render
+            || !(self.paused || self.status != Status::Running)
+            || !self.keys_down.is_empty()
     }
 }
 

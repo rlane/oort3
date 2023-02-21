@@ -75,7 +75,7 @@ impl Component for SimulationWindow {
     }
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
-        match msg {
+        let result = match msg {
             Msg::StartSimulation {
                 scenario_name,
                 seed,
@@ -100,12 +100,6 @@ impl Component for SimulationWindow {
                 false
             }
             Msg::Render => {
-                self.render_handle = {
-                    let link = context.link().clone();
-                    Some(request_animation_frame(move |_ts| {
-                        link.send_message(Msg::Render)
-                    }))
-                };
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
                 }
@@ -157,7 +151,20 @@ impl Component for SimulationWindow {
                 }
                 false
             }
+        };
+
+        if let Some(ui) = self.ui.as_ref() {
+            if ui.needs_render() {
+                self.render_handle = {
+                    let link = context.link().clone();
+                    Some(request_animation_frame(move |_ts| {
+                        link.send_message(Msg::Render)
+                    }))
+                };
+            }
         }
+
+        result
     }
 
     fn view(&self, context: &yew::Context<Self>) -> Html {
