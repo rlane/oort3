@@ -1,3 +1,5 @@
+### 0.39.0
+
 - Decreased enemy health in tutorial09.
 - Reduced CPU usage when simulation is paused.
 
