@@ -1,3 +1,5 @@
+- Reduce CPU usage when simulation is paused.
+
 ### 0.38.2
 
 - Further improved simulation performance.
