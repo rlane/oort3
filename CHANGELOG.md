@@ -1,4 +1,5 @@
-- Reduce CPU usage when simulation is paused.
+- Decreased enemy health in tutorial09.
+- Reduced CPU usage when simulation is paused.
 
 ### 0.38.2
 

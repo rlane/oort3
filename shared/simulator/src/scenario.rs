@@ -1256,7 +1256,9 @@ impl Scenario for Tutorial09 {
             .transform_vector(&vector![rng.gen_range(2000.0..2500.0), 0.0]);
         let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
             .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-        ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
+        let mut shipdata = fighter(1);
+        shipdata.health /= 2.0;
+        ship::create(sim, p, v, std::f64::consts::PI, shipdata);
     }
 
     fn status(&self, sim: &Simulation) -> Status {
