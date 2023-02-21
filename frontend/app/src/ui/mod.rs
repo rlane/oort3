@@ -46,6 +46,7 @@ pub struct UI {
     status_ref: NodeRef,
     picked_ref: NodeRef,
     touches: HashMap<i32, Touch>,
+    needs_render: bool,
 }
 
 unsafe impl Send for UI {}
@@ -105,13 +106,16 @@ impl UI {
             status_ref,
             picked_ref,
             touches: HashMap::new(),
+            needs_render: true,
         }
     }
 
     pub fn render(&mut self) {
-        if self.quit {
+        if self.quit || !self.needs_render {
             return;
         }
+        self.needs_render =
+            !(self.paused || self.status != Status::Running) || !self.keys_down.is_empty();
 
         let now = instant::now();
         if now - self.last_render_time > 20.0 {
@@ -274,6 +278,8 @@ impl UI {
         if self.snapshot_requests_in_flight > 0 {
             self.snapshot_requests_in_flight -= 1;
         }
+
+        self.needs_render = true;
     }
 
     pub fn update_snapshot(&mut self) {
@@ -332,6 +338,7 @@ impl UI {
             self.keys_down.remove(&e.key());
             self.keys_ignored.remove(&e.key());
         }
+        self.needs_render = true;
     }
 
     pub fn on_wheel_event(&mut self, e: web_sys::WheelEvent) {
@@ -345,6 +352,8 @@ impl UI {
         let new_zoom_target = self.renderer.unproject(e.offset_x(), e.offset_y());
         let diff = new_zoom_target - zoom_target;
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
+
+        self.needs_render = true;
     }
 
     pub fn on_mouse_event(&mut self, e: web_sys::MouseEvent) {
@@ -364,6 +373,7 @@ impl UI {
                 .map(|ship| ship.id)
         });
         self.update_picked();
+        self.needs_render = true;
     }
 
     fn ship_pick_radius(class: ShipClass) -> f64 {
@@ -406,10 +416,13 @@ impl UI {
             self.touches
                 .insert(e.pointer_id(), Touch { world_position });
         }
+
+        self.needs_render = true;
     }
 
     pub fn on_blur_event(&mut self, _e: web_sys::FocusEvent) {
         self.keys_down.clear();
+        self.needs_render = true;
     }
 
     pub fn status(&self) -> Status {
