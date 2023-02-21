@@ -9,7 +9,6 @@ use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
 use crate::userid;
 use crate::welcome::Welcome;
-use gloo_render::{request_animation_frame, AnimationFrame};
 use monaco::yew::CodeEditorLink;
 use oort_proto::{LeaderboardSubmission, Telemetry};
 use oort_simulation_worker::SimAgent;
@@ -42,7 +41,6 @@ fn empty() -> JsValue {
 
 #[derive(Debug)]
 pub enum Msg {
-    Render,
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
     Start,
     SelectScenario(String),
@@ -78,7 +76,6 @@ struct QueryParams {
 }
 
 pub struct Game {
-    render_handle: Option<AnimationFrame>,
     scenario_name: String,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
     background_snapshots: Vec<(u32, Snapshot)>,
@@ -88,7 +85,6 @@ pub struct Game {
     simulation_canvas_ref: NodeRef,
     saw_slow_compile: bool,
     compiler_errors: Option<String>,
-    frame: u64,
     last_window_size: (i32, i32),
     last_snapshot: Option<Snapshot>,
     simulation_window_link: Option<Scope<SimulationWindow>>,
@@ -128,17 +124,11 @@ impl Component for Game {
             closure.forget();
         }
 
-        let link2 = context.link().clone();
-        let render_handle = Some(request_animation_frame(move |_ts| {
-            link2.send_message(Msg::Render)
-        }));
-
         let compilation_cache = HashMap::new();
 
         let query_params = parse_query_params(context);
 
         Self {
-            render_handle,
             scenario_name: String::new(),
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
@@ -148,7 +138,6 @@ impl Component for Game {
             simulation_canvas_ref: NodeRef::default(),
             saw_slow_compile: false,
             compiler_errors: None,
-            frame: 0,
             last_window_size: (0, 0),
             last_snapshot: None,
             simulation_window_link: None,
@@ -161,25 +150,8 @@ impl Component for Game {
     }
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
-        if let Msg::Render = msg {
-        } else {
-            log::debug!("Received update {:?}", msg);
-        }
+        log::debug!("Received update {:?}", msg);
         match msg {
-            Msg::Render => {
-                self.frame += 1;
-
-                if let Some(link) = self.simulation_window_link.as_ref() {
-                    link.send_message(crate::simulation_window::Msg::Render);
-                }
-
-                let link2 = context.link().clone();
-                self.render_handle = Some(request_animation_frame(move |_ts| {
-                    link2.send_message(Msg::Render)
-                }));
-
-                false
-            }
             Msg::RegisterSimulationWindowLink(link) => {
                 self.simulation_window_link = Some(link);
                 context.link().send_message(Msg::Start);

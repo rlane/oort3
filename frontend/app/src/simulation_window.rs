@@ -1,4 +1,5 @@
 use crate::ui::UI;
+use gloo_render::{request_animation_frame, AnimationFrame};
 use oort_simulation_worker::SimAgent;
 use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
 use rand::Rng;
@@ -35,6 +36,7 @@ pub struct SimulationWindowProps {
 
 pub struct SimulationWindow {
     ui: Option<Box<UI>>,
+    render_handle: Option<AnimationFrame>,
     nonce: u32,
     sim_agent: Box<dyn Bridge<SimAgent>>,
     last_status: scenario::Status,
@@ -54,8 +56,15 @@ impl Component for SimulationWindow {
             move |e| link.send_message(Msg::ReceivedSimAgentResponse(e))
         };
         let sim_agent = SimAgent::bridge(Rc::new(cb));
+        let render_handle = {
+            let link2 = context.link().clone();
+            Some(request_animation_frame(move |_ts| {
+                link2.send_message(Msg::Render)
+            }))
+        };
         Self {
             ui: None,
+            render_handle,
             nonce: 0,
             sim_agent,
             last_status: scenario::Status::Running,
@@ -91,6 +100,12 @@ impl Component for SimulationWindow {
                 false
             }
             Msg::Render => {
+                self.render_handle = {
+                    let link = context.link().clone();
+                    Some(request_animation_frame(move |_ts| {
+                        link.send_message(Msg::Render)
+                    }))
+                };
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
                 }
