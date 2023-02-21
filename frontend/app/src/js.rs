@@ -44,3 +44,12 @@ pub mod clipboard {
         pub fn write(text: &str);
     }
 }
+
+pub mod resize {
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(module = "/js/resize.js")]
+    extern "C" {
+        pub fn start(closure: &Closure<dyn FnMut()>);
+    }
+}

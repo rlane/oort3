@@ -59,6 +59,7 @@ pub enum Msg {
     FormattedCode { team: usize, text: String },
     ReplaceCode { team: usize, text: String },
     ShowError(String),
+    Resized,
 }
 
 enum Overlay {
@@ -120,6 +121,13 @@ impl Component for Game {
     type Properties = Props;
 
     fn create(context: &yew::Context<Self>) -> Self {
+        {
+            let link = context.link().clone();
+            let closure = Closure::new(move || link.send_message(Msg::Resized));
+            crate::js::resize::start(&closure);
+            closure.forget();
+        }
+
         let link2 = context.link().clone();
         let render_handle = Some(request_animation_frame(move |_ts| {
             link2.send_message(Msg::Render)
@@ -159,21 +167,6 @@ impl Component for Game {
         }
         match msg {
             Msg::Render => {
-                if self.frame % 6 == 0 {
-                    // TODO: Use ResizeObserver when stable.
-                    let root = gloo_utils::document().document_element().unwrap();
-                    let new_size = (root.client_width(), root.client_height());
-                    if new_size != self.last_window_size {
-                        crate::js::golden_layout::update_size();
-                        self.last_window_size = new_size;
-                    }
-                    for editor_link in &self.editor_links {
-                        editor_link.with_editor(|editor| {
-                            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                            ed.layout(None);
-                        });
-                    }
-                }
                 self.frame += 1;
 
                 if let Some(link) = self.simulation_window_link.as_ref() {
@@ -408,6 +401,21 @@ impl Component for Game {
                         }
                     }
                 });
+                false
+            }
+            Msg::Resized => {
+                let root = gloo_utils::document().document_element().unwrap();
+                let new_size = (root.client_width(), root.client_height());
+                if new_size != self.last_window_size {
+                    crate::js::golden_layout::update_size();
+                    self.last_window_size = new_size;
+                }
+                for editor_link in &self.editor_links {
+                    editor_link.with_editor(|editor| {
+                        let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                        ed.layout(None);
+                    });
+                }
                 false
             }
         }
