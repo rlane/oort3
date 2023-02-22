@@ -1262,7 +1262,7 @@ impl Scenario for Tutorial09 {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
     }
 
     fn initial_code(&self) -> Vec<Code> {

@@ -1,4 +1,5 @@
 - Fixed resizing editor window.
+- Increased time limit in tutorial09.
 
 ### 0.39.0
 
