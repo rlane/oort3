@@ -1,3 +1,5 @@
+- Fixed resizing editor window.
+
 ### 0.39.0
 
 - Decreased enemy health in tutorial09.
