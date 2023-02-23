@@ -1,3 +1,5 @@
+- Fix collisions in planetary_defense scenario.
+
 ### 0.39.1
 
 - Fixed resizing editor window.

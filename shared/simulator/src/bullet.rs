@@ -181,10 +181,7 @@ fn build_indices(
             collider.compute_swept_aabb(&body.predict_position_using_velocity_and_forces(dt));
         let team = sim.ship(*handle).data().team;
         aabbs_by_team.entry(team).or_default().push(aabb);
-        coarse_grids_by_team
-            .entry(team)
-            .or_default()
-            .insert(*body.translation());
+        coarse_grids_by_team.entry(team).or_default().insert(aabb);
     }
 
     let mut indices_by_team: HashMap<i32, StaticAABB2DIndex<f64>> = HashMap::new();
@@ -259,11 +256,15 @@ impl CoarseGrid {
         }
     }
 
-    pub fn insert(&mut self, p: Vector2<f64>) {
-        let cell = Self::to_cell(p);
-        for xo in [-1, 0, 1] {
-            for yo in [-Self::WIDTH, 0, Self::WIDTH] {
-                let index = (cell as i32 + xo + yo) as usize;
+    pub fn insert(&mut self, mut aabb: Aabb) {
+        aabb.mins -= vector![Self::CELL_SIZE, Self::CELL_SIZE];
+        aabb.maxs += vector![Self::CELL_SIZE, Self::CELL_SIZE];
+        let w = ((aabb.maxs.x - aabb.mins.x) * Self::RECIP_CELL_SIZE).ceil() as i32;
+        let h = ((aabb.maxs.y - aabb.mins.y) * Self::RECIP_CELL_SIZE).ceil() as i32;
+        let min_index = Self::to_cell(aabb.mins.coords);
+        for y in 0..h {
+            for x in 0..w {
+                let index = (min_index as i32 + x + y * Self::WIDTH) as usize;
                 self.cells.set(index, true);
             }
         }
