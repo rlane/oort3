@@ -1,3 +1,5 @@
+### 0.39.2
+
 - Fix collisions in planetary_defense scenario.
 
 ### 0.39.1
