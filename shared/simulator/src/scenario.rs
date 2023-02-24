@@ -2128,6 +2128,7 @@ struct PlanetaryDefense {
 
 impl PlanetaryDefense {
     const PLANET_HEALTH: f64 = 1.5e5;
+    const SPAWN_DURATION: f64 = 60.0;
 
     fn new() -> Self {
         Self { rng: new_rng(0) }
@@ -2201,24 +2202,29 @@ impl Scenario for PlanetaryDefense {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        let bound = (WORLD_SIZE / 2.0) * 0.9;
-        if self.rng.gen_bool(PHYSICS_TICK_LENGTH) {
-            let mut ship_data = if self.rng.gen_bool(0.1) {
-                torpedo(1)
-            } else {
-                missile(1)
-            };
-            ship_data.ttl = None;
-            ship::create(
-                sim,
-                vector![self.rng.gen_range(-bound..bound), WORLD_SIZE / 2.0 - 30.0],
-                vector![
-                    self.rng.gen_range(-30.0..30.0),
-                    self.rng.gen_range(-1500.0..-500.0)
-                ],
-                -TAU / 4.0,
-                ship_data,
-            );
+        if sim.time() < Self::SPAWN_DURATION {
+            let bound = (WORLD_SIZE / 2.0) * 0.9;
+            if self
+                .rng
+                .gen_bool(PHYSICS_TICK_LENGTH * (sim.time() / Self::SPAWN_DURATION) * 2.0)
+            {
+                let mut ship_data = if self.rng.gen_bool(0.1) {
+                    torpedo(1)
+                } else {
+                    missile(1)
+                };
+                ship_data.ttl = None;
+                ship::create(
+                    sim,
+                    vector![self.rng.gen_range(-bound..bound), WORLD_SIZE / 2.0 - 30.0],
+                    vector![
+                        self.rng.gen_range(-30.0..30.0),
+                        self.rng.gen_range(-1500.0..-500.0)
+                    ],
+                    -TAU / 4.0,
+                    ship_data,
+                );
+            }
         }
     }
 
@@ -2227,12 +2233,16 @@ impl Scenario for PlanetaryDefense {
             .ships
             .iter()
             .any(|&handle| sim.ship(handle).data().class == ShipClass::Planet);
+        let enemy_alive = sim
+            .ships
+            .iter()
+            .any(|&handle| sim.ship(handle).data().team == 1);
         if !planet_alive {
             Status::Victory { team: 1 }
-        } else if sim.time() < 60.0 {
-            Status::Running
-        } else {
+        } else if sim.time() > Self::SPAWN_DURATION && !enemy_alive {
             Status::Victory { team: 0 }
+        } else {
+            Status::Running
         }
     }
 
