@@ -83,6 +83,7 @@ fn main() -> Result<()> {
 
     cmd(&[
         "trunk",
+        "-v",
         "serve",
         "--dist",
         "frontend/app/dist-debug",
