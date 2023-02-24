@@ -1,6 +1,9 @@
+- Ramp up missile spawning over time in planetary_defense scenario.
+- Added vector cross product to API.
+
 ### 0.39.2
 
-- Fix collisions in planetary_defense scenario.
+- Fixed collisions in planetary_defense scenario.
 
 ### 0.39.1
 
