@@ -38,6 +38,11 @@ impl Vec2 {
         self.x * other.x + self.y * other.y
     }
 
+    /// Returns the cross product with `other`.
+    pub fn cross(self, other: Vec2) -> f64 {
+        self.x * other.y - other.x * self.y
+    }
+
     /// Returns the angle of the vector (in radians).
     pub fn angle(self) -> f64 {
         let mut a = self.y.atan2(self.x);
