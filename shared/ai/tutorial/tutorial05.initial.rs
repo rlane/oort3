@@ -5,6 +5,8 @@
 // This is where the game becomes challenging! You'll need to lead the target
 // by firing towards where the target will be by the time the bullet gets there.
 //
+// Hint: p = p₀ + v₀t + ½at² (the third equation of kinematics)
+//
 // p.s. You can change your username by clicking on it at the top of the page.
 use oort_api::prelude::*;
 
