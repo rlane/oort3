@@ -146,6 +146,7 @@ in Oort and are used to represent positions, velocities, accelerations, etc.
 - [`v.rotate(angle: f64) → Vec2`](prelude::Vec2::rotate): Rotate counter-clockwise.
 - [`v.angle() → f64`](prelude::Vec2::angle): Angle of a vector.
 - [`v1.dot(v2: Vec2) → f64`](prelude::Vec2::dot): Dot product.
+- [`v1.cross(v2: Vec2) → f64`](prelude::Vec2::cross): Cross product.
 - [`v1.distance(v2: Vec2) → f64`](prelude::Vec2::distance): Distance between two points.
 
 ## Debugging
