@@ -1,3 +1,15 @@
+mod tutorial01_guns;
+mod tutorial02_acceleration;
+mod tutorial03_acceleration2;
+mod tutorial04_rotation;
+mod tutorial05_deflection;
+mod tutorial06_radar;
+mod tutorial07_squadron;
+mod tutorial08_search;
+mod tutorial09_missiles;
+mod tutorial10_frigate;
+mod tutorial11_cruiser;
+
 use crate::rng::{new_rng, SeededRng};
 use crate::ship::{
     asteroid, cruiser, fighter, frigate, missile, target, torpedo, ShipAccessor, ShipClass,
@@ -6,18 +18,13 @@ use crate::ship::{
 use crate::simulation::{Code, Line, Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
 use crate::{bullet, collision, color, ship};
 use bullet::BulletData;
-use nalgebra::{vector, Point2, Rotation2, Vector2};
+use nalgebra::{vector, Rotation2, Vector2};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f64::consts::{PI, TAU};
-use Status::Running;
-
-pub const DEFAULT_TUTORIAL_MAX_TICKS: u32 = 30 * 60;
-pub const TOURNAMENT_MAX_TICKS: u32 = 10000;
-pub const MAX_TICKS: u32 = 10000;
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Status {
@@ -27,19 +34,43 @@ pub enum Status {
     Draw,
 }
 
-fn builtin(name: &str) -> Code {
+pub mod prelude {
+    pub use super::check_tutorial_victory;
+    pub use super::Scenario;
+    pub use super::Status;
+    pub use super::{
+        add_walls, fighter_without_guns, fighter_without_missiles,
+        fighter_without_missiles_or_radar, target_asteroid,
+    };
+    pub use super::{builtin, empty_ai, reference_ai};
+    pub use super::{DEFAULT_TUTORIAL_MAX_TICKS, TOURNAMENT_MAX_TICKS};
+    pub use crate::rng::{new_rng, SeededRng};
+    pub use crate::ship::{
+        self, asteroid, cruiser, fighter, frigate, missile, target, torpedo, ShipHandle,
+    };
+    pub use crate::simulation::{Code, Line, Simulation};
+    pub use nalgebra::{point, vector, Point2, Rotation2, Vector2};
+    pub use rand::Rng;
+    pub use std::f64::consts::{PI, TAU};
+}
+
+pub const DEFAULT_TUTORIAL_MAX_TICKS: u32 = 30 * 60;
+pub const TOURNAMENT_MAX_TICKS: u32 = 10000;
+pub const MAX_TICKS: u32 = 10000;
+
+pub fn builtin(name: &str) -> Code {
     Code::Builtin(name.to_string())
 }
 
-fn reference_ai() -> Code {
+pub fn reference_ai() -> Code {
     builtin("reference")
 }
 
-fn empty_ai() -> Code {
+pub fn empty_ai() -> Code {
     builtin("empty")
 }
 
-fn check_victory_with_filter(
+pub fn check_victory_with_filter(
     sim: &Simulation,
     max_ticks: u32,
     ship_filter: fn(&ShipAccessor) -> bool,
@@ -64,7 +95,7 @@ fn check_victory_with_filter(
     }
 }
 
-fn check_tutorial_victory(sim: &Simulation, max_ticks: u32) -> Status {
+pub fn check_tutorial_victory(sim: &Simulation, max_ticks: u32) -> Status {
     match check_victory_with_filter(sim, max_ticks, |ship| {
         ![ShipClass::Missile, ShipClass::Torpedo].contains(&ship.data().class)
     }) {
@@ -74,40 +105,40 @@ fn check_tutorial_victory(sim: &Simulation, max_ticks: u32) -> Status {
     }
 }
 
-fn check_tournament_victory(sim: &Simulation) -> Status {
+pub fn check_tournament_victory(sim: &Simulation) -> Status {
     check_victory_with_filter(sim, TOURNAMENT_MAX_TICKS, |ship| {
         [ShipClass::Fighter, ShipClass::Frigate, ShipClass::Cruiser].contains(&ship.data().class)
             && ship.data().team < 2
     })
 }
 
-fn check_capital_ship_tournament_victory(sim: &Simulation) -> Status {
+pub fn check_capital_ship_tournament_victory(sim: &Simulation) -> Status {
     check_victory_with_filter(sim, TOURNAMENT_MAX_TICKS, |ship| {
         [ShipClass::Frigate, ShipClass::Cruiser].contains(&ship.data().class)
             && ship.data().team < 2
     })
 }
 
-fn fighter_without_missiles(team: i32) -> ShipData {
+pub fn fighter_without_missiles(team: i32) -> ShipData {
     let mut data = fighter(team);
     data.missile_launchers.pop();
     data
 }
 
-fn fighter_without_missiles_or_radar(team: i32) -> ShipData {
+pub fn fighter_without_missiles_or_radar(team: i32) -> ShipData {
     let mut data = fighter(team);
     data.missile_launchers.pop();
     data.radar = None;
     data
 }
 
-fn fighter_without_guns(team: i32) -> ShipData {
+pub fn fighter_without_guns(team: i32) -> ShipData {
     let mut data = fighter(team);
     data.guns.pop();
     data
 }
 
-fn target_asteroid(variant: i32) -> ShipData {
+pub fn target_asteroid(variant: i32) -> ShipData {
     let mut asteroid = asteroid(variant);
     asteroid.team = 1;
     asteroid
@@ -125,7 +156,7 @@ pub trait Scenario {
     fn tick(&mut self, _: &mut Simulation) {}
 
     fn status(&self, _: &Simulation) -> Status {
-        Running
+        Status::Running
     }
 
     // Indexed by team ID.
@@ -198,17 +229,17 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "cruiser_vs_frigate" => Some(Box::new(CruiserVsFrigate::new())),
         "frigate_point_defense" => Some(Box::new(FrigatePointDefense {})),
         // Tutorials
-        "tutorial01" => Some(Box::new(Tutorial01 {})),
-        "tutorial02" => Some(Box::new(Tutorial02::new())),
-        "tutorial03" => Some(Box::new(Tutorial03::new())),
-        "tutorial04" => Some(Box::new(Tutorial04::new())),
-        "tutorial05" => Some(Box::new(Tutorial05::new())),
-        "tutorial06" => Some(Box::new(Tutorial06::new())),
-        "tutorial07" => Some(Box::new(Tutorial07::new())),
-        "tutorial08" => Some(Box::new(Tutorial08::new())),
-        "tutorial09" => Some(Box::new(Tutorial09::new())),
-        "tutorial10" => Some(Box::new(Tutorial10::new())),
-        "tutorial11" => Some(Box::new(Tutorial11::new())),
+        "tutorial01" => Some(Box::new(tutorial01_guns::Tutorial01 {})),
+        "tutorial02" => Some(Box::new(tutorial02_acceleration::Tutorial02::new())),
+        "tutorial03" => Some(Box::new(tutorial03_acceleration2::Tutorial03::new())),
+        "tutorial04" => Some(Box::new(tutorial04_rotation::Tutorial04::new())),
+        "tutorial05" => Some(Box::new(tutorial05_deflection::Tutorial05::new())),
+        "tutorial06" => Some(Box::new(tutorial06_radar::Tutorial06::new())),
+        "tutorial07" => Some(Box::new(tutorial07_squadron::Tutorial07::new())),
+        "tutorial08" => Some(Box::new(tutorial08_search::Tutorial08::new())),
+        "tutorial09" => Some(Box::new(tutorial09_missiles::Tutorial09::new())),
+        "tutorial10" => Some(Box::new(tutorial10_frigate::Tutorial10::new())),
+        "tutorial11" => Some(Box::new(tutorial11_cruiser::Tutorial11::new())),
         // Tournament
         "primitive_duel" => Some(Box::new(PrimitiveDuel::new())),
         "fighter_duel" => Some(Box::new(FighterDuel::new())),
@@ -663,721 +694,6 @@ impl Scenario for WelcomeScenario {
 
     fn solution(&self) -> Code {
         reference_ai()
-    }
-}
-
-struct Tutorial01 {}
-
-impl Scenario for Tutorial01 {
-    fn name(&self) -> String {
-        "tutorial01".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 1: Guns".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
-        ship::create(
-            sim,
-            vector![-1000.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles_or_radar(0),
-        );
-        ship::create(
-            sim,
-            vector![1000.0, 0.0],
-            vector![0.0, 0.0],
-            0.1,
-            target_asteroid(1),
-        );
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial01.initial")]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial01.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial02".to_string())
-    }
-}
-
-struct Tutorial02 {
-    hit_target: bool,
-}
-
-impl Tutorial02 {
-    const TARGET: Vector2<f64> = vector![1000.0, 0.0];
-
-    fn new() -> Self {
-        Self { hit_target: false }
-    }
-}
-
-impl Scenario for Tutorial02 {
-    fn name(&self) -> String {
-        "tutorial02".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 2: Acceleration".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
-        let handle = ship::create(
-            sim,
-            vector![-1000.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles_or_radar(0),
-        );
-        sim.write_target(handle, Self::TARGET, vector![0.0, 0.0]);
-    }
-
-    fn tick(&mut self, sim: &mut Simulation) {
-        if let Some(&handle) = sim.ships.iter().next() {
-            let ship = sim.ship(handle);
-            if (ship.position().vector - Self::TARGET).magnitude() < 50.0 {
-                self.hit_target = true;
-            }
-        }
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        let mut lines = vec![];
-        let center: Point2<f64> = Self::TARGET.into();
-        let n = 20;
-        let r = 50.0;
-        let color = if self.hit_target {
-            vector![0.0, 1.0, 0.0, 1.0]
-        } else {
-            vector![1.0, 0.0, 0.0, 1.0]
-        };
-        for i in 0..n {
-            let frac = (i as f64) / (n as f64);
-            let angle_a = std::f64::consts::TAU * frac;
-            let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
-            lines.push(Line {
-                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-                color,
-            });
-        }
-        lines
-    }
-
-    fn status(&self, _: &Simulation) -> Status {
-        if self.hit_target {
-            Status::Victory { team: 0 }
-        } else {
-            Status::Running
-        }
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial02.initial")]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial02.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial03".to_string())
-    }
-}
-
-struct Tutorial03 {
-    hit_target: bool,
-    target: Option<Point2<f64>>,
-}
-
-impl Tutorial03 {
-    fn new() -> Self {
-        Self {
-            hit_target: false,
-            target: None,
-        }
-    }
-}
-
-impl Scenario for Tutorial03 {
-    fn name(&self) -> String {
-        "tutorial03".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 3: Acceleration #2".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        let mut rng = new_rng(seed);
-        self.target = Some(
-            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]),
-        );
-        add_walls(sim);
-        let handle = ship::create(
-            sim,
-            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(100.0..500.0), 0.0]),
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles_or_radar(0),
-        );
-        sim.write_target(handle, self.target.unwrap().coords, vector![0.0, 0.0]);
-    }
-
-    fn tick(&mut self, sim: &mut Simulation) {
-        if let Some(&handle) = sim.ships.iter().next() {
-            let ship = sim.ship(handle);
-            if (ship.position().vector - self.target.unwrap().coords).magnitude() < 50.0 {
-                self.hit_target = true;
-            }
-        }
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        let mut lines = vec![];
-        let center: Point2<f64> = self.target.unwrap();
-        let n = 20;
-        let r = 50.0;
-        let color = if self.hit_target {
-            vector![0.0, 1.0, 0.0, 1.0]
-        } else {
-            vector![1.0, 0.0, 0.0, 1.0]
-        };
-        for i in 0..n {
-            let frac = (i as f64) / (n as f64);
-            let angle_a = std::f64::consts::TAU * frac;
-            let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
-            lines.push(Line {
-                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-                color,
-            });
-        }
-        lines
-    }
-
-    fn status(&self, _: &Simulation) -> Status {
-        if self.hit_target {
-            Status::Victory { team: 0 }
-        } else {
-            Status::Running
-        }
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial03.initial")]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial03.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial04".to_string())
-    }
-}
-
-struct Tutorial04 {}
-
-impl Tutorial04 {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for Tutorial04 {
-    fn name(&self) -> String {
-        "tutorial04".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 4: Rotation".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-        let mut rng = new_rng(seed);
-        let target = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-            .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]);
-        let handle = ship::create(
-            sim,
-            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(100.0..500.0), 0.0]),
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles_or_radar(0),
-        );
-        sim.write_target(handle, target.coords, vector![0.0, 0.0]);
-        ship::create(
-            sim,
-            target.coords,
-            vector![0.0, 0.0],
-            0.0,
-            target_asteroid(1),
-        );
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial04.initial")]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial04.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial05".to_string())
-    }
-}
-
-struct Tutorial05 {
-    ship_handle: Option<ShipHandle>,
-    target_handle: Option<ShipHandle>,
-}
-
-impl Tutorial05 {
-    fn new() -> Self {
-        Self {
-            ship_handle: None,
-            target_handle: None,
-        }
-    }
-}
-
-impl Scenario for Tutorial05 {
-    fn name(&self) -> String {
-        "tutorial05".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 5: Deflection".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-        self.ship_handle = Some(ship::create(
-            sim,
-            vector![0.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles_or_radar(0),
-        ));
-
-        let mut rng = new_rng(seed);
-        let mut target_data = fighter(1);
-        target_data.health *= 2.0;
-        let p = Rotation2::new(rng.gen_range(0.0..TAU)).transform_vector(&vector![1000.0, 0.0]);
-        let h = rng.gen_range(0.0..std::f64::consts::TAU);
-        let v = Rotation2::new(h).transform_vector(&vector![200.0, 0.0]);
-        self.target_handle = Some(ship::create(sim, p, v, h, target_data));
-
-        let target_position = sim.ship(self.target_handle.unwrap()).position();
-        let target_velocity = sim.ship(self.target_handle.unwrap()).velocity();
-        sim.write_target(
-            self.ship_handle.unwrap(),
-            target_position.vector,
-            target_velocity,
-        );
-    }
-
-    fn tick(&mut self, sim: &mut Simulation) {
-        if sim.ships.len() < 2 {
-            return;
-        }
-        {
-            let target_position = sim.ship(self.target_handle.unwrap()).position();
-            let target_velocity = sim.ship(self.target_handle.unwrap()).velocity();
-            sim.write_target(
-                self.ship_handle.unwrap(),
-                target_position.vector,
-                target_velocity,
-            );
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial05.initial"),
-            builtin("tutorial/tutorial05.enemy"),
-        ]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial05.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial06".to_string())
-    }
-}
-
-struct Tutorial06 {}
-
-impl Tutorial06 {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for Tutorial06 {
-    fn name(&self) -> String {
-        "tutorial06".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 6: Radar".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-        ship::create(
-            sim,
-            vector![0.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles(0),
-        );
-
-        let mut rng = new_rng(seed);
-        let size = 500.0;
-        let range = -size..size;
-        for _ in 0..3 {
-            let target = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
-            ship::create(
-                sim,
-                target.coords,
-                vector![
-                    rng.gen_range(0.0..std::f64::consts::TAU),
-                    rng.gen_range(-400.0..400.0)
-                ],
-                rng.gen_range(-400.0..400.0),
-                fighter(1),
-            );
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial06.initial"),
-            builtin("tutorial/tutorial06.enemy"),
-        ]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial06.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial07".to_string())
-    }
-}
-
-struct Tutorial07 {}
-
-impl Tutorial07 {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for Tutorial07 {
-    fn name(&self) -> String {
-        "tutorial07".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 7: Squadron".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
-        let mut rng = new_rng(seed);
-        for team in 0..2 {
-            for _ in 0..4 {
-                let size = 500.0;
-                let range = -size..size;
-                let center = vector![(team as f64 - 0.5) * 6000.0, 0.0];
-                let offset = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
-                let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
-                ship::create(
-                    sim,
-                    center + offset,
-                    vector![0.0, 0.0],
-                    heading,
-                    fighter_without_missiles(team),
-                );
-            }
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 3)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial07.initial"),
-            builtin("tutorial/tutorial07.enemy"),
-        ]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial07.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial08".to_string())
-    }
-}
-
-struct Tutorial08 {}
-
-impl Tutorial08 {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for Tutorial08 {
-    fn name(&self) -> String {
-        "tutorial08".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 8: Search".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
-        let mut rng = new_rng(seed);
-        {
-            for _ in 0..3 {
-                let position = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                    .transform_point(&point![rng.gen_range(100.0..500.0), 0.0]);
-                ship::create(
-                    sim,
-                    position.coords,
-                    vector![0.0, 0.0],
-                    rng.gen_range(0.0..std::f64::consts::TAU),
-                    fighter_without_missiles(0),
-                );
-            }
-        }
-        {
-            for _ in 0..3 {
-                let position = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                    .transform_point(&point![rng.gen_range(6000.0..8000.0), 0.0]);
-                ship::create(
-                    sim,
-                    position.coords,
-                    vector![0.0, 0.0],
-                    rng.gen_range(0.0..std::f64::consts::TAU),
-                    fighter(1),
-                );
-            }
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 3)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial08.initial"),
-            builtin("tutorial/tutorial08.enemy"),
-        ]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial08.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial09".to_string())
-    }
-}
-
-struct Tutorial09 {}
-
-impl Tutorial09 {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for Tutorial09 {
-    fn name(&self) -> String {
-        "tutorial09".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 9: Missiles".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
-        let mut shipdata = fighter(0);
-        shipdata.guns[0].cycle_time_remaining = 1e9;
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, shipdata);
-
-        let mut rng = new_rng(seed);
-        let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-            .transform_vector(&vector![rng.gen_range(2000.0..2500.0), 0.0]);
-        let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-            .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-        let mut shipdata = fighter(1);
-        shipdata.health /= 2.0;
-        ship::create(sim, p, v, std::f64::consts::PI, shipdata);
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial09.initial"),
-            builtin("tutorial/tutorial09.enemy"),
-        ]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial09.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial10".to_string())
-    }
-}
-
-struct Tutorial10 {}
-
-impl Tutorial10 {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for Tutorial10 {
-    fn name(&self) -> String {
-        "tutorial10".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 10: Frigate".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, frigate(0));
-
-        let mut rng = new_rng(seed);
-        for _ in 0..5 {
-            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
-            let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-            ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial10.initial"),
-            builtin("tutorial/tutorial10.enemy"),
-        ]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial10.solution")
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        Some("tutorial11".to_string())
-    }
-}
-
-struct Tutorial11 {}
-
-impl Tutorial11 {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for Tutorial11 {
-    fn name(&self) -> String {
-        "tutorial11".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Tutorial 11: Cruiser".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, cruiser(0));
-
-        let mut rng = new_rng(seed);
-        for _ in 0..5 {
-            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
-            let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
-            ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial11.initial"),
-            builtin("tutorial/tutorial11.enemy"),
-        ]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("tutorial/tutorial11.solution")
     }
 }
 
