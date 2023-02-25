@@ -33,14 +33,6 @@ use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
-pub enum Status {
-    Running,
-    Victory { team: i32 },
-    Failed,
-    Draw,
-}
-
 pub mod prelude {
     pub use super::Scenario;
     pub use super::Status;
@@ -66,6 +58,147 @@ pub mod prelude {
 pub const DEFAULT_TUTORIAL_MAX_TICKS: u32 = 30 * 60;
 pub const TOURNAMENT_MAX_TICKS: u32 = 10000;
 pub const MAX_TICKS: u32 = 10000;
+
+#[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
+pub enum Status {
+    Running,
+    Victory { team: i32 },
+    Failed,
+    Draw,
+}
+
+pub trait Scenario {
+    fn name(&self) -> String;
+
+    fn human_name(&self) -> String {
+        self.name()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, seed: u32);
+
+    fn tick(&mut self, _: &mut Simulation) {}
+
+    fn status(&self, _: &Simulation) -> Status {
+        Status::Running
+    }
+
+    // Indexed by team ID.
+    fn initial_code(&self) -> Vec<Code> {
+        vec![empty_ai()]
+    }
+
+    fn solution(&self) -> Code {
+        Code::None
+    }
+
+    fn solution_codes(&self) -> Vec<Code> {
+        let mut codes = self.initial_code();
+        codes[0] = self.solution();
+        codes
+    }
+
+    fn next_scenario(&self) -> Option<String> {
+        None
+    }
+
+    fn lines(&self) -> Vec<Line> {
+        vec![]
+    }
+
+    fn is_tournament(&self) -> bool {
+        false
+    }
+
+    fn score_time(&self, sim: &Simulation) -> f64 {
+        sim.time()
+    }
+}
+
+pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
+    let scenario: Option<Box<dyn Scenario>> = match name {
+        // Tutorials
+        "tutorial01" => Some(Box::new(tutorial01_guns::Tutorial01 {})),
+        "tutorial02" => Some(Box::new(tutorial02_acceleration::Tutorial02::new())),
+        "tutorial03" => Some(Box::new(tutorial03_acceleration2::Tutorial03::new())),
+        "tutorial04" => Some(Box::new(tutorial04_rotation::Tutorial04::new())),
+        "tutorial05" => Some(Box::new(tutorial05_deflection::Tutorial05::new())),
+        "tutorial06" => Some(Box::new(tutorial06_radar::Tutorial06::new())),
+        "tutorial07" => Some(Box::new(tutorial07_squadron::Tutorial07::new())),
+        "tutorial08" => Some(Box::new(tutorial08_search::Tutorial08::new())),
+        "tutorial09" => Some(Box::new(tutorial09_missiles::Tutorial09::new())),
+        "tutorial10" => Some(Box::new(tutorial10_frigate::Tutorial10::new())),
+        "tutorial11" => Some(Box::new(tutorial11_cruiser::Tutorial11::new())),
+        // Tournament
+        "primitive_duel" => Some(Box::new(primitive_duel::PrimitiveDuel::new())),
+        "fighter_duel" => Some(Box::new(fighter_duel::FighterDuel::new())),
+        "missile_duel" => Some(Box::new(missile_duel::MissileDuel::new())),
+        "frigate_duel" => Some(Box::new(frigate_duel::FrigateDuel::new())),
+        "cruiser_duel" => Some(Box::new(cruiser_duel::CruiserDuel::new())),
+        "asteroid_duel" => Some(Box::new(asteroid_duel::AsteroidDuel::new())),
+        "furball" => Some(Box::new(furball::Furball::new())),
+        "fleet" => Some(Box::new(fleet::Fleet::new())),
+        "belt" => Some(Box::new(belt::Belt::new())),
+        // Challenge
+        "gunnery" => Some(Box::new(gunnery::GunneryScenario {})),
+        "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
+        // Testing
+        "test" => Some(Box::new(test::TestScenario {})),
+        "basic" => Some(Box::new(test::BasicScenario {})),
+        "missile_test" => Some(Box::new(test::MissileTest::new())),
+        "frigate_vs_cruiser" => Some(Box::new(test::FrigateVsCruiser::new())),
+        "cruiser_vs_frigate" => Some(Box::new(test::CruiserVsFrigate::new())),
+        "frigate_point_defense" => Some(Box::new(test::FrigatePointDefense {})),
+        // Stress
+        "stress" => Some(Box::new(stress::StressScenario {})),
+        "asteroid-stress" => Some(Box::new(stress::AsteroidStressScenario {})),
+        "bullet-stress" => Some(Box::new(stress::BulletStressScenario {})),
+        "missile-stress" => Some(Box::new(stress::MissileStressScenario {})),
+        // Miscellaneous
+        "welcome" => Some(Box::new(welcome::Welcome::new())),
+        _ => None,
+    };
+    if let Some(scenario) = scenario.as_ref() {
+        assert_eq!(scenario.name(), name);
+    }
+    scenario
+}
+
+pub fn load(name: &str) -> Box<dyn Scenario> {
+    match load_safe(name) {
+        Some(scenario) => scenario,
+        None => panic!("Unknown scenario"),
+    }
+}
+
+pub fn list() -> Vec<String> {
+    vec![
+        "welcome",
+        "tutorial01",
+        "tutorial02",
+        "tutorial03",
+        "tutorial04",
+        "tutorial05",
+        "tutorial06",
+        "tutorial07",
+        "tutorial08",
+        "tutorial09",
+        "tutorial10",
+        "tutorial11",
+        "gunnery",
+        "fighter_duel",
+        "missile_duel",
+        "frigate_duel",
+        "cruiser_duel",
+        "asteroid_duel",
+        "furball",
+        "fleet",
+        "belt",
+        "planetary_defense",
+    ]
+    .iter()
+    .map(|x| x.to_string())
+    .collect()
+}
 
 pub fn builtin(name: &str) -> Code {
     Code::Builtin(name.to_string())
@@ -153,53 +286,6 @@ pub fn target_asteroid(variant: i32) -> ShipData {
     asteroid
 }
 
-pub trait Scenario {
-    fn name(&self) -> String;
-
-    fn human_name(&self) -> String {
-        self.name()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32);
-
-    fn tick(&mut self, _: &mut Simulation) {}
-
-    fn status(&self, _: &Simulation) -> Status {
-        Status::Running
-    }
-
-    // Indexed by team ID.
-    fn initial_code(&self) -> Vec<Code> {
-        vec![empty_ai()]
-    }
-
-    fn solution(&self) -> Code {
-        Code::None
-    }
-
-    fn solution_codes(&self) -> Vec<Code> {
-        let mut codes = self.initial_code();
-        codes[0] = self.solution();
-        codes
-    }
-
-    fn next_scenario(&self) -> Option<String> {
-        None
-    }
-
-    fn lines(&self) -> Vec<Line> {
-        vec![]
-    }
-
-    fn is_tournament(&self) -> bool {
-        false
-    }
-
-    fn score_time(&self, sim: &Simulation) -> f64 {
-        sim.time()
-    }
-}
-
 pub fn add_walls(sim: &mut Simulation) {
     let mut make_edge = |x: f64, y: f64, a: f64| {
         let edge_length = WORLD_SIZE;
@@ -220,90 +306,4 @@ pub fn add_walls(sim: &mut Simulation) {
     make_edge(0.0, -WORLD_SIZE / 2.0, std::f64::consts::PI);
     make_edge(WORLD_SIZE / 2.0, 0.0, std::f64::consts::PI / 2.0);
     make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
-}
-
-pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
-    let scenario: Option<Box<dyn Scenario>> = match name {
-        // Tutorials
-        "tutorial01" => Some(Box::new(tutorial01_guns::Tutorial01 {})),
-        "tutorial02" => Some(Box::new(tutorial02_acceleration::Tutorial02::new())),
-        "tutorial03" => Some(Box::new(tutorial03_acceleration2::Tutorial03::new())),
-        "tutorial04" => Some(Box::new(tutorial04_rotation::Tutorial04::new())),
-        "tutorial05" => Some(Box::new(tutorial05_deflection::Tutorial05::new())),
-        "tutorial06" => Some(Box::new(tutorial06_radar::Tutorial06::new())),
-        "tutorial07" => Some(Box::new(tutorial07_squadron::Tutorial07::new())),
-        "tutorial08" => Some(Box::new(tutorial08_search::Tutorial08::new())),
-        "tutorial09" => Some(Box::new(tutorial09_missiles::Tutorial09::new())),
-        "tutorial10" => Some(Box::new(tutorial10_frigate::Tutorial10::new())),
-        "tutorial11" => Some(Box::new(tutorial11_cruiser::Tutorial11::new())),
-        // Tournament
-        "primitive_duel" => Some(Box::new(primitive_duel::PrimitiveDuel::new())),
-        "fighter_duel" => Some(Box::new(fighter_duel::FighterDuel::new())),
-        "missile_duel" => Some(Box::new(missile_duel::MissileDuel::new())),
-        "frigate_duel" => Some(Box::new(frigate_duel::FrigateDuel::new())),
-        "cruiser_duel" => Some(Box::new(cruiser_duel::CruiserDuel::new())),
-        "asteroid_duel" => Some(Box::new(asteroid_duel::AsteroidDuel::new())),
-        "furball" => Some(Box::new(furball::Furball::new())),
-        "fleet" => Some(Box::new(fleet::Fleet::new())),
-        "belt" => Some(Box::new(belt::Belt::new())),
-        // Challenge
-        "gunnery" => Some(Box::new(gunnery::GunneryScenario {})),
-        "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
-        // Testing
-        "test" => Some(Box::new(test::TestScenario {})),
-        "basic" => Some(Box::new(test::BasicScenario {})),
-        "missile_test" => Some(Box::new(test::MissileTest::new())),
-        "frigate_vs_cruiser" => Some(Box::new(test::FrigateVsCruiser::new())),
-        "cruiser_vs_frigate" => Some(Box::new(test::CruiserVsFrigate::new())),
-        "frigate_point_defense" => Some(Box::new(test::FrigatePointDefense {})),
-        // Stress
-        "stress" => Some(Box::new(stress::StressScenario {})),
-        "asteroid-stress" => Some(Box::new(stress::AsteroidStressScenario {})),
-        "bullet-stress" => Some(Box::new(stress::BulletStressScenario {})),
-        "missile-stress" => Some(Box::new(stress::MissileStressScenario {})),
-        // Miscellaneous
-        "welcome" => Some(Box::new(welcome::Welcome::new())),
-        _ => None,
-    };
-    if let Some(scenario) = scenario.as_ref() {
-        assert_eq!(scenario.name(), name);
-    }
-    scenario
-}
-
-pub fn load(name: &str) -> Box<dyn Scenario> {
-    match load_safe(name) {
-        Some(scenario) => scenario,
-        None => panic!("Unknown scenario"),
-    }
-}
-
-pub fn list() -> Vec<String> {
-    vec![
-        "welcome",
-        "tutorial01",
-        "tutorial02",
-        "tutorial03",
-        "tutorial04",
-        "tutorial05",
-        "tutorial06",
-        "tutorial07",
-        "tutorial08",
-        "tutorial09",
-        "tutorial10",
-        "tutorial11",
-        "gunnery",
-        "fighter_duel",
-        "missile_duel",
-        "frigate_duel",
-        "cruiser_duel",
-        "asteroid_duel",
-        "furball",
-        "fleet",
-        "belt",
-        "planetary_defense",
-    ]
-    .iter()
-    .map(|x| x.to_string())
-    .collect()
 }
