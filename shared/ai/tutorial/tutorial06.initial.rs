@@ -3,6 +3,9 @@
 // Hint: Press 'g' in-game to show where your radar is looking.
 // Hint: Use the set_radar_heading() function to keep your radar pointed at a
 // target, or to search for a new one.
+//
+// Join the Discord at https://discord.gg/vYyu9EhkKH for Oort discussion and
+// tournament results.
 use oort_api::prelude::*;
 
 pub struct Ship {}
