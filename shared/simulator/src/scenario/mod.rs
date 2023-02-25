@@ -108,6 +108,10 @@ pub trait Scenario {
     fn score_time(&self, sim: &Simulation) -> f64 {
         sim.time()
     }
+
+    fn previous_names(&self) -> Vec<String> {
+        vec![]
+    }
 }
 
 pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {

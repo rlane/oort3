@@ -9,15 +9,17 @@ pub fn load(scenario_name: &str) -> Vec<Code> {
         .local_storage()
         .expect("failed to get local storage")
         .unwrap();
-    let mut result = scenario::load(scenario_name).initial_code();
-    match storage.get_item(&format!("/code/{scenario_name}")) {
-        Ok(Some(code)) => result[0] = str_to_code(&code),
-        Ok(None) => {
-            info!("No saved code, using starter code");
-        }
-        Err(msg) => {
-            error!("Failed to load code: {:?}", msg);
-        }
+    let scenario = scenario::load(scenario_name);
+    let mut result = scenario.initial_code();
+    let mut names = vec![];
+    names.push(scenario_name.to_string());
+    names.append(&mut scenario.previous_names());
+    let player_code = names
+        .iter()
+        .find_map(|name| storage.get_item(&format!("/code/{name}")).unwrap());
+    match player_code {
+        Some(code) => result[0] = str_to_code(&code),
+        None => info!("No saved code, using starter code"),
     }
     result
 }
