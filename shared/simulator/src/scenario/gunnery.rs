@@ -12,7 +12,6 @@ impl Scenario for GunneryScenario {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
         let mut ship_data = frigate(0);
         ship_data.guns.pop();
         ship_data.guns.pop();

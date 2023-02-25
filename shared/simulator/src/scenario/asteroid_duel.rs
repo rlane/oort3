@@ -18,8 +18,6 @@ impl Scenario for AsteroidDuel {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
         let mut rng = new_rng(seed);
         let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 2.0) * 0.9];
 

@@ -29,7 +29,6 @@ impl Scenario for Tutorial03 {
             Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]),
         );
-        add_walls(sim);
         let handle = ship::create(
             sim,
             Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))

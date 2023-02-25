@@ -106,6 +106,8 @@ impl Simulation {
             }
         }
 
+        collision::add_walls(&mut sim);
+
         let mut scenario = scenario::load(scenario_name);
         scenario.init(&mut sim, seed);
         sim.scenario = Some(scenario);

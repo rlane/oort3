@@ -19,7 +19,6 @@ impl Scenario for BasicScenario {
     }
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
         ship::create(
             sim,
             vector![-100.0, 0.0],
@@ -156,7 +155,6 @@ impl Scenario for FrigateVsCruiser {
     }
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
         ship::create(
             sim,
             vector![-1000.0, -500.0],
@@ -200,7 +198,6 @@ impl Scenario for CruiserVsFrigate {
     }
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
         ship::create(
             sim,
             vector![-1000.0, -500.0],
@@ -240,7 +237,6 @@ impl Scenario for FrigatePointDefense {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
 
-        add_walls(sim);
         let mut data = frigate(0);
         data.missile_launchers.clear();
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, data);

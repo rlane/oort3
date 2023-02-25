@@ -18,7 +18,6 @@ impl Scenario for Furball {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let fleet_radius = 500.0;

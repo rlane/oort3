@@ -24,7 +24,6 @@ impl Scenario for Tutorial05 {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
         self.ship_handle = Some(ship::create(
             sim,
             vector![0.0, 0.0],

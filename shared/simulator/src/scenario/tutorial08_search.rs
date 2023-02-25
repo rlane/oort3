@@ -18,8 +18,6 @@ impl Scenario for Tutorial08 {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
         let mut rng = new_rng(seed);
         {
             for _ in 0..3 {

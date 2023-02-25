@@ -154,3 +154,26 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
         }
     }
 }
+
+pub fn add_walls(sim: &mut Simulation) {
+    use crate::simulation::WORLD_SIZE;
+    let mut make_edge = |x: f64, y: f64, a: f64| {
+        let edge_length = WORLD_SIZE;
+        let edge_width = 10.0;
+        let rigid_body = RigidBodyBuilder::fixed()
+            .translation(vector![x, y])
+            .rotation(a)
+            .build();
+        let body_handle = sim.bodies.insert(rigid_body);
+        let collider = ColliderBuilder::cuboid(edge_length / 2.0, edge_width / 2.0)
+            .restitution(1.0)
+            .collision_groups(wall_interaction_groups())
+            .build();
+        sim.colliders
+            .insert_with_parent(collider, body_handle, &mut sim.bodies);
+    };
+    make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
+    make_edge(0.0, -WORLD_SIZE / 2.0, std::f64::consts::PI);
+    make_edge(WORLD_SIZE / 2.0, 0.0, std::f64::consts::PI / 2.0);
+    make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
+}

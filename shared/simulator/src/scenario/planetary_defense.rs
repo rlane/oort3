@@ -25,7 +25,6 @@ impl Scenario for PlanetaryDefense {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
         self.rng = new_rng(seed);
 
         {

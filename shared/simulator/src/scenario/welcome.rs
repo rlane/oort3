@@ -26,8 +26,6 @@ impl Scenario for Welcome {
         self.rng = Some(new_rng(seed));
         let rng = self.rng.as_mut().unwrap();
 
-        add_walls(sim);
-
         let ship_datas = &[fighter(0), frigate(0), cruiser(0)];
         let ship_data = rng.sample(rand::distributions::Slice::new(ship_datas).unwrap());
         ship::create(

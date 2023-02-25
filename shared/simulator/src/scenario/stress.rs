@@ -11,7 +11,6 @@ impl Scenario for StressScenario {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        add_walls(sim);
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -50,7 +49,6 @@ impl Scenario for AsteroidStressScenario {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        add_walls(sim);
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -79,7 +77,6 @@ impl Scenario for BulletStressScenario {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        add_walls(sim);
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
@@ -120,7 +117,6 @@ impl Scenario for MissileStressScenario {
             log::warn!("Ignoring nonzero seed {}", seed);
         }
         let mut rng = new_rng(0);
-        add_walls(sim);
 
         let bound = (WORLD_SIZE / 2.0) * 0.9;
         for i in 0..100 {

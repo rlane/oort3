@@ -18,8 +18,6 @@ impl Scenario for FrigateDuel {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
         let mut rng = new_rng(seed);
         let angle = rng.gen_range(0.0..TAU);
         let rot = Rotation2::new(angle);

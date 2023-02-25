@@ -18,7 +18,6 @@ impl Scenario for Tutorial04 {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
         let mut rng = new_rng(seed);
         let target = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
             .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]);

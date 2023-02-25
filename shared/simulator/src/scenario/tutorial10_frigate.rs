@@ -18,8 +18,6 @@ impl Scenario for Tutorial10 {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, frigate(0));
 
         let mut rng = new_rng(seed);

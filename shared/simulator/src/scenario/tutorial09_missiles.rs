@@ -18,8 +18,6 @@ impl Scenario for Tutorial09 {
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        add_walls(sim);
-
         let mut shipdata = fighter(0);
         shipdata.guns[0].cycle_time_remaining = 1e9;
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, shipdata);

@@ -1,7 +1,7 @@
 use nalgebra::vector;
 use oort_simulator::ship::{fighter, missile};
 use oort_simulator::simulation::{self, Code, WORLD_SIZE};
-use oort_simulator::{bullet, scenario, ship};
+use oort_simulator::{bullet, collision, ship};
 use rand::Rng;
 use test_log::test;
 
@@ -11,7 +11,7 @@ const BULLET_COLOR: u32 = 0xffffffff;
 fn test_world_edge() {
     let mut rng = rand::thread_rng();
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
-    scenario::add_walls(&mut sim);
+    collision::add_walls(&mut sim);
 
     for _ in 0..100 {
         let s = 500.0;
