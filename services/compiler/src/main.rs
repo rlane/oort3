@@ -4,7 +4,9 @@ use once_cell::sync::Lazy;
 use oort_compiler::Compiler;
 use salvo::prelude::*;
 use salvo_extra::cors::Cors;
+use std::io::Write;
 use std::sync::{Arc, Mutex};
+use tempfile::NamedTempFile;
 use tokio::process::Command;
 
 static LOCK: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
@@ -71,10 +73,13 @@ async fn format_internal(req: &mut Request, res: &mut Response) -> anyhow::Resul
     let payload = req.payload().await?;
     let code = std::str::from_utf8(payload)?;
     log::debug!("Code: {}", code);
-    let filename = "ai/src/format.rs";
-    std::fs::write(filename, payload)?;
+    let mut tmpfile = NamedTempFile::new()?;
+    tmpfile.write_all(code.as_bytes())?;
     let start_time = std::time::Instant::now();
-    let output = Command::new("rustfmt").args([filename]).output().await?;
+    let output = Command::new("rustfmt")
+        .args([tmpfile.path()])
+        .output()
+        .await?;
     let elapsed = std::time::Instant::now() - start_time;
     if !output.status.success() {
         log::info!("Format failed in {:?}", elapsed);
@@ -87,7 +92,7 @@ async fn format_internal(req: &mut Request, res: &mut Response) -> anyhow::Resul
     }
     log::info!("Format succeeded in {:?}", elapsed);
     log::debug!("Format finished: {}", std::str::from_utf8(&output.stderr)?);
-    let formatted = std::fs::read(filename)?;
+    let formatted = std::fs::read(tmpfile.path())?;
     res.write_body(Bytes::copy_from_slice(&formatted))?;
     Ok(())
 }

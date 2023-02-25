@@ -1431,6 +1431,7 @@ dependencies = [
  "salvo",
  "salvo_extra",
  "stackdriver_logger",
+ "tempfile",
  "tokio",
 ]
 
