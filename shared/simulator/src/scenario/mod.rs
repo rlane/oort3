@@ -11,17 +11,17 @@ mod planetary_defense;
 mod primitive_duel;
 mod stress;
 mod test;
-mod tutorial01_guns;
-mod tutorial02_acceleration;
-mod tutorial03_acceleration2;
-mod tutorial04_rotation;
-mod tutorial05_deflection;
-mod tutorial06_radar;
-mod tutorial07_squadron;
-mod tutorial08_search;
-mod tutorial09_missiles;
-mod tutorial10_frigate;
-mod tutorial11_cruiser;
+mod tutorial_acceleration;
+mod tutorial_acceleration2;
+mod tutorial_cruiser;
+mod tutorial_deflection;
+mod tutorial_frigate;
+mod tutorial_guns;
+mod tutorial_missiles;
+mod tutorial_radar;
+mod tutorial_rotation;
+mod tutorial_search;
+mod tutorial_squadron;
 mod welcome;
 
 use crate::ship::{asteroid, fighter, ShipAccessor, ShipClass, ShipData};
@@ -117,17 +117,21 @@ pub trait Scenario {
 pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
     let scenario: Option<Box<dyn Scenario>> = match name {
         // Tutorials
-        "tutorial01" => Some(Box::new(tutorial01_guns::Tutorial01 {})),
-        "tutorial02" => Some(Box::new(tutorial02_acceleration::Tutorial02::new())),
-        "tutorial03" => Some(Box::new(tutorial03_acceleration2::Tutorial03::new())),
-        "tutorial04" => Some(Box::new(tutorial04_rotation::Tutorial04::new())),
-        "tutorial05" => Some(Box::new(tutorial05_deflection::Tutorial05::new())),
-        "tutorial06" => Some(Box::new(tutorial06_radar::Tutorial06::new())),
-        "tutorial07" => Some(Box::new(tutorial07_squadron::Tutorial07::new())),
-        "tutorial08" => Some(Box::new(tutorial08_search::Tutorial08::new())),
-        "tutorial09" => Some(Box::new(tutorial09_missiles::Tutorial09::new())),
-        "tutorial10" => Some(Box::new(tutorial10_frigate::Tutorial10::new())),
-        "tutorial11" => Some(Box::new(tutorial11_cruiser::Tutorial11::new())),
+        "tutorial_guns" => Some(Box::new(tutorial_guns::TutorialGuns {})),
+        "tutorial_acceleration" => {
+            Some(Box::new(tutorial_acceleration::TutorialAcceleration::new()))
+        }
+        "tutorial_acceleration2" => Some(Box::new(
+            tutorial_acceleration2::TutorialAcceleration2::new(),
+        )),
+        "tutorial_rotation" => Some(Box::new(tutorial_rotation::TutorialRotation::new())),
+        "tutorial_deflection" => Some(Box::new(tutorial_deflection::TutorialDeflection::new())),
+        "tutorial_radar" => Some(Box::new(tutorial_radar::TutorialRadar::new())),
+        "tutorial_squadron" => Some(Box::new(tutorial_squadron::TutorialSquadron::new())),
+        "tutorial_search" => Some(Box::new(tutorial_search::TutorialSearch::new())),
+        "tutorial_missiles" => Some(Box::new(tutorial_missiles::TutorialMissiles::new())),
+        "tutorial_frigate" => Some(Box::new(tutorial_frigate::TutorialFrigate::new())),
+        "tutorial_cruiser" => Some(Box::new(tutorial_cruiser::TutorialCruiser::new())),
         // Tournament
         "primitive_duel" => Some(Box::new(primitive_duel::PrimitiveDuel::new())),
         "fighter_duel" => Some(Box::new(fighter_duel::FighterDuel::new())),
@@ -173,17 +177,17 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
 pub fn list() -> Vec<String> {
     vec![
         "welcome",
-        "tutorial01",
-        "tutorial02",
-        "tutorial03",
-        "tutorial04",
-        "tutorial05",
-        "tutorial06",
-        "tutorial07",
-        "tutorial08",
-        "tutorial09",
-        "tutorial10",
-        "tutorial11",
+        "tutorial_guns",
+        "tutorial_acceleration",
+        "tutorial_acceleration2",
+        "tutorial_rotation",
+        "tutorial_deflection",
+        "tutorial_radar",
+        "tutorial_squadron",
+        "tutorial_search",
+        "tutorial_missiles",
+        "tutorial_frigate",
+        "tutorial_cruiser",
         "gunnery",
         "fighter_duel",
         "missile_duel",

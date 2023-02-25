@@ -1,11 +1,11 @@
 use super::prelude::*;
 
-pub struct Tutorial05 {
+pub struct TutorialDeflection {
     ship_handle: Option<ShipHandle>,
     target_handle: Option<ShipHandle>,
 }
 
-impl Tutorial05 {
+impl TutorialDeflection {
     pub fn new() -> Self {
         Self {
             ship_handle: None,
@@ -14,9 +14,9 @@ impl Tutorial05 {
     }
 }
 
-impl Scenario for Tutorial05 {
+impl Scenario for TutorialDeflection {
     fn name(&self) -> String {
-        "tutorial05".into()
+        "tutorial_deflection".into()
     }
 
     fn human_name(&self) -> String {
@@ -70,16 +70,20 @@ impl Scenario for Tutorial05 {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial05.initial"),
-            builtin("tutorial/tutorial05.enemy"),
+            builtin("tutorial/tutorial_deflection.initial"),
+            builtin("tutorial/tutorial_deflection.enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial05.solution")
+        builtin("tutorial/tutorial_deflection.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial06".to_string())
+        Some("tutorial_radar".to_string())
+    }
+
+    fn previous_names(&self) -> Vec<String> {
+        vec!["tutorial05".into()]
     }
 }

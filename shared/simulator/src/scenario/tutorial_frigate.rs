@@ -1,24 +1,24 @@
 use super::prelude::*;
 
-pub struct Tutorial11 {}
+pub struct TutorialFrigate {}
 
-impl Tutorial11 {
+impl TutorialFrigate {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl Scenario for Tutorial11 {
+impl Scenario for TutorialFrigate {
     fn name(&self) -> String {
-        "tutorial11".into()
+        "tutorial_frigate".into()
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 11: Cruiser".into()
+        "Tutorial 10: Frigate".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, cruiser(0));
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, frigate(0));
 
         let mut rng = new_rng(seed);
         for _ in 0..5 {
@@ -36,12 +36,20 @@ impl Scenario for Tutorial11 {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial11.initial"),
-            builtin("tutorial/tutorial11.enemy"),
+            builtin("tutorial/tutorial_frigate.initial"),
+            builtin("tutorial/tutorial_frigate.enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial11.solution")
+        builtin("tutorial/tutorial_frigate.solution")
+    }
+
+    fn next_scenario(&self) -> Option<String> {
+        Some("tutorial_cruiser".to_string())
+    }
+
+    fn previous_names(&self) -> Vec<String> {
+        vec!["tutorial10".into()]
     }
 }

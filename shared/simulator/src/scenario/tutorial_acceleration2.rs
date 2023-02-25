@@ -1,11 +1,11 @@
 use super::prelude::*;
 
-pub struct Tutorial03 {
+pub struct TutorialAcceleration2 {
     hit_target: bool,
     target: Option<Point2<f64>>,
 }
 
-impl Tutorial03 {
+impl TutorialAcceleration2 {
     pub fn new() -> Self {
         Self {
             hit_target: false,
@@ -14,9 +14,9 @@ impl Tutorial03 {
     }
 }
 
-impl Scenario for Tutorial03 {
+impl Scenario for TutorialAcceleration2 {
     fn name(&self) -> String {
-        "tutorial03".into()
+        "tutorial_acceleration2".into()
     }
 
     fn human_name(&self) -> String {
@@ -81,14 +81,18 @@ impl Scenario for Tutorial03 {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial03.initial")]
+        vec![builtin("tutorial/tutorial_acceleration2.initial")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial03.solution")
+        builtin("tutorial/tutorial_acceleration2.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial04".to_string())
+        Some("tutorial_rotation".to_string())
+    }
+
+    fn previous_names(&self) -> Vec<String> {
+        vec!["tutorial03".into()]
     }
 }

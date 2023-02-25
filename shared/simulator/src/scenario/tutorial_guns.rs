@@ -1,10 +1,10 @@
 use super::prelude::*;
 
-pub struct Tutorial01 {}
+pub struct TutorialGuns {}
 
-impl Scenario for Tutorial01 {
+impl Scenario for TutorialGuns {
     fn name(&self) -> String {
-        "tutorial01".into()
+        "tutorial_guns".into()
     }
 
     fn human_name(&self) -> String {
@@ -33,14 +33,18 @@ impl Scenario for Tutorial01 {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial01.initial")]
+        vec![builtin("tutorial/tutorial_guns.initial")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial01.solution")
+        builtin("tutorial/tutorial_guns.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial02".to_string())
+        Some("tutorial_acceleration".to_string())
+    }
+
+    fn previous_names(&self) -> Vec<String> {
+        vec!["tutorial01".into()]
     }
 }

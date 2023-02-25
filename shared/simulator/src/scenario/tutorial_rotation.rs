@@ -1,16 +1,16 @@
 use super::prelude::*;
 
-pub struct Tutorial04 {}
+pub struct TutorialRotation {}
 
-impl Tutorial04 {
+impl TutorialRotation {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl Scenario for Tutorial04 {
+impl Scenario for TutorialRotation {
     fn name(&self) -> String {
-        "tutorial04".into()
+        "tutorial_rotation".into()
     }
 
     fn human_name(&self) -> String {
@@ -44,14 +44,18 @@ impl Scenario for Tutorial04 {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial04.initial")]
+        vec![builtin("tutorial/tutorial_rotation.initial")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial04.solution")
+        builtin("tutorial/tutorial_rotation.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial05".to_string())
+        Some("tutorial_deflection".to_string())
+    }
+
+    fn previous_names(&self) -> Vec<String> {
+        vec!["tutorial04".into()]
     }
 }

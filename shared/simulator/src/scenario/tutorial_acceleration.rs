@@ -1,10 +1,10 @@
 use super::prelude::*;
 
-pub struct Tutorial02 {
+pub struct TutorialAcceleration {
     hit_target: bool,
 }
 
-impl Tutorial02 {
+impl TutorialAcceleration {
     const TARGET: Vector2<f64> = vector![1000.0, 0.0];
 
     pub fn new() -> Self {
@@ -12,9 +12,9 @@ impl Tutorial02 {
     }
 }
 
-impl Scenario for Tutorial02 {
+impl Scenario for TutorialAcceleration {
     fn name(&self) -> String {
-        "tutorial02".into()
+        "tutorial_acceleration".into()
     }
 
     fn human_name(&self) -> String {
@@ -73,14 +73,18 @@ impl Scenario for Tutorial02 {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial02.initial")]
+        vec![builtin("tutorial/tutorial_acceleration.initial")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial02.solution")
+        builtin("tutorial/tutorial_acceleration.solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial03".to_string())
+        Some("tutorial_acceleration2".to_string())
+    }
+
+    fn previous_names(&self) -> Vec<String> {
+        vec!["tutorial02".into()]
     }
 }
