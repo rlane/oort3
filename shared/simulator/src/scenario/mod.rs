@@ -1,3 +1,5 @@
+mod stress;
+mod test;
 mod tutorial01_guns;
 mod tutorial02_acceleration;
 mod tutorial03_acceleration2;
@@ -9,6 +11,7 @@ mod tutorial08_search;
 mod tutorial09_missiles;
 mod tutorial10_frigate;
 mod tutorial11_cruiser;
+mod welcome;
 
 use crate::rng::{new_rng, SeededRng};
 use crate::ship::{
@@ -16,15 +19,13 @@ use crate::ship::{
     ShipData, ShipHandle,
 };
 use crate::simulation::{Code, Line, Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
-use crate::{bullet, collision, color, ship};
-use bullet::BulletData;
-use nalgebra::{vector, Rotation2, Vector2};
-use rand::seq::SliceRandom;
+use crate::{collision, ship};
+use nalgebra::{vector, Rotation2};
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::TAU;
 
 #[derive(PartialEq, Eq, Hash, Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Status {
@@ -35,7 +36,6 @@ pub enum Status {
 }
 
 pub mod prelude {
-    pub use super::check_tutorial_victory;
     pub use super::Scenario;
     pub use super::Status;
     pub use super::{
@@ -43,12 +43,13 @@ pub mod prelude {
         fighter_without_missiles_or_radar, target_asteroid,
     };
     pub use super::{builtin, empty_ai, reference_ai};
+    pub use super::{check_tournament_victory, check_tutorial_victory};
     pub use super::{DEFAULT_TUTORIAL_MAX_TICKS, TOURNAMENT_MAX_TICKS};
     pub use crate::rng::{new_rng, SeededRng};
     pub use crate::ship::{
         self, asteroid, cruiser, fighter, frigate, missile, target, torpedo, ShipHandle,
     };
-    pub use crate::simulation::{Code, Line, Simulation};
+    pub use crate::simulation::{Code, Line, Simulation, WORLD_SIZE};
     pub use nalgebra::{point, vector, Point2, Rotation2, Vector2};
     pub use rand::Rng;
     pub use std::f64::consts::{PI, TAU};
@@ -215,19 +216,6 @@ pub fn add_walls(sim: &mut Simulation) {
 
 pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
     let scenario: Option<Box<dyn Scenario>> = match name {
-        // Testing
-        "test" => Some(Box::new(TestScenario {})),
-        "basic" => Some(Box::new(BasicScenario {})),
-        "gunnery" => Some(Box::new(GunneryScenario {})),
-        "missile_test" => Some(Box::new(MissileTest::new())),
-        "stress" => Some(Box::new(StressScenario {})),
-        "asteroid-stress" => Some(Box::new(AsteroidStressScenario {})),
-        "bullet-stress" => Some(Box::new(BulletStressScenario {})),
-        "missile-stress" => Some(Box::new(MissileStressScenario {})),
-        "welcome" => Some(Box::new(WelcomeScenario::new())),
-        "frigate_vs_cruiser" => Some(Box::new(FrigateVsCruiser::new())),
-        "cruiser_vs_frigate" => Some(Box::new(CruiserVsFrigate::new())),
-        "frigate_point_defense" => Some(Box::new(FrigatePointDefense {})),
         // Tutorials
         "tutorial01" => Some(Box::new(tutorial01_guns::Tutorial01 {})),
         "tutorial02" => Some(Box::new(tutorial02_acceleration::Tutorial02::new())),
@@ -250,7 +238,23 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "furball" => Some(Box::new(Furball::new())),
         "fleet" => Some(Box::new(Fleet::new())),
         "belt" => Some(Box::new(Belt::new())),
+        // Challenge
+        "gunnery" => Some(Box::new(GunneryScenario {})),
         "planetary_defense" => Some(Box::new(PlanetaryDefense::new())),
+        // Testing
+        "test" => Some(Box::new(test::TestScenario {})),
+        "basic" => Some(Box::new(test::BasicScenario {})),
+        "missile_test" => Some(Box::new(test::MissileTest::new())),
+        "frigate_vs_cruiser" => Some(Box::new(test::FrigateVsCruiser::new())),
+        "cruiser_vs_frigate" => Some(Box::new(test::CruiserVsFrigate::new())),
+        "frigate_point_defense" => Some(Box::new(test::FrigatePointDefense {})),
+        // Stress
+        "stress" => Some(Box::new(stress::StressScenario {})),
+        "asteroid-stress" => Some(Box::new(stress::AsteroidStressScenario {})),
+        "bullet-stress" => Some(Box::new(stress::BulletStressScenario {})),
+        "missile-stress" => Some(Box::new(stress::MissileStressScenario {})),
+        // Miscellaneous
+        "welcome" => Some(Box::new(welcome::Welcome::new())),
         _ => None,
     };
     if let Some(scenario) = scenario.as_ref() {
@@ -294,46 +298,6 @@ pub fn list() -> Vec<String> {
     .iter()
     .map(|x| x.to_string())
     .collect()
-}
-
-struct TestScenario {}
-
-impl Scenario for TestScenario {
-    fn name(&self) -> String {
-        "test".into()
-    }
-
-    fn init(&mut self, _sim: &mut Simulation, _seed: u32) {}
-}
-
-struct BasicScenario {}
-
-impl Scenario for BasicScenario {
-    fn name(&self) -> String {
-        "basic".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
-        ship::create(
-            sim,
-            vector![-100.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            fighter(0),
-        );
-        ship::create(
-            sim,
-            vector![100.0, 0.0],
-            vector![0.0, 0.0],
-            std::f64::consts::PI,
-            fighter(1),
-        );
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tournament_victory(sim)
-    }
 }
 
 struct GunneryScenario {}
@@ -385,315 +349,6 @@ impl Scenario for GunneryScenario {
 
     fn solution(&self) -> Code {
         builtin("gunnery")
-    }
-}
-
-struct MissileTest {
-    target: Option<ShipHandle>,
-    rng: SeededRng,
-    current_iteration: i64,
-    tick_in_iteration: i64,
-    acc: Vector2<f64>,
-}
-
-impl MissileTest {
-    const MAX_ITERATIONS: i64 = 10;
-    const MAX_ACCELERATION: f64 = 60.0;
-
-    fn new() -> Self {
-        Self {
-            target: None,
-            rng: new_rng(0),
-            current_iteration: 0,
-            tick_in_iteration: 0,
-            acc: vector![0.0, 0.0],
-        }
-    }
-}
-
-impl Scenario for MissileTest {
-    fn name(&self) -> String {
-        "missile_test".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        log::info!("Running MissileTest iteration {}", self.current_iteration);
-        let mut missile_data = missile(0);
-        missile_data.ttl = None;
-
-        self.rng = new_rng((seed % 1000) * 1000 + self.current_iteration as u32);
-        let d = 4000.0;
-        let target_p: Vector2<f64> = vector![self.rng.gen_range(-d..d), self.rng.gen_range(-d..d)];
-        let s = 500.0;
-        let target_v: Vector2<f64> = vector![self.rng.gen_range(-s..s), self.rng.gen_range(-s..s)];
-
-        if let Some(radar) = missile_data.radar.as_mut() {
-            radar.heading = target_p.angle(&vector![0.0, 0.0]);
-            radar.width = TAU / 128.0;
-        }
-
-        ship::create(
-            sim,
-            vector![0.0, 0.0],
-            vector![0.0, 0.0],
-            target_p.y.atan2(target_p.x),
-            missile_data,
-        );
-        let mut target_data = target(1);
-        target_data.max_forward_acceleration = Self::MAX_ACCELERATION;
-        target_data.max_backward_acceleration = Self::MAX_ACCELERATION;
-        target_data.max_lateral_acceleration = Self::MAX_ACCELERATION;
-        target_data.radar_cross_section = 1e6;
-        self.target = Some(ship::create(
-            sim,
-            vector![target_p.x, target_p.y],
-            vector![target_v.x, target_v.y],
-            0.0,
-            target_data,
-        ));
-    }
-
-    fn tick(&mut self, sim: &mut Simulation) {
-        let target = self.target.unwrap();
-        if !sim.ships.contains(target) && self.current_iteration < MissileTest::MAX_ITERATIONS {
-            self.current_iteration += 1;
-            self.tick_in_iteration = 0;
-            while !sim.bullets.is_empty() {
-                bullet::tick(sim);
-            }
-            self.init(sim, 0);
-        } else if sim.ships.contains(target) {
-            if (self.tick_in_iteration % 60) == 0 {
-                self.acc = Rotation2::new(self.rng.gen_range(0.0..std::f64::consts::TAU))
-                    .transform_vector(&vector![Self::MAX_ACCELERATION, 0.0]);
-            }
-            sim.ship_mut(target).accelerate(self.acc);
-        }
-        self.tick_in_iteration += 1;
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        if self.tick_in_iteration > 2000 {
-            Status::Failed
-        } else if sim.ships.contains(self.target.unwrap())
-            || self.current_iteration < MissileTest::MAX_ITERATIONS
-        {
-            Status::Running
-        } else {
-            Status::Victory { team: 0 }
-        }
-    }
-
-    fn solution(&self) -> Code {
-        builtin("missile")
-    }
-}
-
-struct StressScenario {}
-
-impl Scenario for StressScenario {
-    fn name(&self) -> String {
-        "stress".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        let mut rng = new_rng(seed);
-        add_walls(sim);
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
-
-        let bound = (WORLD_SIZE / 2.0) * 0.9;
-        for team in [0, 1] {
-            for _ in 0..100 {
-                ship::create(
-                    sim,
-                    vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                    vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                    rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                    fighter(team),
-                );
-            }
-        }
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![reference_ai(), reference_ai()]
-    }
-
-    fn solution(&self) -> Code {
-        builtin("reference")
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tournament_victory(sim)
-    }
-}
-
-struct AsteroidStressScenario {}
-
-impl Scenario for AsteroidStressScenario {
-    fn name(&self) -> String {
-        "asteroid-stress".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        let mut rng = new_rng(seed);
-        add_walls(sim);
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
-
-        let bound = (WORLD_SIZE / 2.0) * 0.9;
-        for _ in 0..1000 {
-            ship::create(
-                sim,
-                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                asteroid(rng.gen_range(0..30)),
-            );
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS)
-    }
-}
-
-struct BulletStressScenario {}
-
-impl Scenario for BulletStressScenario {
-    fn name(&self) -> String {
-        "bullet-stress".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        let mut rng = new_rng(seed);
-        add_walls(sim);
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
-
-        let bound = (WORLD_SIZE / 2.0) * 0.9;
-        for _ in 0..1000 {
-            let s = 1000.0;
-            bullet::create(
-                sim,
-                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                vector![rng.gen_range(-s..s), rng.gen_range(-s..s)],
-                BulletData {
-                    mass: 0.1,
-                    team: 0,
-                    color: color::to_u32(vector![1.00, 0.63, 0.00, 0.30]),
-                    ttl: 100.0,
-                },
-            );
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        if sim.bullets.is_empty() {
-            Status::Victory { team: 0 }
-        } else {
-            Status::Running
-        }
-    }
-}
-
-struct MissileStressScenario {}
-
-impl Scenario for MissileStressScenario {
-    fn name(&self) -> String {
-        "missile-stress".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        if seed != 0 {
-            log::warn!("Ignoring nonzero seed {}", seed);
-        }
-        let mut rng = new_rng(0);
-        add_walls(sim);
-
-        let bound = (WORLD_SIZE / 2.0) * 0.9;
-        for i in 0..100 {
-            ship::create(
-                sim,
-                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                missile(i % 2),
-            );
-        }
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        if sim.ships.len() < 50 {
-            Status::Victory { team: 0 }
-        } else {
-            Status::Running
-        }
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![reference_ai(), reference_ai()]
-    }
-}
-
-struct WelcomeScenario {
-    rng: Option<SeededRng>,
-}
-
-impl WelcomeScenario {
-    fn new() -> Self {
-        Self {
-            rng: None as Option<SeededRng>,
-        }
-    }
-}
-
-impl Scenario for WelcomeScenario {
-    fn name(&self) -> String {
-        "welcome".into()
-    }
-
-    fn human_name(&self) -> String {
-        "Welcome".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        self.rng = Some(new_rng(seed));
-        let rng = self.rng.as_mut().unwrap();
-
-        add_walls(sim);
-
-        let ship_datas = &[fighter(0), frigate(0), cruiser(0)];
-        let ship_data = rng.sample(rand::distributions::Slice::new(ship_datas).unwrap());
-        ship::create(
-            sim,
-            vector![0.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            ship_data.clone(),
-        );
-    }
-
-    fn tick(&mut self, sim: &mut Simulation) {
-        let rng = self.rng.as_mut().unwrap();
-        let asteroid_variants = [1, 6, 14];
-        while sim.ships.len() < 20 {
-            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_point(&point![rng.gen_range(500.0..2000.0), 0.0]);
-            ship::create(
-                sim,
-                vector![p.x, p.y],
-                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                asteroid(*asteroid_variants.choose(rng).unwrap()),
-            );
-        }
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![Code::None, Code::None]
-    }
-
-    fn solution(&self) -> Code {
-        reference_ai()
     }
 }
 
@@ -1085,94 +740,6 @@ impl Scenario for AsteroidDuel {
     }
 }
 
-struct FrigateVsCruiser {}
-
-impl FrigateVsCruiser {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for FrigateVsCruiser {
-    fn name(&self) -> String {
-        "frigate_vs_cruiser".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
-        ship::create(
-            sim,
-            vector![-1000.0, -500.0],
-            vector![0.0, 0.0],
-            0.0,
-            frigate(0),
-        );
-        ship::create(
-            sim,
-            vector![1000.0, 500.0],
-            vector![0.0, 0.0],
-            std::f64::consts::PI,
-            cruiser(1),
-        );
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tournament_victory(sim)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![reference_ai(), reference_ai()]
-    }
-
-    fn solution(&self) -> Code {
-        reference_ai()
-    }
-}
-
-struct CruiserVsFrigate {}
-
-impl CruiserVsFrigate {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Scenario for CruiserVsFrigate {
-    fn name(&self) -> String {
-        "cruiser_vs_frigate".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        add_walls(sim);
-        ship::create(
-            sim,
-            vector![-1000.0, -500.0],
-            vector![0.0, 0.0],
-            0.0,
-            cruiser(0),
-        );
-        ship::create(
-            sim,
-            vector![1000.0, 500.0],
-            vector![0.0, 0.0],
-            std::f64::consts::PI,
-            frigate(1),
-        );
-    }
-
-    fn status(&self, sim: &Simulation) -> Status {
-        check_tournament_victory(sim)
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![reference_ai(), reference_ai()]
-    }
-
-    fn solution(&self) -> Code {
-        reference_ai()
-    }
-}
-
 struct Furball {}
 
 impl Furball {
@@ -1400,41 +967,6 @@ impl Scenario for Belt {
 
     fn is_tournament(&self) -> bool {
         true
-    }
-}
-
-struct FrigatePointDefense {}
-
-impl Scenario for FrigatePointDefense {
-    fn name(&self) -> String {
-        "frigate_point_defense".into()
-    }
-
-    fn init(&mut self, sim: &mut Simulation, seed: u32) {
-        let mut rng = new_rng(seed);
-
-        add_walls(sim);
-        let mut data = frigate(0);
-        data.missile_launchers.clear();
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, data);
-
-        for i in 1..10 {
-            let distance = (i as f64) * 1000.0;
-            let angle = rng.gen_range(0.0..TAU);
-            let position = Rotation2::new(angle) * vector![distance, 0.0];
-            let velocity = Rotation2::new(angle) * vector![0.0, rng.gen_range(-2000.0..2000.0)];
-            let mut data = missile(1);
-            data.ttl = None;
-            ship::create(sim, position, velocity, angle + PI, data);
-        }
-    }
-
-    fn status(&self, _sim: &Simulation) -> Status {
-        Status::Running
-    }
-
-    fn initial_code(&self) -> Vec<Code> {
-        vec![empty_ai(), reference_ai()]
     }
 }
 
