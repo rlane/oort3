@@ -1,3 +1,5 @@
+### 0.40.0
+
 - Ramp up missile spawning over time in planetary_defense scenario.
 - Added vector cross product to API.
 - Fixed format code action.
