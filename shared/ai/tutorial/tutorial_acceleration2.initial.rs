@@ -1,4 +1,4 @@
-// Tutorial 03
+// Tutorial: Acceleration 2
 // Fly through the target circle. The target is in a random
 // location given by the "target" function.
 use oort_api::prelude::*;

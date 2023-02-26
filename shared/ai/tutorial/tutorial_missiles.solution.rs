@@ -1,4 +1,4 @@
-// tutorial09
+// Tutorial: Missiles (solution)
 // Destroy the enemy ship with your missiles.
 // Hint: https://en.wikipedia.org/wiki/Proportional_navigation
 use oort_api::prelude::*;

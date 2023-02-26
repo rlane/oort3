@@ -60,7 +60,7 @@ impl Scenario for TutorialRadar {
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial_squadron".to_string())
+        Some("tutorial_search".to_string())
     }
 
     fn previous_names(&self) -> Vec<String> {

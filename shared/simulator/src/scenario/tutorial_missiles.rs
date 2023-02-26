@@ -14,7 +14,7 @@ impl Scenario for TutorialMissiles {
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 9: Missiles".into()
+        "Tutorial 8: Missiles".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -48,7 +48,7 @@ impl Scenario for TutorialMissiles {
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial_frigate".to_string())
+        Some("tutorial_squadron".to_string())
     }
 
     fn previous_names(&self) -> Vec<String> {

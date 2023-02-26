@@ -1,4 +1,4 @@
-// Tutorial 01
+// Tutorial: Guns
 // Destroy the asteroid.
 use oort_api::prelude::*;
 

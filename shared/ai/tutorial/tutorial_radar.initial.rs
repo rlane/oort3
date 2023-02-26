@@ -1,4 +1,4 @@
-// Tutorial 06
+// Tutorial: Radar
 // Destroy the enemy ships. Use your radar to find them.
 // Hint: Press 'g' in-game to show where your radar is looking.
 // Hint: Use the set_radar_heading() function to keep your radar pointed at a

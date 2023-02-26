@@ -1,4 +1,4 @@
-// Tutorial 02
+// Tutorial: Acceleration
 // Fly through the target circle.
 use oort_api::prelude::*;
 

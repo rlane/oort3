@@ -1,4 +1,4 @@
-// tutorial11
+// Tutorial: Cruiser
 // Destroy the enemy ships with your Cruiser.
 use oort_api::prelude::*;
 

@@ -1,4 +1,4 @@
-// tutorial07
+// Tutorial: Squadron
 // Destroy the enemy ships. They now shoot back.
 use oort_api::prelude::*;
 

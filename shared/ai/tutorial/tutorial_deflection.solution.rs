@@ -1,4 +1,4 @@
-// Tutorial 05
+// Tutorial: Deflection (solution)
 // Destroy the enemy ship. Its position is given by the "target" function and velocity by the
 // "target_velocity" function.
 //

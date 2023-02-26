@@ -1,4 +1,4 @@
-// tutorial10
+// Tutorial: Frigate (solution)
 // Destroy the enemy ships with your Frigate.
 use oort_api::prelude::*;
 

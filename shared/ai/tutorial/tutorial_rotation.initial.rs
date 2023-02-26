@@ -1,4 +1,4 @@
-// Tutorial 04
+// Tutorial: Rotation
 // Destroy the asteroid. The target is in a random
 // location given by the "target()" function.
 use oort_api::prelude::*;
