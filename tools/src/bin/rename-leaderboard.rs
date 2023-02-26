@@ -50,13 +50,13 @@ async fn run(
         .await?;
 
     for doc in &docs {
-        if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
+        if let Ok(mut msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
             let (_, docid) = doc.name.rsplit_once('/').unwrap();
-            let (scenario_name, userid) = docid.rsplit_once('.').unwrap();
-            assert_eq!(scenario_name, src_scenario_name);
+            let (_, userid) = docid.rsplit_once('.').unwrap();
             let new_docid = format!("{dst_scenario_name}.{userid}");
             log::info!("copying {} to {}", docid, new_docid);
-            db.create_obj("leaderboard", &new_docid, &msg).await?;
+            msg.scenario_name = dst_scenario_name.into();
+            db.update_obj("leaderboard", &new_docid, &msg, None).await?;
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
         }
