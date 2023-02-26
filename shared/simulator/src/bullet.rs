@@ -259,13 +259,18 @@ impl CoarseGrid {
     pub fn insert(&mut self, mut aabb: Aabb) {
         aabb.mins -= vector![Self::CELL_SIZE, Self::CELL_SIZE];
         aabb.maxs += vector![Self::CELL_SIZE, Self::CELL_SIZE];
-        let w = ((aabb.maxs.x - aabb.mins.x) * Self::RECIP_CELL_SIZE).ceil() as i32;
-        let h = ((aabb.maxs.y - aabb.mins.y) * Self::RECIP_CELL_SIZE).ceil() as i32;
-        let min_index = Self::to_cell(aabb.mins.coords);
-        for y in 0..h {
-            for x in 0..w {
-                let index = (min_index as i32 + x + y * Self::WIDTH) as usize;
-                self.cells.set(index, true);
+        if let Some(aabb) = aabb.intersection(&Aabb::from_half_extents(
+            point![0.0, 0.0],
+            vector![WORLD_SIZE / 2.0, WORLD_SIZE / 2.0],
+        )) {
+            let w = ((aabb.maxs.x - aabb.mins.x) * Self::RECIP_CELL_SIZE).ceil() as i32;
+            let h = ((aabb.maxs.y - aabb.mins.y) * Self::RECIP_CELL_SIZE).ceil() as i32;
+            let min_index = Self::to_cell(aabb.mins.coords);
+            for y in 0..h {
+                for x in 0..w {
+                    let index = (min_index as i32 + x + y * Self::WIDTH) as usize;
+                    self.cells.set(index, true);
+                }
             }
         }
     }
