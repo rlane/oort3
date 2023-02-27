@@ -14,7 +14,7 @@ impl Scenario for TutorialMissiles {
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 8: Missiles".into()
+        "Tutorial 9: Missiles".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
