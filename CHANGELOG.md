@@ -1,3 +1,8 @@
+- Reordered tutorials.
+- Added a radio tutorial.
+- Added missiles to the squadron tutorial and increased range.
+- Changed search tutorial to use one ship per team.
+
 ### 0.40.0
 
 - Ramp up missile spawning over time in planetary_defense scenario.
