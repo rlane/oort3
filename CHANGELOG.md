@@ -1,3 +1,5 @@
+### 0.41.0
+
 - Reordered tutorials.
 - Added a radio tutorial.
 - Added missiles to the squadron tutorial and increased range.
