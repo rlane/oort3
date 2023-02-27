@@ -1,5 +1,5 @@
 // Tutorial: Search (solution)
-// Destroy the enemy ships. They are initially outside of your radar range.
+// Destroy the enemy ship. It is initially outside of your radar range.
 // Hint: The set_radar_width() function can be used to create a tighter radar
 // beam that's effective at longer distances.
 use oort_api::prelude::*;
