@@ -1,3 +1,6 @@
+- Tweaked primitive_duel scenario and made it visible.
+- Added shortcodes for tournament submissions.
+
 ### 0.41.0
 
 - Reordered tutorials.
