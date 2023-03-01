@@ -50,7 +50,10 @@ impl Scenario for PrimitiveDuel {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![empty_ai(), reference_ai()]
+        vec![
+            builtin("tutorial/tutorial_deflection.initial"),
+            builtin("tutorial/tutorial_deflection.solution"),
+        ]
     }
 
     fn solution(&self) -> Code {

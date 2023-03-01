@@ -192,6 +192,7 @@ pub fn list() -> Vec<String> {
         "tutorial_frigate",
         "tutorial_cruiser",
         "gunnery",
+        "primitive_duel",
         "fighter_duel",
         "missile_duel",
         "frigate_duel",
