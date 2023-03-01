@@ -8,6 +8,7 @@ use skillratings::{
     glicko2::{glicko2, Glicko2Config, Glicko2Rating},
     Outcomes,
 };
+use std::collections::HashMap;
 use std::default::Default;
 use std::path::Path;
 
@@ -47,13 +48,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     log::info!("Running tournament");
-    let mut competitors = run_tournament(&scenario_name, competitors);
+    let mut results = run_tournament(&scenario_name, competitors);
 
-    competitors.sort_by_key(|c| (-c.rating.rating * 1e6) as i64);
+    results
+        .competitors
+        .sort_by_key(|c| (-c.rating.rating * 1e6) as i64);
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
     table.set_header(vec!["Name", "Rating"]);
-    for competitor in &competitors {
+    for competitor in &results.competitors {
         table.add_row(vec![
             competitor.name.clone(),
             format!("{:.0}", competitor.rating.rating),
@@ -61,8 +64,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
     println!("Scenario: {scenario_name}");
     println!("{table}");
+    println!();
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    let mut header: Vec<String> = results.competitors.iter().map(|x| x.name.clone()).collect();
+    header.insert(0, "Winner / Loser".to_owned());
+    table.set_header(header);
+    for name0 in results.competitors.iter().map(|x| &x.name) {
+        let mut row = vec![name0.clone()];
+        for name1 in results.competitors.iter().map(|x| &x.name) {
+            if name0 == name1 {
+                row.push("".to_owned());
+                continue;
+            }
+            let frac = results
+                .pairings
+                .get(&(name0.clone(), name1.clone()))
+                .unwrap_or(&0.0);
+            row.push(format!("{}", (frac * 100.0).round()));
+        }
+        table.add_row(row);
+    }
+    println!("{table}");
 
     Ok(())
+}
+
+#[derive(Debug, Clone)]
+struct TournamentResults {
+    competitors: Vec<Competitor>,
+    pairings: HashMap<(String, String), f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -72,7 +104,8 @@ struct Competitor {
     rating: Glicko2Rating,
 }
 
-fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> Vec<Competitor> {
+fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> TournamentResults {
+    let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
     let rounds = 10;
     for round in 0..rounds {
@@ -105,10 +138,24 @@ fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> Vec<
             );
             competitors[i0].rating = r0;
             competitors[i1].rating = r1;
+
+            let increment = 1.0 / (2.0 * rounds as f64);
+            if outcome == Outcomes::WIN {
+                *pairings
+                    .entry((competitors[i0].name.clone(), competitors[i1].name.clone()))
+                    .or_default() += increment;
+            } else if outcome == Outcomes::LOSS {
+                *pairings
+                    .entry((competitors[i1].name.clone(), competitors[i0].name.clone()))
+                    .or_default() += increment;
+            }
         }
     }
 
-    competitors
+    TournamentResults {
+        competitors,
+        pairings,
+    }
 }
 
 fn run_simulation(scenario_name: &str, seed: u32, competitors: &[&Competitor]) -> Outcomes {
