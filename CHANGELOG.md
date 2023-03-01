@@ -1,3 +1,5 @@
+### 0.42.0
+
 - Tweaked primitive_duel scenario and made it visible.
 - Added shortcodes for tournament submissions.
 
