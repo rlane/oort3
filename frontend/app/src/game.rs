@@ -365,6 +365,13 @@ impl Component for Game {
                     scenario_name: self.scenario_name.clone(),
                     code: code_to_string(&self.player_team().running_source_code),
                 });
+                let scenario_name = self.scenario_name.clone();
+                let code = code_to_string(&self.player_team().running_source_code);
+                wasm_bindgen_futures::spawn_local(async move {
+                    if let Err(e) = services::submit_to_tournament(&scenario_name, &code).await {
+                        log::error!("Error submitting to tournament: {}", e);
+                    }
+                });
                 false
             }
             Msg::UploadShortcode => {

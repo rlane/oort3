@@ -1,8 +1,8 @@
 use crate::userid;
 use anyhow::anyhow;
 use chrono::Utc;
-use oort_proto::ShortcodeUpload;
 use oort_proto::{LeaderboardData, LeaderboardSubmission};
+use oort_proto::{ShortcodeUpload, TournamentSubmission};
 use oort_proto::{Telemetry, TelemetryMsg};
 use reqwasm::http::{Request, Response};
 
@@ -178,4 +178,19 @@ pub async fn upload_shortcode(code: &str) -> anyhow::Result<String> {
     let response =
         send_request(Request::post(&format!("{}/shortcode", shortcode_url())).body(body)).await?;
     response.text().await.map_err(|e| e.into())
+}
+
+pub async fn submit_to_tournament(scenario_name: &str, code: &str) -> anyhow::Result<()> {
+    let userid = userid::get_userid();
+    let username = userid::get_username();
+    let msg = TournamentSubmission {
+        userid,
+        username,
+        timestamp: Utc::now(),
+        scenario_name: scenario_name.to_string(),
+        code: code.to_string(),
+    };
+    let body = serde_json::to_string(&msg).unwrap();
+    send_request(Request::post(&format!("{}/tournament", shortcode_url())).body(body)).await?;
+    Ok(())
 }
