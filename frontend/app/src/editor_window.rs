@@ -315,6 +315,25 @@ impl Component for EditorWindow {
                     ed.add_action(&action);
                 };
 
+                let add_action_without_context_menu = |id: &'static str, label| {
+                    let cb = context.link().callback(Msg::EditorAction);
+                    let closure =
+                        Closure::wrap(Box::new(move |_: JsValue| cb.emit(id.to_string()))
+                            as Box<dyn FnMut(_)>);
+
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    let action = monaco::sys::editor::IActionDescriptor::from(empty());
+                    action.set_id(id);
+                    action.set_label(label);
+                    js_sys::Reflect::set(
+                        &action,
+                        &JsValue::from_str("run"),
+                        &closure.into_js_value(),
+                    )
+                    .unwrap();
+                    ed.add_action(&action);
+                };
+
                 add_action(
                     "oort-execute",
                     "Execute",
@@ -355,6 +374,11 @@ impl Component for EditorWindow {
                     Some(
                         monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyK as u32,
                     ),
+                );
+
+                add_action_without_context_menu(
+                    "oort-submit-to-tournament",
+                    "Submit to tournament",
                 );
 
                 {

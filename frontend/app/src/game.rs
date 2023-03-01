@@ -242,6 +242,13 @@ impl Component for Game {
                 services::format(text, cb);
                 false
             }
+            Msg::EditorAction {
+                team: _,
+                ref action,
+            } if action == "oort-submit-to-tournament" => {
+                context.link().send_message(Msg::SubmitToTournament);
+                false
+            }
             Msg::EditorAction { team: _, action } => {
                 log::info!("Got unexpected editor action {}", action);
                 false
