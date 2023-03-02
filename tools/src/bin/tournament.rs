@@ -1,6 +1,9 @@
+use clap::{Parser, Subcommand};
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
+use firestore::*;
 use itertools::Itertools;
+use oort_proto::TournamentSubmission;
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
@@ -12,23 +15,42 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::path::Path;
 
+#[derive(Parser, Debug)]
+#[clap()]
+struct Arguments {
+    #[clap(short, long, value_parser, default_value_t = String::from("oort-319301"))]
+    project_id: String,
+
+    #[clap(subcommand)]
+    cmd: SubCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum SubCommand {
+    Run { scenario: String, srcs: Vec<String> },
+    Fetch { scenario: String, out_dir: String },
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("tournament=info"))
         .init();
 
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() < 3 {
-        panic!("Expected arguments: SCENARIO PATH...");
+    let args = Arguments::parse();
+    match args.cmd {
+        SubCommand::Run { scenario, srcs } => cmd_run(&scenario, &srcs).await,
+        SubCommand::Fetch { scenario, out_dir } => {
+            cmd_fetch(&args.project_id, &scenario, &out_dir).await
+        }
     }
-    let scenario_name = args[1].clone();
-    let srcs = args[2..].to_vec();
+}
 
-    scenario::load_safe(&scenario_name).expect("Unknown scenario");
+async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
+    scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let mut compiler = oort_compiler::Compiler::new();
     let mut competitors = vec![];
-    for src in &srcs {
+    for src in srcs {
         log::info!("Compiling {:?}", src);
         let path = Path::new(src);
         let name = path.file_stem().unwrap().to_str().unwrap();
@@ -48,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     log::info!("Running tournament");
-    let mut results = run_tournament(&scenario_name, competitors);
+    let mut results = run_tournament(scenario_name, competitors);
 
     results
         .competitors
@@ -170,4 +192,47 @@ fn run_simulation(scenario_name: &str, seed: u32, competitors: &[&Competitor]) -
         scenario::Status::Draw => Outcomes::DRAW,
         _ => unreachable!(),
     }
+}
+
+async fn cmd_fetch(project_id: &str, scenario_name: &str, out_dir: &str) -> anyhow::Result<()> {
+    let db = FirestoreDb::new(project_id).await?;
+
+    let msgs: Vec<TournamentSubmission> = db
+        .query_obj(
+            FirestoreQueryParams::new("tournament".into())
+                .with_filter(FirestoreQueryFilter::Composite(
+                    FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
+                        FirestoreQueryFilterCompare::Equal(
+                            "scenario_name".into(),
+                            scenario_name.into(),
+                        ),
+                    ))]),
+                ))
+                .with_order_by(vec![
+                    FirestoreQueryOrder::new(
+                        "username".to_owned(),
+                        FirestoreQueryDirection::Ascending,
+                    ),
+                    FirestoreQueryOrder::new(
+                        "timestamp".to_owned(),
+                        FirestoreQueryDirection::Ascending,
+                    ),
+                ]),
+        )
+        .await?;
+
+    let mut map: HashMap<String, TournamentSubmission> = HashMap::new();
+    for msg in msgs {
+        map.insert(msg.username.clone(), msg);
+    }
+
+    std::fs::create_dir_all(out_dir).unwrap();
+    for msg in map.into_values() {
+        let filename = format!("{}/{}.rs", &out_dir, msg.username);
+        std::fs::write(&filename, &msg.code).unwrap();
+        print!("{filename}");
+    }
+    println!();
+
+    Ok(())
 }
