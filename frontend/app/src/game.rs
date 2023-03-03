@@ -246,7 +246,19 @@ impl Component for Game {
                 team: _,
                 ref action,
             } if action == "oort-submit-to-tournament" => {
-                context.link().send_message(Msg::SubmitToTournament);
+                let scenario_name = self.scenario_name.clone();
+                let source_code = self.player_team().get_editor_text();
+                services::send_telemetry(Telemetry::SubmitToTournament {
+                    scenario_name: scenario_name.clone(),
+                    code: source_code.clone(),
+                });
+                wasm_bindgen_futures::spawn_local(async move {
+                    if let Err(e) =
+                        services::submit_to_tournament(&scenario_name, &source_code).await
+                    {
+                        log::error!("Error submitting to tournament: {}", e);
+                    }
+                });
                 false
             }
             Msg::EditorAction { team: _, action } => {
