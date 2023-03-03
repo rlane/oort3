@@ -230,7 +230,7 @@ async fn cmd_fetch(project_id: &str, scenario_name: &str, out_dir: &str) -> anyh
     for msg in map.into_values() {
         let filename = format!("{}/{}.rs", &out_dir, msg.username);
         std::fs::write(&filename, &msg.code).unwrap();
-        print!("{filename}");
+        print!("{filename} ");
     }
     println!();
 
