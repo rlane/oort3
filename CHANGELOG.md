@@ -1,3 +1,5 @@
+### 0.42.2
+
 - Technical improvements for tournament submissions.
 
 ### 0.42.1
