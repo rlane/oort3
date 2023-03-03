@@ -1001,7 +1001,7 @@ impl Game {
                 "\
 // Welcome to Oort.
 // Select a scenario from the list in the top-right of the page.
-// If you're new, start with \"tutorial01\"."
+// If you're new, start with \"Tutorial: Guns\"."
                     .to_string(),
             );
         }

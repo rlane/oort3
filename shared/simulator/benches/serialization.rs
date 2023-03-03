@@ -4,7 +4,7 @@ use oort_simulator::simulation;
 use oort_simulator::snapshot::Snapshot;
 
 fn make_snapshot() -> Snapshot {
-    let scenario_name = "tutorial07";
+    let scenario_name = "tutorial_squadron";
     let scenario = scenario::load(scenario_name);
     let mut sim = simulation::Simulation::new(scenario_name, 0, &scenario.solution_codes());
     for _ in 0..300 {

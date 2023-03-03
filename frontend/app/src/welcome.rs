@@ -24,7 +24,7 @@ pub fn welcome(props: &WelcomeProps) -> Html {
 
             <h2>{ "Getting Started" }</h2>
             <p>
-                { "Oort includes a series of tutorials you can access from the select box in the top-right of the screen, or you can jump straight to the " }<a href="#" onclick={scenario("tutorial01")}>{ "first tutorial" }</a>{ ". " }
+                { "Oort includes a series of tutorials you can access from the select box in the top-right of the screen, or you can jump straight to the " }<a href="#" onclick={scenario("tutorial_guns")}>{ "first tutorial" }</a>{ ". " }
             </p>
             <p>
                 { "The built-in editor will be populated with starter code that has a comment describing the objective. " }
@@ -45,7 +45,7 @@ pub fn welcome(props: &WelcomeProps) -> Html {
 
             <h2>{ "Next Steps" }</h2>
             <ul>
-                <li>{ "Complete a few tutorials starting with " }<a href="#" onclick={scenario("tutorial01")}>{ "tutorial01" }</a> { ". " }<a href="#" onclick={scenario("tutorial05")}>{ "tutorial05" }</a>{ " is where it can get challenging!" }</li>
+                <li>{ "Complete a few tutorials starting with " }<a href="#" onclick={scenario("tutorial_guns")}>{ "Tutorial: Guns" }</a> { ". " }<a href="#" onclick={scenario("tutorial_deflection")}>{ "Tutorial: Deflection" }</a>{ " is where it can get challenging!" }</li>
                 <li>{ "Read up on the " }<a href="https://docs.rs/oort_api" target="_blank">{ "API" }</a>{ " and the " }<a href="https://github.com/rlane/oort3/wiki" target="_blank">{ "wiki" }</a>{ "." }</li>
                 <li>{ "Join the " }<a href="https://discord.gg/vYyu9EhkKH" target="_blank">{ "Discord" }</a>{ "." }</li>
                 <li>{ "Send in your feedback via Discord, a " }
