@@ -1,6 +1,6 @@
 [package]
 name = "oort_proto"
-version = "0.42.0"
+version = "0.42.1"
 publish = false
 edition = "2021"
 

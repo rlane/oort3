@@ -1,3 +1,5 @@
+### 0.42.1
+
 - Fixed welcome window not being displayed.
 
 ### 0.42.0
