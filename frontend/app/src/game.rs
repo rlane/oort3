@@ -129,7 +129,7 @@ impl Component for Game {
         let query_params = parse_query_params(context);
 
         Self {
-            scenario_name: String::new(),
+            scenario_name: context.props().scenario.clone(),
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
             background_nonce: 0,
@@ -494,8 +494,7 @@ impl Component for Game {
     fn rendered(&mut self, _context: &yew::Context<Self>, first_render: bool) {
         if self.overlay.is_some() {
             self.focus_overlay();
-        } else if first_render {
-            // TODO
+        } else if first_render && self.scenario_name != "welcome" {
             self.focus_editor();
         }
     }
@@ -1023,7 +1022,12 @@ impl Game {
         enemy_team.set_editor_text(&code_to_string(&enemy_team.initial_source_code));
         self.teams.push(enemy_team);
 
-        crate::js::golden_layout::show_welcome(scenario_name == "welcome");
+        if scenario_name == "welcome" {
+            crate::js::golden_layout::show_welcome(true);
+            crate::js::golden_layout::select_tab("welcome");
+        } else {
+            crate::js::golden_layout::show_welcome(false);
+        }
 
         self.run(context);
     }
