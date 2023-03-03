@@ -1,3 +1,5 @@
+- Technical improvements for tournament submissions.
+
 ### 0.42.1
 
 - Fixed welcome window not being displayed.

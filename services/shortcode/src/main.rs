@@ -207,8 +207,8 @@ async fn post_tournament_internal(req: &mut Request, res: &mut Response) -> anyh
     let payload = req.payload().await?;
     let mut obj: TournamentSubmission = serde_json::from_slice(&payload)?;
     obj.timestamp = Utc::now();
-    let docid = generate_docid();
-    db.create_obj("tournament", &docid, &obj).await?;
+    let docid = format!("{}.{}", obj.scenario_name, obj.userid);
+    db.update_obj("tournament", &docid, &obj, None).await?;
     res.render(docid);
     Ok(())
 }
