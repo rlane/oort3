@@ -1,3 +1,5 @@
+- Fixed welcome window not being displayed.
+
 ### 0.42.0
 
 - Tweaked primitive_duel scenario and made it visible.
