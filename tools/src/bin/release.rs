@@ -18,6 +18,7 @@ enum Component {
     Leaderboard,
     Compiler,
     Shortcode,
+    Tournament,
     Doc,
     Tools,
 }
@@ -28,6 +29,7 @@ const ALL_COMPONENTS: &[Component] = &[
     Component::Leaderboard,
     Component::Compiler,
     Component::Shortcode,
+    Component::Tournament,
     Component::Doc,
     Component::Tools,
 ];
@@ -39,7 +41,7 @@ struct Arguments {
         long,
         value_enum,
         value_delimiter = ',',
-        default_value = "app,telemetry,leaderboard,compiler,shortcode,doc,tools"
+        default_value = "app,telemetry,leaderboard,compiler,shortcode,tournament,doc,tools"
     )]
     /// Components to push.
     components: Vec<Component>,
@@ -627,6 +629,71 @@ async fn main() -> anyhow::Result<()> {
         }));
     }
 
+    if args.components.contains(&Component::Tournament) {
+        let secrets = secrets.clone();
+        tasks.spawn(Retry::spawn(retry_strategy(), move || {
+            let secrets = secrets.clone();
+            async move {
+                let progress = create_progress_bar("tournament");
+
+                progress.set_message("building");
+                sync_cmd_ok(&[
+                    "docker",
+                    "build",
+                    "-f",
+                    "services/tournament/Dockerfile",
+                    "--tag",
+                    "oort_tournament_service",
+                    "--build-arg",
+                    &format!(
+                        "OORT_CODE_ENCRYPTION_SECRET={}",
+                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                    ),
+                    ".",
+                ])
+                .await?;
+
+                if !dry_run {
+                    let container_image = format!("{PROJECT}/services/oort_tournament_service");
+
+                    progress.set_message("tagging");
+                    sync_cmd_ok(&[
+                        "docker",
+                        "tag",
+                        "oort_tournament_service:latest",
+                        &container_image,
+                    ])
+                    .await?;
+
+                    progress.set_message("pushing image");
+                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
+                    progress.set_message("deploying");
+                    sync_cmd_ok(&[
+                    "gcloud",
+                    "run",
+                    "deploy",
+                    "oort-tournament-service",
+                    "--image",
+                    &container_image,
+                    "--allow-unauthenticated",
+                    "--region=us-west1",
+                    "--cpu=1",
+                    "--memory=1G",
+                    "--timeout=20s",
+                    "--concurrency=1",
+                    "--max-instances=3",
+                    "--service-account=oort-tournament-service@oort-319301.iam.gserviceaccount.com",
+                ])
+                .await?;
+                }
+
+                progress.finish_with_message("done");
+                Ok(())
+            }
+        }));
+    }
+
     if args.components.contains(&Component::Tools) {
         tasks.spawn(async move {
             use std::os::unix::fs::MetadataExt;
@@ -695,7 +762,7 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    if !dry_run && !args.skip_github {
+    if !dry_run && !args.skip_github && !args.skip_git_checks {
         log::info!("Pushing to github");
         sync_cmd_ok(&["git", "push"]).await?;
     }

@@ -60,6 +60,15 @@ pub fn shortcode_url() -> String {
     }
 }
 
+pub fn tournament_url() -> String {
+    if is_local() {
+        log::info!("Using tournament service on localhost");
+        "http://localhost:8085".to_owned()
+    } else {
+        "https://tournament.oort.rs".to_owned()
+    }
+}
+
 async fn send_request(request: Request) -> anyhow::Result<Response> {
     match request.send().await {
         Ok(response) if response.ok() => Ok(response),
@@ -191,6 +200,7 @@ pub async fn submit_to_tournament(scenario_name: &str, code: &str) -> anyhow::Re
         code: code.to_string(),
     };
     let body = serde_json::to_string(&msg).unwrap();
-    send_request(Request::post(&format!("{}/tournament", shortcode_url())).body(body)).await?;
+    send_request(Request::post(&format!("{}/tournament/submit", tournament_url())).body(body))
+        .await?;
     Ok(())
 }

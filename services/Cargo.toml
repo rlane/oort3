@@ -6,6 +6,7 @@ members = [
     "telemetry",
     "leaderboard",
     "shortcode",
+    "tournament",
 ]
 
 [profile.dev.package.'*']

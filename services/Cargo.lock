@@ -1509,6 +1509,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_tournament_service"
+version = "0.42.2"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "firestore",
+ "gcloud-sdk",
+ "log",
+ "oort_code_encryption",
+ "oort_proto",
+ "rand 0.8.5",
+ "regex",
+ "salvo",
+ "salvo_extra",
+ "serde_json",
+ "stackdriver_logger",
+ "tokio",
+]
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

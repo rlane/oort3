@@ -202,26 +202,6 @@ async fn post(req: &mut Request, res: &mut Response) {
     }
 }
 
-async fn post_tournament_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id()).await?;
-    let payload = req.payload().await?;
-    let mut obj: TournamentSubmission = serde_json::from_slice(&payload)?;
-    obj.timestamp = Utc::now();
-    let docid = format!("{}.{}", obj.scenario_name, obj.userid);
-    db.update_obj("tournament", &docid, &obj, None).await?;
-    res.render(docid);
-    Ok(())
-}
-
-#[handler]
-async fn post_tournament(req: &mut Request, res: &mut Response) {
-    if let Err(e) = post_tournament_internal(req, res).await {
-        log::error!("error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
-    }
-}
-
 #[handler]
 async fn nop(_req: &mut Request, res: &mut Response) {
     res.render("");
@@ -259,12 +239,7 @@ pub async fn main() {
                 .get(get_shortcode)
                 .options(nop),
         )
-        .push(Router::with_path("/shortcode").post(post).options(nop))
-        .push(
-            Router::with_path("/tournament")
-                .post(post_tournament)
-                .options(nop),
-        );
+        .push(Router::with_path("/shortcode").post(post).options(nop));
 
     Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
         .serve(router)
