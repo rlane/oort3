@@ -1,3 +1,4 @@
+use chrono::Utc;
 use clap::{Parser, Subcommand};
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
@@ -6,6 +7,7 @@ use itertools::Itertools;
 use oort_proto::{TournamentCompetitor, TournamentResults, TournamentSubmission};
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
+use rand::Rng;
 use rayon::prelude::*;
 use skillratings::{
     glicko2::{glicko2, Glicko2Config, Glicko2Rating},
@@ -38,14 +40,14 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Arguments::parse();
     match args.cmd {
-        SubCommand::Run { scenario, srcs } => cmd_run(&scenario, &srcs).await,
+        SubCommand::Run { scenario, srcs } => cmd_run(&args.project_id, &scenario, &srcs).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
     }
 }
 
-async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
+async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let mut compiler = oort_compiler::Compiler::new();
@@ -113,6 +115,16 @@ async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
         table.add_row(row);
     }
     println!("{table}");
+
+    let db = FirestoreDb::new(project_id).await?;
+    let path = format!(
+        "{}.{}",
+        Utc::now().format("%Y%m%d"),
+        rand::thread_rng().gen_range(0..10000)
+    );
+    db.create_obj("tournament_results", &path, &results).await?;
+    println!();
+    println!("Results: {path}");
 
     Ok(())
 }
