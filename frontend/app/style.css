@@ -279,3 +279,15 @@ b.error {
 .lm_maximised .lm_header {
   background-color: #1e1e1e;
 }
+
+#tournament_results {
+  position: absolute;
+  top: 41px;
+  height: calc(100% - 42px);
+  width: 100%;
+  padding: 1em;
+}
+
+#tournament_results table {
+  border-collapse: collapse;
+}

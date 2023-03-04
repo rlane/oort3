@@ -13,6 +13,7 @@ pub mod leaderboard_window;
 pub mod services;
 pub mod simulation_window;
 pub mod toolbar;
+pub mod tournament;
 pub mod ui;
 pub mod userid;
 pub mod welcome;
@@ -33,6 +34,8 @@ pub enum Route {
     Demo { scenario: String },
     #[at("/benchmark/:scenario")]
     Benchmark { scenario: String },
+    #[at("/tournament/:id")]
+    Tournament { id: String },
 }
 
 #[function_component(Main)]
@@ -58,6 +61,9 @@ fn switch(routes: Route) -> Html {
         Route::Benchmark { scenario } => html! {
             <benchmark::Benchmark scenario={scenario} />
         },
+        Route::Tournament { id } => html! {
+            <tournament::Tournament id={id} />
+        },
     }
 }
 
@@ -71,7 +77,6 @@ pub fn run_app() -> Result<(), JsValue> {
         "hashed envelope secret: {:?}",
         &oort_envelope::hashed_secret()
     );
-    js::golden_layout::init();
     js::completion::init();
     yew::Renderer::<Main>::with_root(
         gloo_utils::document()

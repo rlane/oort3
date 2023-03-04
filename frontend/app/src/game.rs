@@ -117,6 +117,8 @@ impl Component for Game {
     type Properties = Props;
 
     fn create(context: &yew::Context<Self>) -> Self {
+        js::golden_layout::init();
+
         {
             let link = context.link().clone();
             let closure = Closure::new(move || link.send_message(Msg::Resized));

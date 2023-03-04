@@ -1,7 +1,7 @@
 use crate::userid;
 use anyhow::anyhow;
 use chrono::Utc;
-use oort_proto::{LeaderboardData, LeaderboardSubmission};
+use oort_proto::{LeaderboardData, LeaderboardSubmission, TournamentResults};
 use oort_proto::{ShortcodeUpload, TournamentSubmission};
 use oort_proto::{Telemetry, TelemetryMsg};
 use reqwasm::http::{Request, Response};
@@ -203,4 +203,14 @@ pub async fn submit_to_tournament(scenario_name: &str, code: &str) -> anyhow::Re
     send_request(Request::post(&format!("{}/tournament/submit", tournament_url())).body(body))
         .await?;
     Ok(())
+}
+
+pub async fn get_tournament_results(id: &str) -> anyhow::Result<TournamentResults> {
+    let response = send_request(Request::get(&format!(
+        "{}/tournament/results/{}",
+        tournament_url(),
+        id
+    )))
+    .await?;
+    response.json().await.map_err(|e| e.into())
 }
