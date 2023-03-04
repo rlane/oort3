@@ -1,6 +1,7 @@
+use anyhow::anyhow;
 use chrono::Utc;
 use firestore::*;
-use oort_proto::TournamentSubmission;
+use oort_proto::{TournamentResults, TournamentSubmission};
 use salvo::cors::Cors;
 use salvo::prelude::*;
 
@@ -36,6 +37,18 @@ async fn submit(req: &mut Request, res: &mut Response) {
 }
 
 #[handler]
+async fn get_tournament_results(
+    req: &mut Request,
+) -> anyhow::Result<salvo::writer::Json<TournamentResults>> {
+    let db = FirestoreDb::new(project_id()).await?;
+    let id: String = req.param("id").ok_or(anyhow!("missing id parameter"))?;
+    let tournament_results = db
+        .get_obj::<TournamentResults>("tournament_results", &id)
+        .await?;
+    Ok(Json(tournament_results))
+}
+
+#[handler]
 async fn nop(_req: &mut Request, res: &mut Response) {
     res.render("");
 }
@@ -66,11 +79,17 @@ pub async fn main() {
         .allow_header("content-type")
         .build();
 
-    let router = Router::with_hoop(cors_handler).push(
-        Router::with_path("/tournament/submit")
-            .post(submit)
-            .options(nop),
-    );
+    let router = Router::with_hoop(cors_handler)
+        .push(
+            Router::with_path("/tournament/submit")
+                .post(submit)
+                .options(nop),
+        )
+        .push(
+            Router::with_path("/tournament/results/<id>")
+                .get(get_tournament_results)
+                .options(nop),
+        );
 
     Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
         .serve(router)
