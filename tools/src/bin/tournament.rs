@@ -115,7 +115,8 @@ async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyh
 
     let db = FirestoreDb::new(project_id).await?;
     let path = format!(
-        "{}.{}",
+        "{}.{}.{}",
+        scenario_name,
         Utc::now().format("%Y%m%d"),
         rand::thread_rng().gen_range(0..10000)
     );
