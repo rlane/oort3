@@ -122,7 +122,11 @@ async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyh
     );
     db.create_obj("tournament_results", &path, &results).await?;
     println!();
-    println!("Results: {path}");
+    if project_id == "oort-dev" {
+        println!("Uploaded to http://localhost:8080/tournament/{path}");
+    } else {
+        println!("Uploaded to https://oort.rs/tournament/{path}");
+    }
 
     Ok(())
 }
