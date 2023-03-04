@@ -3,8 +3,8 @@ mod discord;
 use chrono::prelude::*;
 use firestore::*;
 use oort_proto::{Telemetry, TelemetryMsg};
+use salvo::cors::Cors;
 use salvo::prelude::*;
-use salvo_extra::cors::Cors;
 
 fn project_id() -> &'static str {
     match std::env::var("ENVIRONMENT") {

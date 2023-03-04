@@ -1,8 +1,8 @@
 use chrono::Utc;
 use firestore::*;
 use oort_proto::TournamentSubmission;
+use salvo::cors::Cors;
 use salvo::prelude::*;
-use salvo_extra::cors::Cors;
 
 fn project_id() -> &'static str {
     match std::env::var("ENVIRONMENT") {

@@ -5,8 +5,8 @@ use chrono::Utc;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
 use oort_proto::{LeaderboardData, LeaderboardSubmission, TimeLeaderboardRow};
+use salvo::cors::Cors;
 use salvo::prelude::*;
-use salvo_extra::cors::Cors;
 
 fn project_id() -> &'static str {
     match std::env::var("ENVIRONMENT") {

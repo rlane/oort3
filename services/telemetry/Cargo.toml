@@ -6,8 +6,7 @@ edition = "2021"
 
 [dependencies]
 oort_proto = { path = "../../shared/proto" }
-salvo = "0.36"
-salvo_extra = { version="0.36", features=["cors"] }
+salvo = { version="0.37", features=["cors"] }
 tokio = { version = "1", features = ["macros", "process"] }
 anyhow = "1.0"
 log = "0.4.17"
