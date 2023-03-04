@@ -72,11 +72,8 @@ async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyh
     }
 
     log::info!("Running tournament");
-    let mut results = run_tournament(scenario_name, entrants);
+    let results = run_tournament(scenario_name, entrants);
 
-    results
-        .competitors
-        .sort_by_key(|c| (-c.rating * 1e6) as i64);
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
     table.set_header(vec!["Name", "Rating"]);
@@ -181,13 +178,15 @@ fn run_tournament(scenario_name: &str, mut entrants: Vec<Entrant>) -> Tournament
         }
     }
 
-    let competitors: Vec<_> = entrants
+    let mut competitors: Vec<_> = entrants
         .iter()
         .map(|x| TournamentCompetitor {
             username: x.username.clone(),
             rating: x.rating.rating,
         })
         .collect();
+    competitors.sort_by_key(|c| (-c.rating * 1e6) as i64);
+
     let mut win_matrix: Vec<f64> = vec![];
     for competitor in &competitors {
         for other_competitor in &competitors {
