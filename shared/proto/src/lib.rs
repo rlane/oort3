@@ -91,3 +91,16 @@ pub struct ShortcodeUpload {
     pub timestamp: DateTime<Utc>,
     pub code: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct TournamentResults {
+    pub scenario_name: String,
+    pub competitors: Vec<TournamentCompetitor>,
+    pub win_matrix: Vec<f64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct TournamentCompetitor {
+    pub username: String,
+    pub rating: f64,
+}

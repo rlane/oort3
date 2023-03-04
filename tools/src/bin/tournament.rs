@@ -3,7 +3,7 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 use firestore::*;
 use itertools::Itertools;
-use oort_proto::TournamentSubmission;
+use oort_proto::{TournamentCompetitor, TournamentResults, TournamentSubmission};
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
@@ -49,7 +49,7 @@ async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let mut compiler = oort_compiler::Compiler::new();
-    let mut competitors = vec![];
+    let mut entrants = vec![];
     for src in srcs {
         log::info!("Compiling {:?}", src);
         let path = Path::new(src);
@@ -57,8 +57,8 @@ async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
         let src_code = std::fs::read_to_string(src).unwrap();
         match compiler.compile(&src_code) {
             Ok(wasm) => {
-                competitors.push(Competitor {
-                    name: name.to_string(),
+                entrants.push(Entrant {
+                    username: name.to_string(),
                     code: Code::Wasm(wasm),
                     rating: Default::default(),
                 });
@@ -70,18 +70,18 @@ async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
     }
 
     log::info!("Running tournament");
-    let mut results = run_tournament(scenario_name, competitors);
+    let mut results = run_tournament(scenario_name, entrants);
 
     results
         .competitors
-        .sort_by_key(|c| (-c.rating.rating * 1e6) as i64);
+        .sort_by_key(|c| (-c.rating * 1e6) as i64);
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
     table.set_header(vec!["Name", "Rating"]);
     for competitor in &results.competitors {
         table.add_row(vec![
-            competitor.name.clone(),
-            format!("{:.0}", competitor.rating.rating),
+            competitor.username.clone(),
+            format!("{:.0}", competitor.rating),
         ]);
     }
     println!("Scenario: {scenario_name}");
@@ -90,21 +90,25 @@ async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
-    let mut header: Vec<String> = results.competitors.iter().map(|x| x.name.clone()).collect();
+    let mut header: Vec<String> = results
+        .competitors
+        .iter()
+        .map(|x| x.username.clone())
+        .collect();
     header.insert(0, "Winner / Loser".to_owned());
     table.set_header(header);
-    for name0 in results.competitors.iter().map(|x| &x.name) {
+    let mut index = 0;
+    for name0 in results.competitors.iter().map(|x| &x.username) {
         let mut row = vec![name0.clone()];
-        for name1 in results.competitors.iter().map(|x| &x.name) {
+        for name1 in results.competitors.iter().map(|x| &x.username) {
             if name0 == name1 {
                 row.push("".to_owned());
+                index += 1;
                 continue;
             }
-            let frac = results
-                .pairings
-                .get(&(name0.clone(), name1.clone()))
-                .unwrap_or(&0.0);
+            let frac = results.win_matrix[index];
             row.push(format!("{}", (frac * 100.0).round()));
+            index += 1;
         }
         table.add_row(row);
     }
@@ -114,27 +118,18 @@ async fn cmd_run(scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
 }
 
 #[derive(Debug, Clone)]
-struct TournamentResults {
-    competitors: Vec<Competitor>,
-    pairings: HashMap<(String, String), f64>,
-}
-
-#[derive(Debug, Clone)]
-struct Competitor {
-    name: String,
+struct Entrant {
+    username: String,
     code: Code,
     rating: Glicko2Rating,
 }
 
-fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> TournamentResults {
+fn run_tournament(scenario_name: &str, mut entrants: Vec<Entrant>) -> TournamentResults {
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
     let rounds = 10;
     for round in 0..rounds {
-        let pairs: Vec<_> = (0..(competitors.len()))
-            .permutations(2)
-            .enumerate()
-            .collect();
+        let pairs: Vec<_> = (0..(entrants.len())).permutations(2).enumerate().collect();
         let base_seed = (round * pairs.len()) as u32;
         let outcomes: Vec<_> = pairs
             .par_iter()
@@ -144,7 +139,7 @@ fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> Tour
                 let i1 = indices[1];
                 (
                     indices,
-                    run_simulation(scenario_name, seed, &[&competitors[i0], &competitors[i1]]),
+                    run_simulation(scenario_name, seed, &[&entrants[i0], &entrants[i1]]),
                 )
             })
             .collect();
@@ -153,35 +148,58 @@ fn run_tournament(scenario_name: &str, mut competitors: Vec<Competitor>) -> Tour
             let i0 = indices[0];
             let i1 = indices[1];
             let (r0, r1) = glicko2(
-                &competitors[i0].rating,
-                &competitors[i1].rating,
+                &entrants[i0].rating,
+                &entrants[i1].rating,
                 &outcome,
                 &config,
             );
-            competitors[i0].rating = r0;
-            competitors[i1].rating = r1;
+            entrants[i0].rating = r0;
+            entrants[i1].rating = r1;
 
             let increment = 1.0 / (2.0 * rounds as f64);
             if outcome == Outcomes::WIN {
                 *pairings
-                    .entry((competitors[i0].name.clone(), competitors[i1].name.clone()))
+                    .entry((entrants[i0].username.clone(), entrants[i1].username.clone()))
                     .or_default() += increment;
             } else if outcome == Outcomes::LOSS {
                 *pairings
-                    .entry((competitors[i1].name.clone(), competitors[i0].name.clone()))
+                    .entry((entrants[i1].username.clone(), entrants[i0].username.clone()))
                     .or_default() += increment;
             }
         }
     }
 
+    let competitors: Vec<_> = entrants
+        .iter()
+        .map(|x| TournamentCompetitor {
+            username: x.username.clone(),
+            rating: x.rating.rating,
+        })
+        .collect();
+    let mut win_matrix: Vec<f64> = vec![];
+    for competitor in &competitors {
+        for other_competitor in &competitors {
+            win_matrix.push(
+                pairings
+                    .get(&(
+                        competitor.username.clone(),
+                        other_competitor.username.clone(),
+                    ))
+                    .copied()
+                    .unwrap_or_default(),
+            );
+        }
+    }
+
     TournamentResults {
+        scenario_name: scenario_name.to_string(),
         competitors,
-        pairings,
+        win_matrix,
     }
 }
 
-fn run_simulation(scenario_name: &str, seed: u32, competitors: &[&Competitor]) -> Outcomes {
-    let codes: Vec<_> = competitors.iter().map(|c| c.code.clone()).collect();
+fn run_simulation(scenario_name: &str, seed: u32, entrants: &[&Entrant]) -> Outcomes {
+    let codes: Vec<_> = entrants.iter().map(|c| c.code.clone()).collect();
     let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
     while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
         sim.step();
