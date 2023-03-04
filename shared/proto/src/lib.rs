@@ -102,5 +102,6 @@ pub struct TournamentResults {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct TournamentCompetitor {
     pub username: String,
+    pub shortcode: String,
     pub rating: f64,
 }

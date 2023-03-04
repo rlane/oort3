@@ -55,12 +55,14 @@ async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyh
     for src in srcs {
         log::info!("Compiling {:?}", src);
         let path = Path::new(src);
-        let name = path.file_stem().unwrap().to_str().unwrap();
+        let username = path.file_stem().unwrap().to_str().unwrap().to_owned();
         let src_code = std::fs::read_to_string(src).unwrap();
+        let shortcode = format!("tournament:{username}:{scenario_name}");
         match compiler.compile(&src_code) {
             Ok(wasm) => {
                 entrants.push(Entrant {
-                    username: name.to_string(),
+                    username,
+                    shortcode,
                     code: Code::Wasm(wasm),
                     rating: Default::default(),
                 });
@@ -134,6 +136,7 @@ async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyh
 #[derive(Debug, Clone)]
 struct Entrant {
     username: String,
+    shortcode: String,
     code: Code,
     rating: Glicko2Rating,
 }
@@ -187,6 +190,7 @@ fn run_tournament(scenario_name: &str, mut entrants: Vec<Entrant>) -> Tournament
         .iter()
         .map(|x| TournamentCompetitor {
             username: x.username.clone(),
+            shortcode: x.shortcode.clone(),
             rating: x.rating.rating,
         })
         .collect();
