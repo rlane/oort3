@@ -15,6 +15,7 @@ use skillratings::{
 };
 use std::collections::HashMap;
 use std::default::Default;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -34,6 +35,10 @@ enum SubCommand {
 
         #[clap(short, long)]
         dry_run: bool,
+    },
+    RunLocal {
+        scenario: String,
+        paths: Vec<String>,
     },
     Fetch {
         scenario: String,
@@ -60,6 +65,7 @@ async fn main() -> anyhow::Result<()> {
             usernames,
             dry_run,
         } => cmd_run(&args.project_id, &scenario, &usernames, dry_run).await,
+        SubCommand::RunLocal { scenario, paths } => cmd_run_local(&scenario, &paths).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
@@ -99,6 +105,37 @@ async fn cmd_run(
     Ok(())
 }
 
+async fn cmd_run_local(scenario_name: &str, paths: &[String]) -> anyhow::Result<()> {
+    scenario::load_safe(scenario_name).expect("Unknown scenario");
+
+    let mut compiler = oort_compiler::Compiler::new();
+    let entrants: Vec<_> = paths
+        .iter()
+        .map(|path| {
+            let path = PathBuf::from(path);
+            let username = path.file_stem().unwrap().to_str().unwrap().to_owned();
+            let source_code = std::fs::read_to_string(path).unwrap();
+            log::info!("Compiling {:?}", username);
+            let compiled_code = match compiler.compile(&source_code) {
+                Ok(wasm) => Code::Wasm(wasm),
+                Err(e) => panic!("Failed to compile {username:?}: {e}"),
+            };
+            Entrant {
+                username,
+                source_code,
+                compiled_code: Some(compiled_code),
+            }
+        })
+        .collect();
+
+    log::info!("Running tournament");
+    let results = run_tournament(scenario_name, &entrants);
+
+    display_results(&results);
+
+    Ok(())
+}
+
 fn run_tournament(scenario_name: &str, entrants: &[Entrant]) -> TournamentResults {
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
@@ -123,6 +160,13 @@ fn run_tournament(scenario_name: &str, entrants: &[Entrant]) -> TournamentResult
         for (indices, outcome) in outcomes {
             let i0 = indices[0];
             let i1 = indices[1];
+            log::debug!(
+                "{} vs {} seed {}: {:?}",
+                entrants[i0].username,
+                entrants[i1].username,
+                round,
+                outcome
+            );
             let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], &outcome, &config);
             ratings[i0] = r0;
             ratings[i1] = r1;
