@@ -1,3 +1,5 @@
+- Added a tournament results page.
+
 ### 0.42.2
 
 - Technical improvements for tournament submissions.
