@@ -15,7 +15,6 @@ use skillratings::{
 };
 use std::collections::HashMap;
 use std::default::Default;
-use std::path::Path;
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -31,7 +30,7 @@ struct Arguments {
 enum SubCommand {
     Run {
         scenario: String,
-        srcs: Vec<String>,
+        usernames: Vec<String>,
 
         #[clap(short, long)]
         dry_run: bool,
@@ -40,6 +39,13 @@ enum SubCommand {
         scenario: String,
         out_dir: String,
     },
+}
+
+#[derive(Debug, Clone)]
+struct Entrant {
+    username: String,
+    source_code: String,
+    compiled_code: Option<Code>,
 }
 
 #[tokio::main]
@@ -51,9 +57,9 @@ async fn main() -> anyhow::Result<()> {
     match args.cmd {
         SubCommand::Run {
             scenario,
-            srcs,
+            usernames,
             dry_run,
-        } => cmd_run(&args.project_id, &scenario, &srcs, dry_run).await,
+        } => cmd_run(&args.project_id, &scenario, &usernames, dry_run).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
@@ -63,9 +69,10 @@ async fn main() -> anyhow::Result<()> {
 async fn cmd_run(
     project_id: &str,
     scenario_name: &str,
-    srcs: &[String],
+    usernames: &[String],
     dry_run: bool,
 ) -> anyhow::Result<()> {
+    let db = FirestoreDb::new(project_id).await?;
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let tournament_id = format!(
@@ -77,32 +84,19 @@ async fn cmd_run(
     log::info!("Running tournament {}", tournament_id);
 
     let mut compiler = oort_compiler::Compiler::new();
-    let mut entrants = vec![];
-    let mut code_by_shortcode = HashMap::new();
-    for src in srcs {
-        log::info!("Compiling {:?}", src);
-        let path = Path::new(src);
-        let username = path.file_stem().unwrap().to_str().unwrap().to_owned();
-        let src_code = std::fs::read_to_string(src).unwrap();
-        let shortcode = format!("{tournament_id}.{username}");
-        code_by_shortcode.insert(shortcode.clone(), src_code.clone());
-        match compiler.compile(&src_code) {
-            Ok(wasm) => {
-                entrants.push(Entrant {
-                    username,
-                    shortcode,
-                    code: Code::Wasm(wasm),
-                    rating: Default::default(),
-                });
-            }
+    let mut entrants = get_entrants(&db, scenario_name, usernames).await?;
+    for entrant in entrants.iter_mut() {
+        log::info!("Compiling {:?}", entrant.username);
+        match compiler.compile(&entrant.source_code) {
+            Ok(wasm) => entrant.compiled_code = Some(Code::Wasm(wasm)),
             Err(e) => {
-                panic!("Failed to compile {src:?}: {e}");
+                panic!("Failed to compile {:?}: {e}", entrant.username);
             }
         }
     }
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, entrants);
+    let mut results = run_tournament(scenario_name, &entrants);
 
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
@@ -145,19 +139,20 @@ async fn cmd_run(
 
     if !dry_run {
         log::info!("Uploading to database...");
-        let db = FirestoreDb::new(project_id).await?;
-        for competitor in results.competitors.iter() {
+        for competitor in results.competitors.iter_mut() {
+            let entrant = entrants
+                .iter()
+                .find(|x| x.username == competitor.username)
+                .unwrap();
             let obj = ShortcodeUpload {
                 userid: "".to_string(), // TODO
                 username: competitor.username.clone(),
                 timestamp: Utc::now(),
-                code: code_by_shortcode
-                    .get(&competitor.shortcode)
-                    .unwrap()
-                    .clone(),
+                code: entrant.source_code.clone(),
             };
-            db.create_obj("shortcode", &competitor.shortcode, &obj)
-                .await?;
+            let shortcode = format!("{tournament_id}.{}", competitor.username);
+            db.create_obj("shortcode", &shortcode, &obj).await?;
+            competitor.shortcode = shortcode;
         }
         db.create_obj("tournament_results", &tournament_id, &results)
             .await?;
@@ -172,17 +167,11 @@ async fn cmd_run(
     Ok(())
 }
 
-#[derive(Debug, Clone)]
-struct Entrant {
-    username: String,
-    shortcode: String,
-    code: Code,
-    rating: Glicko2Rating,
-}
-
-fn run_tournament(scenario_name: &str, mut entrants: Vec<Entrant>) -> TournamentResults {
+fn run_tournament(scenario_name: &str, entrants: &[Entrant]) -> TournamentResults {
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
+    let mut ratings: Vec<Glicko2Rating> = Vec::new();
+    ratings.resize_with(entrants.len(), Default::default);
     let rounds = 10;
     for round in 0..rounds {
         let pairs: Vec<_> = (0..(entrants.len())).permutations(2).enumerate().collect();
@@ -203,14 +192,9 @@ fn run_tournament(scenario_name: &str, mut entrants: Vec<Entrant>) -> Tournament
         for (indices, outcome) in outcomes {
             let i0 = indices[0];
             let i1 = indices[1];
-            let (r0, r1) = glicko2(
-                &entrants[i0].rating,
-                &entrants[i1].rating,
-                &outcome,
-                &config,
-            );
-            entrants[i0].rating = r0;
-            entrants[i1].rating = r1;
+            let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], &outcome, &config);
+            ratings[i0] = r0;
+            ratings[i1] = r1;
 
             let increment = 1.0 / (2.0 * rounds as f64);
             if outcome == Outcomes::WIN {
@@ -227,10 +211,11 @@ fn run_tournament(scenario_name: &str, mut entrants: Vec<Entrant>) -> Tournament
 
     let mut competitors: Vec<_> = entrants
         .iter()
-        .map(|x| TournamentCompetitor {
+        .enumerate()
+        .map(|(i, x)| TournamentCompetitor {
             username: x.username.clone(),
-            shortcode: x.shortcode.clone(),
-            rating: x.rating.rating,
+            shortcode: "".to_string(),
+            rating: ratings[i].rating,
         })
         .collect();
     competitors.sort_by_key(|c| (-c.rating * 1e6) as i64);
@@ -258,7 +243,10 @@ fn run_tournament(scenario_name: &str, mut entrants: Vec<Entrant>) -> Tournament
 }
 
 fn run_simulation(scenario_name: &str, seed: u32, entrants: &[&Entrant]) -> Outcomes {
-    let codes: Vec<_> = entrants.iter().map(|c| c.code.clone()).collect();
+    let codes: Vec<_> = entrants
+        .iter()
+        .map(|x| x.compiled_code.as_ref().unwrap().clone())
+        .collect();
     let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
     while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
         sim.step();
@@ -271,9 +259,11 @@ fn run_simulation(scenario_name: &str, seed: u32, entrants: &[&Entrant]) -> Outc
     }
 }
 
-async fn cmd_fetch(project_id: &str, scenario_name: &str, out_dir: &str) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id).await?;
-
+async fn get_entrants(
+    db: &FirestoreDb,
+    scenario_name: &str,
+    usernames: &[String],
+) -> anyhow::Result<Vec<Entrant>> {
     let msgs: Vec<TournamentSubmission> = db
         .query_obj(
             FirestoreQueryParams::new("tournament".into())
@@ -300,13 +290,30 @@ async fn cmd_fetch(project_id: &str, scenario_name: &str, out_dir: &str) -> anyh
 
     let mut map: HashMap<String, TournamentSubmission> = HashMap::new();
     for msg in msgs {
-        map.insert(msg.username.clone(), msg);
+        if usernames.is_empty() || usernames.contains(&msg.username) {
+            map.insert(msg.username.clone(), msg);
+        }
     }
 
-    std::fs::create_dir_all(out_dir).unwrap();
+    let mut entrants = vec![];
     for msg in map.into_values() {
-        let filename = format!("{}/{}.rs", &out_dir, msg.username);
-        std::fs::write(&filename, &msg.code).unwrap();
+        entrants.push(Entrant {
+            username: msg.username,
+            source_code: msg.code,
+            compiled_code: None,
+        });
+    }
+
+    Ok(entrants)
+}
+
+async fn cmd_fetch(project_id: &str, scenario_name: &str, out_dir: &str) -> anyhow::Result<()> {
+    let db = FirestoreDb::new(project_id).await?;
+    let entrants = get_entrants(&db, scenario_name, &[]).await?;
+    std::fs::create_dir_all(out_dir).unwrap();
+    for entrant in entrants {
+        let filename = format!("{}/{}.rs", &out_dir, entrant.username);
+        std::fs::write(&filename, &entrant.source_code).unwrap();
         print!("{filename} ");
     }
     println!();
