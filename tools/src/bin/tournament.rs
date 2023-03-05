@@ -75,14 +75,6 @@ async fn cmd_run(
     let db = FirestoreDb::new(project_id).await?;
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
-    let tournament_id = format!(
-        "{}.{}.{}",
-        scenario_name,
-        Utc::now().format("%Y%m%d"),
-        rand::thread_rng().gen_range(0..10000)
-    );
-    log::info!("Running tournament {}", tournament_id);
-
     let mut compiler = oort_compiler::Compiler::new();
     let mut entrants = get_entrants(&db, scenario_name, usernames).await?;
     for entrant in entrants.iter_mut() {
@@ -96,72 +88,12 @@ async fn cmd_run(
     }
 
     log::info!("Running tournament");
-    let mut results = run_tournament(scenario_name, &entrants);
+    let results = run_tournament(scenario_name, &entrants);
 
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
-    table.set_header(vec!["Name", "Rating"]);
-    for competitor in &results.competitors {
-        table.add_row(vec![
-            competitor.username.clone(),
-            format!("{:.0}", competitor.rating),
-        ]);
-    }
-    println!("Scenario: {scenario_name}");
-    println!("{table}");
-    println!();
-
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
-    let mut header: Vec<String> = results
-        .competitors
-        .iter()
-        .map(|x| x.username.clone())
-        .collect();
-    header.insert(0, "Winner / Loser".to_owned());
-    table.set_header(header);
-    let mut index = 0;
-    for name0 in results.competitors.iter().map(|x| &x.username) {
-        let mut row = vec![name0.clone()];
-        for name1 in results.competitors.iter().map(|x| &x.username) {
-            if name0 == name1 {
-                row.push("".to_owned());
-                index += 1;
-                continue;
-            }
-            let frac = results.win_matrix[index];
-            row.push(format!("{}", (frac * 100.0).round()));
-            index += 1;
-        }
-        table.add_row(row);
-    }
-    println!("{table}");
+    display_results(&results);
 
     if !dry_run {
-        log::info!("Uploading to database...");
-        for competitor in results.competitors.iter_mut() {
-            let entrant = entrants
-                .iter()
-                .find(|x| x.username == competitor.username)
-                .unwrap();
-            let obj = ShortcodeUpload {
-                userid: "".to_string(), // TODO
-                username: competitor.username.clone(),
-                timestamp: Utc::now(),
-                code: entrant.source_code.clone(),
-            };
-            let shortcode = format!("{tournament_id}.{}", competitor.username);
-            db.create_obj("shortcode", &shortcode, &obj).await?;
-            competitor.shortcode = shortcode;
-        }
-        db.create_obj("tournament_results", &tournament_id, &results)
-            .await?;
-        println!();
-        if project_id == "oort-dev" {
-            println!("Uploaded to http://localhost:8080/tournament/{tournament_id}");
-        } else {
-            println!("Uploaded to https://oort.rs/tournament/{tournament_id}");
-        }
+        upload_results(&db, project_id, &entrants, &results).await?;
     }
 
     Ok(())
@@ -256,6 +188,89 @@ fn run_simulation(scenario_name: &str, seed: u32, entrants: &[&Entrant]) -> Outc
         scenario::Status::Draw => Outcomes::DRAW,
         _ => unreachable!(),
     }
+}
+
+fn display_results(results: &TournamentResults) {
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec!["Name", "Rating"]);
+    for competitor in &results.competitors {
+        table.add_row(vec![
+            competitor.username.clone(),
+            format!("{:.0}", competitor.rating),
+        ]);
+    }
+    println!("Scenario: {}", results.scenario_name);
+    println!("{table}");
+    println!();
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    let mut header: Vec<String> = results
+        .competitors
+        .iter()
+        .map(|x| x.username.clone())
+        .collect();
+    header.insert(0, "Winner / Loser".to_owned());
+    table.set_header(header);
+    let mut index = 0;
+    for name0 in results.competitors.iter().map(|x| &x.username) {
+        let mut row = vec![name0.clone()];
+        for name1 in results.competitors.iter().map(|x| &x.username) {
+            if name0 == name1 {
+                row.push("".to_owned());
+                index += 1;
+                continue;
+            }
+            let frac = results.win_matrix[index];
+            row.push(format!("{}", (frac * 100.0).round()));
+            index += 1;
+        }
+        table.add_row(row);
+    }
+    println!("{table}");
+}
+
+async fn upload_results(
+    db: &FirestoreDb,
+    project_id: &str,
+    entrants: &[Entrant],
+    results: &TournamentResults,
+) -> anyhow::Result<()> {
+    log::info!("Uploading to database...");
+
+    let tournament_id = format!(
+        "{}.{}.{}",
+        results.scenario_name,
+        Utc::now().format("%Y%m%d"),
+        rand::thread_rng().gen_range(0..10000)
+    );
+
+    let mut results = results.clone();
+    for competitor in results.competitors.iter_mut() {
+        let entrant = entrants
+            .iter()
+            .find(|x| x.username == competitor.username)
+            .unwrap();
+        let obj = ShortcodeUpload {
+            userid: "".to_string(), // TODO
+            username: competitor.username.clone(),
+            timestamp: Utc::now(),
+            code: entrant.source_code.clone(),
+        };
+        let shortcode = format!("{tournament_id}.{}", competitor.username);
+        db.create_obj("shortcode", &shortcode, &obj).await?;
+        competitor.shortcode = shortcode;
+    }
+    db.create_obj("tournament_results", &tournament_id, &results)
+        .await?;
+    println!();
+    if project_id == "oort-dev" {
+        println!("Uploaded to http://localhost:8080/tournament/{tournament_id}");
+    } else {
+        println!("Uploaded to https://oort.rs/tournament/{tournament_id}");
+    }
+    Ok(())
 }
 
 async fn get_entrants(
