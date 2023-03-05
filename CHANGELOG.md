@@ -1,3 +1,5 @@
+### 0.43.0
+
 - Added a tournament results page.
 
 ### 0.42.2
