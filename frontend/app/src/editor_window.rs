@@ -26,7 +26,7 @@ fn empty() -> JsValue {
 fn make_monaco_options() -> CodeEditorOptions {
     CodeEditorOptions::default()
         .with_language("rust".to_owned())
-        .with_value("foo".to_owned())
+        .with_value("".to_owned())
         .with_builtin_theme(BuiltinTheme::VsDark)
 }
 
