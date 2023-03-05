@@ -29,8 +29,17 @@ struct Arguments {
 
 #[derive(Subcommand, Debug)]
 enum SubCommand {
-    Run { scenario: String, srcs: Vec<String> },
-    Fetch { scenario: String, out_dir: String },
+    Run {
+        scenario: String,
+        srcs: Vec<String>,
+
+        #[clap(short, long)]
+        dry_run: bool,
+    },
+    Fetch {
+        scenario: String,
+        out_dir: String,
+    },
 }
 
 #[tokio::main]
@@ -40,14 +49,23 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Arguments::parse();
     match args.cmd {
-        SubCommand::Run { scenario, srcs } => cmd_run(&args.project_id, &scenario, &srcs).await,
+        SubCommand::Run {
+            scenario,
+            srcs,
+            dry_run,
+        } => cmd_run(&args.project_id, &scenario, &srcs, dry_run).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
     }
 }
 
-async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
+async fn cmd_run(
+    project_id: &str,
+    scenario_name: &str,
+    srcs: &[String],
+    dry_run: bool,
+) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let tournament_id = format!(
@@ -125,28 +143,30 @@ async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyh
     }
     println!("{table}");
 
-    log::info!("Uploading to database...");
-    let db = FirestoreDb::new(project_id).await?;
-    for competitor in results.competitors.iter() {
-        let obj = ShortcodeUpload {
-            userid: "".to_string(), // TODO
-            username: competitor.username.clone(),
-            timestamp: Utc::now(),
-            code: code_by_shortcode
-                .get(&competitor.shortcode)
-                .unwrap()
-                .clone(),
-        };
-        db.create_obj("shortcode", &competitor.shortcode, &obj)
+    if !dry_run {
+        log::info!("Uploading to database...");
+        let db = FirestoreDb::new(project_id).await?;
+        for competitor in results.competitors.iter() {
+            let obj = ShortcodeUpload {
+                userid: "".to_string(), // TODO
+                username: competitor.username.clone(),
+                timestamp: Utc::now(),
+                code: code_by_shortcode
+                    .get(&competitor.shortcode)
+                    .unwrap()
+                    .clone(),
+            };
+            db.create_obj("shortcode", &competitor.shortcode, &obj)
+                .await?;
+        }
+        db.create_obj("tournament_results", &tournament_id, &results)
             .await?;
-    }
-    db.create_obj("tournament_results", &tournament_id, &results)
-        .await?;
-    println!();
-    if project_id == "oort-dev" {
-        println!("Uploaded to http://localhost:8080/tournament/{tournament_id}");
-    } else {
-        println!("Uploaded to https://oort.rs/tournament/{tournament_id}");
+        println!();
+        if project_id == "oort-dev" {
+            println!("Uploaded to http://localhost:8080/tournament/{tournament_id}");
+        } else {
+            println!("Uploaded to https://oort.rs/tournament/{tournament_id}");
+        }
     }
 
     Ok(())
