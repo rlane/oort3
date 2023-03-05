@@ -35,9 +35,7 @@ async fn submit(req: &mut Request, res: &mut Response) {
         res.render(e.to_string());
     }
 }
-
-#[handler]
-async fn get_tournament_results(
+async fn get_tournament_results_internal(
     req: &mut Request,
 ) -> anyhow::Result<salvo::writer::Json<TournamentResults>> {
     let db = FirestoreDb::new(project_id()).await?;
@@ -46,6 +44,18 @@ async fn get_tournament_results(
         .get_obj::<TournamentResults>("tournament_results", &id)
         .await?;
     Ok(Json(tournament_results))
+}
+
+#[handler]
+async fn get_tournament_results(req: &mut Request, res: &mut Response) {
+    match get_tournament_results_internal(req).await {
+        Ok(data) => res.render(data),
+        Err(e) => {
+            log::error!("error: {}", e);
+            res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
+            res.render(e.to_string());
+        }
+    }
 }
 
 #[handler]
