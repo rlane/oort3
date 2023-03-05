@@ -4,7 +4,7 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 use firestore::*;
 use itertools::Itertools;
-use oort_proto::{TournamentCompetitor, TournamentResults, TournamentSubmission};
+use oort_proto::{ShortcodeUpload, TournamentCompetitor, TournamentResults, TournamentSubmission};
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use rand::Rng;
@@ -50,14 +50,24 @@ async fn main() -> anyhow::Result<()> {
 async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
+    let tournament_id = format!(
+        "{}.{}.{}",
+        scenario_name,
+        Utc::now().format("%Y%m%d"),
+        rand::thread_rng().gen_range(0..10000)
+    );
+    log::info!("Running tournament {}", tournament_id);
+
     let mut compiler = oort_compiler::Compiler::new();
     let mut entrants = vec![];
+    let mut code_by_shortcode = HashMap::new();
     for src in srcs {
         log::info!("Compiling {:?}", src);
         let path = Path::new(src);
         let username = path.file_stem().unwrap().to_str().unwrap().to_owned();
         let src_code = std::fs::read_to_string(src).unwrap();
-        let shortcode = format!("tournament:{username}:{scenario_name}");
+        let shortcode = format!("{tournament_id}.{username}");
+        code_by_shortcode.insert(shortcode.clone(), src_code.clone());
         match compiler.compile(&src_code) {
             Ok(wasm) => {
                 entrants.push(Entrant {
@@ -115,19 +125,28 @@ async fn cmd_run(project_id: &str, scenario_name: &str, srcs: &[String]) -> anyh
     }
     println!("{table}");
 
+    log::info!("Uploading to database...");
     let db = FirestoreDb::new(project_id).await?;
-    let path = format!(
-        "{}.{}.{}",
-        scenario_name,
-        Utc::now().format("%Y%m%d"),
-        rand::thread_rng().gen_range(0..10000)
-    );
-    db.create_obj("tournament_results", &path, &results).await?;
+    for competitor in results.competitors.iter() {
+        let obj = ShortcodeUpload {
+            userid: "".to_string(), // TODO
+            username: competitor.username.clone(),
+            timestamp: Utc::now(),
+            code: code_by_shortcode
+                .get(&competitor.shortcode)
+                .unwrap()
+                .clone(),
+        };
+        db.create_obj("shortcode", &competitor.shortcode, &obj)
+            .await?;
+    }
+    db.create_obj("tournament_results", &tournament_id, &results)
+        .await?;
     println!();
     if project_id == "oort-dev" {
-        println!("Uploaded to http://localhost:8080/tournament/{path}");
+        println!("Uploaded to http://localhost:8080/tournament/{tournament_id}");
     } else {
-        println!("Uploaded to https://oort.rs/tournament/{path}");
+        println!("Uploaded to https://oort.rs/tournament/{tournament_id}");
     }
 
     Ok(())
