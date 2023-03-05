@@ -172,14 +172,13 @@ fn run_tournament(scenario_name: &str, entrants: &[Entrant]) -> TournamentResult
     let config = Glicko2Config::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
     ratings.resize_with(entrants.len(), Default::default);
+    let pairs: Vec<_> = (0..(entrants.len())).permutations(2).collect();
     let rounds = 10;
     for round in 0..rounds {
-        let pairs: Vec<_> = (0..(entrants.len())).permutations(2).enumerate().collect();
-        let base_seed = (round * pairs.len()) as u32;
         let outcomes: Vec<_> = pairs
             .par_iter()
-            .map(|(seed, indices)| {
-                let seed = base_seed + *seed as u32;
+            .map(|indices| {
+                let seed = round as u32;
                 let i0 = indices[0];
                 let i1 = indices[1];
                 (
@@ -303,7 +302,7 @@ async fn get_entrants(
             compiled_code: None,
         });
     }
-
+    entrants.sort_by_key(|x| x.username.clone());
     Ok(entrants)
 }
 
