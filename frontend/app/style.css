@@ -286,6 +286,7 @@ b.error {
   height: calc(100% - 42px);
   width: 100%;
   padding: 1em;
+  z-index: 100;
 }
 
 #tournament_results table {

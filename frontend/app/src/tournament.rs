@@ -1,5 +1,5 @@
 use crate::services;
-use oort_proto::TournamentResults;
+use oort_proto::{TournamentCompetitor, TournamentResults};
 use yew::prelude::*;
 
 #[derive(Debug)]
@@ -72,9 +72,19 @@ impl Component for Tournament {
         } else if let Some(data) = self.data.as_ref() {
             html! {
                 <div id="tournament_results">
+                    <h1>{ "Tournament Results" }</h1>
                     <p>{ "Scenario: " }{ data.scenario_name.clone() }</p>
+                    <p>
+                        { "Ratings are calculated with " }
+                        <a href="https://en.wikipedia.org/wiki/Glicko_rating_system">{ "Glicko-2" }</a>
+                        {". Click a username to play against their AI." }
+                    </p>
                     { make_ratings_table(data) }
                     <br />
+                    <p>
+                        { "This table shows the win percentage of the user in the row vs the user in the column. " }
+                        { "Click a cell to run those AIs against each other." }
+                    </p>
                     { make_win_matrix_table(data) }
                 </div>
             }
@@ -85,6 +95,8 @@ impl Component for Tournament {
 }
 
 fn make_ratings_table(data: &TournamentResults) -> Html {
+    let make_link =
+        |shortcode: &str| format!("/scenario/{}?player1={}", data.scenario_name, shortcode);
     html! {
         <table>
             <tr>
@@ -92,13 +104,22 @@ fn make_ratings_table(data: &TournamentResults) -> Html {
                 <th>{ "Rating" }</th>
             </tr>
             { data.competitors.iter().map(|x| html! {
-                <tr><td>{ x.username.clone() }</td><td>{ x.rating.round() }</td></tr>
+                <tr>
+                    <td><a href={make_link(&x.shortcode)}>{ x.username.clone() }</a></td>
+                    <td>{ x.rating.round() }</td>
+                </tr>
             }).collect::<Html>() }
         </table>
     }
 }
 
 fn make_win_matrix_table(data: &TournamentResults) -> Html {
+    let make_link = |c0: &TournamentCompetitor, c1: &TournamentCompetitor| {
+        format!(
+            "/scenario/{}?player0={}&player1={}",
+            data.scenario_name, c0.shortcode, c1.shortcode
+        )
+    };
     let username: Vec<_> = data
         .competitors
         .iter()
@@ -112,14 +133,14 @@ fn make_win_matrix_table(data: &TournamentResults) -> Html {
                 { username.iter().map(|x| html! { <td>{ x.clone() }</td> }).collect::<Html>() }
             </tr>
             {
-                username.iter().map(|x| html! { <tr><td>{ &x }</td>
-                    { username.iter().map(|y| {
+                data.competitors.iter().map(|c0| html! { <tr><td>{ &c0.username }</td>
+                    { data.competitors.iter().map(|c1| {
                         let v = data.win_matrix[index];
                         index += 1;
-                        if x == y{
-                            html! { <td></td> }
+                        if c0 == c1 {
+                            html! { <td><a href={make_link(c0, c1)}>{ "-" }</a></td> }
                         } else {
-                            html! { <td>{ (v * 100.0).round() }</td> }
+                            html! { <td><a href={make_link(c0, c1)}>{ (v * 100.0).round() }</a></td> }
                         }
                     }).collect::<Html>() }
                 </tr> }).collect::<Html>()
