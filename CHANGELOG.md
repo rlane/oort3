@@ -1,3 +1,5 @@
+### 0.43.1
+
 - Updated to Rust 1.67.1.
 - Fixed tournament determinism.
 
