@@ -1,3 +1,6 @@
+- Updated to Rust 1.67.1.
+- Fixed tournament determinism.
+
 ### 0.43.0
 
 - Added a tournament results page.

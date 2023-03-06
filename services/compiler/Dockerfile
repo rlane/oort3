@@ -1,5 +1,5 @@
 # fetcher
-FROM rust:1.67-slim-buster as fetcher
+FROM rust:1.67.1-slim-buster as fetcher
 WORKDIR /usr/src/app
 RUN cargo init --bin dummy
 COPY Cargo.lock.user Cargo.lock
@@ -10,7 +10,7 @@ RUN \
   cd dummy && cargo fetch && cp -a /usr/local/cargo/registry /registry
 
 # builder
-FROM rust:1.67-slim-buster as builder
+FROM rust:1.67.1-slim-buster as builder
 WORKDIR /usr/src/app
 COPY . .
 ARG OORT_CODE_ENCRYPTION_SECRET
@@ -21,7 +21,7 @@ RUN \
   cd services/compiler && cargo install --locked --path .
 
 # service
-FROM rust:1.67-slim-buster
+FROM rust:1.67.1-slim-buster
 RUN rustup target add wasm32-unknown-unknown
 RUN rustup component add rustfmt
 RUN useradd -m app
