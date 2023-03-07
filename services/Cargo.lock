@@ -1314,7 +1314,7 @@ checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
 
 [[package]]
 name = "oort_code_encryption"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1328,7 +1328,7 @@ dependencies = [
 
 [[package]]
 name = "oort_compiler"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "anyhow",
  "glob",
@@ -1337,7 +1337,7 @@ dependencies = [
 
 [[package]]
 name = "oort_compiler_service"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1356,14 +1356,14 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "sha2",
 ]
 
 [[package]]
 name = "oort_leaderboard_service"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1382,7 +1382,7 @@ dependencies = [
 
 [[package]]
 name = "oort_proto"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "chrono",
  "serde",
@@ -1390,7 +1390,7 @@ dependencies = [
 
 [[package]]
 name = "oort_shortcode_service"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1409,7 +1409,7 @@ dependencies = [
 
 [[package]]
 name = "oort_telemetry_service"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1426,7 +1426,7 @@ dependencies = [
 
 [[package]]
 name = "oort_tournament_service"
-version = "0.43.1"
+version = "0.43.2"
 dependencies = [
  "anyhow",
  "chrono",

@@ -1,3 +1,5 @@
+### 0.43.2
+
 - Show mission complete screen when opponent code is modified.
 
 ### 0.43.1
