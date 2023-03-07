@@ -2,6 +2,7 @@
 **/node_modules
 **/target
 frontend/app/dist
+frontend/app/dist-debug
 firebase
 perf.data*
 scratch
