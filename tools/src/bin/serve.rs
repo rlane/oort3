@@ -93,6 +93,7 @@ fn main() -> Result<()> {
         "--watch=shared/ai/builtin-ai.tar.gz",
         "--watch=shared/api",
         "--watch=shared/simulator",
+        "--ignore=frontend/app/dist",
         if args.release { "--release" } else { "" },
     ])
     .spawn()?
