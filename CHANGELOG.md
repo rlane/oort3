@@ -1,3 +1,5 @@
+- Show mission complete screen when opponent code is modified.
+
 ### 0.43.1
 
 - Updated to Rust 1.67.1.

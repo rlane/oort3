@@ -540,7 +540,7 @@ impl Game {
             return false;
         }
 
-        if self.leaderboard_eligible() {
+        {
             if let Status::Victory { team: 0 } = status {
                 self.background_agents.clear();
                 self.background_snapshots.clear();
@@ -716,6 +716,7 @@ impl Game {
         };
         let source_code = code_to_string(&self.player_team().running_source_code);
         let code_size = crate::code_size::calculate(&source_code);
+        let leaderboard_eligible = self.leaderboard_eligible();
 
         let next_scenario = scenario::load(&self.scenario_name).next_scenario();
 
@@ -808,19 +809,16 @@ impl Game {
                     </>
                 }
             };
-            let leaderboard_submission =
-                summary
-                    .failed_seeds
-                    .is_empty()
-                    .then(|| LeaderboardSubmission {
-                        userid: userid::get_userid(),
-                        username: userid::get_username(),
-                        timestamp: chrono::Utc::now(),
-                        scenario_name: summary.scenario_name.clone(),
-                        code: source_code.clone(),
-                        code_size,
-                        time: summary.average_time.unwrap(),
-                    });
+            let leaderboard_submission = (leaderboard_eligible && summary.failed_seeds.is_empty())
+                .then(|| LeaderboardSubmission {
+                    userid: userid::get_userid(),
+                    username: userid::get_username(),
+                    timestamp: chrono::Utc::now(),
+                    scenario_name: summary.scenario_name.clone(),
+                    code: source_code.clone(),
+                    code_size,
+                    time: summary.average_time.unwrap(),
+                });
             html! {
                 <>
                     <span>{ "Simulations complete: " }{ summary.victory_count }{"/"}{ summary.count }{ " successful" }</span><br />
@@ -842,8 +840,10 @@ impl Game {
                     <br />
                     { next_scenario_link }
                     <br />
-                    <Leaderboard scenario_name={ self.scenario_name.clone() }
-                        submission={leaderboard_submission} />
+                    {
+                        if leaderboard_eligible { html! { <Leaderboard scenario_name={ self.scenario_name.clone() } submission={leaderboard_submission} /> } }
+                        else { html! { <p>{ "Leaderboard skipped due to modified opponent code" }</p> } }
+                    }
                 </>
             }
         } else {
