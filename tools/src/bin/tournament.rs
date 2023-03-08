@@ -40,6 +40,13 @@ enum SubCommand {
         scenario: String,
         paths: Vec<String>,
     },
+    RunShortcodes {
+        scenario: String,
+        shortcodes: Vec<String>,
+
+        #[clap(short, long)]
+        dev: bool,
+    },
     Fetch {
         scenario: String,
         out_dir: String,
@@ -66,6 +73,11 @@ async fn main() -> anyhow::Result<()> {
             dry_run,
         } => cmd_run(&args.project_id, &scenario, &usernames, dry_run).await,
         SubCommand::RunLocal { scenario, paths } => cmd_run_local(&scenario, &paths).await,
+        SubCommand::RunShortcodes {
+            scenario,
+            shortcodes,
+            dev,
+        } => cmd_run_shortcodes(&scenario, &shortcodes, dev).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
@@ -127,6 +139,52 @@ async fn cmd_run_local(scenario_name: &str, paths: &[String]) -> anyhow::Result<
             }
         })
         .collect();
+
+    log::info!("Running tournament");
+    let results = run_tournament(scenario_name, &entrants);
+
+    display_results(&results);
+
+    Ok(())
+}
+
+async fn cmd_run_shortcodes(
+    scenario_name: &str,
+    shortcodes: &[String],
+    dev: bool,
+) -> anyhow::Result<()> {
+    scenario::load_safe(scenario_name).expect("Unknown scenario");
+
+    let (compiler_url, shortcode_url) = if dev {
+        ("http://localhost:8081", "http://localhost:8084")
+    } else {
+        ("https://compiler.oort.rs", "https://shortcode.oort.rs")
+    };
+
+    let http = reqwest::Client::new();
+    let mut entrants = vec![];
+    for shortcode in shortcodes {
+        log::info!("Fetching {:?}", shortcode);
+        let source_code = http
+            .get(&format!("{shortcode_url}/shortcode/{shortcode}"))
+            .send()
+            .await?
+            .text()
+            .await?;
+        log::info!("Compiling {:?}", shortcode);
+        let compiled_code = http
+            .post(&format!("{compiler_url}/compile"))
+            .body(source_code.clone())
+            .send()
+            .await?
+            .bytes()
+            .await?;
+        entrants.push(Entrant {
+            username: shortcode.clone(),
+            source_code: source_code.clone(),
+            compiled_code: Some(Code::Wasm(compiled_code.to_vec())),
+        });
+    }
 
     log::info!("Running tournament");
     let results = run_tournament(scenario_name, &entrants);
