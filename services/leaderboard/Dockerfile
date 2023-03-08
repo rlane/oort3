@@ -8,7 +8,7 @@ ARG DISCORD_LEADERBOARD_WEBHOOK
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/services/target \
+  --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
   cd services/leaderboard && cargo install --locked --path .
 
 FROM rust:1.67.1-slim-buster

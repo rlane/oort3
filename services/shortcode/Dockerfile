@@ -6,7 +6,7 @@ ARG OORT_CODE_ENCRYPTION_SECRET
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/services/target \
+  --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
   cd services/shortcode && cargo install --locked --path .
 
 FROM rust:1.67.1-slim-buster

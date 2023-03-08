@@ -6,7 +6,7 @@ COPY Cargo.lock.user Cargo.lock
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/services/target \
+  --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
   cd dummy && cargo fetch && cp -a /usr/local/cargo/registry /registry
 
 # builder
@@ -17,7 +17,7 @@ ARG OORT_CODE_ENCRYPTION_SECRET
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/services/target \
+  --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
   cd services/compiler && cargo install --locked --path .
 
 # service
