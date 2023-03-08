@@ -2,3 +2,4 @@
 oort-release = "run -q --manifest-path tools/Cargo.toml --bin release --"
 oort-rebuild-ai = "run -q --manifest-path tools/Cargo.toml --bin build-builtin-ais --"
 oort-serve = "run -q --manifest-path tools/Cargo.toml --bin serve --"
+oort-tournament  = "run -q --manifest-path tools/Cargo.toml --bin tournament --"
