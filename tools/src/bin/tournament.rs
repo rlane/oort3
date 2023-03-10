@@ -218,45 +218,50 @@ fn run_tournament(scenario_name: &str, entrants: &[Entrant], rounds: i32) -> Tou
     let config = Glicko2Config::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
     ratings.resize_with(entrants.len(), Default::default);
-    let pairs: Vec<_> = (0..(entrants.len())).permutations(2).collect();
-    for round in 0..rounds {
-        let outcomes: Vec<_> = pairs
-            .par_iter()
-            .map(|indices| {
-                let seed = round as u32;
-                let i0 = indices[0];
-                let i1 = indices[1];
-                (
-                    indices,
-                    run_simulation(scenario_name, seed, &[&entrants[i0], &entrants[i1]]),
-                )
-            })
-            .collect();
-
-        for (indices, outcome) in outcomes {
+    let pairs: Vec<(i32, Vec<_>)> = (0..rounds)
+        .flat_map(|round| {
+            (0..(entrants.len()))
+                .permutations(2)
+                .map(move |x| (round, x))
+        })
+        .collect();
+    let outcomes: Vec<(i32, Vec<_>, Outcomes)> = pairs
+        .par_iter()
+        .map(|(round, indices)| {
+            let seed = *round as u32;
             let i0 = indices[0];
             let i1 = indices[1];
-            log::debug!(
-                "{} vs {} seed {}: {:?}",
-                entrants[i0].username,
-                entrants[i1].username,
-                round,
-                outcome
-            );
-            let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], &outcome, &config);
-            ratings[i0] = r0;
-            ratings[i1] = r1;
+            (
+                *round,
+                indices.clone(),
+                run_simulation(scenario_name, seed, &[&entrants[i0], &entrants[i1]]),
+            )
+        })
+        .collect();
 
-            let increment = 1.0 / (2.0 * rounds as f64);
-            if outcome == Outcomes::WIN {
-                *pairings
-                    .entry((entrants[i0].username.clone(), entrants[i1].username.clone()))
-                    .or_default() += increment;
-            } else if outcome == Outcomes::LOSS {
-                *pairings
-                    .entry((entrants[i1].username.clone(), entrants[i0].username.clone()))
-                    .or_default() += increment;
-            }
+    for (round, indices, outcome) in outcomes {
+        let i0 = indices[0];
+        let i1 = indices[1];
+        log::debug!(
+            "{} vs {} seed {}: {:?}",
+            entrants[i0].username,
+            entrants[i1].username,
+            round,
+            outcome
+        );
+        let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], &outcome, &config);
+        ratings[i0] = r0;
+        ratings[i1] = r1;
+
+        let increment = 1.0 / (2.0 * rounds as f64);
+        if outcome == Outcomes::WIN {
+            *pairings
+                .entry((entrants[i0].username.clone(), entrants[i1].username.clone()))
+                .or_default() += increment;
+        } else if outcome == Outcomes::LOSS {
+            *pairings
+                .entry((entrants[i1].username.clone(), entrants[i0].username.clone()))
+                .or_default() += increment;
         }
     }
 
