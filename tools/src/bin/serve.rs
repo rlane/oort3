@@ -82,6 +82,8 @@ fn main() -> Result<()> {
         children.push(ChildGuard(child));
     }
 
+    std::fs::create_dir_all("frontend/app/dist")?;
+
     cmd(&[
         "trunk",
         "-v",
