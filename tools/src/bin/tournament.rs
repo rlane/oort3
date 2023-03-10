@@ -98,7 +98,9 @@ async fn cmd_run(
     for entrant in entrants.iter_mut() {
         log::info!("Compiling {:?}", entrant.username);
         match compiler.compile(&entrant.source_code) {
-            Ok(wasm) => entrant.compiled_code = Some(Code::Wasm(wasm)),
+            Ok(wasm) => {
+                entrant.compiled_code = Some(oort_simulator::vm::precompile(&wasm).unwrap())
+            }
             Err(e) => {
                 panic!("Failed to compile {:?}: {e}", entrant.username);
             }
@@ -129,7 +131,7 @@ async fn cmd_run_local(scenario_name: &str, paths: &[String]) -> anyhow::Result<
             let source_code = std::fs::read_to_string(path).unwrap();
             log::info!("Compiling {:?}", username);
             let compiled_code = match compiler.compile(&source_code) {
-                Ok(wasm) => Code::Wasm(wasm),
+                Ok(wasm) => oort_simulator::vm::precompile(&wasm).unwrap(),
                 Err(e) => panic!("Failed to compile {username:?}: {e}"),
             };
             Entrant {
