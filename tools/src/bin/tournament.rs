@@ -34,15 +34,24 @@ enum SubCommand {
         usernames: Vec<String>,
 
         #[clap(short, long)]
+        rounds: i32,
+
+        #[clap(short, long)]
         dry_run: bool,
     },
     RunLocal {
         scenario: String,
         paths: Vec<String>,
+
+        #[clap(short, long)]
+        rounds: i32,
     },
     RunShortcodes {
         scenario: String,
         shortcodes: Vec<String>,
+
+        #[clap(short, long)]
+        rounds: i32,
 
         #[clap(short, long)]
         dev: bool,
@@ -70,14 +79,20 @@ async fn main() -> anyhow::Result<()> {
         SubCommand::Run {
             scenario,
             usernames,
+            rounds,
             dry_run,
-        } => cmd_run(&args.project_id, &scenario, &usernames, dry_run).await,
-        SubCommand::RunLocal { scenario, paths } => cmd_run_local(&scenario, &paths).await,
+        } => cmd_run(&args.project_id, &scenario, &usernames, rounds, dry_run).await,
+        SubCommand::RunLocal {
+            scenario,
+            paths,
+            rounds,
+        } => cmd_run_local(&scenario, &paths, rounds).await,
         SubCommand::RunShortcodes {
             scenario,
             shortcodes,
+            rounds,
             dev,
-        } => cmd_run_shortcodes(&scenario, &shortcodes, dev).await,
+        } => cmd_run_shortcodes(&scenario, &shortcodes, rounds, dev).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
@@ -88,6 +103,7 @@ async fn cmd_run(
     project_id: &str,
     scenario_name: &str,
     usernames: &[String],
+    rounds: i32,
     dry_run: bool,
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id).await?;
@@ -108,7 +124,7 @@ async fn cmd_run(
     }
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &entrants);
+    let results = run_tournament(scenario_name, &entrants, rounds);
 
     display_results(&results);
 
@@ -119,7 +135,7 @@ async fn cmd_run(
     Ok(())
 }
 
-async fn cmd_run_local(scenario_name: &str, paths: &[String]) -> anyhow::Result<()> {
+async fn cmd_run_local(scenario_name: &str, paths: &[String], rounds: i32) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let mut compiler = oort_compiler::Compiler::new();
@@ -143,7 +159,7 @@ async fn cmd_run_local(scenario_name: &str, paths: &[String]) -> anyhow::Result<
         .collect();
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &entrants);
+    let results = run_tournament(scenario_name, &entrants, rounds);
 
     display_results(&results);
 
@@ -153,6 +169,7 @@ async fn cmd_run_local(scenario_name: &str, paths: &[String]) -> anyhow::Result<
 async fn cmd_run_shortcodes(
     scenario_name: &str,
     shortcodes: &[String],
+    rounds: i32,
     dev: bool,
 ) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
@@ -189,20 +206,19 @@ async fn cmd_run_shortcodes(
     }
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &entrants);
+    let results = run_tournament(scenario_name, &entrants, rounds);
 
     display_results(&results);
 
     Ok(())
 }
 
-fn run_tournament(scenario_name: &str, entrants: &[Entrant]) -> TournamentResults {
+fn run_tournament(scenario_name: &str, entrants: &[Entrant], rounds: i32) -> TournamentResults {
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
     ratings.resize_with(entrants.len(), Default::default);
     let pairs: Vec<_> = (0..(entrants.len())).permutations(2).collect();
-    let rounds = 10;
     for round in 0..rounds {
         let outcomes: Vec<_> = pairs
             .par_iter()
