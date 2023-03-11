@@ -40,6 +40,7 @@ glob = "0.3.1"
 tar = "0.4.38"
 libflate = "1.2.0"
 tokio-retry = "0.3.0"
+goose = "0.17.0"
 
 [patch.crates-io]
 rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
