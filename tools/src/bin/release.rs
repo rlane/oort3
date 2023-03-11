@@ -325,11 +325,12 @@ async fn main() -> anyhow::Result<()> {
                     &container_image,
                     "--allow-unauthenticated",
                     "--region=us-west1",
-                    "--cpu=1",
-                    "--memory=1G",
+                    "--execution-environment=gen2",
+                    "--cpu=2",
+                    "--memory=2G",
                     "--timeout=20s",
                     "--concurrency=1",
-                    "--max-instances=3",
+                    "--max-instances=10",
                     "--service-account=oort-compiler-service@oort-319301.iam.gserviceaccount.com",
                 ])
                 .await?;

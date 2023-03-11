@@ -21,7 +21,6 @@ async fn compile_internal(
 ) -> anyhow::Result<()> {
     let permit = SEMAPHORE.try_acquire();
     if permit.is_err() {
-        log::error!("Service overloaded");
         return Err(anyhow::anyhow!("Service overloaded"));
     }
 
