@@ -1,4 +1,4 @@
-FROM rust:1.67.1-slim-buster as builder
+FROM rust:1.68.0-slim-buster as builder
 WORKDIR /usr/src/app
 RUN apt-get update
 COPY . .
@@ -11,7 +11,7 @@ RUN \
   --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
   cd services/leaderboard && cargo install --locked --path .
 
-FROM rust:1.67.1-slim-buster
+FROM rust:1.68.0-slim-buster
 RUN useradd -m app
 USER app:1000
 WORKDIR /home/app
