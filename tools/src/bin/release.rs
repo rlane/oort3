@@ -301,7 +301,6 @@ async fn main() -> anyhow::Result<()> {
 
                 if !dry_run {
                     let container_image = format!("{PROJECT}/services/oort_compiler_service");
-                    let zone = "us-west1-b";
 
                     progress.set_message("tagging");
                     sync_cmd_ok(&[
@@ -332,104 +331,6 @@ async fn main() -> anyhow::Result<()> {
                     "--concurrency=1",
                     "--max-instances=10",
                     "--service-account=oort-compiler-service@oort-319301.iam.gserviceaccount.com",
-                ])
-                .await?;
-
-                    progress.set_message("getting access token");
-                    let token = sync_cmd_ok(&[
-                        "gcloud",
-                        "auth",
-                        "print-access-token",
-                        "--impersonate-service-account",
-                        "docker@oort-319301.iam.gserviceaccount.com",
-                    ])
-                    .await?
-                    .stdout_string()
-                    .trim()
-                    .to_owned();
-
-                    progress.set_message("VM: logging in to Artifact Registry");
-                    sync_cmd_ok(&[
-                        "gcloud",
-                        "compute",
-                        "ssh",
-                        "server-1",
-                        "--zone",
-                        zone,
-                        "--",
-                        "docker",
-                        "login",
-                        "-u",
-                        "oauth2accesstoken",
-                        "--password",
-                        &token,
-                        "https://us-west1-docker.pkg.dev",
-                    ])
-                    .await?;
-
-                    progress.set_message("VM: pulling image");
-                    sync_cmd_ok(&[
-                        "gcloud",
-                        "compute",
-                        "ssh",
-                        "server-1",
-                        "--zone",
-                        zone,
-                        "--",
-                        "docker",
-                        "pull",
-                        "us-west1-docker.pkg.dev/oort-319301/services/oort_compiler_service",
-                    ])
-                    .await?;
-
-                    progress.set_message("VM: deleting old container");
-                    sync_cmd_ok(&[
-                        "gcloud",
-                        "compute",
-                        "ssh",
-                        "server-1",
-                        "--zone",
-                        zone,
-                        "--",
-                        "docker",
-                        "container",
-                        "rm",
-                        "-f",
-                        "compiler_service",
-                    ])
-                    .await?;
-
-                    progress.set_message("VM: starting new container");
-                    sync_cmd_ok(&[
-                        "gcloud",
-                        "compute",
-                        "ssh",
-                        "server-1",
-                        "--zone",
-                        zone,
-                        "--",
-                        "docker",
-                        "run",
-                        "--name=compiler_service",
-                        "--hostname=server-1",
-                        "--network=host",
-                        "--restart=always",
-                        "--log-opt",
-                        "max-size=500m",
-                        "--log-opt",
-                        "max-file=3",
-                        "--log-opt",
-                        "tag={{.Name}}",
-                        "--runtime=runc",
-                        "--detach=true",
-                        "us-west1-docker.pkg.dev/oort-319301/services/oort_compiler_service",
-                    ])
-                    .await?;
-
-                    progress.set_message("VM: pruning images");
-                    sync_cmd_ok(&[
-                        "gcloud", "compute", "ssh", "server-1", "--zone", zone, "--", "docker",
-                        "image", "prune", "--force",
                     ])
                     .await?;
                 }
