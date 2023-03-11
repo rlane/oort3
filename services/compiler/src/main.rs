@@ -9,13 +9,22 @@ use std::sync::{Arc, Mutex};
 use tempfile::NamedTempFile;
 use tokio::process::Command;
 
+const MAX_CONCURRENCY: usize = 3;
 static LOCK: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
+static SEMAPHORE: Lazy<tokio::sync::Semaphore> =
+    Lazy::new(|| tokio::sync::Semaphore::new(MAX_CONCURRENCY));
 
 async fn compile_internal(
     compiler: Arc<Mutex<Compiler>>,
     req: &mut Request,
     res: &mut Response,
 ) -> anyhow::Result<()> {
+    let permit = SEMAPHORE.try_acquire();
+    if permit.is_err() {
+        log::error!("Service overloaded");
+        return Err(anyhow::anyhow!("Service overloaded"));
+    }
+
     log::debug!("Got compile request {:?}", req);
     let payload = req.payload().await?;
     let mut code = std::str::from_utf8(payload)?.to_string();
