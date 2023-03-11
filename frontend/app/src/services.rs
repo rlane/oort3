@@ -15,15 +15,6 @@ pub fn is_local() -> bool {
         == "localhost"
 }
 
-pub fn compiler_vm_url() -> String {
-    if is_local() {
-        log::info!("Using compiler service on localhost");
-        "http://localhost:8081".to_owned()
-    } else {
-        "https://compiler-vm.oort.rs".to_owned()
-    }
-}
-
 pub fn compiler_url() -> String {
     if is_local() {
         log::info!("Using compiler service on localhost");

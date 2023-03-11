@@ -51,7 +51,6 @@ pub enum Msg {
     ShowFeedback,
     DismissOverlay,
     CompileFinished(Vec<Result<Code, String>>),
-    CompileSlow,
     SubmitToTournament,
     UploadShortcode,
     FormattedCode { team: usize, text: String },
@@ -83,7 +82,6 @@ pub struct Game {
     overlay: Option<Overlay>,
     overlay_ref: NodeRef,
     simulation_canvas_ref: NodeRef,
-    saw_slow_compile: bool,
     compiler_errors: Option<String>,
     last_window_size: (i32, i32),
     last_snapshot: Option<Snapshot>,
@@ -138,7 +136,6 @@ impl Component for Game {
             overlay: None,
             overlay_ref: NodeRef::default(),
             simulation_canvas_ref: NodeRef::default(),
-            saw_slow_compile: false,
             compiler_errors: None,
             last_window_size: (0, 0),
             last_snapshot: None,
@@ -361,10 +358,6 @@ impl Component for Game {
                     js::golden_layout::select_tab("compiler_output");
                 }
                 true
-            }
-            Msg::CompileSlow => {
-                self.saw_slow_compile = true;
-                false
             }
             Msg::FormattedCode { team, text } => {
                 self.team(team).set_editor_text_preserving_cursor(&text);
@@ -866,37 +859,18 @@ impl Game {
         self.overlay = Some(Overlay::Compiling);
 
         let finished_callback = context.link().callback(Msg::CompileFinished);
-        let slow_compile_callback = context.link().callback(|_| Msg::CompileSlow);
 
-        let url = if self.saw_slow_compile {
-            services::compiler_url()
-        } else {
-            services::compiler_vm_url()
-        };
-        let url = format!("{url}/compile");
-
-        async fn compile(
-            url: &str,
-            text: String,
-            slow_compile_cb: Callback<()>,
-        ) -> Result<Code, String> {
+        async fn compile(text: String) -> Result<Code, String> {
             if text.trim().is_empty() {
                 return Ok(Code::None);
             }
 
             let start_time = instant::Instant::now();
-            let check_compile_time = || {
-                let elapsed = instant::Instant::now() - start_time;
-                if elapsed > std::time::Duration::from_millis(3000) {
-                    log::info!("Compilation was slow, switching backend to serverless");
-                    slow_compile_cb.emit(());
-                }
-            };
 
-            let result = Request::post(url).body(text).send().await;
+            let url = format!("{}/compile", services::compiler_url());
+            let result = Request::post(&url).body(text).send().await;
             if let Err(e) = result {
                 log::error!("Compile error: {}", e);
-                check_compile_time();
                 return Err(e.to_string());
             }
 
@@ -904,20 +878,17 @@ impl Game {
             if !response.ok() {
                 let error = response.text().await.unwrap();
                 log::error!("Compile error: {}", error);
-                check_compile_time();
                 return Err(error);
             }
 
             let wasm = response.binary().await;
             if let Err(e) = wasm {
                 log::error!("Compile error: {}", e);
-                check_compile_time();
                 return Err(e.to_string());
             }
 
             let elapsed = instant::Instant::now() - start_time;
             log::info!("Compile succeeded in {:?}", elapsed);
-            check_compile_time();
             Ok(Code::Wasm(wasm.unwrap()))
         }
 
@@ -945,7 +916,7 @@ impl Game {
             let mut results = vec![];
             for source_code in source_codes {
                 let result = match source_code {
-                    Code::Rust(text) => compile(&url, text, slow_compile_callback.clone()).await,
+                    Code::Rust(text) => compile(text).await,
                     Code::Builtin(name) => oort_simulator::vm::builtin::load_compiled(&name),
                     other => Ok(other),
                 };
