@@ -2,10 +2,12 @@
 # This script creates a new Google Cloud project running Oort.
 # Prerequisites:
 #   - gcloud CLI installed and logged in
-#   - A billing account
-#   - fnm installed
+#   - A Google Cloud billing account
+#   - Docker installed and logged in to gcloud
+#   - cargo install fnm trunk wasm-opt
 which gcloud
 which fnm
+which trunk
 
 PROJECT_ID=${1:-"oort-staging-$(date +'%Y%m%d-%H%M%S')"}
 REGION=us-west1

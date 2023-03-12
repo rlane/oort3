@@ -1,4 +1,7 @@
-- Update to Rust 1.68.0
+- Updated to Rust 1.68.0.
+- Added support for deploying staging environments.
+- Simplified services and deployment.
+- Added a tournament subcommand usable without database access.
 
 ### 0.43.2
 
