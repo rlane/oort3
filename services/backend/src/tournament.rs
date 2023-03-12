@@ -6,7 +6,7 @@ use oort_proto::{TournamentResults, TournamentSubmission};
 use salvo::prelude::*;
 
 async fn submit_tournament_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id()).await?;
+    let db = FirestoreDb::new(&project_id()).await?;
     let payload = req.payload().await?;
     let mut obj: TournamentSubmission = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();
@@ -28,7 +28,7 @@ pub async fn submit_tournament(req: &mut Request, res: &mut Response) {
 async fn get_tournament_results_internal(
     req: &mut Request,
 ) -> anyhow::Result<salvo::writer::Json<TournamentResults>> {
-    let db = FirestoreDb::new(project_id()).await?;
+    let db = FirestoreDb::new(&project_id()).await?;
     let id: String = req.param("id").ok_or(anyhow!("missing id parameter"))?;
     let tournament_results = db
         .get_obj::<TournamentResults>("tournament_results", &id)

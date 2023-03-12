@@ -4,7 +4,7 @@ const DIGEST_LENGTH: usize = 32;
 
 fn secret() -> Vec<u8> {
     option_env!("OORT_ENVELOPE_SECRET")
-        .unwrap_or("not a secret")
+        .unwrap_or("")
         .as_bytes()
         .to_vec()
 }

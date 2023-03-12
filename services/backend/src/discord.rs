@@ -6,10 +6,15 @@ pub enum Channel {
 }
 
 fn webhook(channel: Channel) -> Option<&'static str> {
-    match channel {
+    if let Some(url) = match channel {
         Channel::Leaderboard => option_env!("DISCORD_LEADERBOARD_WEBHOOK"),
         Channel::Telemetry => option_env!("DISCORD_TELEMETRY_WEBHOOK"),
+    } {
+        if !url.is_empty() {
+            return Some(url);
+        }
     }
+    None
 }
 
 async fn send_message_internal(channel: Channel, msg: String) -> anyhow::Result<()> {

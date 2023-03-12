@@ -20,7 +20,7 @@ fn generate_docid() -> String {
 }
 
 async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id()).await?;
+    let db = FirestoreDb::new(&project_id()).await?;
     let payload = req.payload().await?;
     let mut obj: TelemetryMsg = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();

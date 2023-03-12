@@ -2,12 +2,13 @@ use anyhow::{anyhow, bail, Result};
 use clap::Parser as _;
 use indicatif::{MultiProgress, ProgressBar};
 use once_cell::sync::Lazy;
+use serde::Deserialize;
 use std::process::{ExitStatus, Output};
 use tokio::process::Command;
 use tokio_retry::strategy::ExponentialBackoff;
 use tokio_retry::Retry;
 
-const PROJECT: &str = "us-west1-docker.pkg.dev/oort-319301";
+const REGION: &str = "us-west1";
 const WORKSPACES: &[&str] = &[".", "frontend"];
 static PROGRESS: Lazy<MultiProgress> = Lazy::new(MultiProgress::new);
 
@@ -60,6 +61,21 @@ struct Arguments {
 
     #[clap(long)]
     skip_components_check: bool,
+
+    #[clap(long, default_value = "oort-319301")]
+    project: String,
+
+    #[clap(long)]
+    no_secrets: bool,
+}
+
+#[derive(Deserialize, Clone, Default)]
+struct Secrets {
+    oort_envelope_secret: Option<String>,
+    oort_code_encryption_secret: Option<String>,
+    discord_changelog_webhook: Option<String>,
+    discord_telemetry_webhook: Option<String>,
+    discord_leaderboard_webhook: Option<String>,
 }
 
 #[tokio::main]
@@ -72,9 +88,13 @@ async fn main() -> anyhow::Result<()> {
     let args = Arguments::parse();
     let dry_run = args.dry_run;
 
-    let secrets = std::fs::read_to_string(".secrets/secrets.toml")?.parse::<toml::Table>()?;
-    for (k, v) in secrets.iter() {
-        std::env::set_var(k, v.as_str().expect("invalid secret value"));
+    let mut secrets: Secrets = Secrets::default();
+    if !args.no_secrets && std::fs::metadata(".secrets/secrets.toml").is_ok() {
+        secrets = toml::from_str(&std::fs::read_to_string(".secrets/secrets.toml")?)?;
+        std::env::set_var(
+            "OORT_ENVELOPE_SECRET",
+            &secrets.oort_envelope_secret.clone().unwrap_or_default(),
+        );
     }
 
     std::env::set_var("DOCKER_BUILDKIT", "1");
@@ -199,80 +219,114 @@ async fn main() -> anyhow::Result<()> {
     let mut tasks = tokio::task::JoinSet::new();
 
     if args.components.contains(&Component::App) {
-        tasks.spawn(Retry::spawn(retry_strategy(), move || async move {
-            let progress = create_progress_bar("frontend");
+        let project: String = args.project.to_string();
 
-            progress.set_message("prebuild (app)");
-            sync_cmd_ok(&[
-                "cargo",
-                "build",
-                "--target=wasm32-unknown-unknown",
-                "--manifest-path",
-                "frontend/app/Cargo.toml",
-                "--release",
-                "--bin",
-                "app",
-                "--bin",
-                "oort_simulation_worker",
-            ])
-            .await?;
+        let backend_url = sync_cmd_ok(&[
+            "gcloud",
+            "--project",
+            &project,
+            "run",
+            "services",
+            "describe",
+            "oort-backend-service",
+            "--format=value(status.url)",
+        ])
+        .await?
+        .stdout_string();
+        std::env::set_var("BACKEND_URL", &backend_url);
 
-            progress.set_message("prebuild (analyzer)");
-            sync_cmd_ok(&[
-                "cargo",
-                "build",
-                "--target=wasm32-unknown-unknown",
-                "--manifest-path",
-                "frontend/analyzer_worker/Cargo.toml",
-                "--release",
-                "--bin",
-                "oort_analyzer_worker",
-            ])
-            .await?;
+        let compiler_url = sync_cmd_ok(&[
+            "gcloud",
+            "--project",
+            &project,
+            "run",
+            "services",
+            "describe",
+            "oort-compiler-service",
+            "--format=value(status.url)",
+        ])
+        .await?
+        .stdout_string();
+        std::env::set_var("COMPILER_URL", &compiler_url);
 
-            progress.set_message("running trunk");
-            if std::fs::metadata("frontend/app/dist").is_ok() {
-                std::fs::remove_dir_all("frontend/app/dist")?;
-            }
-            sync_cmd_ok(&[
-                "trunk",
-                "build",
-                "--release",
-                "--dist",
-                "frontend/app/dist",
-                "frontend/app/index.html",
-            ])
-            .await?;
+        tasks.spawn(Retry::spawn(retry_strategy(), move || {
+            let project = project.clone();
+            async move {
+                let progress = create_progress_bar("frontend");
 
-            let du_output = sync_cmd_ok(&["du", "-sh", "frontend/app/dist"])
-                .await?
-                .stdout_string();
-            PROGRESS.suspend(|| {
-                log::info!(
-                    "Output size: {}",
-                    du_output.split_whitespace().next().unwrap_or_default()
-                )
-            });
-
-            if !dry_run {
-                progress.set_message("deploying");
+                progress.set_message("prebuild (app)");
                 sync_cmd_ok(&[
-                    "sh",
-                    "-c",
-                    r#"cd firebase && eval "$(fnm env)" && fnm use && npx firebase deploy"#,
+                    "cargo",
+                    "build",
+                    "--target=wasm32-unknown-unknown",
+                    "--manifest-path",
+                    "frontend/app/Cargo.toml",
+                    "--release",
+                    "--bin",
+                    "app",
+                    "--bin",
+                    "oort_simulation_worker",
                 ])
                 .await?;
-            }
 
-            progress.finish_with_message("done");
-            anyhow::Ok(())
-        }));
+                progress.set_message("prebuild (analyzer)");
+                sync_cmd_ok(&[
+                    "cargo",
+                    "build",
+                    "--target=wasm32-unknown-unknown",
+                    "--manifest-path",
+                    "frontend/analyzer_worker/Cargo.toml",
+                    "--release",
+                    "--bin",
+                    "oort_analyzer_worker",
+                ])
+                .await?;
+
+                progress.set_message("running trunk");
+                if std::fs::metadata("frontend/app/dist").is_ok() {
+                    std::fs::remove_dir_all("frontend/app/dist")?;
+                }
+                sync_cmd_ok(&[
+                    "trunk",
+                    "build",
+                    "--release",
+                    "--dist",
+                    "frontend/app/dist",
+                    "frontend/app/index.html",
+                ])
+                .await?;
+
+                let du_output = sync_cmd_ok(&["du", "-sh", "frontend/app/dist"])
+                    .await?
+                    .stdout_string();
+                PROGRESS.suspend(|| {
+                    log::info!(
+                        "Output size: {}",
+                        du_output.split_whitespace().next().unwrap_or_default()
+                    )
+                });
+
+                if !dry_run {
+                    progress.set_message("deploying");
+                    sync_cmd_ok(&[
+                        "sh",
+                        "-c",
+                        &format!(r#"cd firebase && eval "$(fnm env)" && fnm use && npx firebase --project {project} deploy"#),
+                    ])
+                    .await?;
+                }
+
+                progress.finish_with_message("done");
+                anyhow::Ok(())
+        }}));
     }
 
     if args.components.contains(&Component::Compiler) {
         let secrets = secrets.clone();
+        let project = args.project.clone();
         tasks.spawn(Retry::spawn(retry_strategy(), move || {
             let secrets = secrets.clone();
+            let project = project.clone();
             async move {
                 let progress = create_progress_bar("compiler");
 
@@ -287,14 +341,17 @@ async fn main() -> anyhow::Result<()> {
                     "--build-arg",
                     &format!(
                         "OORT_CODE_ENCRYPTION_SECRET={}",
-                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                        secrets.oort_code_encryption_secret.unwrap_or_default()
                     ),
                     ".",
                 ])
                 .await?;
 
                 if !dry_run {
-                    let container_image = format!("{PROJECT}/services/oort_compiler_service");
+                    let container_image = format!(
+                        "{REGION}-docker.pkg.dev/{}/services/oort_compiler_service",
+                        project
+                    );
 
                     progress.set_message("tagging");
                     sync_cmd_ok(&[
@@ -310,21 +367,23 @@ async fn main() -> anyhow::Result<()> {
 
                     progress.set_message("deploying to Cloud Run");
                     sync_cmd_ok(&[
-                    "gcloud",
-                    "run",
-                    "deploy",
-                    "oort-compiler-service",
-                    "--image",
-                    &container_image,
-                    "--allow-unauthenticated",
-                    "--region=us-west1",
-                    "--execution-environment=gen2",
-                    "--cpu=2",
-                    "--memory=2G",
-                    "--timeout=20s",
-                    "--concurrency=1",
-                    "--max-instances=10",
-                    "--service-account=oort-compiler-service@oort-319301.iam.gserviceaccount.com",
+                        "gcloud",
+                        "--project",
+                        &project,
+                        "run",
+                        "deploy",
+                        "oort-compiler-service",
+                        "--image",
+                        &container_image,
+                        "--allow-unauthenticated",
+                        "--region", REGION,
+                        "--execution-environment=gen2",
+                        "--cpu=2",
+                        "--memory=2G",
+                        "--timeout=20s",
+                        "--concurrency=1",
+                        "--max-instances=10",
+                        &format!("--service-account=oort-compiler-service@{project}.iam.gserviceaccount.com"),
                     ])
                     .await?;
                 }
@@ -337,8 +396,10 @@ async fn main() -> anyhow::Result<()> {
 
     if args.components.contains(&Component::Backend) {
         let secrets = secrets.clone();
+        let project = args.project.clone();
         tasks.spawn(Retry::spawn(retry_strategy(), move || {
             let secrets = secrets.clone();
+            let project = project.clone();
             async move {
                 let progress = create_progress_bar("backend");
 
@@ -352,30 +413,37 @@ async fn main() -> anyhow::Result<()> {
                     "oort_backend_service",
                     "--build-arg",
                     &format!(
+                        "PROJECT_ID={project}",
+                    ),
+                    "--build-arg",
+                    &format!(
                         "OORT_CODE_ENCRYPTION_SECRET={}",
-                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                        secrets.oort_code_encryption_secret.unwrap_or_default()
                     ),
                     "--build-arg",
                     &format!(
                         "OORT_ENVELOPE_SECRET={}",
-                        secrets["OORT_ENVELOPE_SECRET"].as_str().unwrap()
+                        secrets.oort_envelope_secret.unwrap_or_default()
                     ),
                     "--build-arg",
                     &format!(
                         "DISCORD_TELEMETRY_WEBHOOK={}",
-                        secrets["DISCORD_TELEMETRY_WEBHOOK"].as_str().unwrap()
+                        secrets.discord_telemetry_webhook.unwrap_or_default()
                     ),
                     "--build-arg",
                     &format!(
                         "DISCORD_LEADERBOARD_WEBHOOK={}",
-                        secrets["DISCORD_LEADERBOARD_WEBHOOK"].as_str().unwrap()
+                        secrets.discord_leaderboard_webhook.unwrap_or_default()
                     ),
                     ".",
                 ])
                 .await?;
 
                 if !dry_run {
-                    let container_image = format!("{PROJECT}/services/oort_backend_service");
+                    let container_image = format!(
+                        "{REGION}-docker.pkg.dev/{}/services/oort_backend_service",
+                        project
+                    );
 
                     progress.set_message("tagging");
                     sync_cmd_ok(&[
@@ -391,22 +459,26 @@ async fn main() -> anyhow::Result<()> {
 
                     progress.set_message("deploying");
                     sync_cmd_ok(&[
-                    "gcloud",
-                    "run",
-                    "deploy",
-                    "oort-backend-service",
-                    "--image",
-                    &container_image,
-                    "--allow-unauthenticated",
-                    "--region=us-west1",
-                    "--cpu=1",
-                    "--memory=1G",
-                    "--timeout=20s",
-                    "--concurrency=1",
-                    "--max-instances=3",
-                    "--service-account=oort-backend-service@oort-319301.iam.gserviceaccount.com",
-                ])
-                .await?;
+                        "gcloud",
+                        "--project",
+                        &project,
+                        "run",
+                        "deploy",
+                        "oort-backend-service",
+                        "--image",
+                        &container_image,
+                        "--allow-unauthenticated",
+                        "--region",
+                        REGION,
+                        "--cpu=1",
+                        "--memory=1G",
+                        "--timeout=20s",
+                        "--concurrency=1",
+                        "--max-instances=3",
+                        &format!("--service-account=oort-backend-service@{project}.iam.gserviceaccount.com"),
+                        &format!("--set-env-vars=PROJECT_ID={project}"),
+                    ])
+                    .await?;
                 }
 
                 progress.finish_with_message("done");
@@ -480,13 +552,17 @@ async fn main() -> anyhow::Result<()> {
             format!("Released version {version}:\n{changelog}"),
         );
         let client = reqwest::Client::new();
-        let url = secrets["DISCORD_CHANGELOG_WEBHOOK"].as_str().unwrap();
-        let response = client.post(url).json(&map).send().await?;
-        response.error_for_status()?;
+        if let Some(url) = secrets.discord_changelog_webhook {
+            let response = client.post(url).json(&map).send().await?;
+            response.error_for_status()?;
+        }
     }
 
     let end_time = std::time::Instant::now();
     log::info!("Finished in {:?}", end_time - start_time);
+    if args.components.contains(&Component::App) {
+        log::info!("Oort should be running at https://{}.web.app", args.project);
+    }
     Ok(())
 }
 
@@ -511,6 +587,11 @@ impl ExtendedOutput for Output {
 
     fn check_success(&self) -> Result<&Self> {
         if !self.status.success() {
+            log::error!(
+                "Command failed with status {}.\nstderr:\n{}",
+                self.status,
+                self.stderr_string(),
+            );
             bail!(
                 "Command failed with status {}.\nstderr:\n{}",
                 self.status,
@@ -560,12 +641,13 @@ async fn sync_cmd(argv: &[&str]) -> Result<Output> {
 async fn sync_cmd_ok(argv: &[&str]) -> Result<Output> {
     let output = sync_cmd(argv).await?;
     if !output.status.success() {
-        bail!(
+        log::error!(
             "Command {:?} failed with status {}.\nstderr:\n{}",
             argv,
             output.status,
             output.stderr_string(),
         );
+        bail!("Command {:?} failed", argv);
     }
     Ok(output)
 }

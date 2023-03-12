@@ -60,7 +60,7 @@ async fn render_leaderboard(
 }
 
 async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id()).await?;
+    let db = FirestoreDb::new(&project_id()).await?;
     log::debug!("Got request {:?}", req);
 
     let scenario_name: String = req
@@ -81,7 +81,7 @@ pub async fn get_leaderboard(req: &mut Request, res: &mut Response) {
 }
 
 async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id()).await?;
+    let db = FirestoreDb::new(&project_id()).await?;
     log::debug!("Got request {:?}", req);
     let payload = match oort_envelope::remove(req.payload().await?) {
         Some(x) => x,

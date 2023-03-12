@@ -126,7 +126,7 @@ async fn fetch_tournament(
 }
 
 async fn get_shortcode_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id()).await?;
+    let db = FirestoreDb::new(&project_id()).await?;
     log::debug!("Got request {:?}", req);
     let id: String = req.param("id").ok_or(anyhow!("missing id parameter"))?;
     let code = match parse_id(&id)? {
@@ -173,7 +173,7 @@ fn generate_docid() -> String {
 }
 
 async fn post_shortcode_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id()).await?;
+    let db = FirestoreDb::new(&project_id()).await?;
     let payload = req.payload().await?;
     let mut obj: ShortcodeUpload = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();

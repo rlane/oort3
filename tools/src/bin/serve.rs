@@ -7,6 +7,9 @@ struct Arguments {
     #[clap(long)]
     /// Build the frontend in release mode.
     release: bool,
+
+    #[clap(long, default_value = "oort-dev")]
+    project: String,
 }
 
 fn main() -> Result<()> {
@@ -26,6 +29,11 @@ fn main() -> Result<()> {
     } else {
         log::info!("Missing secrets file");
     }
+
+    let services = [("compiler", 8081), ("backend", 8082)];
+
+    std::env::set_var("COMPILER_URL", "http://localhost:8081");
+    std::env::set_var("BACKEND_URL", "http://localhost:8082");
 
     cmd(&["cargo", "build", "--workspace", "--bins"])
         .spawn()?
@@ -48,13 +56,11 @@ fn main() -> Result<()> {
     .spawn()?
     .wait()?;
 
-    let services = [("compiler", 8081), ("backend", 8082)];
-
     let mut children = vec![];
     for (name, port) in services.iter() {
         let child = cmd(&["cargo", "run", "-q", "-p", &format!("oort_{name}_service")])
             .env("RUST_LOG", &format!("none,oort_{name}_service=debug"))
-            .env("ENVIRONMENT", "dev")
+            .env("PROJECT_ID", &args.project)
             .env("PORT", &port.to_string())
             .spawn()?;
         children.push(ChildGuard(child));

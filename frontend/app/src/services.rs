@@ -16,21 +16,11 @@ pub fn is_local() -> bool {
 }
 
 pub fn compiler_url() -> String {
-    if is_local() {
-        log::info!("Using compiler service on localhost");
-        "http://localhost:8081".to_owned()
-    } else {
-        "https://compiler.oort.rs".to_owned()
-    }
+    option_env!("COMPILER_URL").expect("missing COMPILER_URL build-time environment variable").to_string()
 }
 
 pub fn backend_url() -> String {
-    if is_local() {
-        log::info!("Using backend service on localhost");
-        "http://localhost:8082".to_owned()
-    } else {
-        "https://backend.oort.rs".to_owned()
-    }
+    option_env!("BACKEND_URL").expect("missing BACKEND_URL build-time environment variable").to_string()
 }
 
 async fn send_request(request: Request) -> anyhow::Result<Response> {

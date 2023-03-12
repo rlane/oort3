@@ -19,5 +19,4 @@ WORKDIR /home/app
 COPY --from=builder /usr/local/cargo/bin/oort_backend_service /usr/local/bin/oort_backend_service
 ENV PORT 8080
 ENV RUST_LOG none,oort_backend_service=info
-ENV ENVIRONMENT prod
 CMD ["oort_backend_service"]
