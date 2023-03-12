@@ -54,6 +54,7 @@ fn main() -> Result<()> {
         ("leaderboard", 8083),
         ("shortcode", 8084),
         ("tournament", 8085),
+        ("backend", 8086),
     ];
 
     let mut children = vec![];

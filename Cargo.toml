@@ -11,6 +11,7 @@ members = [
     "shared/version",
     "shared/compiler",
 
+    "services/backend",
     "services/compiler",
     "services/telemetry",
     "services/leaderboard",

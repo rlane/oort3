@@ -14,6 +14,7 @@ static PROGRESS: Lazy<MultiProgress> = Lazy::new(MultiProgress::new);
 #[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
 enum Component {
     App,
+    Backend,
     Telemetry,
     Leaderboard,
     Compiler,
@@ -25,6 +26,7 @@ enum Component {
 
 const ALL_COMPONENTS: &[Component] = &[
     Component::App,
+    Component::Backend,
     Component::Telemetry,
     Component::Leaderboard,
     Component::Compiler,
@@ -41,7 +43,7 @@ struct Arguments {
         long,
         value_enum,
         value_delimiter = ',',
-        default_value = "app,telemetry,leaderboard,compiler,shortcode,tournament,doc,tools"
+        default_value = "app,backend,telemetry,leaderboard,compiler,shortcode,tournament,doc,tools"
     )]
     /// Components to push.
     components: Vec<Component>,
@@ -333,6 +335,86 @@ async fn main() -> anyhow::Result<()> {
                     "--service-account=oort-compiler-service@oort-319301.iam.gserviceaccount.com",
                     ])
                     .await?;
+                }
+
+                progress.finish_with_message("done");
+                Ok(())
+            }
+        }));
+    }
+
+    if args.components.contains(&Component::Backend) {
+        let secrets = secrets.clone();
+        tasks.spawn(Retry::spawn(retry_strategy(), move || {
+            let secrets = secrets.clone();
+            async move {
+                let progress = create_progress_bar("backend");
+
+                progress.set_message("building");
+                sync_cmd_ok(&[
+                    "docker",
+                    "build",
+                    "-f",
+                    "services/backend/Dockerfile",
+                    "--tag",
+                    "oort_backend_service",
+                    "--build-arg",
+                    &format!(
+                        "OORT_CODE_ENCRYPTION_SECRET={}",
+                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
+                    ),
+                    "--build-arg",
+                    &format!(
+                        "OORT_ENVELOPE_SECRET={}",
+                        secrets["OORT_ENVELOPE_SECRET"].as_str().unwrap()
+                    ),
+                    "--build-arg",
+                    &format!(
+                        "DISCORD_TELEMETRY_WEBHOOK={}",
+                        secrets["DISCORD_TELEMETRY_WEBHOOK"].as_str().unwrap()
+                    ),
+                    "--build-arg",
+                    &format!(
+                        "DISCORD_LEADERBOARD_WEBHOOK={}",
+                        secrets["DISCORD_LEADERBOARD_WEBHOOK"].as_str().unwrap()
+                    ),
+                    ".",
+                ])
+                .await?;
+
+                if !dry_run {
+                    let container_image = format!("{PROJECT}/services/oort_backend_service");
+
+                    progress.set_message("tagging");
+                    sync_cmd_ok(&[
+                        "docker",
+                        "tag",
+                        "oort_backend_service:latest",
+                        &container_image,
+                    ])
+                    .await?;
+
+                    progress.set_message("pushing image");
+                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
+
+                    progress.set_message("deploying");
+                    sync_cmd_ok(&[
+                    "gcloud",
+                    "run",
+                    "deploy",
+                    "oort-backend-service",
+                    "--image",
+                    &container_image,
+                    "--allow-unauthenticated",
+                    "--region=us-west1",
+                    "--cpu=1",
+                    "--memory=1G",
+                    "--timeout=20s",
+                    "--concurrency=1",
+                    "--max-instances=3",
+                    "--service-account=oort-backend-service@oort-319301.iam.gserviceaccount.com",
+                ])
+                .await?;
                 }
 
                 progress.finish_with_message("done");

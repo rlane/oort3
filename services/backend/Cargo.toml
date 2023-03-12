@@ -1,0 +1,22 @@
+[package]
+name = "oort_backend_service"
+version = "0.43.2"
+publish = false
+edition = "2021"
+
+[dependencies]
+oort_envelope = { path = "../../shared/envelope" }
+oort_code_encryption = { path = "../../shared/code_encryption" }
+oort_proto = { path = "../../shared/proto" }
+anyhow = "1.0"
+chrono = "0.4.23"
+firestore = "0.6.1"
+gcloud-sdk = "0.18.1"
+log = "0.4.17"
+rand = "0.8.5"
+regex = "1.7.1"
+reqwest = { version = "0.11.14", default-features=false, features = ["json", "rustls-tls"] }
+salvo = { version="0.37", features=["cors", "anyhow"] }
+serde_json = "1.0.93"
+stackdriver_logger = "0.8.0"
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "process"] }

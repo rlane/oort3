@@ -2494,6 +2494,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_backend_service"
+version = "0.43.2"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "firestore",
+ "gcloud-sdk",
+ "log",
+ "oort_code_encryption",
+ "oort_envelope",
+ "oort_proto",
+ "rand 0.8.5",
+ "regex",
+ "reqwest",
+ "salvo",
+ "serde_json",
+ "stackdriver_logger",
+ "tokio",
+]
+
+[[package]]
 name = "oort_code_encryption"
 version = "0.43.2"
 dependencies = [
