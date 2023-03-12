@@ -41,7 +41,7 @@ pub fn get_leaderboard(
     callback: yew::Callback<anyhow::Result<LeaderboardData>>,
 ) {
     let url = format!(
-        "{}/leaderboard?scenario_name={}",
+        "{}/leaderboard/{}",
         backend_url(),
         scenario_name
     );
@@ -96,7 +96,9 @@ pub fn send_telemetry(payload: Telemetry) {
         let url = format!("{}/telemetry", backend_url());
         let body = serde_json::to_string(&msg).unwrap();
         log::info!("Sending telemetry: {}", body);
-        let result = send_request(Request::post(&url).body(body)).await;
+        let result = send_request(Request::post(&url)
+            .header("Content-Type", "application/json")
+            .body(body)).await;
         if let Err(e) = result {
             log::warn!("Error posting telemetry: {:?}", e);
         }
@@ -139,7 +141,9 @@ pub async fn upload_shortcode(code: &str) -> anyhow::Result<String> {
     };
     let body = serde_json::to_string(&msg).unwrap();
     let response =
-        send_request(Request::post(&format!("{}/shortcode", backend_url())).body(body)).await?;
+        send_request(Request::post(&format!("{}/shortcode", backend_url()))
+            .header("Content-Type", "application/json")
+            .body(body)).await?;
     response.text().await.map_err(|e| e.into())
 }
 
@@ -154,7 +158,9 @@ pub async fn submit_to_tournament(scenario_name: &str, code: &str) -> anyhow::Re
         code: code.to_string(),
     };
     let body = serde_json::to_string(&msg).unwrap();
-    send_request(Request::post(&format!("{}/tournament/submit", backend_url())).body(body))
+    send_request(Request::post(&format!("{}/tournament/submit", backend_url()))
+        .header("Content-Type", "application/json")
+        .body(body))
         .await?;
     Ok(())
 }

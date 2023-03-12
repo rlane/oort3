@@ -1,11 +1,8 @@
 use oort_backend_service::{leaderboard, project_id, shortcode, telemetry, tournament};
-use salvo::cors::Cors;
-use salvo::prelude::*;
 
-#[handler]
-async fn nop(_req: &mut Request, res: &mut Response) {
-    res.render("");
-}
+use axum::Router;
+use http::Method;
+use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
 async fn main() {
@@ -31,50 +28,27 @@ async fn main() {
         &oort_envelope::hashed_secret()
     );
 
-    let cors_handler = Cors::builder()
-        .allow_any_origin()
-        .allow_methods(vec!["POST", "OPTIONS"])
-        .allow_header("content-type")
-        .build();
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_origin(Any)
+        .allow_headers(Any);
 
-    let router = Router::with_hoop(cors_handler)
-        .push(
-            Router::with_path("/leaderboard")
-                .get(leaderboard::get_leaderboard)
-                .options(nop),
-        )
-        .push(
-            Router::with_path("/leaderboard")
-                .post(leaderboard::PostLeaderboard {})
-                .options(nop),
-        )
-        .push(
-            Router::with_path("/telemetry")
-                .post(telemetry::post_telemetry)
-                .options(nop),
-        )
-        .push(
-            Router::with_path("/shortcode/<id>")
-                .get(shortcode::get_shortcode)
-                .options(nop),
-        )
-        .push(
-            Router::with_path("/shortcode")
-                .post(shortcode::post_shortcode)
-                .options(nop),
-        )
-        .push(
-            Router::with_path("/tournament/submit")
-                .post(tournament::submit_tournament)
-                .options(nop),
-        )
-        .push(
-            Router::with_path("/tournament/results/<id>")
-                .get(tournament::get_tournament_results)
-                .options(nop),
-        );
+    let router = {
+        use axum::routing::{get, post};
+        Router::new()
+            .route("/shortcode/:id", get(shortcode::get))
+            .route("/shortcode", post(shortcode::post))
+            .route("/telemetry", post(telemetry::post))
+            .route("/tournament/submit", post(tournament::submit))
+            .route("/tournament/results/:id", get(tournament::get_results))
+            .route("/leaderboard/:scenario_name", get(leaderboard::get))
+            .route("/leaderboard", post(leaderboard::post))
+            .layer(cors)
+            .layer(tower_http::trace::TraceLayer::new_for_http())
+    };
 
-    Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
-        .serve(router)
-        .await;
+    axum::Server::bind(&format!("0.0.0.0:{port}").parse().unwrap())
+        .serve(router.into_make_service())
+        .await
+        .unwrap();
 }

@@ -59,7 +59,10 @@ fn main() -> Result<()> {
     let mut children = vec![];
     for (name, port) in services.iter() {
         let child = cmd(&["cargo", "run", "-q", "-p", &format!("oort_{name}_service")])
-            .env("RUST_LOG", &format!("none,oort_{name}_service=debug"))
+            .env(
+                "RUST_LOG",
+                &format!("none,oort_{name}_service=debug,tower_http=trace"),
+            )
             .env("PROJECT_ID", &args.project)
             .env("PORT", &port.to_string())
             .spawn()?;

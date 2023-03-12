@@ -1,11 +1,11 @@
-use crate::project_id;
-use anyhow::{anyhow, bail};
+use crate::{project_id, Error};
+use anyhow::bail;
+use axum::extract::{Json, Path};
 use chrono::Utc;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
 use oort_proto::{LeaderboardSubmission, ShortcodeUpload, TournamentSubmission};
 use regex::Regex;
-use salvo::prelude::*;
 
 #[derive(Clone, Debug)]
 enum Shortcode {
@@ -125,10 +125,8 @@ async fn fetch_tournament(
     bail!("no matching tournament entry found");
 }
 
-async fn get_shortcode_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+pub async fn get(Path(id): Path<String>) -> Result<String, Error> {
     let db = FirestoreDb::new(&project_id()).await?;
-    log::debug!("Got request {:?}", req);
-    let id: String = req.param("id").ok_or(anyhow!("missing id parameter"))?;
     let code = match parse_id(&id)? {
         Shortcode::Leaderboard {
             username,
@@ -144,17 +142,7 @@ async fn get_shortcode_internal(req: &mut Request, res: &mut Response) -> anyhow
         }
     };
 
-    res.render(code);
-    Ok(())
-}
-
-#[handler]
-pub async fn get_shortcode(req: &mut Request, res: &mut Response) {
-    if let Err(e) = get_shortcode_internal(req, res).await {
-        log::error!("error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
-    }
+    Ok(code)
 }
 
 fn generate_docid() -> String {
@@ -172,22 +160,10 @@ fn generate_docid() -> String {
         .collect()
 }
 
-async fn post_shortcode_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+pub async fn post(Json(mut obj): Json<ShortcodeUpload>) -> Result<String, Error> {
     let db = FirestoreDb::new(&project_id()).await?;
-    let payload = req.payload().await?;
-    let mut obj: ShortcodeUpload = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();
     let docid = generate_docid();
     db.create_obj("shortcode", &docid, &obj).await?;
-    res.render(docid);
-    Ok(())
-}
-
-#[handler]
-pub async fn post_shortcode(req: &mut Request, res: &mut Response) {
-    if let Err(e) = post_shortcode_internal(req, res).await {
-        log::error!("error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
-    }
+    Ok(docid)
 }

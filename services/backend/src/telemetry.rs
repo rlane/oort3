@@ -1,8 +1,8 @@
-use crate::{discord, project_id};
+use crate::{discord, project_id, Error};
+use axum::extract::Json;
 use chrono::prelude::*;
 use firestore::*;
 use oort_proto::{Telemetry, TelemetryMsg};
-use salvo::prelude::*;
 
 fn generate_docid() -> String {
     use rand::Rng;
@@ -19,10 +19,8 @@ fn generate_docid() -> String {
         .collect()
 }
 
-async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+pub async fn post(Json(mut obj): Json<TelemetryMsg>) -> Result<(), Error> {
     let db = FirestoreDb::new(&project_id()).await?;
-    let payload = req.payload().await?;
-    let mut obj: TelemetryMsg = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();
     log::debug!("Got request obj {:?}", obj);
     let docid = generate_docid();
@@ -54,15 +52,5 @@ async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<
         }
         _ => {}
     }
-    res.render("");
     Ok(())
-}
-
-#[handler]
-pub async fn post_telemetry(req: &mut Request, res: &mut Response) {
-    if let Err(e) = post_internal(req, res).await {
-        log::error!("error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
-    }
 }

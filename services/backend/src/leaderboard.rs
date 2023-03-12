@@ -1,10 +1,11 @@
-use crate::{discord, project_id};
-use anyhow::anyhow;
+use crate::{discord, error, project_id, Error};
+use axum::extract::Path;
+use axum::Json;
+use bytes::Bytes;
 use chrono::Utc;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
 use oort_proto::{LeaderboardData, LeaderboardSubmission, TimeLeaderboardRow};
-use salvo::prelude::*;
 
 async fn fetch_leaderboard(
     db: &FirestoreDb,
@@ -50,50 +51,27 @@ async fn fetch_leaderboard(
     Ok(leaderboard)
 }
 
-async fn render_leaderboard(
-    leaderboard: &LeaderboardData,
-    res: &mut Response,
-) -> anyhow::Result<()> {
-    res.render(&serde_json::to_string_pretty(leaderboard)?);
-
-    Ok(())
-}
-
-async fn get_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+pub async fn get(Path(scenario_name): Path<String>) -> Result<Json<LeaderboardData>, Error> {
     let db = FirestoreDb::new(&project_id()).await?;
-    log::debug!("Got request {:?}", req);
-
-    let scenario_name: String = req
-        .query("scenario_name")
-        .ok_or_else(|| anyhow!("missing scenario_name parameter"))?;
-
-    let leaderboard = fetch_leaderboard(&db, &scenario_name).await?;
-    render_leaderboard(&leaderboard, res).await
+    let data: LeaderboardData = fetch_leaderboard(&db, &scenario_name).await?;
+    Ok(Json(data))
 }
 
-#[handler]
-pub async fn get_leaderboard(req: &mut Request, res: &mut Response) {
-    if let Err(e) = get_leaderboard_internal(req, res).await {
-        log::error!("error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
-    }
-}
-
-async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
+pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
     let db = FirestoreDb::new(&project_id()).await?;
-    log::debug!("Got request {:?}", req);
-    let payload = match oort_envelope::remove(req.payload().await?) {
+
+    let payload = match oort_envelope::remove(payload.as_ref()) {
         Some(x) => x,
         None => {
-            log::warn!("Failed to remove envelope");
-            return Err(anyhow!("failed"));
+            return Err(error(
+                axum::http::StatusCode::BAD_REQUEST,
+                "invalid envelope".into(),
+            ));
         }
     };
-    log::debug!("Got payload {:?}", payload);
     let mut obj: LeaderboardSubmission = serde_json::from_slice(&payload)?;
+
     obj.timestamp = Utc::now();
-    log::debug!("Got request obj {:?}", obj);
     let path = format!("{}.{}", obj.scenario_name, obj.userid);
 
     let old_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
@@ -105,7 +83,7 @@ async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> any
         log::debug!("Got existing obj {:?}", existing_obj);
         if existing_obj.time <= obj.time {
             log::debug!("Ignoring slower time");
-            return render_leaderboard(&old_leaderboard, res).await;
+            return Ok(Json(old_leaderboard));
         }
     }
 
@@ -144,24 +122,5 @@ async fn post_leaderboard_internal(req: &mut Request, res: &mut Response) -> any
         );
     }
 
-    render_leaderboard(&new_leaderboard, res).await
-}
-
-pub struct PostLeaderboard {}
-
-#[async_trait]
-impl Handler for PostLeaderboard {
-    async fn handle(
-        &self,
-        req: &mut Request,
-        _depot: &mut Depot,
-        res: &mut Response,
-        _ctrl: &mut FlowCtrl,
-    ) {
-        if let Err(e) = post_leaderboard_internal(req, res).await {
-            log::error!("error: {}", e);
-            res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-            res.render(e.to_string());
-        }
-    }
+    Ok(Json(new_leaderboard))
 }
