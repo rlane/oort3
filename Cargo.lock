@@ -2566,49 +2566,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_leaderboard_service"
-version = "0.43.2"
-dependencies = [
- "anyhow",
- "chrono",
- "firestore",
- "gcloud-sdk",
- "log",
- "oort_code_encryption",
- "oort_envelope",
- "oort_proto",
- "reqwest",
- "salvo",
- "serde_json",
- "stackdriver_logger",
- "tokio",
-]
-
-[[package]]
 name = "oort_proto"
 version = "0.43.2"
 dependencies = [
  "chrono",
  "serde",
-]
-
-[[package]]
-name = "oort_shortcode_service"
-version = "0.43.2"
-dependencies = [
- "anyhow",
- "chrono",
- "firestore",
- "gcloud-sdk",
- "log",
- "oort_code_encryption",
- "oort_proto",
- "rand 0.8.5",
- "regex",
- "salvo",
- "serde_json",
- "stackdriver_logger",
- "tokio",
 ]
 
 [[package]]
@@ -2650,23 +2612,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oort_telemetry_service"
-version = "0.43.2"
-dependencies = [
- "anyhow",
- "chrono",
- "firestore",
- "log",
- "oort_proto",
- "rand 0.8.5",
- "reqwest",
- "salvo",
- "serde_json",
- "stackdriver_logger",
- "tokio",
-]
-
-[[package]]
 name = "oort_tools"
 version = "0.43.2"
 dependencies = [
@@ -2705,25 +2650,6 @@ dependencies = [
  "tokio",
  "tokio-retry",
  "toml 0.7.2",
-]
-
-[[package]]
-name = "oort_tournament_service"
-version = "0.43.2"
-dependencies = [
- "anyhow",
- "chrono",
- "firestore",
- "gcloud-sdk",
- "log",
- "oort_code_encryption",
- "oort_proto",
- "rand 0.8.5",
- "regex",
- "salvo",
- "serde_json",
- "stackdriver_logger",
- "tokio",
 ]
 
 [[package]]

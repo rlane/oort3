@@ -15,11 +15,7 @@ static PROGRESS: Lazy<MultiProgress> = Lazy::new(MultiProgress::new);
 enum Component {
     App,
     Backend,
-    Telemetry,
-    Leaderboard,
     Compiler,
-    Shortcode,
-    Tournament,
     Doc,
     Tools,
 }
@@ -27,11 +23,7 @@ enum Component {
 const ALL_COMPONENTS: &[Component] = &[
     Component::App,
     Component::Backend,
-    Component::Telemetry,
-    Component::Leaderboard,
     Component::Compiler,
-    Component::Shortcode,
-    Component::Tournament,
     Component::Doc,
     Component::Tools,
 ];
@@ -43,7 +35,7 @@ struct Arguments {
         long,
         value_enum,
         value_delimiter = ',',
-        default_value = "app,backend,telemetry,leaderboard,compiler,shortcode,tournament,doc,tools"
+        default_value = "app,backend,compiler,doc,tools"
     )]
     /// Components to push.
     components: Vec<Component>,
@@ -413,261 +405,6 @@ async fn main() -> anyhow::Result<()> {
                     "--concurrency=1",
                     "--max-instances=3",
                     "--service-account=oort-backend-service@oort-319301.iam.gserviceaccount.com",
-                ])
-                .await?;
-                }
-
-                progress.finish_with_message("done");
-                Ok(())
-            }
-        }));
-    }
-
-    if args.components.contains(&Component::Telemetry) {
-        let secrets = secrets.clone();
-        tasks.spawn(Retry::spawn(retry_strategy(), move || {
-            let secrets = secrets.clone();
-            async move {
-                let progress = create_progress_bar("telemetry");
-
-                progress.set_message("building");
-                sync_cmd_ok(&[
-                    "docker",
-                    "build",
-                    "-f",
-                    "services/telemetry/Dockerfile",
-                    "--tag",
-                    "oort_telemetry_service",
-                    "--build-arg",
-                    &format!(
-                        "DISCORD_TELEMETRY_WEBHOOK={}",
-                        secrets["DISCORD_TELEMETRY_WEBHOOK"].as_str().unwrap()
-                    ),
-                    ".",
-                ])
-                .await?;
-
-                if !dry_run {
-                    let container_image = format!("{PROJECT}/services/oort_telemetry_service");
-
-                    progress.set_message("tagging");
-                    sync_cmd_ok(&[
-                        "docker",
-                        "tag",
-                        "oort_telemetry_service:latest",
-                        &container_image,
-                    ])
-                    .await?;
-
-                    progress.set_message("pushing image");
-                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
-
-                    progress.set_message("deploying");
-                    sync_cmd_ok(&[
-                    "gcloud",
-                    "run",
-                    "deploy",
-                    "oort-telemetry-service",
-                    "--image",
-                    &container_image,
-                    "--allow-unauthenticated",
-                    "--region=us-west1",
-                    "--cpu=1",
-                    "--memory=1G",
-                    "--timeout=20s",
-                    "--concurrency=1",
-                    "--max-instances=3",
-                    "--service-account=oort-telemetry-service@oort-319301.iam.gserviceaccount.com",
-                ])
-                .await?;
-                }
-
-                progress.finish_with_message("done");
-                Ok(())
-            }
-        }));
-    }
-
-    if args.components.contains(&Component::Leaderboard) {
-        let secrets = secrets.clone();
-        tasks.spawn(Retry::spawn(retry_strategy(), move || {
-            let secrets = secrets.clone();
-            async move {
-            let progress = create_progress_bar("leaderboard");
-
-            progress.set_message("building");
-            sync_cmd_ok(&[
-                "docker",
-                "build",
-                "-f",
-                "services/leaderboard/Dockerfile",
-                "--tag",
-                "oort_leaderboard_service",
-                "--build-arg",
-                &format!(
-                    "OORT_CODE_ENCRYPTION_SECRET={}",
-                    secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
-                ),
-                "--build-arg",
-                &format!(
-                    "OORT_ENVELOPE_SECRET={}",
-                    secrets["OORT_ENVELOPE_SECRET"].as_str().unwrap()
-                ),
-                "--build-arg",
-                &format!(
-                    "DISCORD_LEADERBOARD_WEBHOOK={}",
-                    secrets["DISCORD_LEADERBOARD_WEBHOOK"].as_str().unwrap()
-                ),
-                ".",
-            ])
-            .await?;
-
-            if !dry_run {
-                let container_image = format!("{PROJECT}/services/oort_leaderboard_service");
-
-                progress.set_message("tagging");
-                sync_cmd_ok(&[
-                    "docker",
-                    "tag",
-                    "oort_leaderboard_service:latest",
-                    &container_image,
-                ])
-                .await?;
-
-                progress.set_message("pushing image");
-                sync_cmd_ok(&["docker", "push", &container_image]).await?;
-
-                progress.set_message("deploying");
-                sync_cmd_ok(&[
-                    "gcloud", "run", "deploy", "oort-leaderboard-service", "--image", &container_image, "--allow-unauthenticated", "--region=us-west1", "--cpu=1", "--memory=1G", "--timeout=20s", "--concurrency=1", "--max-instances=3", "--service-account=oort-leaderboard-service@oort-319301.iam.gserviceaccount.com",
-                ]).await?;
-            }
-
-            progress.finish_with_message("done");
-            Ok(())
-        }}));
-    }
-
-    if args.components.contains(&Component::Shortcode) {
-        let secrets = secrets.clone();
-        tasks.spawn(Retry::spawn(retry_strategy(), move || {
-            let secrets = secrets.clone();
-            async move {
-                let progress = create_progress_bar("shortcode");
-
-                progress.set_message("building");
-                sync_cmd_ok(&[
-                    "docker",
-                    "build",
-                    "-f",
-                    "services/shortcode/Dockerfile",
-                    "--tag",
-                    "oort_shortcode_service",
-                    "--build-arg",
-                    &format!(
-                        "OORT_CODE_ENCRYPTION_SECRET={}",
-                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
-                    ),
-                    ".",
-                ])
-                .await?;
-
-                if !dry_run {
-                    let container_image = format!("{PROJECT}/services/oort_shortcode_service");
-
-                    progress.set_message("tagging");
-                    sync_cmd_ok(&[
-                        "docker",
-                        "tag",
-                        "oort_shortcode_service:latest",
-                        &container_image,
-                    ])
-                    .await?;
-
-                    progress.set_message("pushing image");
-                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
-
-                    progress.set_message("deploying");
-                    sync_cmd_ok(&[
-                    "gcloud",
-                    "run",
-                    "deploy",
-                    "oort-shortcode-service",
-                    "--image",
-                    &container_image,
-                    "--allow-unauthenticated",
-                    "--region=us-west1",
-                    "--cpu=1",
-                    "--memory=1G",
-                    "--timeout=20s",
-                    "--concurrency=1",
-                    "--max-instances=3",
-                    "--service-account=oort-shortcode-service@oort-319301.iam.gserviceaccount.com",
-                ])
-                .await?;
-                }
-
-                progress.finish_with_message("done");
-                Ok(())
-            }
-        }));
-    }
-
-    if args.components.contains(&Component::Tournament) {
-        let secrets = secrets.clone();
-        tasks.spawn(Retry::spawn(retry_strategy(), move || {
-            let secrets = secrets.clone();
-            async move {
-                let progress = create_progress_bar("tournament");
-
-                progress.set_message("building");
-                sync_cmd_ok(&[
-                    "docker",
-                    "build",
-                    "-f",
-                    "services/tournament/Dockerfile",
-                    "--tag",
-                    "oort_tournament_service",
-                    "--build-arg",
-                    &format!(
-                        "OORT_CODE_ENCRYPTION_SECRET={}",
-                        secrets["OORT_CODE_ENCRYPTION_SECRET"].as_str().unwrap()
-                    ),
-                    ".",
-                ])
-                .await?;
-
-                if !dry_run {
-                    let container_image = format!("{PROJECT}/services/oort_tournament_service");
-
-                    progress.set_message("tagging");
-                    sync_cmd_ok(&[
-                        "docker",
-                        "tag",
-                        "oort_tournament_service:latest",
-                        &container_image,
-                    ])
-                    .await?;
-
-                    progress.set_message("pushing image");
-                    sync_cmd_ok(&["docker", "push", &container_image]).await?;
-
-                    progress.set_message("deploying");
-                    sync_cmd_ok(&[
-                    "gcloud",
-                    "run",
-                    "deploy",
-                    "oort-tournament-service",
-                    "--image",
-                    &container_image,
-                    "--allow-unauthenticated",
-                    "--region=us-west1",
-                    "--cpu=1",
-                    "--memory=1G",
-                    "--timeout=20s",
-                    "--concurrency=1",
-                    "--max-instances=3",
-                    "--service-account=oort-tournament-service@oort-319301.iam.gserviceaccount.com",
                 ])
                 .await?;
                 }

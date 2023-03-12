@@ -27,7 +27,7 @@ pub fn compiler_url() -> String {
 pub fn backend_url() -> String {
     if is_local() {
         log::info!("Using backend service on localhost");
-        "http://localhost:8086".to_owned()
+        "http://localhost:8082".to_owned()
     } else {
         "https://backend.oort.rs".to_owned()
     }

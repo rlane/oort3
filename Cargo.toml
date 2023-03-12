@@ -13,10 +13,6 @@ members = [
 
     "services/backend",
     "services/compiler",
-    "services/telemetry",
-    "services/leaderboard",
-    "services/shortcode",
-    "services/tournament",
 
     "tools",
 ]

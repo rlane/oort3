@@ -48,14 +48,7 @@ fn main() -> Result<()> {
     .spawn()?
     .wait()?;
 
-    let services = [
-        ("compiler", 8081),
-        ("telemetry", 8082),
-        ("leaderboard", 8083),
-        ("shortcode", 8084),
-        ("tournament", 8085),
-        ("backend", 8086),
-    ];
+    let services = [("compiler", 8081), ("backend", 8082)];
 
     let mut children = vec![];
     for (name, port) in services.iter() {
