@@ -8,6 +8,7 @@ pub struct Compiler {
     offline: bool,
 }
 
+#[allow(clippy::new_without_default)]
 impl Compiler {
     pub fn new() -> Compiler {
         let tmp_dir = tempdir::TempDir::new("oort_compiler").unwrap();
@@ -158,7 +159,7 @@ impl Compiler {
 }
 
 fn find_rlib(tmp_path: &Path, crate_name: &str) -> PathBuf {
-    for entry in glob::glob(
+    if let Some(path) = glob::glob(
         tmp_path
             .join(format!(
                 "target/wasm32-unknown-unknown/release/deps/lib{crate_name}-*.rlib"
@@ -168,8 +169,9 @@ fn find_rlib(tmp_path: &Path, crate_name: &str) -> PathBuf {
             .unwrap(),
     )
     .unwrap()
+    .next()
     {
-        return entry.unwrap();
+        return path.unwrap();
     }
     panic!("{crate_name} rlib not found");
 }

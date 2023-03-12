@@ -6,8 +6,8 @@ ARG DISCORD_TELEMETRY_WEBHOOK
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
-  cd services/telemetry && cargo install --locked --path .
+  --mount=type=cache,target=/usr/src/app/target,id=services_target,sharing=locked \
+  cd services/telemetry && cargo install --profile service --locked --path .
 
 FROM rust:1.68.0-slim-buster
 RUN useradd -m app

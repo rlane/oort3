@@ -27,15 +27,9 @@ fn main() -> Result<()> {
         log::info!("Missing secrets file");
     }
 
-    cmd(&[
-        "cargo",
-        "build",
-        "-q",
-        "--manifest-path",
-        "services/Cargo.toml",
-    ])
-    .spawn()?
-    .wait()?;
+    cmd(&["cargo", "build", "--workspace", "--bins"])
+        .spawn()?
+        .wait()?;
 
     let compiler_tmp_dir = "/tmp/oort-ai";
     if std::fs::metadata(compiler_tmp_dir).is_ok() {
@@ -46,8 +40,6 @@ fn main() -> Result<()> {
         "cargo",
         "run",
         "-q",
-        "--manifest-path",
-        "services/Cargo.toml",
         "-p",
         "oort_compiler_service",
         "--",
@@ -66,19 +58,11 @@ fn main() -> Result<()> {
 
     let mut children = vec![];
     for (name, port) in services.iter() {
-        let child = cmd(&[
-            "cargo",
-            "run",
-            "-q",
-            "--manifest-path",
-            "services/Cargo.toml",
-            "-p",
-            &format!("oort_{name}_service"),
-        ])
-        .env("RUST_LOG", &format!("none,oort_{name}_service=debug"))
-        .env("ENVIRONMENT", "dev")
-        .env("PORT", &port.to_string())
-        .spawn()?;
+        let child = cmd(&["cargo", "run", "-q", "-p", &format!("oort_{name}_service")])
+            .env("RUST_LOG", &format!("none,oort_{name}_service=debug"))
+            .env("ENVIRONMENT", "dev")
+            .env("PORT", &port.to_string())
+            .spawn()?;
         children.push(ChildGuard(child));
     }
 

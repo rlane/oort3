@@ -1,9 +1,9 @@
 [alias]
-oort-release = "run -q --manifest-path tools/Cargo.toml --bin release --"
-oort-rebuild-ai = "run -q --manifest-path tools/Cargo.toml --bin build-builtin-ais --"
-oort-serve = "run -q --manifest-path tools/Cargo.toml --bin serve --"
-oort-tournament = "run -q --manifest-path tools/Cargo.toml --bin tournament --"
-oort-compiler-loadtest = "run -q --manifest-path tools/Cargo.toml --bin compiler-loadtest -- --users 20 --run-time 2m --hatch-rate 100 --no-reset-metrics --no-scenario-metrics --no-transaction-metrics"
+oort-release = "run --bin release --"
+oort-rebuild-ai = "run --bin build-builtin-ais --"
+oort-serve = "run --bin serve --"
+oort-tournament = "run --bin tournament --"
+oort-compiler-loadtest = "run --bin compiler-loadtest -- --users 20 --run-time 2m --hatch-rate 100 --no-reset-metrics --no-scenario-metrics --no-transaction-metrics"
 
 [registries.crates-io]
 protocol = "sparse"

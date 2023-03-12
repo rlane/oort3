@@ -18,7 +18,7 @@ fn project_id() -> &'static str {
 async fn submit_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id()).await?;
     let payload = req.payload().await?;
-    let mut obj: TournamentSubmission = serde_json::from_slice(&payload)?;
+    let mut obj: TournamentSubmission = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();
     log::debug!("{:?}", obj);
     let docid = format!("{}.{}", obj.scenario_name, obj.userid);

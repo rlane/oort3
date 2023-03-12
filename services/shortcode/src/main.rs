@@ -185,7 +185,7 @@ fn generate_docid() -> String {
 async fn post_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id()).await?;
     let payload = req.payload().await?;
-    let mut obj: ShortcodeUpload = serde_json::from_slice(&payload)?;
+    let mut obj: ShortcodeUpload = serde_json::from_slice(payload)?;
     obj.timestamp = Utc::now();
     let docid = generate_docid();
     db.create_obj("shortcode", &docid, &obj).await?;

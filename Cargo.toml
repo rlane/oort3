@@ -1,0 +1,49 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "shared/simulator",
+    "shared/ai",
+    "shared/api",
+    "shared/proto",
+    "shared/envelope",
+    "shared/code_encryption",
+    "shared/version",
+    "shared/compiler",
+
+    "services/compiler",
+    "services/telemetry",
+    "services/leaderboard",
+    "services/shortcode",
+    "services/tournament",
+
+    "tools",
+]
+
+[patch.crates-io]
+rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
+
+[profile.dev.package.'*']
+opt-level = 1
+
+[profile.dev.package.oort_simulator]
+opt-level = 1
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+debug = true
+lto = "thin"
+incremental = true
+
+[profile.service]
+inherits = "release"
+opt-level = "s"
+lto = false
+incremental = true
+
+[profile.bench]
+debug = true
+lto = "thin"
+incremental = true

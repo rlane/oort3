@@ -6,7 +6,7 @@ COPY Cargo.lock.user Cargo.lock
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
+  --mount=type=cache,target=/usr/src/app/target,id=services_target,sharing=locked \
   cd dummy && cargo fetch && cp -a /usr/local/cargo/registry /registry
 
 # builder
@@ -17,8 +17,8 @@ ARG OORT_CODE_ENCRYPTION_SECRET
 RUN \
   --mount=type=cache,target=/usr/local/cargo/registry \
   --mount=type=cache,target=/usr/local/cargo/git \
-  --mount=type=cache,target=/usr/src/app/services/target,sharing=locked \
-  cd services/compiler && cargo install --locked --path .
+  --mount=type=cache,target=/usr/src/app/target,id=services_target,sharing=locked \
+  cd services/compiler && cargo install --profile service --locked --path .
 
 # service
 FROM rust:1.68.0-slim-buster

@@ -8,7 +8,7 @@ use tokio_retry::strategy::ExponentialBackoff;
 use tokio_retry::Retry;
 
 const PROJECT: &str = "us-west1-docker.pkg.dev/oort-319301";
-const WORKSPACES: &[&str] = &["frontend", "tools", "shared", "services", "tools"];
+const WORKSPACES: &[&str] = &[".", "frontend"];
 static PROGRESS: Lazy<MultiProgress> = Lazy::new(MultiProgress::new);
 
 #[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
@@ -604,11 +604,11 @@ async fn main() -> anyhow::Result<()> {
             let progress = create_progress_bar("tools");
 
             progress.set_message("building");
-            sync_cmd_ok(&["cargo", "build", "--manifest-path", "tools/Cargo.toml"]).await?;
+            sync_cmd_ok(&["cargo", "build", "--bins"]).await?;
 
             std::fs::create_dir_all("scratch/tools")?;
 
-            for entry in std::fs::read_dir("tools/target/debug")? {
+            for entry in std::fs::read_dir("target/debug")? {
                 let entry = entry?;
                 if entry.metadata()?.is_file() && entry.metadata()?.mode() & 1 != 0 {
                     let dst: PathBuf = [
@@ -640,27 +640,11 @@ async fn main() -> anyhow::Result<()> {
 
     if args.components.contains(&Component::Doc) {
         log::info!("Building docs");
-        sync_cmd_ok(&[
-            "cargo",
-            "doc",
-            "--manifest-path",
-            "shared/Cargo.toml",
-            "-p",
-            "oort_api",
-        ])
-        .await?;
+        sync_cmd_ok(&["cargo", "doc", "-p", "oort_api"]).await?;
 
         if !dry_run && bump_version {
             log::info!("Publishing docs");
-            sync_cmd_ok(&[
-                "cargo",
-                "publish",
-                "--manifest-path",
-                "shared/Cargo.toml",
-                "-p",
-                "oort_api",
-            ])
-            .await?;
+            sync_cmd_ok(&["cargo", "publish", "-p", "oort_api"]).await?;
         }
     }
 
