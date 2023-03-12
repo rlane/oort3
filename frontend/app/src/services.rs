@@ -24,39 +24,12 @@ pub fn compiler_url() -> String {
     }
 }
 
-pub fn telemetry_url() -> String {
+pub fn backend_url() -> String {
     if is_local() {
-        log::info!("Using telemetry service on localhost");
-        "http://localhost:8082".to_owned()
+        log::info!("Using backend service on localhost");
+        "http://localhost:8086".to_owned()
     } else {
-        "https://telemetry.oort.rs".to_owned()
-    }
-}
-
-pub fn leaderboard_url() -> String {
-    if is_local() {
-        log::info!("Using leaderboard service on localhost");
-        "http://localhost:8083".to_owned()
-    } else {
-        "https://leaderboard.oort.rs".to_owned()
-    }
-}
-
-pub fn shortcode_url() -> String {
-    if is_local() {
-        log::info!("Using shortcode service on localhost");
-        "http://localhost:8084".to_owned()
-    } else {
-        "https://shortcode.oort.rs".to_owned()
-    }
-}
-
-pub fn tournament_url() -> String {
-    if is_local() {
-        log::info!("Using tournament service on localhost");
-        "http://localhost:8085".to_owned()
-    } else {
-        "https://tournament.oort.rs".to_owned()
+        "https://backend.oort.rs".to_owned()
     }
 }
 
@@ -79,7 +52,7 @@ pub fn get_leaderboard(
 ) {
     let url = format!(
         "{}/leaderboard?scenario_name={}",
-        leaderboard_url(),
+        backend_url(),
         scenario_name
     );
     wasm_bindgen_futures::spawn_local(async move {
@@ -101,7 +74,7 @@ pub fn post_leaderboard(
     callback: yew::Callback<Result<LeaderboardData, anyhow::Error>>,
 ) {
     wasm_bindgen_futures::spawn_local(async move {
-        let url = format!("{}/leaderboard", leaderboard_url());
+        let url = format!("{}/leaderboard", backend_url());
         let body = oort_envelope::add(&serde_json::to_vec(&msg).unwrap());
         let jsdata = js_sys::Uint8Array::new_with_length(body.len() as u32);
         jsdata.copy_from(&body);
@@ -130,7 +103,7 @@ pub fn send_telemetry(payload: Telemetry) {
         username,
     };
     wasm_bindgen_futures::spawn_local(async move {
-        let url = format!("{}/post", telemetry_url());
+        let url = format!("{}/telemetry", backend_url());
         let body = serde_json::to_string(&msg).unwrap();
         log::info!("Sending telemetry: {}", body);
         let result = send_request(Request::post(&url).body(body)).await;
@@ -158,7 +131,7 @@ pub fn format(text: String, cb: yew::Callback<String>) {
 pub async fn get_shortcode(shortcode: &str) -> anyhow::Result<String> {
     let response = send_request(Request::get(&format!(
         "{}/shortcode/{}",
-        shortcode_url(),
+        backend_url(),
         shortcode
     )))
     .await?;
@@ -176,7 +149,7 @@ pub async fn upload_shortcode(code: &str) -> anyhow::Result<String> {
     };
     let body = serde_json::to_string(&msg).unwrap();
     let response =
-        send_request(Request::post(&format!("{}/shortcode", shortcode_url())).body(body)).await?;
+        send_request(Request::post(&format!("{}/shortcode", backend_url())).body(body)).await?;
     response.text().await.map_err(|e| e.into())
 }
 
@@ -191,7 +164,7 @@ pub async fn submit_to_tournament(scenario_name: &str, code: &str) -> anyhow::Re
         code: code.to_string(),
     };
     let body = serde_json::to_string(&msg).unwrap();
-    send_request(Request::post(&format!("{}/tournament/submit", tournament_url())).body(body))
+    send_request(Request::post(&format!("{}/tournament/submit", backend_url())).body(body))
         .await?;
     Ok(())
 }
@@ -199,7 +172,7 @@ pub async fn submit_to_tournament(scenario_name: &str, code: &str) -> anyhow::Re
 pub async fn get_tournament_results(id: &str) -> anyhow::Result<TournamentResults> {
     let response = send_request(Request::get(&format!(
         "{}/tournament/results/{}",
-        tournament_url(),
+        backend_url(),
         id
     )))
     .await?;
