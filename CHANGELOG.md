@@ -1,3 +1,5 @@
+- Fixed dragging causing ships to be deselected.
+
 ### 0.44.0
 
 - Updated to Rust 1.68.0.

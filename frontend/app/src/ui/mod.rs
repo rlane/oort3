@@ -46,6 +46,7 @@ pub struct UI {
     status_ref: NodeRef,
     picked_ref: NodeRef,
     touches: HashMap<i32, Touch>,
+    drag_start: Option<Point2<i32>>,
     needs_render: bool,
 }
 
@@ -106,6 +107,7 @@ impl UI {
             status_ref,
             picked_ref,
             touches: HashMap::new(),
+            drag_start: None,
             needs_render: true,
         }
     }
@@ -355,26 +357,6 @@ impl UI {
         self.needs_render = true;
     }
 
-    pub fn on_mouse_event(&mut self, e: web_sys::MouseEvent) {
-        let target = self.renderer.unproject(e.offset_x(), e.offset_y())
-            + vector![self.camera_target.x as f64, self.camera_target.y as f64];
-        let extra_radius =
-            (self.renderer.unproject(10, 0) - self.renderer.unproject(0, 0)).magnitude();
-        self.picked_ship_id = self.snapshot.as_ref().and_then(|snapshot| {
-            snapshot
-                .ships
-                .iter()
-                .filter(|ship| {
-                    nalgebra::distance(&ship.position, &target)
-                        < Self::ship_pick_radius(ship.class) + extra_radius
-                })
-                .min_by_key(|ship| nalgebra::distance(&ship.position, &target) as i64)
-                .map(|ship| ship.id)
-        });
-        self.update_picked();
-        self.needs_render = true;
-    }
-
     fn ship_pick_radius(class: ShipClass) -> f64 {
         match class {
             ShipClass::Planet => 2000.0,
@@ -383,11 +365,6 @@ impl UI {
     }
 
     pub fn on_pointer_event(&mut self, e: web_sys::PointerEvent) {
-        if e.buttons() == 0 {
-            self.touches.remove(&e.pointer_id());
-            return;
-        }
-
         let bounds = self.canvas.get_bounding_client_rect();
         let canvas_position = point![
             e.client_x() - bounds.x() as i32,
@@ -395,25 +372,60 @@ impl UI {
         ];
         let world_position = self
             .renderer
-            .unproject(canvas_position.x, canvas_position.y);
+            .unproject(canvas_position.x, canvas_position.y)
+            + vector![self.camera_target.x as f64, self.camera_target.y as f64];
+
         log::debug!(
-            "PointerEvent: pointer_id={} pointer_type={} x={} y={} buttons={}",
+            "PointerEvent: pointer_id={} pointer_type={} buttons={} canvas={:?} world={:?}",
             e.pointer_id(),
             e.pointer_type(),
-            canvas_position.x,
-            canvas_position.y,
-            e.buttons()
+            e.buttons(),
+            canvas_position,
+            world_position
         );
+
+        if e.buttons() == 0 {
+            self.touches.remove(&e.pointer_id());
+            if let Some(start_canvas_position) = std::mem::take(&mut self.drag_start) {
+                if (canvas_position - start_canvas_position)
+                    .cast::<f64>()
+                    .magnitude()
+                    < 10.0
+                {
+                    let extra_radius = (self.renderer.unproject(10, 0)
+                        - self.renderer.unproject(0, 0))
+                    .magnitude();
+                    self.picked_ship_id = self.snapshot.as_ref().and_then(|snapshot| {
+                        snapshot
+                            .ships
+                            .iter()
+                            .filter(|ship| {
+                                nalgebra::distance(&ship.position, &world_position)
+                                    < Self::ship_pick_radius(ship.class) + extra_radius
+                            })
+                            .min_by_key(|ship| {
+                                nalgebra::distance(&ship.position, &world_position) as i64
+                            })
+                            .map(|ship| ship.id)
+                    });
+                    self.update_picked();
+                    self.needs_render = true;
+                }
+            }
+            return;
+        }
 
         if let Some(touch) = self.touches.get_mut(&e.pointer_id()) {
             let diff = (touch.world_position - world_position).cast();
             self.camera_target += diff;
             self.renderer.set_view(self.zoom, self.camera_target);
-            // TODO Should not be necessary
-            touch.world_position = world_position;
         } else {
             self.touches
                 .insert(e.pointer_id(), Touch { world_position });
+        }
+
+        if self.drag_start.is_none() {
+            self.drag_start = Some(canvas_position);
         }
 
         self.needs_render = true;

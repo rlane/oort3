@@ -18,7 +18,6 @@ pub enum Msg {
     Render,
     KeyEvent(web_sys::KeyboardEvent),
     WheelEvent(web_sys::WheelEvent),
-    MouseEvent(web_sys::MouseEvent),
     PointerEvent(web_sys::PointerEvent),
     BlurEvent(web_sys::FocusEvent),
     RequestSnapshot,
@@ -125,12 +124,6 @@ impl Component for SimulationWindow {
                 }
                 false
             }
-            Msg::MouseEvent(e) => {
-                if let Some(ui) = self.ui.as_mut() {
-                    ui.on_mouse_event(e);
-                }
-                false
-            }
             Msg::PointerEvent(e) => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.on_pointer_event(e);
@@ -170,7 +163,6 @@ impl Component for SimulationWindow {
     fn view(&self, context: &yew::Context<Self>) -> Html {
         let key_event_cb = context.link().callback(Msg::KeyEvent);
         let wheel_event_cb = context.link().callback(Msg::WheelEvent);
-        let mouse_event_cb = context.link().callback(Msg::MouseEvent);
         let pointer_event_cb = context.link().callback(Msg::PointerEvent);
         let blur_event_cb = context.link().callback(Msg::BlurEvent);
 
@@ -183,9 +175,9 @@ impl Component for SimulationWindow {
                         onkeydown={key_event_cb.clone()}
                         onkeyup={key_event_cb}
                         onwheel={wheel_event_cb}
-                        onclick={mouse_event_cb}
                         onpointermove={pointer_event_cb.clone()}
-                        onpointerup={pointer_event_cb}
+                        onpointerup={pointer_event_cb.clone()}
+                        onpointerdown={pointer_event_cb}
                         onblur={blur_event_cb} />
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
