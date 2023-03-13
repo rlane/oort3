@@ -66,7 +66,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn new(scenario_name: &str, seed: u32, codes: &[Code]) -> Box<Simulation> {
-        log::info!("seed {seed}");
+        log::debug!("seed {seed}");
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
         let mut sim = Box::new(Simulation {
             scenario: None,
