@@ -1,32 +1,31 @@
+use axum::extract::State;
+use axum::Router;
 use bytes::Bytes;
 use clap::Parser as _;
+use http::{Method, StatusCode};
 use once_cell::sync::Lazy;
 use oort_compiler::Compiler;
-use salvo::cors::Cors;
-use salvo::prelude::*;
+use oort_compiler_service::{error, Error};
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use tempfile::NamedTempFile;
 use tokio::process::Command;
+use tower_http::cors::{Any, CorsLayer};
 
 const MAX_CONCURRENCY: usize = 3;
-static LOCK: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
+static FORMAT_LOCK: Lazy<tokio::sync::Mutex<()>> = Lazy::new(|| tokio::sync::Mutex::new(()));
 static SEMAPHORE: Lazy<tokio::sync::Semaphore> =
     Lazy::new(|| tokio::sync::Semaphore::new(MAX_CONCURRENCY));
 
-async fn compile_internal(
-    compiler: Arc<Mutex<Compiler>>,
-    req: &mut Request,
-    res: &mut Response,
-) -> anyhow::Result<()> {
+async fn post_compile(
+    State(compiler): State<Arc<Mutex<Compiler>>>,
+    mut code: String,
+) -> Result<Bytes, Error> {
     let permit = SEMAPHORE.try_acquire();
     if permit.is_err() {
-        return Err(anyhow::anyhow!("Service overloaded"));
+        Err(anyhow::anyhow!("Service overloaded"))?
     }
 
-    log::debug!("Got compile request {:?}", req);
-    let payload = req.payload().await?;
-    let mut code = std::str::from_utf8(payload)?.to_string();
     if oort_code_encryption::is_encrypted(&code) {
         log::debug!("Encrypted code: {}", code);
         code = oort_code_encryption::decrypt(&code)?;
@@ -41,46 +40,18 @@ async fn compile_internal(
     match result {
         Ok(wasm) => {
             log::info!("Compile succeeded in {:?}", elapsed);
-            res.write_body(Bytes::copy_from_slice(&wasm))?;
-            Ok(())
+            Ok(Bytes::copy_from_slice(&wasm))
         }
         Err(e) => {
             log::info!("Compile failed in {:?}", elapsed);
-            res.set_status_code(StatusCode::BAD_REQUEST);
             log::debug!("Compile failed: {}", e);
-            res.render(e.to_string());
-            Ok(())
+            Err(error(StatusCode::BAD_REQUEST, e.to_string()))
         }
     }
 }
 
-struct CompileHandler {
-    compiler: Arc<Mutex<Compiler>>,
-}
-
-#[async_trait]
-impl Handler for CompileHandler {
-    async fn handle(
-        &self,
-        req: &mut Request,
-        _depot: &mut Depot,
-        res: &mut Response,
-        _ctrl: &mut FlowCtrl,
-    ) {
-        if let Err(e) = compile_internal(self.compiler.clone(), req, res).await {
-            log::error!("compile request error: {}", e);
-            res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-            res.render(e.to_string());
-        }
-    }
-}
-
-async fn format_internal(req: &mut Request, res: &mut Response) -> anyhow::Result<()> {
-    let _guard = LOCK.lock().await;
-    log::debug!("Got format request {:?}", req);
-    let payload = req.payload().await?;
-    let code = std::str::from_utf8(payload)?;
-    log::debug!("Code: {}", code);
+async fn post_format(code: String) -> Result<String, Error> {
+    let _guard = FORMAT_LOCK.lock().await;
     let mut tmpfile = NamedTempFile::new()?;
     tmpfile.write_all(code.as_bytes())?;
     let start_time = std::time::Instant::now();
@@ -91,32 +62,14 @@ async fn format_internal(req: &mut Request, res: &mut Response) -> anyhow::Resul
     let elapsed = std::time::Instant::now() - start_time;
     if !output.status.success() {
         log::info!("Format failed in {:?}", elapsed);
-        res.set_status_code(StatusCode::BAD_REQUEST);
         let stdout = std::str::from_utf8(&output.stdout)?;
         let stderr = std::str::from_utf8(&output.stderr)?;
         log::debug!("Format failed: stderr={}\nstdout={}", stderr, stdout);
-        res.render(stderr.to_string());
-        return Ok(());
+        return Err(error(StatusCode::BAD_REQUEST, stderr.to_string()));
     }
     log::info!("Format succeeded in {:?}", elapsed);
-    log::debug!("Format finished: {}", std::str::from_utf8(&output.stderr)?);
-    let formatted = std::fs::read(tmpfile.path())?;
-    res.write_body(Bytes::copy_from_slice(&formatted))?;
-    Ok(())
-}
-
-#[handler]
-async fn format(req: &mut Request, res: &mut Response) {
-    if let Err(e) = format_internal(req, res).await {
-        log::error!("Format request error: {}", e);
-        res.set_status_code(StatusCode::INTERNAL_SERVER_ERROR);
-        res.render(e.to_string());
-    }
-}
-
-#[handler]
-async fn nop(_req: &mut Request, res: &mut Response) {
-    res.render("");
+    let formatted = std::fs::read_to_string(tmpfile.path())?;
+    Ok(formatted)
 }
 
 #[tokio::main]
@@ -155,23 +108,25 @@ async fn main() {
         return;
     }
 
-    let cors_handler = Cors::builder()
-        .allow_any_origin()
-        .allow_methods(vec!["POST", "OPTIONS"])
-        .allow_header("content-type")
-        .build();
-
-    let router = Router::with_hoop(cors_handler)
-        .push(
-            Router::with_path("/compile")
-                .post(CompileHandler {
-                    compiler: Arc::new(Mutex::new(compiler)),
-                })
-                .options(nop),
-        )
-        .push(Router::with_path("/format").post(format).options(nop));
     log::info!("Starting oort_compiler_service v1");
-    Server::new(TcpListener::bind(&format!("0.0.0.0:{port}")))
-        .serve(router)
-        .await;
+
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_origin(Any)
+        .allow_headers(Any);
+
+    let router = {
+        use axum::routing::post;
+        Router::new()
+            .route("/compile", post(post_compile))
+            .route("/format", post(post_format))
+            .layer(cors)
+            .layer(tower_http::trace::TraceLayer::new_for_http())
+            .with_state(Arc::new(Mutex::new(compiler)))
+    };
+
+    axum::Server::bind(&format!("0.0.0.0:{port}").parse().unwrap())
+        .serve(router.into_make_service())
+        .await
+        .unwrap();
 }

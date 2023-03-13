@@ -7,8 +7,7 @@ edition = "2021"
 [dependencies]
 oort_code_encryption = { path = "../../shared/code_encryption" }
 oort_compiler = { path = "../../shared/compiler" }
-salvo = { version="0.37", features=["cors"] }
-tokio = { version = "1", features = ["macros", "process"] }
+tokio = { version = "1", features = ["macros", "process", "rt-multi-thread"] }
 anyhow = "1.0"
 bytes = "1.1"
 log = "0.4.17"
@@ -18,3 +17,7 @@ regex = "1.6.0"
 lazy_static = "1.4.0"
 clap = { version = "3.2.22", features = ["derive"] }
 tempfile = "3.3.0"
+axum = "0.6.10"
+tower-http = { version = "0.4.0", features = ["cors", "trace"] }
+http = "0.2.9"
+tracing-subscriber = "0.3.16"
