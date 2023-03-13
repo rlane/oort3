@@ -23,7 +23,7 @@ gcloud iam service-accounts create oort-backend-service
 gcloud iam service-accounts create oort-compiler-service
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:oort-backend-service@${PROJECT_ID}.iam.gserviceaccount.com" --role='roles/datastore.user'
 
-while !gcloud --project $PROJECT_ID artifacts repositories create services --repository-format=docker --location=$REGION; do
+while ! gcloud --project $PROJECT_ID artifacts repositories create services --repository-format=docker --location=$REGION; do
   sleep 10
 done
 
@@ -33,5 +33,5 @@ gcloud --project $PROJECT_ID firestore databases create --region=$REGION
 (cd firebase && eval "$(fnm env)" && fnm use && npx firebase --project $PROJECT_ID projects:addfirebase $PROJECT_ID)
 
 # Push services first to get URLs
-cargo oort-release -s --skip-git-checks --skip-github --project $PROJECT_ID -c backend,compiler
-cargo oort-release -s --skip-git-checks --skip-github --project $PROJECT_ID -c app,tools
+cargo oort-release -s --skip-git-checks --skip-github --no-secrets --project $PROJECT_ID -c backend,compiler
+cargo oort-release -s --skip-git-checks --skip-github --no-secrets --project $PROJECT_ID -c app,tools
