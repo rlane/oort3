@@ -7,7 +7,6 @@ use oort_api::Ability;
 use rand::Rng;
 use rand_distr::StandardNormal;
 use rapier2d_f64::prelude::*;
-use rng::SeededRng;
 use static_aabb2d_index::{StaticAABB2DIndex, StaticAABB2DIndexBuilder};
 use std::collections::HashMap;
 use std::f64::consts::TAU;
@@ -83,6 +82,7 @@ struct RadarEmitter {
     center: Point2<f64>,
     width: f64,
     start_bearing: f64,
+    bearing: f64,
     end_bearing: f64,
     min_distance: f64,
     max_distance: f64,
@@ -189,6 +189,7 @@ pub fn tick(sim: &mut Simulation) {
                 rx_cross_section: radar.rx_cross_section,
                 width: w,
                 start_bearing: h - 0.5 * w,
+                bearing: h,
                 end_bearing: h + 0.5 * w,
                 min_distance: radar.min_distance,
                 max_distance,
@@ -225,10 +226,39 @@ pub fn tick(sim: &mut Simulation) {
                 }
             }
 
-            let result = best_reflector.map(|reflector| ScanResult {
-                class: reflector.class,
-                position: reflector.position.coords + noise(&mut rng, best_rssi),
-                velocity: reflector.velocity + noise(&mut rng, best_rssi),
+            let result = best_reflector.map(|reflector| {
+                const BEARING_NOISE: f64 = 0.0001;
+                const DISTANCE_NOISE: f64 = 1.0;
+                const VELOCITY_NOISE: f64 = 1.0;
+                let dp = reflector.position - emitter.center;
+                let beam_rot = Rotation2::new(emitter.bearing);
+                let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
+                let mut noisy_bearing: f64 = reflector_rot.angle()
+                    + rng.sample::<f64, _>(StandardNormal) * (BEARING_NOISE / best_rssi);
+                {
+                    let angle_to = Rotation2::new(noisy_bearing).angle_to(&beam_rot);
+                    if angle_to > emitter.width * 0.5 {
+                        noisy_bearing = emitter.bearing - emitter.width * 0.5;
+                    } else if angle_to < -emitter.width * 0.5 {
+                        noisy_bearing = emitter.bearing + emitter.width * 0.5;
+                    }
+                }
+
+                let mut distance = (reflector.position - emitter.center).magnitude();
+                distance += rng.sample::<f64, _>(StandardNormal) * (DISTANCE_NOISE / best_rssi);
+                distance = distance.clamp(emitter.min_distance, emitter.max_distance);
+
+                let position = emitter.center.coords
+                    + Rotation2::new(noisy_bearing).transform_vector(&vector![distance, 0.0]);
+                let velocity = reflector.velocity
+                    + vector![rng.sample(StandardNormal), rng.sample(StandardNormal)]
+                        * (VELOCITY_NOISE / best_rssi);
+
+                ScanResult {
+                    class: reflector.class,
+                    position,
+                    velocity,
+                }
             });
 
             {
@@ -295,10 +325,6 @@ fn compute_max_detection_range(radar: &Radar, target_cross_section: f64) -> f64 
     (radar.power * target_cross_section * radar.rx_cross_section
         / (TAU * radar.width * radar.min_rssi))
         .sqrt()
-}
-
-fn noise(rng: &mut SeededRng, rssi: f64) -> Vector2<f64> {
-    vector![rng.sample(StandardNormal), rng.sample(StandardNormal)] * (1.0 / rssi)
 }
 
 fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {

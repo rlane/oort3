@@ -46,7 +46,7 @@ impl Ship {
                 ]);
                 let dp = contact.position - position();
                 set_radar_heading(dp.angle());
-                let acc = vec2(-position().x, position().y);
+                let acc = vec2(-position().x, 1.1 * position().y);
                 accelerate(acc);
                 turn_to(acc.angle());
             } else {
