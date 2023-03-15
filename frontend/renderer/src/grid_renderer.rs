@@ -1,5 +1,5 @@
 use super::{buffer_arena, glutil};
-use nalgebra::{vector, Matrix4};
+use nalgebra::{vector, Matrix4, Point2};
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -11,10 +11,8 @@ pub struct GridRenderer {
     color_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
     buffer: WebGlBuffer,
-    coarse_offset: i32,
-    coarse_num_vertices: i32,
-    fine_offset: i32,
-    fine_num_vertices: i32,
+    vertex_offset: i32,
+    num_vertices: i32,
 }
 
 impl GridRenderer {
@@ -60,13 +58,9 @@ void main() {
             1024 * 1024,
         )?;
 
-        let coarse_vertex_data = Self::generate_vertices(1e3);
-        let coarse_num_vertices = (coarse_vertex_data.len() / 2) as i32;
-        let (_, coarse_offset) = buffer_arena.write(&coarse_vertex_data);
-
-        let fine_vertex_data = Self::generate_vertices(1e2);
-        let fine_num_vertices = (fine_vertex_data.len() / 2) as i32;
-        let (buffer, fine_offset) = buffer_arena.write(&fine_vertex_data);
+        let vertex_data = Self::generate_vertices();
+        let num_vertices = (vertex_data.len() / 2) as i32;
+        let (buffer, vertex_offset) = buffer_arena.write(&vertex_data);
 
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
@@ -77,31 +71,28 @@ void main() {
             color_loc,
             projection_matrix: Matrix4::identity(),
             buffer,
-            coarse_offset: coarse_offset as i32,
-            coarse_num_vertices,
-            fine_offset: fine_offset as i32,
-            fine_num_vertices,
+            vertex_offset: vertex_offset as i32,
+            num_vertices,
         })
     }
 
-    fn generate_vertices(grid_size: f32) -> Vec<f32> {
-        use oort_simulator::simulation::WORLD_SIZE;
-
+    fn generate_vertices() -> Vec<f32> {
         let mut vertices = vec![];
-        let n = 1 + (WORLD_SIZE as f32 / grid_size) as i32;
+        let r = 100.0;
+        let n = 101;
         vertices.reserve((2 * (n + 1) * 3) as usize);
         for i in -(n / 2)..(n / 2 + 1) {
             // Vertical
-            vertices.push((i as f32) * grid_size);
-            vertices.push((-WORLD_SIZE as f32) / 2.0);
-            vertices.push((i as f32) * grid_size);
-            vertices.push((WORLD_SIZE as f32) / 2.0);
+            vertices.push(i as f32);
+            vertices.push(-r / 2.0);
+            vertices.push(i as f32);
+            vertices.push(r / 2.0);
 
             // Horizontal
-            vertices.push((-WORLD_SIZE as f32) / 2.0);
-            vertices.push((i as f32) * grid_size);
-            vertices.push((WORLD_SIZE as f32) / 2.0);
-            vertices.push((i as f32) * grid_size);
+            vertices.push(-r / 2.0);
+            vertices.push(i as f32);
+            vertices.push(r / 2.0);
+            vertices.push(i as f32);
         }
 
         vertices
@@ -111,18 +102,10 @@ void main() {
         self.projection_matrix = *m;
     }
 
-    pub fn draw(&mut self, zoom: f32) {
+    pub fn draw(&mut self, zoom: f32, camera_target: Point2<f32>) {
         let f = |z: f32| 0.2 * (zoom * z * 10.0).log(10.0).clamp(0.0, 1.0);
-        let fine_color = vector![0.0, f(1e3), 0.0, 1.0];
-        let coarse_color = vector![0.0, f(1e4), 0.0, 1.0];
 
         self.context.use_program(Some(&self.program));
-
-        self.context.uniform_matrix4fv_with_f32_array(
-            Some(&self.transform_loc),
-            false,
-            self.projection_matrix.data.as_slice(),
-        );
 
         self.context.line_width(1.0);
 
@@ -135,31 +118,28 @@ void main() {
             /*type_=*/ gl::FLOAT,
             /*normalized=*/ false,
             /*stride=*/ 0,
-            self.fine_offset,
+            self.vertex_offset,
         );
         self.context.enable_vertex_attrib_array(0);
 
-        self.context
-            .uniform4fv_with_f32_array(Some(&self.color_loc), fine_color.data.as_slice());
+        for scale in [1e2, 1e3] {
+            let color = vector![0.0, f(10.0 * scale), 0.0, 1.0];
+            let offset =
+                (vector![camera_target.x, camera_target.y, 0.0] / scale).map(|x| x.round()) * scale;
+            let matrix = self.projection_matrix
+                * nalgebra::Matrix4::new_translation(&offset)
+                * nalgebra::Matrix4::new_scaling(scale);
+            self.context.uniform_matrix4fv_with_f32_array(
+                Some(&self.transform_loc),
+                false,
+                matrix.data.as_slice(),
+            );
 
-        self.context
-            .draw_arrays(gl::LINES, 0, self.fine_num_vertices);
+            self.context
+                .uniform4fv_with_f32_array(Some(&self.color_loc), color.data.as_slice());
 
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            self.coarse_offset,
-        );
-        self.context.enable_vertex_attrib_array(0);
-
-        self.context
-            .uniform4fv_with_f32_array(Some(&self.color_loc), coarse_color.data.as_slice());
-
-        self.context
-            .draw_arrays(gl::LINES, 0, self.coarse_num_vertices);
+            self.context.draw_arrays(gl::LINES, 0, self.num_vertices);
+        }
 
         self.context.disable_vertex_attrib_array(0);
     }
