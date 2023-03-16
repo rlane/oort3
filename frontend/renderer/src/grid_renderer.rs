@@ -1,18 +1,22 @@
-use super::{buffer_arena, glutil};
-use nalgebra::{vector, Matrix4, Point2};
+use super::buffer_arena::BufferArena;
+use super::{buffer_arena, geometry, glutil};
+use glutil::VertexAttribBuilder;
+use nalgebra::{point, vector, Matrix4, Point2, Vector2};
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
 
 pub struct GridRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
+    pitch_loc: WebGlUniformLocation,
+    offset_loc: WebGlUniformLocation,
     color_loc: WebGlUniformLocation,
+    buffer_arena: BufferArena,
     projection_matrix: Matrix4<f32>,
-    buffer: WebGlBuffer,
-    vertex_offset: i32,
-    num_vertices: i32,
+    pixel_size: f32,
+    bottom_left: Vector2<f32>,
 }
 
 impl GridRenderer {
@@ -34,10 +38,19 @@ void main() {
             gl::FRAGMENT_SHADER,
             r#"#version 300 es
 precision mediump float;
+uniform vec2 pitch;
+uniform vec2 offset;
 uniform vec4 color;
 out vec4 fragmentColor;
+
 void main() {
-    fragmentColor = color;
+    vec2 coord = gl_FragCoord.xy + floor(offset);
+    if (mod(coord.x, pitch[0]) < 1. ||
+        mod(coord.y, pitch[1]) < 1.) {
+        fragmentColor = color;
+    } else {
+        discard;
+    }
 }
     "#,
         )?;
@@ -47,20 +60,24 @@ void main() {
             .get_uniform_location(&program, "transform")
             .ok_or("did not find uniform")?;
 
+        let pitch_loc = context
+            .get_uniform_location(&program, "pitch")
+            .ok_or("did not find uniform")?;
+
+        let offset_loc = context
+            .get_uniform_location(&program, "offset")
+            .ok_or("did not find uniform")?;
+
         let color_loc = context
             .get_uniform_location(&program, "color")
             .ok_or("did not find uniform")?;
 
-        let mut buffer_arena = buffer_arena::BufferArena::new(
+        let buffer_arena = buffer_arena::BufferArena::new(
             "grid_renderer",
             context.clone(),
             gl::ARRAY_BUFFER,
             1024 * 1024,
         )?;
-
-        let vertex_data = Self::generate_vertices();
-        let num_vertices = (vertex_data.len() / 2) as i32;
-        let (buffer, vertex_offset) = buffer_arena.write(&vertex_data);
 
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
@@ -68,79 +85,70 @@ void main() {
             context,
             program,
             transform_loc,
+            pitch_loc,
+            offset_loc,
             color_loc,
+            buffer_arena,
             projection_matrix: Matrix4::identity(),
-            buffer,
-            vertex_offset: vertex_offset as i32,
-            num_vertices,
+            pixel_size: 1.0,
+            bottom_left: vector![0.0, 0.0],
         })
     }
 
-    fn generate_vertices() -> Vec<f32> {
-        let mut vertices = vec![];
-        let r = 100.0;
-        let n = 101;
-        vertices.reserve((2 * (n + 1) * 3) as usize);
-        for i in -(n / 2)..(n / 2 + 1) {
-            // Vertical
-            vertices.push(i as f32);
-            vertices.push(-r / 2.0);
-            vertices.push(i as f32);
-            vertices.push(r / 2.0);
-
-            // Horizontal
-            vertices.push(-r / 2.0);
-            vertices.push(i as f32);
-            vertices.push(r / 2.0);
-            vertices.push(i as f32);
-        }
-
-        vertices
-    }
-
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
+    pub fn update_projection_matrix(&mut self, projection_matrix: &Matrix4<f32>) {
+        self.projection_matrix = *projection_matrix;
+        let screen_height = self.context.drawing_buffer_height() as f32;
+        self.pixel_size = (self.unproject(1, 0) - self.unproject(0, 0)).x as f32;
+        self.bottom_left = self.unproject(0, screen_height as i32).coords.cast::<f32>();
     }
 
     pub fn draw(&mut self, zoom: f32, camera_target: Point2<f32>) {
-        let f = |z: f32| 0.2 * (zoom * z * 10.0).log(10.0).clamp(0.0, 1.0);
-
         self.context.use_program(Some(&self.program));
 
-        self.context.line_width(1.0);
+        let vertices = geometry::quad();
 
-        self.context
-            .bind_buffer(gl::ARRAY_BUFFER, Some(&self.buffer));
+        VertexAttribBuilder::new(&self.context)
+            .data(&mut self.buffer_arena, &vertices)
+            .index(0)
+            .size(2)
+            .build();
 
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            self.vertex_offset,
+        let transform = nalgebra::Matrix4::new_scaling(2.0);
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.transform_loc),
+            false,
+            transform.data.as_slice(),
         );
-        self.context.enable_vertex_attrib_array(0);
 
         for scale in [1e2, 1e3] {
-            let color = vector![0.0, f(10.0 * scale), 0.0, 1.0];
-            let offset =
-                (vector![camera_target.x, camera_target.y, 0.0] / scale).map(|x| x.round()) * scale;
-            let matrix = self.projection_matrix
-                * nalgebra::Matrix4::new_translation(&offset)
-                * nalgebra::Matrix4::new_scaling(scale);
-            self.context.uniform_matrix4fv_with_f32_array(
-                Some(&self.transform_loc),
-                false,
-                matrix.data.as_slice(),
-            );
+            let green = 0.2 * (zoom * scale * 100.0).log(10.0).clamp(0.0, 1.0);
+            let color = vector![0.0, green, 0.0, 1.0];
+            let pitch = vector![scale, scale] / self.pixel_size;
+            let offset = (camera_target.coords + self.bottom_left) / self.pixel_size;
 
+            self.context
+                .uniform2fv_with_f32_array(Some(&self.pitch_loc), pitch.data.as_slice());
+            self.context
+                .uniform2fv_with_f32_array(Some(&self.offset_loc), offset.data.as_slice());
             self.context
                 .uniform4fv_with_f32_array(Some(&self.color_loc), color.data.as_slice());
 
-            self.context.draw_arrays(gl::LINES, 0, self.num_vertices);
+            self.context
+                .draw_arrays(gl::TRIANGLE_STRIP, 0, vertices.len() as i32);
         }
 
         self.context.disable_vertex_attrib_array(0);
+    }
+
+    pub fn unproject(&self, x: i32, y: i32) -> Point2<f64> {
+        let inverse_matrix = self.projection_matrix.try_inverse().unwrap();
+        let device_coords = vector![
+            x as f32 / self.context.drawing_buffer_width() as f32,
+            -y as f32 / self.context.drawing_buffer_height() as f32,
+            0.0
+        ] * 2.0
+            - vector![1.0, -1.0, 0.0];
+        let coords = inverse_matrix.transform_vector(&device_coords);
+        point![coords.x as f64, coords.y as f64]
     }
 }
