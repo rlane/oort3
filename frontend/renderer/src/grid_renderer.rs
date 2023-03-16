@@ -165,7 +165,7 @@ void main() {
         self.context
             .uniform1f(Some(&self.pixel_size_loc), self.pixel_size);
 
-        for scale in [1e2, 1e3] {
+        for scale in [1e2, 1e3, 1e4] {
             let green = 0.2 * (zoom * scale * 100.0).log(10.0).clamp(0.0, 1.0);
             let color = vector![0.0, green, 0.0, 1.0];
             let pitch = vector![scale, scale] / self.pixel_size;
