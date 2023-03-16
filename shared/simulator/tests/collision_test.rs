@@ -1,6 +1,6 @@
 use nalgebra::vector;
 use oort_simulator::ship::{fighter, missile};
-use oort_simulator::simulation::{self, Code, WORLD_SIZE};
+use oort_simulator::simulation::{self, Code};
 use oort_simulator::{bullet, collision, ship};
 use rand::Rng;
 use test_log::test;
@@ -16,8 +16,8 @@ fn test_world_edge() {
     for _ in 0..100 {
         let s = 500.0;
         let r = rng.gen_range(10.0..20.0);
-        let x = rng.gen_range((r - WORLD_SIZE / 2.0)..(WORLD_SIZE / 2.0 - r));
-        let y = rng.gen_range((r - WORLD_SIZE / 2.0)..(WORLD_SIZE / 2.0 - r));
+        let x = rng.gen_range((r - sim.world_size() / 2.0)..(sim.world_size() / 2.0 - r));
+        let y = rng.gen_range((r - sim.world_size() / 2.0)..(sim.world_size() / 2.0 - r));
         let h = rng.gen_range(0.0..(2.0 * std::f32::consts::PI));
         let vx = rng.gen_range(-s..s);
         let vy = rng.gen_range(-s..s);
@@ -36,10 +36,10 @@ fn test_world_edge() {
 
     for &index in sim.ships.iter() {
         let ship = sim.ship(index);
-        assert!(ship.position().x >= -WORLD_SIZE / 2.0);
-        assert!(ship.position().x <= WORLD_SIZE / 2.0);
-        assert!(ship.position().y >= -WORLD_SIZE / 2.0);
-        assert!(ship.position().y <= WORLD_SIZE / 2.0);
+        assert!(ship.position().x >= -sim.world_size() / 2.0);
+        assert!(ship.position().x <= sim.world_size() / 2.0);
+        assert!(ship.position().y >= -sim.world_size() / 2.0);
+        assert!(ship.position().y <= sim.world_size() / 2.0);
     }
 }
 

@@ -2,7 +2,6 @@ use super::buffer_arena::BufferArena;
 use super::{buffer_arena, geometry, glutil};
 use glutil::VertexAttribBuilder;
 use nalgebra::{point, vector, Matrix4, Point2, Vector2};
-use oort_simulator::simulation;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -129,7 +128,7 @@ void main() {
         self.top_right = self.unproject(screen_width as i32, 0).coords.cast::<f32>();
     }
 
-    pub fn draw(&mut self, zoom: f32, _camera_target: Point2<f32>) {
+    pub fn draw(&mut self, zoom: f32, _camera_target: Point2<f32>, world_size: f64) {
         self.context.use_program(Some(&self.program));
 
         let vertices = geometry::quad();
@@ -157,10 +156,8 @@ void main() {
             transform.data.as_slice(),
         );
 
-        self.context.uniform1f(
-            Some(&self.half_world_size_loc),
-            0.5 * simulation::WORLD_SIZE as f32,
-        );
+        self.context
+            .uniform1f(Some(&self.half_world_size_loc), 0.5 * world_size as f32);
 
         self.context
             .uniform1f(Some(&self.pixel_size_loc), self.pixel_size);

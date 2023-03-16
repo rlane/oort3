@@ -23,6 +23,7 @@ pub struct Snapshot {
     pub debug_text: BTreeMap<u64, String>,
     pub drawn_text: BTreeMap<u64, Vec<Text>>,
     pub timing: Timing,
+    pub world_size: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

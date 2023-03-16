@@ -19,7 +19,7 @@ impl Scenario for AsteroidDuel {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 2.0) * 0.9];
+        let bound = vector![(sim.world_size() / 2.0) * 0.9, (sim.world_size() / 2.0) * 0.9];
 
         ship::create(
             sim,
@@ -42,7 +42,7 @@ impl Scenario for AsteroidDuel {
             frigate(1),
         );
 
-        let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 2.0) * 0.9];
+        let bound = vector![(sim.world_size() / 2.0) * 0.9, (sim.world_size() / 2.0) * 0.9];
         for _ in 0..200 {
             let mut data = asteroid(rng.gen_range(0..30));
             data.health = 10000.0;

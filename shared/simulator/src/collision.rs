@@ -156,9 +156,9 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
 }
 
 pub fn add_walls(sim: &mut Simulation) {
-    use crate::simulation::WORLD_SIZE;
+    let world_size = sim.world_size();
     let mut make_edge = |x: f64, y: f64, a: f64| {
-        let edge_length = WORLD_SIZE;
+        let edge_length = world_size;
         let edge_width = 10.0;
         let rigid_body = RigidBodyBuilder::fixed()
             .translation(vector![x, y])
@@ -172,8 +172,8 @@ pub fn add_walls(sim: &mut Simulation) {
         sim.colliders
             .insert_with_parent(collider, body_handle, &mut sim.bodies);
     };
-    make_edge(0.0, WORLD_SIZE / 2.0, 0.0);
-    make_edge(0.0, -WORLD_SIZE / 2.0, std::f64::consts::PI);
-    make_edge(WORLD_SIZE / 2.0, 0.0, std::f64::consts::PI / 2.0);
-    make_edge(-WORLD_SIZE / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
+    make_edge(0.0, world_size / 2.0, 0.0);
+    make_edge(0.0, -world_size / 2.0, std::f64::consts::PI);
+    make_edge(world_size / 2.0, 0.0, std::f64::consts::PI / 2.0);
+    make_edge(-world_size / 2.0, 0.0, 3.0 * std::f64::consts::PI / 2.0);
 }

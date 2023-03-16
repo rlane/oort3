@@ -56,7 +56,7 @@ impl Scenario for Belt {
             );
         }
 
-        let bound = vector![(WORLD_SIZE / 2.0) * 0.9, (WORLD_SIZE / 4.0)];
+        let bound = vector![(sim.world_size() / 2.0) * 0.9, (sim.world_size() / 4.0)];
         for _ in 0..100 {
             let mut data = asteroid(rng.gen_range(0..30));
             data.health = 10000.0;

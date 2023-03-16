@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::index_set::{HasIndex, Index};
-use crate::simulation::{Simulation, PHYSICS_TICK_LENGTH, WORLD_SIZE};
+use crate::simulation::{Simulation, MAX_WORLD_SIZE, PHYSICS_TICK_LENGTH};
 use crate::{collision, simulation};
 use bitvec::vec::BitVec;
 use nalgebra::Vector2;
@@ -105,14 +105,15 @@ pub fn tick(sim: &mut Simulation) {
         let coarse_grid_hit;
         let mut needs_collider = false;
         {
+            let world_size = sim.world_size();
             let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
             has_collider = !body.colliders().is_empty();
 
             let position = *body.translation();
-            if position.x < -WORLD_SIZE / 2.0
-                || position.x > WORLD_SIZE / 2.0
-                || position.y < -WORLD_SIZE / 2.0
-                || position.y > WORLD_SIZE / 2.0
+            if position.x < -world_size / 2.0
+                || position.x > world_size / 2.0
+                || position.y < -world_size / 2.0
+                || position.y > world_size / 2.0
             {
                 destroy(sim, handle);
                 continue;
@@ -232,7 +233,7 @@ struct CoarseGrid {
 impl CoarseGrid {
     const CELL_SIZE: f64 = 100.0;
     const RECIP_CELL_SIZE: f64 = 1.0 / Self::CELL_SIZE;
-    const WORLD_WIDTH: f64 = simulation::WORLD_SIZE + Self::CELL_SIZE * 2.0;
+    const WORLD_WIDTH: f64 = simulation::MAX_WORLD_SIZE + Self::CELL_SIZE * 2.0;
     const WIDTH: i32 = (Self::WORLD_WIDTH / Self::CELL_SIZE) as i32;
 
     fn to_cell(p: Vector2<f64>) -> usize {
@@ -261,7 +262,7 @@ impl CoarseGrid {
         aabb.maxs += vector![Self::CELL_SIZE, Self::CELL_SIZE];
         if let Some(aabb) = aabb.intersection(&Aabb::from_half_extents(
             point![0.0, 0.0],
-            vector![WORLD_SIZE / 2.0, WORLD_SIZE / 2.0],
+            vector![MAX_WORLD_SIZE / 2.0, MAX_WORLD_SIZE / 2.0],
         )) {
             let w = ((aabb.maxs.x - aabb.mins.x) * Self::RECIP_CELL_SIZE).ceil() as i32;
             let h = ((aabb.maxs.y - aabb.mins.y) * Self::RECIP_CELL_SIZE).ceil() as i32;

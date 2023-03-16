@@ -65,7 +65,7 @@ impl Scenario for PlanetaryDefense {
 
             ship::create(
                 sim,
-                vector![0.0, -WORLD_SIZE / 2.0 + 2500.0],
+                vector![0.0, -sim.world_size() / 2.0 + 2500.0],
                 vector![0.0, 0.0],
                 0.0,
                 ShipData {
@@ -82,7 +82,7 @@ impl Scenario for PlanetaryDefense {
 
     fn tick(&mut self, sim: &mut Simulation) {
         if sim.time() < Self::SPAWN_DURATION {
-            let bound = (WORLD_SIZE / 2.0) * 0.9;
+            let bound = (sim.world_size() / 2.0) * 0.9;
             if self
                 .rng
                 .gen_bool(PHYSICS_TICK_LENGTH * (sim.time() / Self::SPAWN_DURATION) * 2.0)
@@ -95,7 +95,7 @@ impl Scenario for PlanetaryDefense {
                 ship_data.ttl = None;
                 ship::create(
                     sim,
-                    vector![self.rng.gen_range(-bound..bound), WORLD_SIZE / 2.0 - 30.0],
+                    vector![self.rng.gen_range(-bound..bound), sim.world_size() / 2.0 - 30.0],
                     vector![
                         self.rng.gen_range(-30.0..30.0),
                         self.rng.gen_range(-1500.0..-500.0)

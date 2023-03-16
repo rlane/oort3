@@ -46,7 +46,7 @@ pub mod prelude {
     pub use crate::ship::{
         self, asteroid, cruiser, fighter, frigate, missile, target, torpedo, ShipHandle,
     };
-    pub use crate::simulation::{Code, Line, Simulation, WORLD_SIZE};
+    pub use crate::simulation::{Code, Line, Simulation};
     pub use nalgebra::{point, vector, Point2, Rotation2, Vector2};
     pub use rand::Rng;
     pub use std::f64::consts::{PI, TAU};
@@ -112,6 +112,10 @@ pub trait Scenario {
 
     fn previous_names(&self) -> Vec<String> {
         vec![]
+    }
+
+    fn world_size(&self) -> f64 {
+        20000.0
     }
 }
 

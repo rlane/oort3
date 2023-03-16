@@ -12,7 +12,7 @@ use std::collections::{HashMap, VecDeque};
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
-const MIN_ZOOM: f32 = 5e-5;
+const MIN_ZOOM: f32 = 5e-6;
 const MAX_ZOOM: f32 = 1e-2;
 const INITIAL_ZOOM: f32 = 4e-4;
 const SNAPSHOT_PRELOAD: usize = 5;

@@ -143,7 +143,8 @@ impl Renderer {
         self.text_renderer
             .update_projection_matrix(&self.projection_matrix);
 
-        self.grid_renderer.draw(zoom, camera_target);
+        self.grid_renderer
+            .draw(zoom, camera_target, snapshot.world_size);
         self.trail_renderer.draw(snapshot.time as f32);
         let mut lines: Vec<Line> = Vec::new();
         if self.debug {

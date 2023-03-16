@@ -62,7 +62,7 @@ impl Radar {
     }
 
     pub fn set_min_distance(&mut self, dist: f64) {
-        self.min_distance = dist.clamp(0.0, simulation::WORLD_SIZE * 2.0);
+        self.min_distance = dist.clamp(0.0, simulation::MAX_WORLD_SIZE * 2.0);
     }
 
     pub fn get_max_distance(&self) -> f64 {
@@ -70,7 +70,7 @@ impl Radar {
     }
 
     pub fn set_max_distance(&mut self, dist: f64) {
-        self.max_distance = dist.clamp(0.0, simulation::WORLD_SIZE * 2.0);
+        self.max_distance = dist.clamp(0.0, simulation::MAX_WORLD_SIZE * 2.0);
     }
 
     pub fn scan(&self) -> Option<ScanResult> {
@@ -179,7 +179,7 @@ pub fn tick(sim: &mut Simulation) {
             let w = radar.width;
             let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
                 .min(radar.max_distance)
-                .min(simulation::WORLD_SIZE);
+                .min(simulation::MAX_WORLD_SIZE);
             let emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,

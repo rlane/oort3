@@ -23,7 +23,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
-pub const WORLD_SIZE: f64 = 20000.0;
+pub const MAX_WORLD_SIZE: f64 = 200000.0;
 pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Eq, Hash, PartialEq)]
@@ -62,10 +62,13 @@ pub struct Simulation {
     seed: u32,
     timing: Timing,
     pub(crate) rng: ChaCha8Rng,
+    world_size: f64,
 }
 
 impl Simulation {
     pub fn new(scenario_name: &str, seed: u32, codes: &[Code]) -> Box<Simulation> {
+        let mut scenario = scenario::load(scenario_name);
+
         log::debug!("seed {seed}");
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
         let mut sim = Box::new(Simulation {
@@ -98,6 +101,7 @@ impl Simulation {
             seed,
             timing: Default::default(),
             rng: crate::rng::new_rng(seed),
+            world_size: scenario.world_size(),
         });
 
         for (team, code) in codes.iter().enumerate() {
@@ -108,7 +112,6 @@ impl Simulation {
 
         collision::add_walls(&mut sim);
 
-        let mut scenario = scenario::load(scenario_name);
         scenario.init(&mut sim, seed);
         sim.scenario = Some(scenario);
 
@@ -129,6 +132,10 @@ impl Simulation {
 
     pub fn seed(&self) -> u32 {
         self.seed
+    }
+
+    pub fn world_size(&self) -> f64 {
+        self.world_size
     }
 
     pub fn status(&self) -> scenario::Status {
@@ -298,6 +305,7 @@ impl Simulation {
             errors: self.events.errors.clone(),
             cheats: self.cheats,
             timing: self.timing.clone(),
+            world_size: self.world_size,
         };
 
         for &handle in self.ships.iter() {
