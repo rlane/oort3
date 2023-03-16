@@ -111,11 +111,14 @@ impl Renderer {
     }
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, snapshot: &Snapshot) {
-        if self.canvas.client_width() != self.canvas.width() as i32 {
-            self.canvas.set_width(self.canvas.client_width() as u32);
+        let dpr = gloo_utils::window().device_pixel_ratio();
+        let new_width = (self.canvas.client_width() as f64 * dpr) as u32;
+        let new_height = (self.canvas.client_height() as f64 * dpr) as u32;
+        if new_width != self.canvas.width() {
+            self.canvas.set_width(new_width);
         }
-        if self.canvas.client_height() != self.canvas.height() as i32 {
-            self.canvas.set_height(self.canvas.client_height() as u32);
+        if new_height != self.canvas.height() {
+            self.canvas.set_height(new_height);
         }
         self.context.clear_color(0.0, 0.0, 0.0, 1.0);
         self.context.clear(gl::COLOR_BUFFER_BIT);

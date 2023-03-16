@@ -1860,6 +1860,7 @@ dependencies = [
 name = "oort_renderer"
 version = "0.44.0"
 dependencies = [
+ "gloo-utils",
  "image",
  "instant",
  "js-sys",

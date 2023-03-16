@@ -17,6 +17,7 @@ memoffset = "0.8.0"
 nalgebra = { version = "0.32.1", features = ["serde-serialize"] }
 wasm-bindgen = { version = "0.2.80", features = ["serde-serialize"] }
 image = "0.24.5"
+gloo-utils = "0.1.6"
 
 [dependencies.web-sys]
 version = "0.3.57"
