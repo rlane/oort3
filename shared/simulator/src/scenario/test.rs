@@ -1,5 +1,5 @@
 use super::prelude::*;
-use crate::bullet;
+use crate::{bullet, simulation};
 
 pub struct TestScenario {}
 
@@ -9,6 +9,10 @@ impl Scenario for TestScenario {
     }
 
     fn init(&mut self, _sim: &mut Simulation, _seed: u32) {}
+
+    fn world_size(&self) -> f64 {
+        simulation::MAX_WORLD_SIZE
+    }
 }
 
 pub struct BasicScenario {}

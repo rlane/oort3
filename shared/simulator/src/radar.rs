@@ -408,6 +408,7 @@ fn draw_contact(sim: &mut Simulation, emitter_handle: ShipHandle, contact: &Scan
 #[cfg(test)]
 mod test {
     use crate::ship;
+    use crate::ship::ShipClass;
     use crate::simulation::Code;
     use crate::simulation::Simulation;
     use nalgebra::{vector, UnitComplex};
@@ -677,6 +678,52 @@ mod test {
             .set_translation(vector![-1000.0, 100.0], true);
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+    }
+
+    #[test]
+    fn test_detection_range() {
+        let class_to_ship_data = |class, team| match class {
+            ShipClass::Fighter => ship::fighter(team),
+            ShipClass::Frigate => ship::frigate(team),
+            ShipClass::Cruiser => ship::cruiser(team),
+            ShipClass::Missile => ship::missile(team),
+            ShipClass::Torpedo => ship::torpedo(team),
+            _ => unimplemented!(),
+        };
+
+        let check_detection = |emitter_class, reflector_class, range| {
+            let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+            let ship0 = ship::create(
+                &mut sim,
+                vector![0.0, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                class_to_ship_data(emitter_class, 0),
+            );
+            ship::create(
+                &mut sim,
+                vector![range, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                class_to_ship_data(reflector_class, 1),
+            );
+            sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
+            sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 360.0;
+            sim.step();
+            sim.ship(ship0).radar().unwrap().result.is_some()
+        };
+
+        use ShipClass::*;
+        assert!(check_detection(Fighter, Fighter, 30e3));
+        assert!(!check_detection(Fighter, Fighter, 40e3));
+        assert!(check_detection(Fighter, Frigate, 50e3));
+        assert!(!check_detection(Fighter, Frigate, 60e3));
+        assert!(check_detection(Fighter, Cruiser, 60e3));
+        assert!(!check_detection(Fighter, Cruiser, 70e3));
+        assert!(check_detection(Fighter, Missile, 10e3));
+        assert!(!check_detection(Fighter, Missile, 20e3));
+        assert!(check_detection(Fighter, Torpedo, 20e3));
+        assert!(!check_detection(Fighter, Torpedo, 30e3));
     }
 
     #[test]
