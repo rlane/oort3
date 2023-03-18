@@ -21,7 +21,7 @@ impl Scenario for MissileDuel {
         let mut rng = new_rng(seed);
         let angle = rng.gen_range(0.0..TAU);
         let rot = Rotation2::new(angle);
-        let distance = rng.gen_range(4000.0..6000.0);
+        let distance = rng.gen_range(15000.0..17000.0);
 
         ship::create(
             sim,
