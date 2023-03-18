@@ -266,6 +266,7 @@ pub fn frigate(team: i32) -> ShipData {
                 speed: 4000.0,
                 offset: vector![40.0, 0.0],
                 bullet_mass: 1.0,
+                ttl: 20.0,
                 ..Default::default()
             },
             Gun {
