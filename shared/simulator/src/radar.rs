@@ -20,6 +20,7 @@ pub struct Radar {
     pub max_distance: f64,
     pub power: f64,
     pub rx_cross_section: f64,
+    pub reliable_rssi: f64,
     pub min_rssi: f64,
     pub result: Option<ScanResult>,
 }
@@ -33,7 +34,8 @@ impl Default for Radar {
             max_distance: 1e9,
             power: 100e3,
             rx_cross_section: 10.0,
-            min_rssi: 1e-2,
+            reliable_rssi: 1e-2,
+            min_rssi: 1e-3,
             result: None,
         }
     }
@@ -89,6 +91,7 @@ struct RadarEmitter {
     square_distance_range: Range<f64>,
     power: f64,
     rx_cross_section: f64,
+    reliable_rssi: f64,
     min_rssi: f64,
     team: i32,
 }
@@ -180,11 +183,15 @@ pub fn tick(sim: &mut Simulation) {
             let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
                 .min(radar.max_distance)
                 .min(simulation::MAX_WORLD_SIZE);
+            let reliable_distance = compute_reliable_detection_range(radar, 40.0 /*cruiser*/)
+                .min(radar.max_distance)
+                .min(simulation::MAX_WORLD_SIZE);
             let emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,
                 center: ship.position().vector.into(),
                 power: radar.power,
+                reliable_rssi: radar.reliable_rssi,
                 min_rssi: radar.min_rssi,
                 rx_cross_section: radar.rx_cross_section,
                 width: w,
@@ -226,40 +233,47 @@ pub fn tick(sim: &mut Simulation) {
                 }
             }
 
-            let result = best_reflector.map(|reflector| {
-                const BEARING_NOISE: f64 = 0.0001;
-                const DISTANCE_NOISE: f64 = 1.0;
-                const VELOCITY_NOISE: f64 = 1.0;
-                let dp = reflector.position - emitter.center;
-                let beam_rot = Rotation2::new(emitter.bearing);
-                let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
-                let mut noisy_bearing: f64 = reflector_rot.angle()
-                    + rng.sample::<f64, _>(StandardNormal) * (BEARING_NOISE / best_rssi);
-                {
-                    let angle_to = Rotation2::new(noisy_bearing).angle_to(&beam_rot);
-                    if angle_to > emitter.width * 0.5 {
-                        noisy_bearing = emitter.bearing - emitter.width * 0.5;
-                    } else if angle_to < -emitter.width * 0.5 {
-                        noisy_bearing = emitter.bearing + emitter.width * 0.5;
+            let result = if best_rssi < emitter.min_rssi
+                || (best_rssi < emitter.reliable_rssi
+                    && decide_unreliable_rssi(&mut rng, best_rssi, emitter.reliable_rssi))
+            {
+                None
+            } else {
+                best_reflector.map(|reflector| {
+                    const BEARING_NOISE: f64 = 0.0001;
+                    const DISTANCE_NOISE: f64 = 1.0;
+                    const VELOCITY_NOISE: f64 = 1.0;
+                    let dp = reflector.position - emitter.center;
+                    let beam_rot = Rotation2::new(emitter.bearing);
+                    let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
+                    let mut noisy_bearing: f64 = reflector_rot.angle()
+                        + rng.sample::<f64, _>(StandardNormal) * (BEARING_NOISE / best_rssi);
+                    {
+                        let angle_to = Rotation2::new(noisy_bearing).angle_to(&beam_rot);
+                        if angle_to > emitter.width * 0.5 {
+                            noisy_bearing = emitter.bearing - emitter.width * 0.5;
+                        } else if angle_to < -emitter.width * 0.5 {
+                            noisy_bearing = emitter.bearing + emitter.width * 0.5;
+                        }
                     }
-                }
 
-                let mut distance = (reflector.position - emitter.center).magnitude();
-                distance += rng.sample::<f64, _>(StandardNormal) * (DISTANCE_NOISE / best_rssi);
-                distance = distance.clamp(emitter.min_distance, emitter.max_distance);
+                    let mut distance = (reflector.position - emitter.center).magnitude();
+                    distance += rng.sample::<f64, _>(StandardNormal) * (DISTANCE_NOISE / best_rssi);
+                    distance = distance.clamp(emitter.min_distance, emitter.max_distance);
 
-                let position = emitter.center.coords
-                    + Rotation2::new(noisy_bearing).transform_vector(&vector![distance, 0.0]);
-                let velocity = reflector.velocity
-                    + vector![rng.sample(StandardNormal), rng.sample(StandardNormal)]
-                        * (VELOCITY_NOISE / best_rssi);
+                    let position = emitter.center.coords
+                        + Rotation2::new(noisy_bearing).transform_vector(&vector![distance, 0.0]);
+                    let velocity = reflector.velocity
+                        + vector![rng.sample(StandardNormal), rng.sample(StandardNormal)]
+                            * (VELOCITY_NOISE / best_rssi);
 
-                ScanResult {
-                    class: reflector.class,
-                    position,
-                    velocity,
-                }
-            });
+                    ScanResult {
+                        class: reflector.class,
+                        position,
+                        velocity,
+                    }
+                })
+            };
 
             {
                 let mut ship = sim.ship_mut(emitter.handle);
@@ -268,12 +282,16 @@ pub fn tick(sim: &mut Simulation) {
                 radar.result = result;
             }
 
-            draw_emitter(sim, &emitter);
+            draw_emitter(sim, &emitter, reliable_distance);
             if let Some(contact) = &result {
                 draw_contact(sim, emitter.handle, contact);
             }
         }
     }
+}
+
+fn decide_unreliable_rssi(rng: &mut impl Rng, rssi: f64, reliable_rssi: f64) -> bool {
+    rng.gen_bool(1.0 / (2.0 * reliable_rssi / rssi).log2())
 }
 
 fn make_aabb(emitter: &RadarEmitter) -> Aabb {
@@ -327,7 +345,13 @@ fn compute_max_detection_range(radar: &Radar, target_cross_section: f64) -> f64 
         .sqrt()
 }
 
-fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
+fn compute_reliable_detection_range(radar: &Radar, target_cross_section: f64) -> f64 {
+    (radar.power * target_cross_section * radar.rx_cross_section
+        / (TAU * radar.width * radar.reliable_rssi))
+        .sqrt()
+}
+
+fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter, reliable_distance: f64) {
     let color = vector![0.1, 0.2, 0.3, 1.0];
     let mut lines = vec![];
     lines.reserve(48);
@@ -350,13 +374,13 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
         }
     };
     draw_arc(emitter.min_distance);
-    draw_arc(emitter.max_distance);
+    draw_arc(reliable_distance);
     lines.push(Line {
         a: center,
         b: center
             + vector![
-                emitter.max_distance * emitter.start_bearing.cos(),
-                emitter.max_distance * emitter.start_bearing.sin()
+                reliable_distance * emitter.start_bearing.cos(),
+                reliable_distance * emitter.start_bearing.sin()
             ],
         color,
     });
@@ -364,8 +388,8 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter) {
         a: center,
         b: center
             + vector![
-                emitter.max_distance * emitter.end_bearing.cos(),
-                emitter.max_distance * emitter.end_bearing.sin()
+                reliable_distance * emitter.end_bearing.cos(),
+                reliable_distance * emitter.end_bearing.sin()
             ],
         color,
     });
@@ -709,21 +733,28 @@ mod test {
             );
             sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
             sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 360.0;
-            sim.step();
-            sim.ship(ship0).radar().unwrap().result.is_some()
+
+            (0..10)
+                .map(|_| {
+                    sim.step();
+                    sim.ship(ship0).radar().unwrap().result.is_some()
+                })
+                .filter(|x| *x)
+                .count()
+                > 6
         };
 
         use ShipClass::*;
-        assert!(check_detection(Fighter, Fighter, 30e3));
-        assert!(!check_detection(Fighter, Fighter, 40e3));
-        assert!(check_detection(Fighter, Frigate, 50e3));
-        assert!(!check_detection(Fighter, Frigate, 60e3));
-        assert!(check_detection(Fighter, Cruiser, 60e3));
-        assert!(!check_detection(Fighter, Cruiser, 70e3));
         assert!(check_detection(Fighter, Missile, 10e3));
-        assert!(!check_detection(Fighter, Missile, 20e3));
+        assert!(!check_detection(Fighter, Missile, 60e3));
         assert!(check_detection(Fighter, Torpedo, 20e3));
-        assert!(!check_detection(Fighter, Torpedo, 30e3));
+        assert!(!check_detection(Fighter, Torpedo, 90e3));
+        assert!(check_detection(Fighter, Fighter, 30e3));
+        assert!(!check_detection(Fighter, Fighter, 100e3));
+        assert!(check_detection(Fighter, Frigate, 50e3));
+        assert!(!check_detection(Fighter, Frigate, 170e3));
+        assert!(check_detection(Fighter, Cruiser, 60e3));
+        assert!(!check_detection(Fighter, Cruiser, 200e3));
     }
 
     #[test]

@@ -23,7 +23,10 @@ fn run_simulation(
     reflector_class: ShipClass,
     range: f64,
     beamwidth: f64,
-) -> Option<f64> /* distance error */ {
+) -> (
+    f64, /* probability of detection */
+    f64, /* distance error RMS */
+) {
     let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
     let offset = -MAX_WORLD_SIZE / 2.0 + 100.0;
     let ship0 = ship::create(
@@ -43,13 +46,27 @@ fn run_simulation(
     );
     sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
     sim.ship_mut(ship0).radar_mut().unwrap().width = beamwidth;
-    sim.step();
 
-    sim.ship(ship0)
-        .radar()
-        .unwrap()
-        .result
-        .map(|contact| (contact.position - target_position).magnitude())
+    let trials = 100;
+    let mut square_errors = 0.0;
+    let mut detections = 0;
+
+    for _ in 0..trials {
+        sim.step();
+        let x = sim
+            .ship(ship0)
+            .radar()
+            .unwrap()
+            .result
+            .map(|contact| (contact.position - target_position).magnitude());
+        if let Some(error) = x {
+            detections += 1;
+            square_errors += error.powi(2);
+        }
+    }
+    let rms_error = (square_errors / (trials as f64)).sqrt();
+
+    (detections as f64 / trials as f64, rms_error)
 }
 
 fn check_accuracy(
@@ -58,19 +75,19 @@ fn check_accuracy(
     range: f64,
     beamwidth: f64,
 ) -> bool {
-    let mut square_errors = 0.0;
-    let trials = 10;
-    for _ in 0..trials {
-        square_errors += run_simulation(emitter_class, reflector_class, range, beamwidth)
-            .unwrap_or(100.0)
-            .powi(2);
-    }
-    let rms_error = (square_errors / (trials as f64)).sqrt();
-    rms_error < 10.0
+    let (detection_chance, rms_error) =
+        run_simulation(emitter_class, reflector_class, range, beamwidth);
+    detection_chance >= 0.9 && rms_error < 10.0
 }
 
 fn main() {
     let ship_classes = [Missile, Torpedo, Fighter, Frigate, Cruiser];
+
+    let ranges = [
+        200.0, 180.0, 160.0, 140.0, 120.0, 100.0, 90.0, 80.0, 70.0, 60.0, 50.0, 40.0, 30.0, 25.0,
+        20.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.5, 1.0,
+        0.5,
+    ];
 
     for beamwidth in [TAU / 360.0, TAU / 60.0, TAU / 16.0] {
         {
@@ -86,11 +103,13 @@ fn main() {
             for emitter_class in ship_classes {
                 let mut row = vec![format!("{emitter_class:?}")];
                 for reflector_class in ship_classes {
-                    let range_km = (0..202).find(|x| {
-                        let range = *x as f64 * 1e3 + 1e3;
-                        run_simulation(emitter_class, reflector_class, range, beamwidth).is_none()
+                    let range_km = ranges.iter().cloned().find(|x| {
+                        let range = x * 1e3;
+                        let (detection_chance, _rms_error) =
+                            run_simulation(emitter_class, reflector_class, range, beamwidth);
+                        detection_chance >= 0.5
                     });
-                    row.push(range_km.unwrap_or(200).to_string());
+                    row.push(range_km.unwrap_or_default().to_string());
                 }
                 table.add_row(row);
             }
@@ -115,11 +134,11 @@ fn main() {
             for emitter_class in ship_classes {
                 let mut row = vec![format!("{emitter_class:?}")];
                 for reflector_class in ship_classes {
-                    let range_km = (0..202).find(|x| {
-                        let range = *x as f64 * 1e3 + 1e3;
-                        !check_accuracy(emitter_class, reflector_class, range, beamwidth)
+                    let range_km = ranges.iter().cloned().find(|x| {
+                        let range = x * 1e3;
+                        check_accuracy(emitter_class, reflector_class, range, beamwidth)
                     });
-                    row.push(range_km.unwrap_or(200).to_string());
+                    row.push(range_km.unwrap_or_default().to_string());
                 }
                 table.add_row(row);
             }
