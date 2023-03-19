@@ -183,7 +183,7 @@ pub fn tick(sim: &mut Simulation) {
             let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
                 .min(radar.max_distance)
                 .min(simulation::MAX_WORLD_SIZE);
-            let reliable_distance = compute_reliable_detection_range(radar, 40.0 /*cruiser*/)
+            let reliable_distance = compute_reliable_detection_range(radar, 10.0 /*fighter*/)
                 .min(radar.max_distance)
                 .min(simulation::MAX_WORLD_SIZE);
             let emitter = RadarEmitter {
