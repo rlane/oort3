@@ -14,14 +14,14 @@ use std::ops::Range;
 
 #[derive(Clone, Debug)]
 pub struct Radar {
-    pub(crate) heading: f64,
-    pub(crate) width: f64,
-    pub(crate) min_distance: f64,
-    pub(crate) max_distance: f64,
-    pub(crate) power: f64,
-    pub(crate) rx_cross_section: f64,
-    pub(crate) min_rssi: f64,
-    pub(crate) result: Option<ScanResult>,
+    pub heading: f64,
+    pub width: f64,
+    pub min_distance: f64,
+    pub max_distance: f64,
+    pub power: f64,
+    pub rx_cross_section: f64,
+    pub min_rssi: f64,
+    pub result: Option<ScanResult>,
 }
 
 impl Default for Radar {
