@@ -285,7 +285,7 @@ pub fn frigate(team: i32) -> ShipData {
             reload_time: 2.0,
             reload_time_remaining: 0.0,
             initial_speed: 100.0,
-            offset: vector![32.0, 0.0],
+            offset: vector![60.0, 0.0],
             angle: 0.0,
         }],
         radar: Some(Radar {
@@ -335,12 +335,12 @@ pub fn cruiser(team: i32) -> ShipData {
         }],
         missile_launchers: vec![
             MissileLauncher {
-                offset: vector![0.0, 30.0],
+                offset: vector![0.0, 50.0],
                 angle: TAU / 4.0,
                 ..missile_launcher
             },
             MissileLauncher {
-                offset: vector![0.0, -30.0],
+                offset: vector![0.0, -50.0],
                 angle: -TAU / 4.0,
                 ..missile_launcher
             },
@@ -349,7 +349,7 @@ pub fn cruiser(team: i32) -> ShipData {
                 reload_time: 3.0,
                 reload_time_remaining: 0.0,
                 initial_speed: 100.0,
-                offset: vector![100.0, 0.0],
+                offset: vector![140.0, 0.0],
                 angle: 0.0,
             },
         ],

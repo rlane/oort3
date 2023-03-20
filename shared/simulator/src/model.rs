@@ -18,7 +18,7 @@ pub fn fighter() -> Vec<Vector2<f32>> {
 
 pub fn frigate() -> Vec<Vector2<f32>> {
     scale(
-        30.0,
+        60.0,
         &[
             vector![-0.8, -0.4],
             vector![-0.8, 0.4],
@@ -34,29 +34,29 @@ pub fn frigate() -> Vec<Vector2<f32>> {
 
 pub fn cruiser() -> Vec<Vector2<f32>> {
     scale(
-        40.0,
+        120.0,
         &[
             // back left
-            vector![-0.8, -0.4],
+            vector![-0.8, -0.3],
             // back right
-            vector![-0.8, 0.4],
+            vector![-0.8, 0.3],
             // right missile battery
+            vector![-0.5, 0.3],
             vector![-0.5, 0.4],
-            vector![-0.5, 0.5],
-            vector![0.5, 0.5],
             vector![0.5, 0.4],
+            vector![0.5, 0.3],
             // front right
-            vector![0.8, 0.4],
+            vector![0.8, 0.3],
             // front
             vector![1.1, 0.2],
             vector![1.1, -0.2],
             // front left
-            vector![0.8, -0.4],
+            vector![0.8, -0.3],
             // left missile battery
+            vector![0.5, -0.3],
             vector![0.5, -0.4],
-            vector![0.5, -0.5],
-            vector![-0.5, -0.5],
             vector![-0.5, -0.4],
+            vector![-0.5, -0.3],
         ],
     )
 }
