@@ -22,17 +22,18 @@ impl Scenario for MissileDuel {
         let angle = rng.gen_range(0.0..TAU);
         let rot = Rotation2::new(angle);
         let distance = rng.gen_range(15000.0..17000.0);
+        let offset = vector![rng.gen_range(-10e3..10e3), rng.gen_range(-10e3..10e3)];
 
         ship::create(
             sim,
-            rot.transform_vector(&vector![-0.5, 0.0]) * distance,
+            offset + rot.transform_vector(&vector![-0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             0.0,
             fighter_without_guns(0),
         );
         ship::create(
             sim,
-            rot.transform_vector(&vector![0.5, 0.0]) * distance,
+            offset + rot.transform_vector(&vector![0.5, 0.0]) * distance,
             vector![0.0, 0.0],
             std::f64::consts::PI,
             fighter_without_guns(1),
