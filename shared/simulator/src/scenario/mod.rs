@@ -115,7 +115,7 @@ pub trait Scenario {
     }
 
     fn world_size(&self) -> f64 {
-        20000.0
+        40000.0
     }
 }
 
