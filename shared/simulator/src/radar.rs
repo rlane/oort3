@@ -16,6 +16,8 @@ use std::ops::Range;
 pub struct Radar {
     pub heading: f64,
     pub width: f64,
+    pub min_width: f64,
+    pub max_width: f64,
     pub min_distance: f64,
     pub max_distance: f64,
     pub power: f64,
@@ -29,7 +31,9 @@ impl Default for Radar {
     fn default() -> Self {
         Radar {
             heading: 0.0,
-            width: TAU / 6.0,
+            width: TAU / 16.0,
+            min_width: TAU / 360.0,
+            max_width: TAU / 16.0,
             min_distance: 0.0,
             max_distance: 1e9,
             power: 100e3,
@@ -55,7 +59,7 @@ impl Radar {
     }
 
     pub fn set_width(&mut self, width: f64) {
-        self.width = width.clamp(TAU / 360.0, TAU);
+        self.width = width.clamp(self.min_width, self.max_width);
     }
 
     pub fn get_min_distance(&self) -> f64 {

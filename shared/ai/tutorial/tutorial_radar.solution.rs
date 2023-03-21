@@ -22,7 +22,7 @@ impl Ship {
             fire(0);
             set_radar_heading((contact.position - position()).angle());
         } else {
-            set_radar_heading(radar_heading() + TAU / 6.0);
+            set_radar_heading(radar_heading() + radar_width());
         }
     }
 }
@@ -38,3 +38,4 @@ fn lead_target(target_position: Vec2, target_velocity: Vec2) -> f64 {
     let predicted_dp = dp + dv * dp.length() / 1000.0;
     predicted_dp.angle()
 }
+

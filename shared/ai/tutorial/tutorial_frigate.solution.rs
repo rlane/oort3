@@ -21,27 +21,46 @@ impl Ship {
                 }
 
                 set_radar_heading((contact.position - position()).angle());
-                set_radar_width((10.0 * TAU / dp.length()).clamp(TAU / 30.0, TAU));
+                set_radar_width(TAU / 360.0);
+            } else if let Some(msg) = receive() {
+                let target_position = vec2(msg[0], msg[1]);
+                let target_velocity = vec2(msg[2], msg[3]);
+                seek(target_position, target_velocity);
+                set_radar_heading((target_position - position()).angle());
+                set_radar_width(TAU / 360.0);
             } else {
                 accelerate(vec2(100.0, 0.0).rotate(heading()));
-                set_radar_width(TAU / 4.0);
+                set_radar_width(TAU / 16.0);
             }
         } else {
-            set_radar_width(TAU / 4.0);
+            set_radar_width(TAU / 16.0);
             if let Some(contact) = scan() {
-                fire(0);
-                fire(3);
+                let dp = contact.position - position();
+                turn_to(dp.angle());
+                if angle_diff(dp.angle(), heading()).abs() < 0.01 {
+                    fire(0);
+                }
 
                 for i in [1, 2] {
                     aim(i, lead_target(contact.position, contact.velocity));
                     fire(i);
                 }
 
-                let dp = contact.position - position();
-                turn_to(dp.angle());
-                set_radar_heading(dp.angle());
+                send([
+                    contact.position.x,
+                    contact.position.y,
+                    contact.velocity.x,
+                    contact.velocity.y,
+                ]);
+                fire(3);
+
+                if contact.class == Class::Missile {
+                    set_radar_heading(radar_heading() + 0.5 * radar_width());
+                } else {
+                    set_radar_heading(dp.angle());
+                }
             } else {
-                set_radar_heading(radar_heading() + TAU / 4.0);
+                set_radar_heading(radar_heading() + radar_width());
             }
         }
     }
@@ -72,3 +91,4 @@ fn lead_target(target_position: Vec2, target_velocity: Vec2) -> f64 {
     let predicted_dp = dp + dv * dp.length() / 1000.0;
     predicted_dp.angle()
 }
+
