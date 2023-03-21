@@ -1,4 +1,10 @@
 - Fixed dragging causing ships to be deselected.
+- Fixed background grid misalignment.
+- Increased default world size to 40 km and made it configurable.
+- Increased size of frigate and cruiser.
+- Limited maximum radar beamwidth to 22.5 degrees.
+- Clamped returned contacts inside radar beam.
+- Added probability of detecting contacts outside reliable radar range.
 
 ### 0.44.0
 
