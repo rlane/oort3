@@ -1,3 +1,5 @@
+### 0.45.0
+
 - Fixed dragging causing ships to be deselected.
 - Fixed background grid misalignment.
 - Increased default world size to 40 km and made it configurable.
