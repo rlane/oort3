@@ -1,3 +1,5 @@
+### 0.45.1
+
 - Made radar lines more visible.
 
 ### 0.45.0
