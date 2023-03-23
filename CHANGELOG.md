@@ -1,3 +1,5 @@
+- Made radar lines more visible.
+
 ### 0.45.0
 
 - Fixed dragging causing ships to be deselected.

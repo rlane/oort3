@@ -356,7 +356,7 @@ fn compute_reliable_detection_range(radar: &Radar, target_cross_section: f64) ->
 }
 
 fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter, reliable_distance: f64) {
-    let color = vector![0.1, 0.2, 0.3, 1.0];
+    let color = vector![0.2, 0.66, 0.97, 1.0];
     let mut lines = vec![];
     lines.reserve(48);
     let w = emitter.end_bearing - emitter.start_bearing;
