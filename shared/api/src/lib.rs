@@ -127,6 +127,8 @@ pub enum SystemState {
     DrawnTextPointer,
     DrawnTextLength,
 
+    RadarEcmMode,
+
     Size,
     MaxSize = 128,
 }
@@ -175,6 +177,17 @@ pub enum Ability {
     Decoy,
     /// Cruiser only. Deflects projectiles for 1s. Reloads in 5s.
     Shield,
+}
+
+/// Electronic Counter Measures (ECM) modes.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum EcmMode {
+    /// No ECM, radar will work normally.
+    None,
+    /// Affected enemy radars will have a lower signal-to-noise ratio, making
+    /// it harder to detect and track targets.
+    Noise,
 }
 
 #[doc(hidden)]
@@ -278,7 +291,7 @@ pub mod rng_state {
 
 mod api {
     use super::sys::{read_system_state, write_system_state};
-    use super::{Ability, Class, SystemState};
+    use super::{Ability, Class, EcmMode, SystemState};
     use crate::{vec::*, Message};
 
     /// The time between each simulation tick.
@@ -436,6 +449,11 @@ mod api {
     /// Gets the current maximum distance filter of the radar (in meters).
     pub fn set_radar_max_distance(dist: f64) {
         write_system_state(SystemState::RadarMaxDistance, dist);
+    }
+
+    /// Sets the Electronic Counter Measures (ECM) mode.
+    pub fn set_radar_ecm_mode(mode: EcmMode) {
+        write_system_state(SystemState::RadarEcmMode, mode as u32 as f64);
     }
 
     /// A radar contact.
@@ -871,7 +889,7 @@ pub mod prelude {
     #[doc(inline)]
     pub use super::vec::*;
     #[doc(inline)]
-    pub use super::{Ability, Class, Message};
+    pub use super::{Ability, Class, EcmMode, Message};
     #[doc(inline)]
     pub use crate::{debug, draw_text};
 }

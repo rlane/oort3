@@ -72,11 +72,11 @@ Guns:
 ## Radar
 
 Radar in Oort is modeled as a beam that can be pointed in any direction and
-which has a width between 1/360 of a circle to a full circle. Enemy ships
+which has a beam width between 1/360 to 1/16 of a circle. Enemy ships
 illuminated by this beam reflect an amount of energy proportional to their
 radar cross section (larger for larger ships). The radar can return one
-contact per tick. Any changes to heading/width/filtering take effect on the
-next tick.
+contact per tick. Any changes to radar heading/width/filtering take effect on
+the next tick.
 
 The position and velocity returned for a contact will have error inversely
 related to the signal strength.
@@ -92,6 +92,18 @@ Advanced filtering:
 
 - [`set_radar_min_distance(dist: f64)`](prelude::set_radar_min_distance): Set the minimum distance filter.
 - [`set_radar_max_distance(dist: f64)`](prelude::set_radar_max_distance): Set the maximum distance filter.
+
+Electronic Counter Measures (ECM):
+
+The goal of ECM is to make enemy radar less effective. For ECM to work, the enemy radar must be
+pointed towards your ship, and your ship's radar must be pointed at the enemy. Your radar will not
+return contacts while ECM is enabled.
+
+- [`EcmMode`](prelude::EcmMode):
+  - [`EcmMode::None`](prelude::EcmMode::None): No ECM, radar will operate normally.
+  - [`EcmMode::Noise`](prelude::EcmMode::Noise): Decrease the enemy radar's signal to noise ratio,
+    making it more difficult to detect targets and reducing accuracy of returned contacts.
+- [`radar_set_ecm_mode(mode: EcmMode)`](prelude::set_radar_ecm_mode): Set the ECM mode.
 
 Retrieving current state:
 

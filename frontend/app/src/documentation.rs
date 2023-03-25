@@ -77,12 +77,19 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "radar_heading() -> f64" }</code>{ ": Get current radar heading." }</li>
               <li><code>{ "set_radar_width(width: f64)" }</code>{ ": Adjust the width of the radar beam (in radians)." }</li>
               <li><code>{ "radar_width() -> f64" }</code>{ ": Get current radar width." }</li>
+              <li><code>{ "scan() → Option<ScanResult>" }</code>{ ": Find an enemy ship illuminated by the radar." }</li>
+              <li><code>{ "struct ScanResult { position: Vec2, velocity: Vec2 }" }</code></li>
+            </ul>
+
+            <h2>{ "Advanced Radar" }</h2>
+            <ul>
               <li><code>{ "set_radar_min_distance(dist: f64)" }</code>{ ": Set the minimum distance filter." }</li>
               <li><code>{ "radar_min_distance() -> f64" }</code>{ ": Get current minimum distance filter." }</li>
               <li><code>{ "set_radar_max_distance(dist: f64)" }</code>{ ": Set the maximum distance filter." }</li>
               <li><code>{ "radar_max_distance() -> f64" }</code>{ ": Get current maximum distance filter." }</li>
-              <li><code>{ "scan() → Option<ScanResult>" }</code>{ ": Find an enemy ship illuminated by the radar." }</li>
-              <li><code>{ "struct ScanResult { position: Vec2, velocity: Vec2 }" }</code></li>
+              <li><code>{ "set_radar_ecm_mode(mode: EcmMode)" }</code>{ ": Set the Electronic Counter Measures (ECM) mode." }</li>
+              <li><code>{ "EcmMode::None" }</code>{ ": No ECM, radar will operate normally." }</li>
+              <li><code>{ "EcmMode::Noise" }</code>{ ": Decrease the enemy radar's signal to noise ratio, making it more difficult to detect targets and reducing accuracy of returned contacts." }</li>
             </ul>
 
             <h2>{ "Radio" }</h2>
