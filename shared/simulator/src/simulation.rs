@@ -248,7 +248,15 @@ impl Simulation {
     }
 
     pub fn emit_debug_text(&mut self, ship: ShipHandle, s: String) {
-        self.events.debug_text.insert(ship.into(), s);
+        use std::collections::btree_map::Entry;
+        match self.events.debug_text.entry(ship.into()) {
+            Entry::Occupied(mut e) => {
+                e.get_mut().push_str(&s);
+            }
+            Entry::Vacant(e) => {
+                e.insert(s);
+            }
+        }
     }
 
     pub fn emit_drawn_text(&mut self, ship: ShipHandle, texts: &[Text]) {
