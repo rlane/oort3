@@ -3,7 +3,7 @@ use crate::simulation::{Line, Simulation};
 use crate::{rng, simulation};
 use nalgebra::Rotation2;
 use nalgebra::{vector, Point2, Vector2};
-use oort_api::Ability;
+use oort_api::{Ability, EcmMode};
 use rand::Rng;
 use rand_distr::StandardNormal;
 use rapier2d_f64::prelude::*;
@@ -13,6 +13,8 @@ use std::f64::consts::TAU;
 use std::ops::Range;
 
 const DEBUG: bool = false;
+const BACKGROUND_NOISE: f64 = 1e-13; // -100 dBm
+const JAMMER_COEFF: f64 = 1e-8; // Account for frequency hopping and pulse length
 
 #[derive(Clone, Debug)]
 pub struct Radar {
@@ -26,6 +28,7 @@ pub struct Radar {
     pub rx_cross_section: f64,
     pub reliable_rssi: f64,
     pub min_rssi: f64,
+    pub ecm_mode: EcmMode,
     pub result: Option<ScanResult>,
 }
 
@@ -42,6 +45,7 @@ impl Default for Radar {
             rx_cross_section: 10.0,
             reliable_rssi: from_dbm(-90.0),
             min_rssi: from_dbm(-100.0),
+            ecm_mode: EcmMode::None,
             result: None,
         }
     }
@@ -80,6 +84,10 @@ impl Radar {
         self.max_distance = dist.clamp(0.0, simulation::MAX_WORLD_SIZE * 2.0);
     }
 
+    pub fn set_ecm_mode(&mut self, mode: EcmMode) {
+        self.ecm_mode = mode;
+    }
+
     pub fn scan(&self) -> Option<ScanResult> {
         self.result
     }
@@ -107,6 +115,14 @@ struct RadarReflector {
     velocity: Vector2<f64>,
     radar_cross_section: f64,
     class: ShipClass,
+    jammer: Option<RadarJammer>,
+}
+
+struct RadarJammer {
+    width: f64,
+    bearing: f64,
+    power: f64,
+    ecm_mode: EcmMode,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -148,6 +164,18 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
             class = ShipClass::Cruiser;
             radar_cross_section = ship::CRUISER_RADAR_CROSS_SECTION / 2.0;
         }
+        let jammer = ship_data
+            .radar
+            .as_ref()
+            .and_then(|radar| match radar.ecm_mode {
+                EcmMode::None => None,
+                _ => Some(RadarJammer {
+                    width: radar.width,
+                    bearing: radar.heading,
+                    power: radar.power,
+                    ecm_mode: radar.ecm_mode,
+                }),
+            });
         reflectors_by_team
             .entry(ship_data.team)
             .or_default()
@@ -156,6 +184,7 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
                 velocity: ship.velocity(),
                 radar_cross_section,
                 class,
+                jammer,
             });
     }
 
@@ -216,11 +245,24 @@ pub fn tick(sim: &mut Simulation) {
                 max_distance,
                 square_distance_range: radar.min_distance.powi(2)..max_distance.powi(2),
             };
+
+            if radar.ecm_mode != EcmMode::None {
+                {
+                    let mut ship = sim.ship_mut(emitter.handle);
+                    let ship_data = ship.data_mut();
+                    let radar = ship_data.radar.as_mut().unwrap();
+                    radar.result = None;
+                }
+                draw_emitter(sim, &emitter, reliable_distance);
+                continue;
+            }
+
             let mut rng = rng::new_rng(sim.tick());
             let aabb = make_aabb(&emitter);
 
             let mut best_rssi = emitter.min_rssi;
             let mut best_reflector: Option<&RadarReflector> = None;
+            let mut received_noise = BACKGROUND_NOISE;
 
             for (team2, reflector_team) in indices_by_team.iter() {
                 if emitter.team == *team2 {
@@ -239,6 +281,28 @@ pub fn tick(sim: &mut Simulation) {
                         continue;
                     }
 
+                    if let Some(jammer) = reflector.jammer.as_ref() {
+                        match jammer.ecm_mode {
+                            EcmMode::None => {}
+                            EcmMode::Noise => {
+                                if check_inside_beam_raw(
+                                    &reflector.position,
+                                    jammer.bearing,
+                                    jammer.width,
+                                    &emitter.center,
+                                ) {
+                                    let r_sq = nalgebra::distance_squared(
+                                        &emitter.center,
+                                        &reflector.position,
+                                    );
+                                    received_noise +=
+                                        JAMMER_COEFF * jammer.power * emitter.rx_cross_section
+                                            / (TAU * jammer.width * r_sq);
+                                }
+                            }
+                        }
+                    }
+
                     let rssi = compute_rssi(&emitter, reflector);
                     if rssi > best_rssi {
                         best_reflector = Some(reflector);
@@ -252,13 +316,16 @@ pub fn tick(sim: &mut Simulation) {
                     sim.emit_debug_text(
                         handle,
                         format!(
-                            "Radar contact range {:.1} km rssi {:.1} dBm",
+                            "Radar contact range {:.1} km rssi {:.1} dBm noise {:.1} dBm",
                             (reflector.position - emitter.center).norm() * 1e-3,
-                            into_dbm(best_rssi)
+                            into_dbm(best_rssi),
+                            into_dbm(received_noise)
                         ),
                     );
                 }
             }
+
+            best_rssi -= received_noise;
 
             let result = if best_rssi < emitter.min_rssi
                 || (best_rssi < emitter.reliable_rssi
@@ -352,6 +419,23 @@ fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
     let ray0 = Rotation2::new(emitter.start_bearing).transform_vector(&vector![1.0, 0.0]);
     let ray1 = Rotation2::new(emitter.end_bearing).transform_vector(&vector![1.0, 0.0]);
     let dp = point - emitter.center;
+    let is_clockwise = |v0: Vector2<f64>, v1: Vector2<f64>| -v0.x * v1.y + v0.y * v1.x > 0.0;
+    if is_clockwise(ray1, ray0) {
+        !is_clockwise(ray0, dp) && is_clockwise(ray1, dp)
+    } else {
+        is_clockwise(ray1, dp) || !is_clockwise(ray0, dp)
+    }
+}
+
+fn check_inside_beam_raw(
+    src_position: &Point2<f64>,
+    bearing: f64,
+    width: f64,
+    dst_position: &Point2<f64>,
+) -> bool {
+    let ray0 = Rotation2::new(bearing - width * 0.5).transform_vector(&vector![1.0, 0.0]);
+    let ray1 = Rotation2::new(bearing + width * 0.5).transform_vector(&vector![1.0, 0.0]);
+    let dp = dst_position - src_position;
     let is_clockwise = |v0: Vector2<f64>, v1: Vector2<f64>| -v0.x * v1.y + v0.y * v1.x > 0.0;
     if is_clockwise(ray1, ray0) {
         !is_clockwise(ray0, dp) && is_clockwise(ray1, dp)
@@ -463,8 +547,9 @@ mod test {
     use crate::simulation::Code;
     use crate::simulation::Simulation;
     use nalgebra::{vector, UnitComplex};
+    use oort_api::EcmMode;
     use rand::Rng;
-    use std::f64::consts::TAU;
+    use std::f64::consts::{PI, TAU};
     use test_log::test;
 
     const EPSILON: f64 = 0.01;
@@ -772,16 +857,53 @@ mod test {
         };
 
         use ShipClass::*;
-        assert!(check_detection(Fighter, Missile, 30e3));
+        assert!(check_detection(Fighter, Missile, 25e3));
         assert!(!check_detection(Fighter, Missile, 40e3));
-        assert!(check_detection(Fighter, Torpedo, 40e3));
+        assert!(check_detection(Fighter, Torpedo, 30e3));
         assert!(!check_detection(Fighter, Torpedo, 50e3));
-        assert!(check_detection(Fighter, Fighter, 90e3));
+        assert!(check_detection(Fighter, Fighter, 80e3));
         assert!(!check_detection(Fighter, Fighter, 120e3));
-        assert!(check_detection(Fighter, Frigate, 120e3));
+        assert!(check_detection(Fighter, Frigate, 100e3));
         assert!(!check_detection(Fighter, Frigate, 150e3));
-        assert!(check_detection(Fighter, Cruiser, 120e3));
+        assert!(check_detection(Fighter, Cruiser, 100e3));
         assert!(!check_detection(Fighter, Cruiser, 150e3));
+    }
+
+    #[test]
+    fn test_jamming() {
+        let check_detection = |range| {
+            let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+            let ship0 = ship::create(
+                &mut sim,
+                vector![0.0, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                ship::fighter(0),
+            );
+            let ship1 = ship::create(
+                &mut sim,
+                vector![range, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                ship::fighter(1),
+            );
+            sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
+            sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 360.0;
+            sim.ship_mut(ship1).radar_mut().unwrap().heading = PI;
+            sim.ship_mut(ship1).radar_mut().unwrap().width = TAU / 360.0;
+            sim.ship_mut(ship1).radar_mut().unwrap().ecm_mode = EcmMode::Noise;
+            (0..10)
+                .map(|_| {
+                    sim.step();
+                    sim.ship(ship0).radar().unwrap().result.is_some()
+                })
+                .filter(|x| *x)
+                .count()
+                > 6
+        };
+
+        assert!(check_detection(30e3));
+        assert!(!check_detection(50e3));
     }
 
     #[test]

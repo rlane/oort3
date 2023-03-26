@@ -4,11 +4,13 @@ use oort_api::prelude::*;
 
 const BULLET_SPEED: f64 = 1000.0;
 
-pub struct Ship {}
+pub struct Ship {
+    ecm_ticks_remaining: i32,
+}
 
 impl Ship {
     pub fn new() -> Ship {
-        Ship {}
+        Ship { ecm_ticks_remaining: 0 }
     }
 
     pub fn tick(&mut self) {
@@ -23,7 +25,7 @@ impl Ship {
                 }
 
                 set_radar_heading((contact.position - position()).angle());
-                set_radar_width((10.0 * TAU / dp.length()).clamp(TAU / 30.0, TAU));
+                set_radar_width(TAU / 360.0);
             } else if let Some(msg) = receive() {
                 let target_position = vec2(msg[0], msg[1]);
                 let target_velocity = vec2(msg[2], msg[3]);
@@ -35,7 +37,6 @@ impl Ship {
                 set_radar_width(TAU / 4.0);
             }
         } else {
-            set_radar_width(TAU / 360.0);
             if let Some(contact) = scan() {
                 fire(1);
                 send([
@@ -46,11 +47,25 @@ impl Ship {
                 ]);
                 let dp = contact.position - position();
                 set_radar_heading(dp.angle());
-                let acc = vec2(-position().x, 1.2 * position().y);
+                let acc = if position().y.abs() < 1e3 {
+                    vec2(-position().x, 100.0 * position().y)
+                } else {
+                    vec2(-position().x, -velocity().y)
+                };
                 accelerate(acc);
                 turn_to(acc.angle());
+                set_radar_ecm_mode(EcmMode::Noise);
+                self.ecm_ticks_remaining = 2;
+                set_radar_width(TAU / 60.0);
+            } else if self.ecm_ticks_remaining > 1 {
+                self.ecm_ticks_remaining -= 1;
+            } else if self.ecm_ticks_remaining == 1 {
+                set_radar_ecm_mode(EcmMode::None);
+                set_radar_width(TAU / 360.0);
+                self.ecm_ticks_remaining = 0;
             } else {
                 set_radar_heading(radar_heading() + radar_width());
+                set_radar_width(TAU / 60.0);
                 seek(vec2(0.0, 0.0), vec2(0.0, 0.0));
             }
         }

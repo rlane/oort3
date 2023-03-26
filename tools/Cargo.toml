@@ -9,6 +9,7 @@ resolver = "2"
 oort_proto = { path = "../shared/proto" }
 oort_simulator = { path = "../shared/simulator", features = ["precompile"] }
 oort_compiler = { path = "../shared/compiler" }
+oort_api = { path = "../shared/api" }
 firestore = "0.6.1"
 gcloud-sdk = "0.18.1"
 serde = { version = "1.0", features = ["derive"] }

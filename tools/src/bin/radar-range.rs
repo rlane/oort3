@@ -1,11 +1,20 @@
+use clap::Parser;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 use nalgebra::vector;
+use oort_api::EcmMode;
 use oort_simulator::ship;
 use oort_simulator::ship::ShipClass::*;
 use oort_simulator::ship::{ShipClass, ShipData};
 use oort_simulator::simulation::{Code, Simulation, MAX_WORLD_SIZE};
-use std::f64::consts::TAU;
+use std::f64::consts::{PI, TAU};
+
+#[derive(Parser, Debug)]
+#[clap()]
+struct Arguments {
+    #[clap(short, long)]
+    ecm: bool,
+}
 
 fn class_to_ship_data(class: ShipClass, team: i32) -> ShipData {
     match class {
@@ -23,6 +32,7 @@ fn run_simulation(
     reflector_class: ShipClass,
     range: f64,
     beamwidth: f64,
+    ecm: bool,
 ) -> (
     f64, /* probability of detection */
     f64, /* distance error RMS */
@@ -37,7 +47,7 @@ fn run_simulation(
         class_to_ship_data(emitter_class, 0),
     );
     let target_position = vector![range + offset, 0.0];
-    ship::create(
+    let ship1 = ship::create(
         &mut sim,
         target_position,
         vector![0.0, 0.0],
@@ -46,6 +56,12 @@ fn run_simulation(
     );
     sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
     sim.ship_mut(ship0).radar_mut().unwrap().width = beamwidth;
+
+    if ecm {
+        sim.ship_mut(ship1).radar_mut().unwrap().heading = PI;
+        sim.ship_mut(ship1).radar_mut().unwrap().width = TAU / 360.0;
+        sim.ship_mut(ship1).radar_mut().unwrap().ecm_mode = EcmMode::Noise;
+    }
 
     let trials = 100;
     let mut square_errors = 0.0;
@@ -74,13 +90,16 @@ fn check_accuracy(
     reflector_class: ShipClass,
     range: f64,
     beamwidth: f64,
+    ecm: bool,
 ) -> bool {
     let (detection_chance, rms_error) =
-        run_simulation(emitter_class, reflector_class, range, beamwidth);
+        run_simulation(emitter_class, reflector_class, range, beamwidth, ecm);
     detection_chance >= 0.9 && rms_error < 10.0
 }
 
 fn main() {
+    let args = Arguments::parse();
+
     let ship_classes = [Missile, Torpedo, Fighter, Frigate, Cruiser];
 
     let ranges = [
@@ -105,8 +124,13 @@ fn main() {
                 for reflector_class in ship_classes {
                     let range_km = ranges.iter().cloned().find(|x| {
                         let range = x * 1e3;
-                        let (detection_chance, _rms_error) =
-                            run_simulation(emitter_class, reflector_class, range, beamwidth);
+                        let (detection_chance, _rms_error) = run_simulation(
+                            emitter_class,
+                            reflector_class,
+                            range,
+                            beamwidth,
+                            args.ecm,
+                        );
                         detection_chance >= 0.5
                     });
                     row.push(range_km.unwrap_or_default().to_string());
@@ -136,7 +160,7 @@ fn main() {
                 for reflector_class in ship_classes {
                     let range_km = ranges.iter().cloned().find(|x| {
                         let range = x * 1e3;
-                        check_accuracy(emitter_class, reflector_class, range, beamwidth)
+                        check_accuracy(emitter_class, reflector_class, range, beamwidth, args.ecm)
                     });
                     row.push(range_km.unwrap_or_default().to_string());
                 }
