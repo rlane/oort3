@@ -6,7 +6,7 @@ use crate::debug;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Simulation};
 use nalgebra::point;
-use oort_api::{Ability, Class, Line, SystemState, Text};
+use oort_api::{Ability, Class, EcmMode, Line, SystemState, Text};
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
@@ -424,6 +424,7 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         radar.set_width(state.get(SystemState::RadarWidth));
         radar.set_min_distance(state.get(SystemState::RadarMinDistance));
         radar.set_max_distance(state.get(SystemState::RadarMaxDistance));
+        radar.set_ecm_mode(translate_ecm_mode(state.get(SystemState::RadarEcmMode)));
     }
 
     if let Some(ability) = translate_ability(state.get(SystemState::ActivateAbility)) {
@@ -485,6 +486,17 @@ fn translate_ability(v: f64) -> Option<Ability> {
         Some(Ability::Shield)
     } else {
         None
+    }
+}
+
+fn translate_ecm_mode(v: f64) -> EcmMode {
+    let v = v as u32;
+    if v == EcmMode::None as u32 {
+        EcmMode::None
+    } else if v == EcmMode::Noise as u32 {
+        EcmMode::Noise
+    } else {
+        EcmMode::None
     }
 }
 
