@@ -280,7 +280,7 @@ impl Scenario for RadarTest {
             let distance = (i + 1) as f64 * 10e3 - 50.0;
             ship::create(
                 sim,
-                Rotation2::new(angle) * vector![distance as f64, 0.0],
+                Rotation2::new(angle) * vector![distance, 0.0],
                 vector![0.0, 0.0],
                 angle + PI,
                 fighter(1),

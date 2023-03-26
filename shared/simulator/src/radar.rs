@@ -12,6 +12,8 @@ use std::collections::HashMap;
 use std::f64::consts::TAU;
 use std::ops::Range;
 
+const DEBUG: bool = false;
+
 #[derive(Clone, Debug)]
 pub struct Radar {
     pub heading: f64,
@@ -38,8 +40,8 @@ impl Default for Radar {
             max_distance: 1e9,
             power: 100e3,
             rx_cross_section: 10.0,
-            reliable_rssi: 1e-2,
-            min_rssi: 1e-3,
+            reliable_rssi: from_dbm(-90.0),
+            min_rssi: from_dbm(-100.0),
             result: None,
         }
     }
@@ -117,6 +119,14 @@ pub struct ScanResult {
 struct ReflectorTeam {
     reflectors: Vec<RadarReflector>,
     index: StaticAABB2DIndex<f64>,
+}
+
+fn into_dbm(x: f64) -> f64 {
+    10.0 * x.log10() + 30.0
+}
+
+fn from_dbm(x: f64) -> f64 {
+    10.0_f64.powf((x - 30.0) / 10.0)
 }
 
 #[inline(never)]
@@ -237,6 +247,19 @@ pub fn tick(sim: &mut Simulation) {
                 }
             }
 
+            if DEBUG {
+                if let Some(reflector) = best_reflector {
+                    sim.emit_debug_text(
+                        handle,
+                        format!(
+                            "Radar contact range {:.1} km rssi {:.1} dBm",
+                            (reflector.position - emitter.center).norm() * 1e-3,
+                            into_dbm(best_rssi)
+                        ),
+                    );
+                }
+            }
+
             let result = if best_rssi < emitter.min_rssi
                 || (best_rssi < emitter.reliable_rssi
                     && decide_unreliable_rssi(&mut rng, best_rssi, emitter.reliable_rssi))
@@ -244,9 +267,9 @@ pub fn tick(sim: &mut Simulation) {
                 None
             } else {
                 best_reflector.map(|reflector| {
-                    const BEARING_NOISE: f64 = 0.0001;
-                    const DISTANCE_NOISE: f64 = 1.0;
-                    const VELOCITY_NOISE: f64 = 1.0;
+                    const BEARING_NOISE: f64 = 1e-15;
+                    const DISTANCE_NOISE: f64 = 1e-10;
+                    const VELOCITY_NOISE: f64 = 1e-10;
                     let dp = reflector.position - emitter.center;
                     let beam_rot = Rotation2::new(emitter.bearing);
                     let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
@@ -340,19 +363,19 @@ fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
 fn compute_rssi(emitter: &RadarEmitter, reflector: &RadarReflector) -> f64 {
     let r_sq = nalgebra::distance_squared(&emitter.center, &reflector.position);
     emitter.power * reflector.radar_cross_section * emitter.rx_cross_section
-        / (TAU * emitter.width * r_sq)
+        / (TAU * emitter.width * r_sq * r_sq)
 }
 
 fn compute_max_detection_range(radar: &Radar, target_cross_section: f64) -> f64 {
     (radar.power * target_cross_section * radar.rx_cross_section
         / (TAU * radar.width * radar.min_rssi))
-        .sqrt()
+        .powf(0.25)
 }
 
 fn compute_reliable_detection_range(radar: &Radar, target_cross_section: f64) -> f64 {
     (radar.power * target_cross_section * radar.rx_cross_section
         / (TAU * radar.width * radar.reliable_rssi))
-        .sqrt()
+        .powf(0.25)
 }
 
 fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter, reliable_distance: f64) {
@@ -749,16 +772,16 @@ mod test {
         };
 
         use ShipClass::*;
-        assert!(check_detection(Fighter, Missile, 10e3));
-        assert!(!check_detection(Fighter, Missile, 60e3));
-        assert!(check_detection(Fighter, Torpedo, 20e3));
-        assert!(!check_detection(Fighter, Torpedo, 90e3));
-        assert!(check_detection(Fighter, Fighter, 30e3));
-        assert!(!check_detection(Fighter, Fighter, 100e3));
-        assert!(check_detection(Fighter, Frigate, 50e3));
-        assert!(!check_detection(Fighter, Frigate, 170e3));
-        assert!(check_detection(Fighter, Cruiser, 60e3));
-        assert!(!check_detection(Fighter, Cruiser, 200e3));
+        assert!(check_detection(Fighter, Missile, 30e3));
+        assert!(!check_detection(Fighter, Missile, 40e3));
+        assert!(check_detection(Fighter, Torpedo, 40e3));
+        assert!(!check_detection(Fighter, Torpedo, 50e3));
+        assert!(check_detection(Fighter, Fighter, 90e3));
+        assert!(!check_detection(Fighter, Fighter, 120e3));
+        assert!(check_detection(Fighter, Frigate, 120e3));
+        assert!(!check_detection(Fighter, Frigate, 150e3));
+        assert!(check_detection(Fighter, Cruiser, 120e3));
+        assert!(!check_detection(Fighter, Cruiser, 150e3));
     }
 
     #[test]

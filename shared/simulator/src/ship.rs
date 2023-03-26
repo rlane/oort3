@@ -415,7 +415,7 @@ pub fn missile(team: i32) -> ShipData {
             rx_cross_section: 3.0,
             ..Default::default()
         }),
-        radar_cross_section: 3.0,
+        radar_cross_section: 0.1,
         radios: vec![radio()],
         ttl: Some(20 * 60),
         abilities: vec![
@@ -451,7 +451,7 @@ pub fn torpedo(team: i32) -> ShipData {
             rx_cross_section: 3.0,
             ..Default::default()
         }),
-        radar_cross_section: 8.0,
+        radar_cross_section: 0.3,
         radios: vec![radio()],
         ttl: Some(30 * 60),
         abilities: vec![ShipAbility {
