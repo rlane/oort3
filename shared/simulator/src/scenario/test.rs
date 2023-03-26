@@ -264,3 +264,39 @@ impl Scenario for FrigatePointDefense {
         vec![empty_ai(), reference_ai()]
     }
 }
+
+pub struct RadarTest {}
+
+impl Scenario for RadarTest {
+    fn name(&self) -> String {
+        "radar_test".into()
+    }
+
+    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
+        let n = 10;
+        for i in 0..10 {
+            let angle = ((i + 1) as f64) * TAU / (n as f64);
+            let distance = (i + 1) as f64 * 10e3 - 50.0;
+            ship::create(
+                sim,
+                Rotation2::new(angle) * vector![distance as f64, 0.0],
+                vector![0.0, 0.0],
+                angle + PI,
+                fighter(1),
+            );
+        }
+    }
+
+    fn status(&self, _sim: &Simulation) -> Status {
+        Status::Running
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![builtin("radar_test"), empty_ai()]
+    }
+
+    fn world_size(&self) -> f64 {
+        200e3
+    }
+}

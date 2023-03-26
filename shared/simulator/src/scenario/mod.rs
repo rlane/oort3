@@ -158,6 +158,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "frigate_vs_cruiser" => Some(Box::new(test::FrigateVsCruiser::new())),
         "cruiser_vs_frigate" => Some(Box::new(test::CruiserVsFrigate::new())),
         "frigate_point_defense" => Some(Box::new(test::FrigatePointDefense {})),
+        "radar_test" => Some(Box::new(test::RadarTest {})),
         // Stress
         "stress" => Some(Box::new(stress::StressScenario {})),
         "asteroid-stress" => Some(Box::new(stress::AsteroidStressScenario {})),
