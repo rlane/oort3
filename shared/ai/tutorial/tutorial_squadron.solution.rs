@@ -4,13 +4,11 @@ use oort_api::prelude::*;
 
 const BULLET_SPEED: f64 = 1000.0;
 
-pub struct Ship {
-    ecm_ticks_remaining: i32,
-}
+pub struct Ship {}
 
 impl Ship {
     pub fn new() -> Ship {
-        Ship { ecm_ticks_remaining: 0 }
+        Ship {}
     }
 
     pub fn tick(&mut self) {
@@ -54,15 +52,6 @@ impl Ship {
                 };
                 accelerate(acc);
                 turn_to(acc.angle());
-                set_radar_ecm_mode(EcmMode::Noise);
-                self.ecm_ticks_remaining = 2;
-                set_radar_width(TAU / 60.0);
-            } else if self.ecm_ticks_remaining > 1 {
-                self.ecm_ticks_remaining -= 1;
-            } else if self.ecm_ticks_remaining == 1 {
-                set_radar_ecm_mode(EcmMode::None);
-                set_radar_width(TAU / 360.0);
-                self.ecm_ticks_remaining = 0;
             } else {
                 set_radar_heading(radar_heading() + radar_width());
                 set_radar_width(TAU / 60.0);

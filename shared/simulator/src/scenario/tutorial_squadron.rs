@@ -19,21 +19,22 @@ impl Scenario for TutorialSquadron {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        for team in 0..2 {
-            for _ in 0..4 {
-                let size = 500.0;
-                let range = -size..size;
-                let center = vector![(team as f64 - 0.5) * 16000.0, 0.0];
-                let offset = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
-                let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
-                ship::create(
-                    sim,
-                    center + offset,
-                    vector![0.0, 0.0],
-                    heading,
-                    fighter(team),
-                );
-            }
+
+        for i in 1..6 {
+            let center = vector![-8000.0, 0.0];
+            let offset = vector![
+                (i / 2) as f64 * -100.0,
+                ((i / 2) as f64) * ((i % 2) as f64 - 0.5) * 300.0
+            ];
+            ship::create(sim, center + offset, vector![0.0, 0.0], 0.0, fighter(0));
+        }
+
+        for _ in 0..4 {
+            let size = 500.0;
+            let range = -size..size;
+            let center = vector![8000.0, 0.0];
+            let offset = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+            ship::create(sim, center + offset, vector![0.0, 0.0], PI, fighter(1));
         }
     }
 
