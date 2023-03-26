@@ -12,6 +12,7 @@ use std::collections::{HashMap, VecDeque};
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
+const ZOOM_SPEED: f32 = 0.02;
 const MIN_ZOOM: f32 = 5e-6;
 const MAX_ZOOM: f32 = 1e-2;
 const INITIAL_ZOOM: f32 = 4e-4;
@@ -141,10 +142,10 @@ impl UI {
             self.camera_target.x += camera_step;
         }
         if self.keys_down.contains("z") && self.zoom > MIN_ZOOM {
-            self.zoom *= 0.99;
+            self.zoom /= 1.0 + ZOOM_SPEED;
         }
         if self.keys_down.contains("x") && self.zoom < MAX_ZOOM {
-            self.zoom *= 1.01;
+            self.zoom *= 1.0 + ZOOM_SPEED;
         }
         if self.keys_down.contains(" ") && !self.keys_ignored.contains(" ") {
             self.keys_ignored.insert(" ".to_string());
@@ -344,7 +345,7 @@ impl UI {
 
     pub fn on_wheel_event(&mut self, e: web_sys::WheelEvent) {
         let amount = e.delta_y();
-        self.zoom *= (1.0 - amount.signum() * 0.01).powf(amount.abs() / 30.0) as f32;
+        self.zoom *= (1.0 - amount.signum() as f32 * ZOOM_SPEED).powf(amount.abs() as f32 / 30.0);
         self.zoom = self.zoom.clamp(MIN_ZOOM, MAX_ZOOM);
 
         // Move camera target to keep cursor in the same location.
