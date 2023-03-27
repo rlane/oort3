@@ -1,3 +1,7 @@
+- Fixed radar to fall off with the 4th power of distance.
+- Added ECM (noise jamming).
+- Made tutorial_squadron easier.
+
 ### 0.45.1
 
 - Made radar lines more visible.
