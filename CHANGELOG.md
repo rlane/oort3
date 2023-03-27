@@ -1,3 +1,5 @@
+### 0.46.0
+
 - Fixed radar to fall off with the 4th power of distance.
 - Added ECM (noise jamming).
 - Made tutorial_squadron easier.
