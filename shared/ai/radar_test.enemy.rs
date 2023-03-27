@@ -10,6 +10,6 @@ impl Ship {
     pub fn tick(&mut self) {
         set_radar_heading(position().angle() + PI);
         set_radar_width(TAU / 360.0);
-        set_radar_ecm_mode(EcmMode::Noise);
+        set_radar_ecm_mode(EcmMode::None);
     }
 }

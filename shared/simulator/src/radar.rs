@@ -14,7 +14,10 @@ use std::ops::Range;
 
 const DEBUG: bool = false;
 const BACKGROUND_NOISE: f64 = 1e-13; // -100 dBm
-const JAMMER_COEFF: f64 = 1e-8; // Account for frequency hopping and pulse length
+const JAMMER_COEFF: f64 = 1e-9; // Account for frequency hopping and pulse length
+const BEARING_NOISE_FACTOR: f64 = 1e1 * (TAU / 360.0);
+const DISTANCE_NOISE_FACTOR: f64 = 1e4;
+const VELOCITY_NOISE_FACTOR: f64 = 1e2;
 
 #[derive(Clone, Debug)]
 pub struct Radar {
@@ -311,37 +314,38 @@ pub fn tick(sim: &mut Simulation) {
                 }
             }
 
+            let signal_db = into_dbm(best_rssi) - into_dbm(received_noise);
+
             if DEBUG {
                 if let Some(reflector) = best_reflector {
                     sim.emit_debug_text(
                         handle,
                         format!(
-                            "Radar contact range {:.1} km rssi {:.1} dBm noise {:.1} dBm",
+                            "Radar contact range {:.1} km rssi {:.1} dBm noise {:.1} dBm signal {:.1} dB",
                             (reflector.position - emitter.center).norm() * 1e-3,
                             into_dbm(best_rssi),
-                            into_dbm(received_noise)
+                            into_dbm(received_noise),
+                            signal_db,
                         ),
                     );
                 }
             }
 
-            best_rssi -= received_noise;
-
-            let result = if best_rssi < emitter.min_rssi
+            let result = if signal_db < 3.0
+                || best_rssi < emitter.min_rssi
                 || (best_rssi < emitter.reliable_rssi
                     && decide_unreliable_rssi(&mut rng, best_rssi, emitter.reliable_rssi))
             {
                 None
             } else {
                 best_reflector.map(|reflector| {
-                    const BEARING_NOISE: f64 = 1e-15;
-                    const DISTANCE_NOISE: f64 = 1e-10;
-                    const VELOCITY_NOISE: f64 = 1e-10;
+                    let error_factor = 10.0f64.powf(-signal_db / 10.0);
                     let dp = reflector.position - emitter.center;
                     let beam_rot = Rotation2::new(emitter.bearing);
                     let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
                     let mut noisy_bearing: f64 = reflector_rot.angle()
-                        + rng.sample::<f64, _>(StandardNormal) * (BEARING_NOISE / best_rssi);
+                        + rng.sample::<f64, _>(StandardNormal)
+                            * (BEARING_NOISE_FACTOR * error_factor);
                     {
                         let angle_to = Rotation2::new(noisy_bearing).angle_to(&beam_rot);
                         if angle_to > emitter.width * 0.5 {
@@ -352,14 +356,15 @@ pub fn tick(sim: &mut Simulation) {
                     }
 
                     let mut distance = (reflector.position - emitter.center).magnitude();
-                    distance += rng.sample::<f64, _>(StandardNormal) * (DISTANCE_NOISE / best_rssi);
+                    distance += rng.sample::<f64, _>(StandardNormal)
+                        * (DISTANCE_NOISE_FACTOR * error_factor);
                     distance = distance.clamp(emitter.min_distance, emitter.max_distance);
 
                     let position = emitter.center.coords
                         + Rotation2::new(noisy_bearing).transform_vector(&vector![distance, 0.0]);
                     let velocity = reflector.velocity
                         + vector![rng.sample(StandardNormal), rng.sample(StandardNormal)]
-                            * (VELOCITY_NOISE / best_rssi);
+                            * (VELOCITY_NOISE_FACTOR * error_factor);
 
                     ScanResult {
                         class: reflector.class,
@@ -902,8 +907,8 @@ mod test {
                 > 6
         };
 
-        assert!(check_detection(30e3));
-        assert!(!check_detection(50e3));
+        assert!(check_detection(50e3));
+        assert!(!check_detection(70e3));
     }
 
     #[test]

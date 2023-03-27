@@ -273,18 +273,15 @@ impl Scenario for RadarTest {
     }
 
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
-        ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, fighter(0));
-        let n = 10;
-        for i in 0..10 {
-            let angle = ((i + 1) as f64) * TAU / (n as f64);
-            let distance = (i + 1) as f64 * 10e3 - 50.0;
-            ship::create(
-                sim,
-                Rotation2::new(angle) * vector![distance, 0.0],
-                vector![0.0, 0.0],
-                angle + PI,
-                fighter(1),
-            );
+        for (j, class) in [missile, torpedo, fighter, frigate, cruiser]
+            .iter()
+            .enumerate()
+        {
+            let y = -2.5e3 + j as f64 * 1000.0;
+            let mut data = class(0);
+            data.ttl = None;
+            ship::create(sim, vector![-50e3, y], vector![0.0, 0.0], 0.0, data);
+            ship::create(sim, vector![-40e3, y], vector![0.0, 0.0], PI, fighter(1));
         }
     }
 
@@ -298,5 +295,22 @@ impl Scenario for RadarTest {
 
     fn world_size(&self) -> f64 {
         200e3
+    }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        if sim.tick() > 120 && sim.tick() % 120 == 0 {
+            let handles: Vec<_> = sim.ships.iter().cloned().collect();
+            for handle in handles {
+                if sim.ship(handle).data().team == 1 {
+                    let mut ship = sim.ship_mut(handle);
+                    let body = ship.body();
+                    if body.translation().x < 35e3 {
+                        body.set_translation(body.translation() + vector![10e3, 0.0], true);
+                    } else {
+                        body.set_translation(vector![-40e3, body.translation().y], true);
+                    }
+                }
+            }
+        }
     }
 }
