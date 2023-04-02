@@ -100,9 +100,10 @@ impl Renderer {
 
     pub fn unproject(&self, x: i32, y: i32) -> Point2<f64> {
         let inverse_matrix = self.projection_matrix.try_inverse().unwrap();
+        let dpr = gloo_utils::window().device_pixel_ratio() as f32;
         let device_coords = vector![
-            x as f32 / self.context.drawing_buffer_width() as f32,
-            -y as f32 / self.context.drawing_buffer_height() as f32,
+            dpr * x as f32 / (self.context.drawing_buffer_width() as f32),
+            dpr * -y as f32 / (self.context.drawing_buffer_height() as f32),
             0.0
         ] * 2.0
             - vector![1.0, -1.0, 0.0];
