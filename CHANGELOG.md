@@ -1,3 +1,5 @@
+- Fixed selecting ships on high DPI devices.
+
 ### 0.46.0
 
 - Fixed radar to fall off with the 4th power of distance.
