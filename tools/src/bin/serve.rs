@@ -8,6 +8,10 @@ struct Arguments {
     /// Build the frontend in release mode.
     release: bool,
 
+    #[clap(long)]
+    /// Listen on all IP addresses.
+    listen: bool,
+
     #[clap(long, default_value = "oort-dev")]
     project: String,
 }
@@ -84,6 +88,7 @@ fn main() -> Result<()> {
         "--watch=shared/simulator",
         "--ignore=frontend/app/dist",
         if args.release { "--release" } else { "" },
+        if args.listen { "--address=0.0.0.0" } else { "" },
     ])
     .spawn()?
     .wait()?;
