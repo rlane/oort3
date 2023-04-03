@@ -1,6 +1,6 @@
 [package]
 name = "oort_tools"
-version = "0.46.0"
+version = "0.46.1"
 publish = false
 edition = "2021"
 resolver = "2"

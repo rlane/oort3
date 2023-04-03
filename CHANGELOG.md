@@ -1,3 +1,5 @@
+### 0.46.1
+
 - Fixed selecting ships on high DPI devices.
 
 ### 0.46.0
