@@ -7,6 +7,8 @@
 //
 // Hint: p = p₀ + v₀t + ½at² (the third equation of kinematics)
 //
+// You can scale a vector by a number: vec2(a, b) * c == vec2(a * c, b * c)
+//
 // p.s. You can change your username by clicking on it at the top of the page.
 use oort_api::prelude::*;
 
