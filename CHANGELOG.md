@@ -1,3 +1,7 @@
+- Added vector examples to early tutorials.
+- Added Vec2::splat.
+- Derived PartialEq and Default for Vec2.
+
 ### 0.46.1
 
 - Fixed selecting ships on high DPI devices.
