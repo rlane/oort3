@@ -1,3 +1,5 @@
+### 0.46.2
+
 - Added vector examples to early tutorials.
 - Added Vec2::splat.
 - Derived PartialEq and Default for Vec2.
