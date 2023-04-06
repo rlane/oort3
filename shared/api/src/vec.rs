@@ -18,6 +18,11 @@ impl Vec2 {
         Vec2 { x, y }
     }
 
+    /// Broadcast a scalar into a [Vec2].
+    pub fn splat(x: f64) -> Vec2 {
+        Vec2 { x, y: x }
+    }
+
     /// Returns the length (or distance from origin).
     pub fn length(self) -> f64 {
         (self.x * self.x + self.y * self.y).sqrt()
