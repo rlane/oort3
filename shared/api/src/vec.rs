@@ -4,7 +4,7 @@ use std::{
 };
 
 /// A two-dimensional vector.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec2 {
     /// The X coordinate.
     pub x: f64,
