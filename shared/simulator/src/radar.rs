@@ -195,7 +195,8 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
 #[inline(never)]
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
-    let indices_by_team = build_reflector_team(sim);
+    let reflectors_by_team = build_reflector_team(sim);
+    let mut candidates: Vec<&RadarReflector> = Vec::new();
 
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
@@ -243,44 +244,47 @@ pub fn tick(sim: &mut Simulation) {
             let mut best_rssi = emitter.min_rssi;
             let mut best_reflector: Option<&RadarReflector> = None;
             let mut received_noise = BACKGROUND_NOISE;
+            candidates.clear();
 
-            for (team2, reflector_team) in indices_by_team.iter() {
+            for (team2, reflector_team) in reflectors_by_team.iter() {
                 if emitter.team == *team2 {
                     continue;
                 }
 
                 for reflector in reflector_team.reflectors.iter() {
-                    if !check_inside_beam(&emitter, &reflector.position) {
-                        continue;
+                    if check_inside_beam(&emitter, &reflector.position) {
+                        candidates.push(reflector);
                     }
+                }
+            }
 
-                    if let Some(jammer) = reflector.jammer.as_ref() {
-                        match jammer.ecm_mode {
-                            EcmMode::None => {}
-                            EcmMode::Noise => {
-                                if check_inside_beam_raw(
-                                    &reflector.position,
-                                    jammer.bearing,
-                                    jammer.width,
+            for &reflector in candidates.iter() {
+                if let Some(jammer) = reflector.jammer.as_ref() {
+                    match jammer.ecm_mode {
+                        EcmMode::None => {}
+                        EcmMode::Noise => {
+                            if check_inside_beam_raw(
+                                &reflector.position,
+                                jammer.bearing,
+                                jammer.width,
+                                &emitter.center,
+                            ) {
+                                let r_sq = nalgebra::distance_squared(
                                     &emitter.center,
-                                ) {
-                                    let r_sq = nalgebra::distance_squared(
-                                        &emitter.center,
-                                        &reflector.position,
-                                    );
-                                    received_noise +=
-                                        JAMMER_COEFF * jammer.power * emitter.rx_cross_section
-                                            / (TAU * jammer.width * r_sq);
-                                }
+                                    &reflector.position,
+                                );
+                                received_noise +=
+                                    JAMMER_COEFF * jammer.power * emitter.rx_cross_section
+                                        / (TAU * jammer.width * r_sq);
                             }
                         }
                     }
+                }
 
-                    let rssi = compute_rssi(&emitter, reflector);
-                    if rssi > best_rssi {
-                        best_reflector = Some(reflector);
-                        best_rssi = rssi;
-                    }
+                let rssi = compute_rssi(&emitter, reflector);
+                if rssi > best_rssi {
+                    best_reflector = Some(reflector);
+                    best_rssi = rssi;
                 }
             }
 
