@@ -110,6 +110,8 @@ struct RadarEmitter {
     reliable_rssi: f64,
     min_rssi: f64,
     team: i32,
+    rays: [Vector2<f64>; 2],
+    clockwise: bool,
 }
 
 struct RadarReflector {
@@ -211,6 +213,12 @@ pub fn tick(sim: &mut Simulation) {
             let reliable_distance = compute_reliable_detection_range(radar, 10.0 /*fighter*/)
                 .min(radar.max_distance)
                 .min(simulation::MAX_WORLD_SIZE);
+
+            let start_bearing = h - 0.5 * w;
+            let end_bearing = h + 0.5 * w;
+            let ray0 = Rotation2::new(start_bearing).transform_vector(&vector![1.0, 0.0]);
+            let ray1 = Rotation2::new(end_bearing).transform_vector(&vector![1.0, 0.0]);
+            let rays = [ray0, ray1];
             let emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,
@@ -220,12 +228,14 @@ pub fn tick(sim: &mut Simulation) {
                 min_rssi: radar.min_rssi,
                 rx_cross_section: radar.rx_cross_section,
                 width: w,
-                start_bearing: h - 0.5 * w,
+                start_bearing,
                 bearing: h,
-                end_bearing: h + 0.5 * w,
+                end_bearing,
                 min_distance: radar.min_distance,
                 max_distance,
                 square_distance_range: radar.min_distance.powi(2)..max_distance.powi(2),
+                rays,
+                clockwise: is_clockwise(ray1, ray0),
             };
 
             if radar.ecm_mode != EcmMode::None {
@@ -367,6 +377,10 @@ fn decide_unreliable_rssi(rng: &mut impl Rng, rssi: f64, reliable_rssi: f64) -> 
     rng.gen_bool(1.0 / (2.0 * reliable_rssi / rssi).log2())
 }
 
+fn is_clockwise(v0: Vector2<f64>, v1: Vector2<f64>) -> bool {
+    -v0.x * v1.y + v0.y * v1.x > 0.0
+}
+
 fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
     if !emitter
         .square_distance_range
@@ -377,11 +391,10 @@ fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
     if emitter.width >= TAU {
         return true;
     }
-    let ray0 = Rotation2::new(emitter.start_bearing).transform_vector(&vector![1.0, 0.0]);
-    let ray1 = Rotation2::new(emitter.end_bearing).transform_vector(&vector![1.0, 0.0]);
+    let ray0 = emitter.rays[0];
+    let ray1 = emitter.rays[1];
     let dp = point - emitter.center;
-    let is_clockwise = |v0: Vector2<f64>, v1: Vector2<f64>| -v0.x * v1.y + v0.y * v1.x > 0.0;
-    if is_clockwise(ray1, ray0) {
+    if emitter.clockwise {
         !is_clockwise(ray0, dp) && is_clockwise(ray1, dp)
     } else {
         is_clockwise(ray1, dp) || !is_clockwise(ray0, dp)
