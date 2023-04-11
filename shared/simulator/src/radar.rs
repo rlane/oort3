@@ -382,23 +382,20 @@ fn is_clockwise(v0: Vector2<f64>, v1: Vector2<f64>) -> bool {
 }
 
 fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
-    if !emitter
-        .square_distance_range
-        .contains(&nalgebra::distance_squared(&emitter.center, point))
-    {
-        return false;
-    }
-    if emitter.width >= TAU {
-        return true;
-    }
     let ray0 = emitter.rays[0];
     let ray1 = emitter.rays[1];
     let dp = point - emitter.center;
-    if emitter.clockwise {
+    let inside_rays = if emitter.clockwise {
         !is_clockwise(ray0, dp) && is_clockwise(ray1, dp)
     } else {
         is_clockwise(ray1, dp) || !is_clockwise(ray0, dp)
+    };
+    if !inside_rays {
+        return false;
     }
+    emitter
+        .square_distance_range
+        .contains(&nalgebra::distance_squared(&emitter.center, point))
 }
 
 fn check_inside_beam_raw(
