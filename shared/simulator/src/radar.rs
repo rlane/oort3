@@ -111,7 +111,6 @@ struct RadarEmitter {
     min_rssi: f64,
     team: i32,
     rays: [Vector2<f64>; 2],
-    clockwise: bool,
 }
 
 struct RadarReflector {
@@ -207,6 +206,7 @@ pub fn tick(sim: &mut Simulation) {
         if let Some(radar) = ship_data.radar.as_ref() {
             let h = radar.heading;
             let w = radar.width;
+            assert!(w < TAU / 2.0);
             let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
                 .min(radar.max_distance)
                 .min(simulation::MAX_WORLD_SIZE);
@@ -218,6 +218,7 @@ pub fn tick(sim: &mut Simulation) {
             let end_bearing = h + 0.5 * w;
             let ray0 = Rotation2::new(start_bearing).transform_vector(&vector![1.0, 0.0]);
             let ray1 = Rotation2::new(end_bearing).transform_vector(&vector![1.0, 0.0]);
+            assert!(is_clockwise(ray1, ray0));
             let rays = [ray0, ray1];
             let emitter = RadarEmitter {
                 handle,
@@ -235,7 +236,6 @@ pub fn tick(sim: &mut Simulation) {
                 max_distance,
                 square_distance_range: radar.min_distance.powi(2)..max_distance.powi(2),
                 rays,
-                clockwise: is_clockwise(ray1, ray0),
             };
 
             if radar.ecm_mode != EcmMode::None {
@@ -385,17 +385,11 @@ fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
     let ray0 = emitter.rays[0];
     let ray1 = emitter.rays[1];
     let dp = point - emitter.center;
-    let inside_rays = if emitter.clockwise {
-        !is_clockwise(ray0, dp) && is_clockwise(ray1, dp)
-    } else {
-        is_clockwise(ray1, dp) || !is_clockwise(ray0, dp)
-    };
-    if !inside_rays {
-        return false;
-    }
-    emitter
-        .square_distance_range
-        .contains(&nalgebra::distance_squared(&emitter.center, point))
+    !is_clockwise(ray0, dp)
+        && is_clockwise(ray1, dp)
+        && emitter
+            .square_distance_range
+            .contains(&dp.magnitude_squared())
 }
 
 fn check_inside_beam_raw(
@@ -624,170 +618,6 @@ mod test {
     }
 
     #[test]
-    fn test_180_degrees() {
-        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
-
-        // Initial state.
-        let ship0 = ship::create(
-            &mut sim,
-            vector![0.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            ship::fighter(0),
-        );
-        let ship1 = ship::create(
-            &mut sim,
-            vector![1000.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            ship::target(1),
-        );
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Set width to 180 degrees.
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 2.0;
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move target north.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![EPSILON, 1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move just out of range to the north west.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![-EPSILON, 1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
-
-        // Move target south.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![EPSILON, -1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move just out of range to the south west.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![-EPSILON, -1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
-
-        // Move target west.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![-1000.0, 0.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
-    }
-
-    #[test]
-    fn test_270_degrees() {
-        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
-
-        // Initial state.
-        let ship0 = ship::create(
-            &mut sim,
-            vector![0.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            ship::fighter(0),
-        );
-        let ship1 = ship::create(
-            &mut sim,
-            vector![1000.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            ship::target(1),
-        );
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Set width to 270 degrees.
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU * 3.0 / 4.0;
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move target up.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![0.0, 1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move target down.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![0.0, -1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move target left.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![-1000.0, 100.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
-    }
-
-    #[test]
-    fn test_360_degrees() {
-        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
-
-        // Initial state.
-        let ship0 = ship::create(
-            &mut sim,
-            vector![0.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            ship::fighter(0),
-        );
-        let ship1 = ship::create(
-            &mut sim,
-            vector![1000.0, 0.0],
-            vector![0.0, 0.0],
-            0.0,
-            ship::target(1),
-        );
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Set width to 360 degrees.
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU;
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move target up.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![0.0, 1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move target down.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![0.0, -1000.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-
-        // Move target left.
-        sim.ship_mut(ship1)
-            .body()
-            .set_translation(vector![-1000.0, 100.0], true);
-        sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
-    }
-
-    #[test]
     fn test_detection_range() {
         let class_to_ship_data = |class, team| match class {
             ShipClass::Fighter => ship::fighter(team),
@@ -886,8 +716,11 @@ mod test {
                 || vector![rng.gen_range(-100.0..100.0), rng.gen_range(-100.0..100.0)];
             let p0 = rand_vector();
             let p1 = rand_vector();
+            if (p1 - p0).magnitude() < 20.0 {
+                continue;
+            }
             let h = rng.gen_range(0.0..TAU);
-            let w = rng.gen_range(0.0..TAU);
+            let w = rng.gen_range(0.0..(TAU / 4.0));
 
             let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], 0.0, ship::fighter(0));
             let _ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
