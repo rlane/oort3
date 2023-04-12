@@ -291,10 +291,18 @@ pub fn tick(sim: &mut Simulation) {
                     }
                 }
 
-                let rssi = compute_rssi(&emitter, reflector);
-                if rssi > best_rssi {
-                    best_reflector = Some(reflector);
-                    best_rssi = rssi;
+                if emitter
+                    .square_distance_range
+                    .contains(&nalgebra::distance_squared(
+                        &emitter.center,
+                        &reflector.position,
+                    ))
+                {
+                    let rssi = compute_rssi(&emitter, reflector);
+                    if rssi > best_rssi {
+                        best_reflector = Some(reflector);
+                        best_rssi = rssi;
+                    }
                 }
             }
 
@@ -385,11 +393,7 @@ fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
     let ray0 = emitter.rays[0];
     let ray1 = emitter.rays[1];
     let dp = point - emitter.center;
-    !is_clockwise(ray0, dp)
-        && is_clockwise(ray1, dp)
-        && emitter
-            .square_distance_range
-            .contains(&dp.magnitude_squared())
+    !is_clockwise(ray0, dp) && is_clockwise(ray1, dp)
 }
 
 fn check_inside_beam_raw(
