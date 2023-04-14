@@ -10,6 +10,7 @@ use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 use std::f64::consts::TAU;
 use std::ops::Range;
+use wide::{f32x4, CmpGt, CmpLt};
 
 const DEBUG: bool = false;
 const BACKGROUND_NOISE: f64 = 1e-13; // -100 dBm
@@ -136,7 +137,8 @@ pub struct ScanResult {
 }
 
 struct ReflectorTeam {
-    positions: Vec<Point2<f32>>,
+    xs: Vec<f32x4>,
+    ys: Vec<f32x4>,
     reflectors: Vec<RadarReflector>,
 }
 
@@ -192,13 +194,27 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
             .iter()
             .map(|r| r.position.cast::<f32>())
             .collect();
-        result.insert(
-            team,
-            ReflectorTeam {
-                positions,
-                reflectors,
-            },
-        );
+        let xs = positions
+            .chunks(4)
+            .map(|chunk| {
+                let mut xs = [0.0; 4];
+                for (i, p) in chunk.iter().enumerate() {
+                    xs[i] = p.x;
+                }
+                f32x4::from(xs)
+            })
+            .collect();
+        let ys = positions
+            .chunks(4)
+            .map(|chunk| {
+                let mut ys = [0.0; 4];
+                for (i, p) in chunk.iter().enumerate() {
+                    ys[i] = p.y;
+                }
+                f32x4::from(ys)
+            })
+            .collect();
+        result.insert(team, ReflectorTeam { xs, ys, reflectors });
     }
 
     result
@@ -392,15 +408,37 @@ fn find_candidates(
     let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
     let emitter_position = emitter.center.cast::<f32>();
 
-    for (team2, reflector_team) in reflectors_by_team.iter() {
-        if emitter.team == *team2 {
+    let wex = f32x4::splat(emitter_position.x);
+    let wey = f32x4::splat(emitter_position.y);
+    let wrx0 = f32x4::splat(rays[0].x);
+    let wry0 = f32x4::splat(rays[0].y);
+    let wrx1 = f32x4::splat(rays[1].x);
+    let wry1 = f32x4::splat(rays[1].y);
+
+    for (&team, reflector_team) in reflectors_by_team.iter() {
+        if emitter.team == team {
             continue;
         }
 
-        for (i, reflector_position) in reflector_team.positions.iter().enumerate() {
-            let dp = reflector_position - emitter_position;
-            if check_inside_beam_fast(rays, dp) {
-                candidates.push((*team2, i));
+        let n = reflector_team.reflectors.len();
+        for (i, (&wx, &wy)) in reflector_team.xs.iter().zip(&reflector_team.ys).enumerate() {
+            let wdx = wx - wex;
+            let wdy = wy - wey;
+
+            // Positive if true.
+            fn is_clockwise(wx0: f32x4, wy0: f32x4, wx1: f32x4, wy1: f32x4) -> f32x4 {
+                -wx0 * wy1 + wy0 * wx1
+            }
+
+            let mask = is_clockwise(wrx0, wry0, wdx, wdy).cmp_lt(f32x4::ZERO)
+                & is_clockwise(wrx1, wry1, wdx, wdy).cmp_gt(f32x4::ZERO);
+            if mask.any() {
+                for (j, &v) in mask.to_array().iter().enumerate() {
+                    let reflector_index = i * 4 + j;
+                    if v != 0.0 && reflector_index < n {
+                        candidates.push((team, reflector_index));
+                    }
+                }
             }
         }
     }
@@ -412,13 +450,6 @@ fn decide_unreliable_rssi(rng: &mut impl Rng, rssi: f64, reliable_rssi: f64) -> 
 
 fn is_clockwise(v0: Vector2<f64>, v1: Vector2<f64>) -> bool {
     -v0.x * v1.y + v0.y * v1.x > 0.0
-}
-
-fn check_inside_beam_fast(rays: [Vector2<f32>; 2], dp: Vector2<f32>) -> bool {
-    fn is_clockwise(v0: Vector2<f32>, v1: Vector2<f32>) -> bool {
-        -v0.x * v1.y + v0.y * v1.x > 0.0
-    }
-    !is_clockwise(rays[0], dp) && is_clockwise(rays[1], dp)
 }
 
 fn check_inside_beam_raw(

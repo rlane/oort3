@@ -2477,6 +2477,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasmer",
  "wasmer-compiler-singlepass",
+ "wide",
 ]
 
 [[package]]
@@ -4767,9 +4768,9 @@ dependencies = [
 
 [[package]]
 name = "wide"
-version = "0.7.6"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "feff0a412894d67223777b6cc8d68c0dab06d52d95e9890d5f2d47f10dd9366c"
+checksum = "b689b6c49d6549434bf944e6b0f39238cf63693cb7a147e9d887507fffa3b223"
 dependencies = [
  "bytemuck",
  "safe_arch",
