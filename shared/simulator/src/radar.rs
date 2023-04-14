@@ -136,6 +136,7 @@ pub struct ScanResult {
 }
 
 struct ReflectorTeam {
+    positions: Vec<Point2<f32>>,
     reflectors: Vec<RadarReflector>,
 }
 
@@ -187,7 +188,17 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
 
     let mut result: HashMap<i32, ReflectorTeam> = HashMap::new();
     for (team, reflectors) in reflectors_by_team.drain() {
-        result.insert(team, ReflectorTeam { reflectors });
+        let positions: Vec<Point2<f32>> = reflectors
+            .iter()
+            .map(|r| r.position.cast::<f32>())
+            .collect();
+        result.insert(
+            team,
+            ReflectorTeam {
+                positions,
+                reflectors,
+            },
+        );
     }
 
     result
@@ -256,14 +267,18 @@ pub fn tick(sim: &mut Simulation) {
             let mut received_noise = BACKGROUND_NOISE;
             candidates.clear();
 
+            let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
+            let emitter_position = emitter.center.cast::<f32>();
+
             for (team2, reflector_team) in reflectors_by_team.iter() {
                 if emitter.team == *team2 {
                     continue;
                 }
 
-                for reflector in reflector_team.reflectors.iter() {
-                    if check_inside_beam(&emitter, &reflector.position) {
-                        candidates.push(reflector);
+                for (i, reflector_position) in reflector_team.positions.iter().enumerate() {
+                    let dp: Vector2<f32> = reflector_position - emitter_position;
+                    if check_inside_beam_fast(rays, dp) {
+                        candidates.push(&reflector_team.reflectors[i]);
                     }
                 }
             }
@@ -389,11 +404,11 @@ fn is_clockwise(v0: Vector2<f64>, v1: Vector2<f64>) -> bool {
     -v0.x * v1.y + v0.y * v1.x > 0.0
 }
 
-fn check_inside_beam(emitter: &RadarEmitter, point: &Point2<f64>) -> bool {
-    let ray0 = emitter.rays[0];
-    let ray1 = emitter.rays[1];
-    let dp = point - emitter.center;
-    !is_clockwise(ray0, dp) && is_clockwise(ray1, dp)
+fn check_inside_beam_fast(rays: [Vector2<f32>; 2], dp: Vector2<f32>) -> bool {
+    fn is_clockwise(v0: Vector2<f32>, v1: Vector2<f32>) -> bool {
+        -v0.x * v1.y + v0.y * v1.x > 0.0
+    }
+    !is_clockwise(rays[0], dp) && is_clockwise(rays[1], dp)
 }
 
 fn check_inside_beam_raw(
