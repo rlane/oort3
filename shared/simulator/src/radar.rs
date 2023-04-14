@@ -208,7 +208,7 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
     let reflectors_by_team = build_reflector_team(sim);
-    let mut candidates: Vec<&RadarReflector> = Vec::new();
+    let mut candidates: Vec<(i32, usize)> = Vec::new();
 
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
@@ -267,23 +267,10 @@ pub fn tick(sim: &mut Simulation) {
             let mut received_noise = BACKGROUND_NOISE;
             candidates.clear();
 
-            let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
-            let emitter_position = emitter.center.cast::<f32>();
+            find_candidates(&emitter, &reflectors_by_team, &mut candidates);
 
-            for (team2, reflector_team) in reflectors_by_team.iter() {
-                if emitter.team == *team2 {
-                    continue;
-                }
-
-                for (i, reflector_position) in reflector_team.positions.iter().enumerate() {
-                    let dp: Vector2<f32> = reflector_position - emitter_position;
-                    if check_inside_beam_fast(rays, dp) {
-                        candidates.push(&reflector_team.reflectors[i]);
-                    }
-                }
-            }
-
-            for &reflector in candidates.iter() {
+            for (team, reflector_index) in candidates.iter() {
+                let reflector = &reflectors_by_team[team].reflectors[*reflector_index];
                 if let Some(jammer) = reflector.jammer.as_ref() {
                     match jammer.ecm_mode {
                         EcmMode::None => {}
@@ -391,6 +378,29 @@ pub fn tick(sim: &mut Simulation) {
             draw_emitter(sim, &emitter, reliable_distance);
             if let Some(contact) = &result {
                 draw_contact(sim, emitter.handle, contact);
+            }
+        }
+    }
+}
+
+#[inline(never)]
+fn find_candidates(
+    emitter: &RadarEmitter,
+    reflectors_by_team: &HashMap<i32, ReflectorTeam>,
+    candidates: &mut Vec<(i32, usize)>,
+) {
+    let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
+    let emitter_position = emitter.center.cast::<f32>();
+
+    for (team2, reflector_team) in reflectors_by_team.iter() {
+        if emitter.team == *team2 {
+            continue;
+        }
+
+        for (i, reflector_position) in reflector_team.positions.iter().enumerate() {
+            let dp = reflector_position - emitter_position;
+            if check_inside_beam_fast(rays, dp) {
+                candidates.push((*team2, i));
             }
         }
     }
