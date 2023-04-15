@@ -7,3 +7,6 @@ oort-compiler-loadtest = "run --bin compiler-loadtest -- --users 20 --run-time 2
 
 [registries.crates-io]
 protocol = "sparse"
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]
