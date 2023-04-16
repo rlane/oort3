@@ -348,40 +348,8 @@ pub fn tick(sim: &mut Simulation) {
             {
                 None
             } else {
-                best_reflector.map(|reflector| {
-                    let error_factor = 10.0f64.powf(-signal_db / 10.0);
-                    let dp = reflector.position - emitter.center;
-                    let beam_rot = Rotation2::new(emitter.bearing);
-                    let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
-                    let mut noisy_bearing: f64 = reflector_rot.angle()
-                        + rng.sample::<f64, _>(StandardNormal)
-                            * (BEARING_NOISE_FACTOR * error_factor);
-                    {
-                        let angle_to = Rotation2::new(noisy_bearing).angle_to(&beam_rot);
-                        if angle_to > emitter.width * 0.5 {
-                            noisy_bearing = emitter.bearing - emitter.width * 0.5;
-                        } else if angle_to < -emitter.width * 0.5 {
-                            noisy_bearing = emitter.bearing + emitter.width * 0.5;
-                        }
-                    }
-
-                    let mut distance = (reflector.position - emitter.center).magnitude();
-                    distance += rng.sample::<f64, _>(StandardNormal)
-                        * (DISTANCE_NOISE_FACTOR * error_factor);
-                    distance = distance.clamp(emitter.min_distance, emitter.max_distance);
-
-                    let position = emitter.center.coords
-                        + Rotation2::new(noisy_bearing).transform_vector(&vector![distance, 0.0]);
-                    let velocity = reflector.velocity
-                        + vector![rng.sample(StandardNormal), rng.sample(StandardNormal)]
-                            * (VELOCITY_NOISE_FACTOR * error_factor);
-
-                    ScanResult {
-                        class: reflector.class,
-                        position,
-                        velocity,
-                    }
-                })
+                best_reflector
+                    .map(|reflector| make_scan_result(&emitter, reflector, signal_db, &mut rng))
             };
 
             {
@@ -441,6 +409,45 @@ fn find_candidates(
                 }
             }
         }
+    }
+}
+
+#[inline(never)]
+fn make_scan_result(
+    emitter: &RadarEmitter,
+    reflector: &RadarReflector,
+    signal_db: f64,
+    rng: &mut impl Rng,
+) -> ScanResult {
+    let error_factor = 10.0f64.powf(-signal_db / 10.0);
+    let dp = reflector.position - emitter.center;
+    let beam_rot = Rotation2::new(emitter.bearing);
+    let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
+    let mut noisy_bearing: f64 = reflector_rot.angle()
+        + rng.sample::<f64, _>(StandardNormal) * (BEARING_NOISE_FACTOR * error_factor);
+    {
+        let angle_to = Rotation2::new(noisy_bearing).angle_to(&beam_rot);
+        if angle_to > emitter.width * 0.5 {
+            noisy_bearing = emitter.bearing - emitter.width * 0.5;
+        } else if angle_to < -emitter.width * 0.5 {
+            noisy_bearing = emitter.bearing + emitter.width * 0.5;
+        }
+    }
+
+    let mut distance = (reflector.position - emitter.center).magnitude();
+    distance += rng.sample::<f64, _>(StandardNormal) * (DISTANCE_NOISE_FACTOR * error_factor);
+    distance = distance.clamp(emitter.min_distance, emitter.max_distance);
+
+    let position = emitter.center.coords
+        + Rotation2::new(noisy_bearing).transform_vector(&vector![distance, 0.0]);
+    let velocity = reflector.velocity
+        + vector![rng.sample(StandardNormal), rng.sample(StandardNormal)]
+            * (VELOCITY_NOISE_FACTOR * error_factor);
+
+    ScanResult {
+        class: reflector.class,
+        position,
+        velocity,
     }
 }
 
