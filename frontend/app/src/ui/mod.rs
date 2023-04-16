@@ -242,8 +242,7 @@ impl UI {
                 let (a, b, c) = self.frame_timer.get_latency();
                 status_msgs.push(format!("UI {a:.1}/{b:.1}/{c:.1} ms",));
                 if let Some(snapshot) = self.snapshot.as_ref() {
-                    status_msgs.push(format!("PHYS {:.1} ms", snapshot.timing.physics * 1e3));
-                    status_msgs.push(format!("SCRIPT {:.1} ms", snapshot.timing.script * 1e3));
+                    status_msgs.push(format!("SIM {:.1} ms", snapshot.timing.total() * 1e3));
                 }
                 status_msgs.push(format!("SNAP {}", self.pending_snapshots.len()));
             }

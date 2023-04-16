@@ -50,12 +50,25 @@ pub struct BulletSnapshot {
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Timing {
     pub physics: f64,
-    pub script: f64,
+    pub collision: f64,
+    pub radar: f64,
+    pub radio: f64,
+    pub vm: f64,
+    pub ship: f64,
+    pub bullet: f64,
+    pub scenario: f64,
 }
 
 impl Timing {
     pub fn total(&self) -> f64 {
-        self.physics + self.script
+        self.physics
+            + self.collision
+            + self.radar
+            + self.radio
+            + self.vm
+            + self.ship
+            + self.bullet
+            + self.scenario
     }
 }
 
@@ -65,7 +78,13 @@ impl std::ops::Add for Timing {
     fn add(self, other: Self) -> Self {
         Self {
             physics: self.physics + other.physics,
-            script: self.script + other.script,
+            collision: self.collision + other.collision,
+            radar: self.radar + other.radar,
+            radio: self.radio + other.radio,
+            vm: self.vm + other.vm,
+            ship: self.ship + other.ship,
+            bullet: self.bullet + other.bullet,
+            scenario: self.scenario + other.scenario,
         }
     }
 }

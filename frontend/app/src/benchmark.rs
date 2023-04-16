@@ -108,9 +108,7 @@ impl Component for Benchmark {
                 <div>
                     <p><b>{ "Slowest snapshot:" }</b></p>
                     <p>{ format!("Simulated time: {:.1}s", snapshot.time) }</p>
-                    <p>{ format!("CPU time: {:.2}ms", snapshot.timing.total() * 1e3 * BATCH_SIZE as f64) }</p>
-                    <p>{ format!("Physics: {:.2}ms", snapshot.timing.physics * 1e3 * BATCH_SIZE as f64) }</p>
-                    <p>{ format!("Script: {:.2}ms", snapshot.timing.script * 1e3 * BATCH_SIZE as f64) }</p>
+                    { timing_view(&snapshot.timing, 1) }
                     <p>{ format!("Ships: {}", snapshot.ships.len()) }</p>
                     <p>{ format!("Bullets: {}", snapshot.bullets.len()) }</p>
                 </div>
@@ -119,17 +117,33 @@ impl Component for Benchmark {
             html! {}
         };
         html! {
-            <div id="overlay">
+            <div id="overlay" style="padding: 1em">
                 <h1>{ "Benchmark: " }{ &self.scenario_name }</h1>
                 <p><b>{ "Cumulative:" }</b></p>
                 <p>{ format!("Simulated time: {:.1}s", self.time) }</p>
-                <p>{ format!("CPU time: {:.1}s", self.cumulative_timing.total() * BATCH_SIZE as f64) }</p>
-                <p>{ format!("Physics: {:.1}s", self.cumulative_timing.physics * BATCH_SIZE as f64 ) }</p>
-                <p>{ format!("Script: {:.1}s", self.cumulative_timing.script * BATCH_SIZE as f64 ) }</p>
+                { timing_view(&self.cumulative_timing, BATCH_SIZE) }
                 <p>{ format!("Slow ticks: {}", self.num_slow_ticks) }</p>
                 <p>{ format!("Hash: {:?}", self.hash) }</p>
                 { slowest_snapshot }
             </div>
         }
+    }
+}
+
+fn timing_view(timing: &Timing, batch_size: usize) -> Html {
+    let c = 1e3 * batch_size as f64;
+    let pct = |x| format!("{:.0}%", 100.0 * x / timing.total());
+    html! {
+        <>
+            <tr><td>{ "Total" }</td><td>{ format!("{:.1}ms", timing.total() * c) }</td><td>{ pct(timing.total()) }</td></tr>
+            <tr><td>{ "Physics" }</td><td>{ format!("{:.1}ms", timing.physics * c) }</td><td>{ pct(timing.physics) }</td></tr>
+            <tr><td>{ "Collision" }</td><td>{ format!("{:.1}ms", timing.collision * c) }</td><td>{ pct(timing.collision) }</td></tr>
+            <tr><td>{ "Radar" }</td><td>{ format!("{:.1}ms", timing.radar * c) }</td><td>{ pct(timing.radar) }</td></tr>
+            <tr><td>{ "Radio" }</td><td>{ format!("{:.1}ms", timing.radio * c) }</td><td>{ pct(timing.radio) }</td></tr>
+            <tr><td>{ "VM" }</td><td>{ format!("{:.1}ms", timing.vm * c) }</td><td>{ pct(timing.vm) }</td></tr>
+            <tr><td>{ "Ship" }</td><td>{ format!("{:.1}ms", timing.ship * c) }</td><td>{ pct(timing.ship) }</td></tr>
+            <tr><td>{ "Bullet" }</td><td>{ format!("{:.1}ms", timing.bullet * c) }</td><td>{ pct(timing.bullet) }</td></tr>
+            <tr><td>{ "Scenario" }</td><td>{ format!("{:.1}ms", timing.scenario * c) }</td><td>{ pct(timing.scenario) }</td></tr>
+        </>
     }
 }

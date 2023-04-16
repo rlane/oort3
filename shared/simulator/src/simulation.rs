@@ -159,6 +159,7 @@ impl Simulation {
     #[allow(clippy::let_unit_value)]
     pub fn step(self: &mut Simulation) {
         self.events.clear();
+        self.timing = Default::default();
 
         let new_ships = std::mem::take(&mut self.new_ships);
         for (team, handle) in new_ships.iter() {
@@ -170,7 +171,7 @@ impl Simulation {
             }
         }
 
-        let physics_start_time = Instant::now();
+        let physics_timer = Timer::new();
         let gravity = vector![0.0, 0.0];
         let physics_hooks = ();
         self.physics_pipeline.step(
@@ -188,15 +189,22 @@ impl Simulation {
             &physics_hooks,
             &self.event_collector,
         );
+        self.timing.physics = physics_timer.elapsed();
 
+        let collision_timer = Timer::new();
         let collision_events: Vec<_> = self.contact_recv.try_iter().collect();
         collision::handle_collisions(self, &collision_events);
+        self.timing.collision += collision_timer.elapsed();
+
+        let radar_timer = Timer::new();
         radar::tick(self);
+        self.timing.radar += radar_timer.elapsed();
+
+        let radio_timer = Timer::new();
         radio::tick(self);
+        self.timing.radio += radio_timer.elapsed();
 
-        self.timing.physics = (Instant::now() - physics_start_time).as_secs_f64();
-
-        let script_start_time = Instant::now();
+        let vm_timer = Timer::new();
         let mut teams: Vec<_> = self
             .team_controllers
             .iter()
@@ -207,17 +215,19 @@ impl Simulation {
         for (_, team_controller) in teams.iter() {
             team_controller.borrow_mut().tick(self);
         }
+        self.timing.vm += vm_timer.elapsed();
 
+        let ship_timer = Timer::new();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
             debug::emit_ship(self, handle);
             self.ship_mut(handle).tick();
         }
-        self.timing.script = (Instant::now() - script_start_time).as_secs_f64();
+        self.timing.ship += ship_timer.elapsed();
 
-        let physics_start_time = Instant::now();
+        let bullet_timer = Timer::new();
         bullet::tick(self);
-        self.timing.physics += (Instant::now() - physics_start_time).as_secs_f64();
+        self.timing.bullet += bullet_timer.elapsed();
 
         let mut scenario = std::mem::take(&mut self.scenario);
         scenario.as_mut().unwrap().tick(self);
@@ -429,5 +439,27 @@ impl SimEvents {
 impl Default for SimEvents {
     fn default() -> Self {
         SimEvents::new()
+    }
+}
+
+pub struct Timer {
+    start: Instant,
+}
+
+impl Timer {
+    pub fn new() -> Self {
+        Self {
+            start: Instant::now(),
+        }
+    }
+
+    pub fn elapsed(&self) -> f64 {
+        (Instant::now() - self.start).as_secs_f64()
+    }
+}
+
+impl Default for Timer {
+    fn default() -> Self {
+        Self::new()
     }
 }
