@@ -95,6 +95,23 @@ impl std::ops::AddAssign for Timing {
     }
 }
 
+impl std::ops::Mul<f64> for Timing {
+    type Output = Self;
+
+    fn mul(self, other: f64) -> Self {
+        Self {
+            physics: self.physics * other,
+            collision: self.collision * other,
+            radar: self.radar * other,
+            radio: self.radio * other,
+            vm: self.vm * other,
+            ship: self.ship * other,
+            bullet: self.bullet * other,
+            scenario: self.scenario * other,
+        }
+    }
+}
+
 pub fn interpolate(snapshot: &mut Snapshot, dt: f64) {
     snapshot.time += dt;
 

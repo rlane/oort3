@@ -229,9 +229,11 @@ impl Simulation {
         bullet::tick(self);
         self.timing.bullet += bullet_timer.elapsed();
 
+        let scenario_timer = Timer::new();
         let mut scenario = std::mem::take(&mut self.scenario);
         scenario.as_mut().unwrap().tick(self);
         self.scenario = scenario;
+        self.timing.scenario += scenario_timer.elapsed();
 
         self.tick += 1;
     }
@@ -251,6 +253,10 @@ impl Simulation {
 
     pub fn events(&self) -> &SimEvents {
         &self.events
+    }
+
+    pub fn timing(&self) -> &Timing {
+        &self.timing
     }
 
     pub fn emit_debug_lines(&mut self, ship: ShipHandle, lines: Vec<Line>) {
