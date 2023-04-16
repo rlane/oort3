@@ -15,7 +15,7 @@ impl Scenario for StressScenario {
 
         let bound = (sim.world_size() / 2.0) * 0.9;
         for team in [0, 1] {
-            for _ in 0..100 {
+            for _ in 0..300 {
                 ship::create(
                     sim,
                     vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
