@@ -1,3 +1,5 @@
+### 0.47.0
+
 - Optimized radar calculations.
 - Fixed accelerate documentation.
 - Added radar_duel scenario.
