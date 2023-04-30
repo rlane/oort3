@@ -1,3 +1,7 @@
+- Optimized radar calculations.
+- Fixed accelerate documentation.
+- Added radar_duel scenario.
+
 ### 0.46.2
 
 - Added vector examples to early tutorials.
