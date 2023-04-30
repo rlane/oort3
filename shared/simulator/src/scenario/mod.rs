@@ -9,6 +9,7 @@ mod gunnery;
 mod missile_duel;
 mod planetary_defense;
 mod primitive_duel;
+mod radar_duel;
 mod stress;
 mod test;
 mod tutorial_acceleration;
@@ -140,6 +141,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "tutorial_cruiser" => Some(Box::new(tutorial_cruiser::TutorialCruiser::new())),
         // Tournament
         "primitive_duel" => Some(Box::new(primitive_duel::PrimitiveDuel::new())),
+        "radar_duel" => Some(Box::new(radar_duel::RadarDuel::new())),
         "fighter_duel" => Some(Box::new(fighter_duel::FighterDuel::new())),
         "missile_duel" => Some(Box::new(missile_duel::MissileDuel::new())),
         "frigate_duel" => Some(Box::new(frigate_duel::FrigateDuel::new())),
