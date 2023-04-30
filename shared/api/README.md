@@ -50,7 +50,7 @@ Basic status:
 
 Engine control:
 
-- [`accelerate(acceleration: Vec2)`](prelude::accelerate): Linear acceleration. X axis is forward/back, Y axis is left/right. Units are m/s².
+- [`accelerate(acceleration: Vec2)`](prelude::accelerate): Accelerate the ship. Units are m/s².
 - [`turn(speed: f64)`](prelude::turn): Rotate the ship. Unit is radians/s.
 - [`torque(acceleration: f64)`](prelude::torque): Angular acceleration. Unit is radians/s².
 
