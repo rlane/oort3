@@ -1,3 +1,5 @@
+### 0.48.0
+
 - Increased bullet lifetime.
 
 ### 0.47.0
