@@ -167,7 +167,7 @@ impl Default for Gun {
             max_angle: 0.0,
             inaccuracy: 0.0,
             burst_size: 1,
-            ttl: 5.0,
+            ttl: 10.0,
             bullet_mass: 1.0,
         }
     }

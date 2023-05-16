@@ -1,3 +1,5 @@
+- Increased bullet lifetime.
+
 ### 0.47.0
 
 - Optimized radar calculations.
