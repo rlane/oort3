@@ -183,13 +183,16 @@ async fn cmd_run_shortcodes(
     let http = reqwest::Client::new();
     let mut entrants = vec![];
     for shortcode in shortcodes {
-        log::info!("Fetching {:?}", shortcode);
-        let source_code = http
-            .get(&format!("{shortcode_url}/shortcode/{shortcode}"))
-            .send()
-            .await?
-            .text()
-            .await?;
+        let source_code = if std::fs::metadata(shortcode).is_ok() {
+            std::fs::read_to_string(shortcode).unwrap()
+        } else {
+            log::info!("Fetching {:?}", shortcode);
+            http.get(&format!("{shortcode_url}/shortcode/{shortcode}"))
+                .send()
+                .await?
+                .text()
+                .await?
+        };
         log::info!("Compiling {:?}", shortcode);
         let compiled_code = http
             .post(&format!("{compiler_url}/compile"))
