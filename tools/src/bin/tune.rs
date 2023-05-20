@@ -22,6 +22,9 @@ async fn main() -> anyhow::Result<()> {
         #[clap(short, long, value_parser, default_value = "5")]
         generations: u64,
 
+        #[clap(short, long, value_parser, default_value = "10")]
+        num_seeds: u32,
+
         scenario_name: String,
         player_code: String,
         enemy_code: String,
@@ -45,8 +48,12 @@ async fn main() -> anyhow::Result<()> {
         .collect::<Vec<_>>();
 
     log::info!("Running initial simulations");
-    let initial_fitness = run_simulations(&args.scenario_name, codes.clone());
-    log::info!("Initial fitness: {}", initial_fitness);
+    let initial_fitness = run_simulations(&args.scenario_name, codes.clone(), args.num_seeds);
+    log::info!(
+        "Initial fitness: {} for {:?}",
+        initial_fitness,
+        initial_values
+    );
 
     {
         let test_src_code = rewrite_tunables(&player_src_code, &initial_values);
@@ -60,6 +67,7 @@ async fn main() -> anyhow::Result<()> {
         player_src_code: player_src_code.clone(),
         bounds: bounds.to_vec(),
         enemy_code: codes[1].clone(),
+        num_seeds: args.num_seeds,
     };
 
     let pool = generate_pool(&initial_values);
@@ -70,8 +78,9 @@ async fn main() -> anyhow::Result<()> {
         .task(|ctx| ctx.gen == args.generations)
         .callback(|ctx| {
             log::info!(
-                "Generation {}. Best fitness {} for {:?}",
+                "Generation {}/{}. Best fitness {} for {:?}",
                 ctx.gen,
+                args.generations,
                 ctx.best_f,
                 ctx.best.iter().cloned().collect::<Vec<f64>>()
             )
@@ -99,6 +108,7 @@ struct ObjectiveFunction {
     player_src_code: String,
     bounds: Vec<[f64; 2]>,
     enemy_code: Code,
+    num_seeds: u32,
 }
 
 impl Bounded for ObjectiveFunction {
@@ -111,7 +121,7 @@ impl ObjFunc for ObjectiveFunction {
     type Fitness = f64;
 
     fn fitness(&self, x: &[f64]) -> Self::Fitness {
-        log::info!("Evaluating candidate {:?}", x);
+        log::debug!("Evaluating candidate {:?}", x);
         let start_time = std::time::Instant::now();
         let player_src_code = rewrite_tunables(&self.player_src_code, x);
 
@@ -127,10 +137,11 @@ impl ObjFunc for ObjectiveFunction {
         let fitness = run_simulations(
             &self.scenario_name,
             vec![player_code, self.enemy_code.clone()],
+            self.num_seeds,
         );
         let sim_duration = std::time::Instant::now() - sim_start_time;
 
-        log::info!(
+        log::debug!(
             "Got fitness {} in {:?} (compile {:?}, sim {:?})",
             fitness,
             std::time::Instant::now() - start_time,
@@ -148,7 +159,7 @@ fn generate_pool<F: ObjFunc>(initial_values: &[f64]) -> impl Fn(&Ctx<F>, &Rng) -
         for i in 0..(ctx.pool_size()[0] - 1) {
             let s = i % initial_values.len();
             pool[[i + 1, s]] =
-                ctx.clamp(s, rng.normal(initial_values[s], ctx.bound_width(s) / 8.0));
+                ctx.clamp(s, rng.normal(initial_values[s], ctx.bound_width(s) / 4.0));
         }
         pool
     }
@@ -192,23 +203,21 @@ fn compile(name: String, code: String) -> Option<Vec<u8>> {
     })
 }
 
-fn run_simulations(scenario_name: &str, codes: Vec<Code>) -> f64 {
-    let mut total_time = 0.0;
-    let mut losses = 0;
-    let results: Vec<(scenario::Status, f64)> = (0..10u32)
+fn run_simulations(scenario_name: &str, codes: Vec<Code>, num_seeds: u32) -> f64 {
+    let reverse_codes = codes.iter().rev().cloned().collect::<Vec<_>>();
+    (0..num_seeds)
         .into_par_iter()
-        .map(|seed| run_simulation(scenario_name, seed, codes.clone()))
-        .collect();
-    for (status, time) in results {
-        total_time += time;
-        match status {
-            scenario::Status::Victory { team: 0 } => {}
-            _ => {
-                losses += 1;
+        .flat_map(|seed| [(seed, false), (seed, true)])
+        .map(|(seed, reverse)| {
+            let codes = if reverse { &reverse_codes } else { &codes };
+            let player_team = if reverse { 1 } else { 0 };
+            let (status, time) = run_simulation(scenario_name, seed, codes.clone());
+            match status {
+                scenario::Status::Victory { team } if team == player_team => time,
+                _ => 1e6,
             }
-        }
-    }
-    losses as f64 * 1000.0 + total_time
+        })
+        .sum()
 }
 
 fn run_simulation(scenario_name: &str, seed: u32, codes: Vec<Code>) -> (scenario::Status, f64) {
