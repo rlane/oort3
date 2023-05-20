@@ -10,7 +10,8 @@ thread_local! {
   static COMPILERS: std::cell::RefCell<oort_compiler::Compiler> = RefCell::new(oort_compiler::Compiler::new());
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("tune=info")).init();
 
     #[derive(clap::Parser, Debug)]
@@ -28,24 +29,24 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let args = Arguments::parse();
 
-    let mut codes = vec![];
-    for src in &[&args.player_code, &args.enemy_code] {
-        log::info!("Compiling {:?}", src);
-        let src_code = std::fs::read_to_string(src).unwrap();
-        if let Some(wasm) = compile(src.to_string(), src_code) {
-            codes.push(oort_simulator::vm::precompile(&wasm).unwrap());
-        } else {
-            panic!("Failed to compile {src:?}");
-        }
-    }
+    let player_src_code = std::fs::read_to_string(&args.player_code).unwrap();
+    let (initial_values, bounds) = extract_tunables(&player_src_code);
+    assert!(!initial_values.is_empty());
+
+    let ais = oort_tools::fetch_and_compile_multiple(
+        &reqwest::Client::new(),
+        &[args.player_code.clone(), args.enemy_code.clone()],
+        false,
+    )
+    .await?;
+    let codes = ais
+        .into_iter()
+        .map(|ai| ai.compiled_code)
+        .collect::<Vec<_>>();
 
     log::info!("Running initial simulations");
     let initial_fitness = run_simulations(&args.scenario_name, codes.clone());
     log::info!("Initial fitness: {}", initial_fitness);
-
-    let player_src_code = std::fs::read_to_string(&args.player_code).unwrap();
-    let (initial_values, bounds) = extract_tunables(&player_src_code);
-    assert!(!initial_values.is_empty());
 
     {
         let test_src_code = rewrite_tunables(&player_src_code, &initial_values);
