@@ -49,4 +49,16 @@ impl Scenario for GunneryScenario {
     fn solution(&self) -> Code {
         builtin("gunnery")
     }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        let handles = sim.ships.iter().cloned().collect::<Vec<_>>();
+        for handle in handles {
+            let mut ship = sim.ship_mut(handle);
+            if ship.readonly().position().y > self.world_size() * 0.49 {
+                let new_position =
+                    vector![ship.readonly().position().x, -ship.readonly().position().y];
+                ship.body().set_translation(new_position, false);
+            }
+        }
+    }
 }

@@ -284,3 +284,23 @@ fn test_bullet_continuous_collision_detection() {
         assert_eq!(sim.bullets.len(), 0);
     }
 }
+
+#[test]
+fn test_ship_wall_collision() {
+    let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
+    let world_size = sim.world_size();
+
+    let ship0 = ship::create(
+        &mut sim,
+        vector![world_size / 2.0 - 100.0, 0.0],
+        vector![200.0, 0.0],
+        0.0,
+        fighter(0),
+    );
+
+    for _ in 0..60 {
+        sim.step();
+    }
+
+    assert!(!sim.ship(ship0).exists());
+}

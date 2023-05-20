@@ -16,7 +16,7 @@ use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::TAU;
 
-#[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Hash, PartialEq, Eq, Copy, Clone, Debug, Ord, PartialOrd)]
 pub struct ShipHandle(pub Index);
 
 impl HasIndex for ShipHandle {

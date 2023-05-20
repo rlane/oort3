@@ -697,16 +697,17 @@ mod test {
 
         let check_detection = |emitter_class, reflector_class, range| {
             let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+            let offset = vector![-90e3, 0.0];
             let ship0 = ship::create(
                 &mut sim,
-                vector![0.0, 0.0],
+                vector![0.0, 0.0] + offset,
                 vector![0.0, 0.0],
                 0.0,
                 class_to_ship_data(emitter_class, 0),
             );
             ship::create(
                 &mut sim,
-                vector![range, 0.0],
+                vector![range, 0.0] + offset,
                 vector![0.0, 0.0],
                 0.0,
                 class_to_ship_data(reflector_class, 1),

@@ -10,7 +10,7 @@ use static_aabb2d_index::*;
 
 const COLOR_COLLIDERS: bool = false;
 
-#[derive(Hash, PartialEq, Eq, Copy, Clone)]
+#[derive(Hash, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
 pub struct BulletHandle(pub Index);
 
 impl HasIndex for BulletHandle {

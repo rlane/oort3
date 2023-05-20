@@ -128,27 +128,40 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                 }
             };
             if let (Some(idx1), Some(idx2)) = (get_index(*h1), get_index(*h2)) {
-                if sim.ships.contains(ShipHandle(idx1))
-                    && sim.ships.contains(ShipHandle(idx2))
-                    && sim.ship(ShipHandle(idx1)).data().team
-                        != sim.ship(ShipHandle(idx2)).data().team
-                {
-                    sim.ship_mut(ShipHandle(idx1)).handle_collision();
-                    sim.ship_mut(ShipHandle(idx2)).handle_collision();
+                #[derive(Ord, Eq, PartialOrd, PartialEq)]
+                enum Collider {
+                    Bullet(BulletHandle),
+                    Ship(ShipHandle),
+                    Wall,
                 }
-
-                if sim.bullets.contains(BulletHandle(idx1)) {
-                    if sim.ships.contains(ShipHandle(idx2)) {
-                        handle_hit(sim, ShipHandle(idx2), BulletHandle(idx1));
+                let classify_collider = |idx| {
+                    if sim.bullets.contains(BulletHandle(idx)) {
+                        Collider::Bullet(BulletHandle(idx))
+                    } else if sim.ships.contains(ShipHandle(idx)) {
+                        Collider::Ship(ShipHandle(idx))
                     } else {
-                        bullet::destroy(sim, BulletHandle(idx1));
+                        Collider::Wall
                     }
-                } else if sim.bullets.contains(BulletHandle(idx2)) {
-                    if sim.ships.contains(ShipHandle(idx1)) {
-                        handle_hit(sim, ShipHandle(idx1), BulletHandle(idx2));
-                    } else {
-                        bullet::destroy(sim, BulletHandle(idx2));
+                };
+                let mut collider_types = [classify_collider(idx1), classify_collider(idx2)];
+                collider_types.sort();
+                match collider_types {
+                    [Collider::Bullet(b), Collider::Ship(s)] => {
+                        handle_hit(sim, s, b);
                     }
+                    [Collider::Bullet(b), Collider::Wall] => {
+                        bullet::destroy(sim, b);
+                    }
+                    [Collider::Ship(s1), Collider::Ship(s2)] => {
+                        if sim.ship(s1).data().team != sim.ship(s2).data().team {
+                            sim.ship_mut(s1).handle_collision();
+                            sim.ship_mut(s2).handle_collision();
+                        }
+                    }
+                    [Collider::Ship(s), Collider::Wall] => {
+                        sim.ship_mut(s).explode();
+                    }
+                    _ => {}
                 }
             }
         }
