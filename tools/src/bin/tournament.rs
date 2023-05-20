@@ -5,8 +5,8 @@ use comfy_table::Table;
 use firestore::*;
 use itertools::Itertools;
 use oort_proto::{ShortcodeUpload, TournamentCompetitor, TournamentResults, TournamentSubmission};
-use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
+use oort_tools::AI;
 use rand::Rng;
 use rayon::prelude::*;
 use skillratings::{
@@ -15,7 +15,6 @@ use skillratings::{
 };
 use std::collections::HashMap;
 use std::default::Default;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -39,14 +38,7 @@ enum SubCommand {
         #[clap(short, long)]
         dry_run: bool,
     },
-    RunLocal {
-        scenario: String,
-        paths: Vec<String>,
-
-        #[clap(short, long)]
-        rounds: i32,
-    },
-    RunShortcodes {
+    RunUnofficial {
         scenario: String,
         shortcodes: Vec<String>,
 
@@ -66,7 +58,6 @@ enum SubCommand {
 struct Entrant {
     username: String,
     source_code: String,
-    compiled_code: Option<Code>,
 }
 
 #[tokio::main]
@@ -82,17 +73,12 @@ async fn main() -> anyhow::Result<()> {
             rounds,
             dry_run,
         } => cmd_run(&args.project_id, &scenario, &usernames, rounds, dry_run).await,
-        SubCommand::RunLocal {
-            scenario,
-            paths,
-            rounds,
-        } => cmd_run_local(&scenario, &paths, rounds).await,
-        SubCommand::RunShortcodes {
+        SubCommand::RunUnofficial {
             scenario,
             shortcodes,
             rounds,
             dev,
-        } => cmd_run_shortcodes(&scenario, &shortcodes, rounds, dev).await,
+        } => cmd_run_unofficial(&scenario, &shortcodes, rounds, dev).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
@@ -110,21 +96,24 @@ async fn cmd_run(
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let mut compiler = oort_compiler::Compiler::new();
-    let mut entrants = get_entrants(&db, scenario_name, usernames).await?;
-    for entrant in entrants.iter_mut() {
-        log::info!("Compiling {:?}", entrant.username);
-        match compiler.compile(&entrant.source_code) {
-            Ok(wasm) => {
-                entrant.compiled_code = Some(oort_simulator::vm::precompile(&wasm).unwrap())
-            }
-            Err(e) => {
-                panic!("Failed to compile {:?}: {e}", entrant.username);
-            }
-        }
-    }
+    let entrants = get_entrants(&db, scenario_name, usernames).await?;
+    let results: Vec<anyhow::Result<AI>> = entrants
+        .iter()
+        .map(|entrant| {
+            log::info!("Compiling {:?}", entrant.username);
+            let compiled_code = compiler.compile(&entrant.source_code)?;
+            let compiled_code = oort_simulator::vm::precompile(&compiled_code).unwrap();
+            Ok(AI {
+                name: entrant.username.clone(),
+                source_code: entrant.source_code.clone(),
+                compiled_code,
+            })
+        })
+        .collect();
+    let ais: Vec<AI> = results.into_iter().collect::<anyhow::Result<Vec<AI>>>()?;
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &entrants, rounds);
+    let results = run_tournament(scenario_name, &ais, rounds);
 
     display_results(&results);
 
@@ -135,38 +124,7 @@ async fn cmd_run(
     Ok(())
 }
 
-async fn cmd_run_local(scenario_name: &str, paths: &[String], rounds: i32) -> anyhow::Result<()> {
-    scenario::load_safe(scenario_name).expect("Unknown scenario");
-
-    let mut compiler = oort_compiler::Compiler::new();
-    let entrants: Vec<_> = paths
-        .iter()
-        .map(|path| {
-            let path = PathBuf::from(path);
-            let username = path.file_stem().unwrap().to_str().unwrap().to_owned();
-            let source_code = std::fs::read_to_string(path).unwrap();
-            log::info!("Compiling {:?}", username);
-            let compiled_code = match compiler.compile(&source_code) {
-                Ok(wasm) => oort_simulator::vm::precompile(&wasm).unwrap(),
-                Err(e) => panic!("Failed to compile {username:?}: {e}"),
-            };
-            Entrant {
-                username,
-                source_code,
-                compiled_code: Some(compiled_code),
-            }
-        })
-        .collect();
-
-    log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &entrants, rounds);
-
-    display_results(&results);
-
-    Ok(())
-}
-
-async fn cmd_run_shortcodes(
+async fn cmd_run_unofficial(
     scenario_name: &str,
     shortcodes: &[String],
     rounds: i32,
@@ -174,70 +132,35 @@ async fn cmd_run_shortcodes(
 ) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
-    let (compiler_url, shortcode_url) = if dev {
-        ("http://localhost:8081", "http://localhost:8084")
-    } else {
-        ("https://compiler.oort.rs", "https://shortcode.oort.rs")
-    };
-
     let http = reqwest::Client::new();
-    let mut entrants = vec![];
-    for shortcode in shortcodes {
-        let source_code = if std::fs::metadata(shortcode).is_ok() {
-            std::fs::read_to_string(shortcode).unwrap()
-        } else {
-            log::info!("Fetching {:?}", shortcode);
-            http.get(&format!("{shortcode_url}/shortcode/{shortcode}"))
-                .send()
-                .await?
-                .text()
-                .await?
-        };
-        log::info!("Compiling {:?}", shortcode);
-        let compiled_code = http
-            .post(&format!("{compiler_url}/compile"))
-            .body(source_code.clone())
-            .send()
-            .await?
-            .bytes()
-            .await?;
-        entrants.push(Entrant {
-            username: shortcode.clone(),
-            source_code: source_code.clone(),
-            compiled_code: Some(Code::Wasm(compiled_code.to_vec())),
-        });
-    }
+    let ais = oort_tools::fetch_and_compile_multiple(&http, shortcodes, dev).await?;
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &entrants, rounds);
+    let results = run_tournament(scenario_name, &ais, rounds);
 
     display_results(&results);
 
     Ok(())
 }
 
-fn run_tournament(scenario_name: &str, entrants: &[Entrant], rounds: i32) -> TournamentResults {
+fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentResults {
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
-    ratings.resize_with(entrants.len(), Default::default);
+    ratings.resize_with(ais.len(), Default::default);
     let pairs: Vec<(i32, Vec<_>)> = (0..rounds)
-        .flat_map(|round| {
-            (0..(entrants.len()))
-                .permutations(2)
-                .map(move |x| (round, x))
-        })
+        .flat_map(|round| (0..(ais.len())).permutations(2).map(move |x| (round, x)))
         .collect();
     let outcomes: Vec<(i32, Vec<_>, Outcomes)> = pairs
         .par_iter()
         .map(|(round, indices)| {
             let seed = *round as u32;
-            let i0 = indices[0];
-            let i1 = indices[1];
+            let ai0: &AI = &ais[indices[0]];
+            let ai1: &AI = &ais[indices[1]];
             (
                 *round,
                 indices.clone(),
-                run_simulation(scenario_name, seed, &[&entrants[i0], &entrants[i1]]),
+                run_simulation(scenario_name, seed, &[ai0, ai1]),
             )
         })
         .collect();
@@ -247,8 +170,8 @@ fn run_tournament(scenario_name: &str, entrants: &[Entrant], rounds: i32) -> Tou
         let i1 = indices[1];
         log::debug!(
             "{} vs {} seed {}: {:?}",
-            entrants[i0].username,
-            entrants[i1].username,
+            ais[i0].name,
+            ais[i1].name,
             round,
             outcome
         );
@@ -259,20 +182,20 @@ fn run_tournament(scenario_name: &str, entrants: &[Entrant], rounds: i32) -> Tou
         let increment = 1.0 / (2.0 * rounds as f64);
         if outcome == Outcomes::WIN {
             *pairings
-                .entry((entrants[i0].username.clone(), entrants[i1].username.clone()))
+                .entry((ais[i0].name.clone(), ais[i1].name.clone()))
                 .or_default() += increment;
         } else if outcome == Outcomes::LOSS {
             *pairings
-                .entry((entrants[i1].username.clone(), entrants[i0].username.clone()))
+                .entry((ais[i1].name.clone(), ais[i0].name.clone()))
                 .or_default() += increment;
         }
     }
 
-    let mut competitors: Vec<_> = entrants
+    let mut competitors: Vec<_> = ais
         .iter()
         .enumerate()
         .map(|(i, x)| TournamentCompetitor {
-            username: x.username.clone(),
+            username: x.name.clone(),
             shortcode: "".to_string(),
             rating: ratings[i].rating,
         })
@@ -301,11 +224,8 @@ fn run_tournament(scenario_name: &str, entrants: &[Entrant], rounds: i32) -> Tou
     }
 }
 
-fn run_simulation(scenario_name: &str, seed: u32, entrants: &[&Entrant]) -> Outcomes {
-    let codes: Vec<_> = entrants
-        .iter()
-        .map(|x| x.compiled_code.as_ref().unwrap().clone())
-        .collect();
+fn run_simulation(scenario_name: &str, seed: u32, ais: &[&AI]) -> Outcomes {
+    let codes: Vec<_> = ais.iter().map(|x| x.compiled_code.clone()).collect();
     let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
     while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
         sim.step();
@@ -442,7 +362,6 @@ async fn get_entrants(
         entrants.push(Entrant {
             username: msg.username,
             source_code: msg.code,
-            compiled_code: None,
         });
     }
     entrants.sort_by_key(|x| x.username.clone());
