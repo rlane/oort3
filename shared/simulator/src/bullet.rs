@@ -231,7 +231,7 @@ struct CoarseGrid {
 }
 
 impl CoarseGrid {
-    const CELL_SIZE: f64 = 100.0;
+    const CELL_SIZE: f64 = 300.0;
     const RECIP_CELL_SIZE: f64 = 1.0 / Self::CELL_SIZE;
     const WORLD_WIDTH: f64 = simulation::MAX_WORLD_SIZE + Self::CELL_SIZE * 2.0;
     const WIDTH: i32 = (Self::WORLD_WIDTH / Self::CELL_SIZE) as i32;
