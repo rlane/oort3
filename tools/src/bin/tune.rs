@@ -25,6 +25,9 @@ async fn main() -> anyhow::Result<()> {
         #[clap(short, long, value_parser, default_value = "10")]
         num_seeds: u32,
 
+        #[clap(short, long)]
+        dry_run: bool,
+
         scenario_name: String,
         player_code: String,
         enemy_code: String,
@@ -94,7 +97,9 @@ async fn main() -> anyhow::Result<()> {
         s.best_parameters()
     );
 
-    if s.best_fitness() < initial_fitness {
+    if args.dry_run {
+        log::info!("Dry run, not writing back to {}", args.player_code);
+    } else if s.best_fitness() < initial_fitness {
         log::info!("Writing back to {}", args.player_code);
         let new_src_code = rewrite_tunables(&player_src_code, s.best_parameters());
         std::fs::write(&args.player_code, new_src_code)?;
