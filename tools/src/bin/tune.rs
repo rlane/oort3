@@ -163,6 +163,10 @@ fn generate_pool<F: ObjFunc>(initial_values: &[f64]) -> impl Fn(&Ctx<F>, &Rng) -
         let mut pool = Array2::from_shape_fn(ctx.pool_size(), |(_, s)| initial_values[s]);
         for i in 0..(ctx.pool_size()[0] - 1) {
             let s = i % initial_values.len();
+            for j in 0..initial_values.len() {
+                pool[[i + 1, j]] =
+                    ctx.clamp(j, rng.normal(initial_values[j], ctx.bound_width(j) / 32.0));
+            }
             pool[[i + 1, s]] =
                 ctx.clamp(s, rng.normal(initial_values[s], ctx.bound_width(s) / 4.0));
         }
