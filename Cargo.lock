@@ -2081,9 +2081,9 @@ dependencies = [
 
 [[package]]
 name = "metaheuristics-nature"
-version = "8.0.4"
+version = "9.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22a1eae9d65c9af2968779196058979f8a8f8bb293f9848118eab8abd2953179"
+checksum = "568afc6dd89a3bc048fc20788607aa5b465d4d9b1e53394839160e5ff2610d31"
 dependencies = [
  "clap 4.1.8",
  "getrandom",
