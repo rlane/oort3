@@ -6,6 +6,7 @@ pub struct Compiler {
     tmp_dir: Option<tempdir::TempDir>,
     dir: PathBuf,
     offline: bool,
+    rustc: String,
 }
 
 #[allow(clippy::new_without_default)]
@@ -17,6 +18,7 @@ impl Compiler {
             tmp_dir: Some(tmp_dir),
             dir,
             offline: true,
+            rustc: find_rustc(),
         }
     }
 
@@ -25,6 +27,7 @@ impl Compiler {
             tmp_dir: None,
             dir: dir.to_path_buf(),
             offline: true,
+            rustc: find_rustc(),
         }
     }
 
@@ -102,8 +105,13 @@ impl Compiler {
     pub fn compile_fast(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
         let tmp_path = &self.dir;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
+        let rustc_bin_dir = Path::new(&self.rustc).parent().unwrap();
 
-        let output = std::process::Command::new("rustc")
+        let output = std::process::Command::new(&self.rustc)
+            .env(
+                "LD_LIBRARY_PATH",
+                &format!("{}/../lib", rustc_bin_dir.display()),
+            )
             .args([
                 "--crate-name",
                 "oort_ai",
@@ -174,4 +182,23 @@ fn find_rlib(tmp_path: &Path, crate_name: &str) -> PathBuf {
         return path.unwrap();
     }
     panic!("{crate_name} rlib not found");
+}
+
+fn find_rustc() -> String {
+    let output = std::process::Command::new("rustup")
+        .args(["which", "rustc"])
+        .output()
+        .unwrap();
+    if output.status.success() {
+        std::str::from_utf8(&output.stdout)
+            .unwrap()
+            .trim()
+            .to_string()
+    } else {
+        log::error!(
+            "Failed to find rustc: {}",
+            std::str::from_utf8(&output.stderr).unwrap()
+        );
+        "rustc".to_string()
+    }
 }
