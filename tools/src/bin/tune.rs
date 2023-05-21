@@ -86,7 +86,13 @@ async fn main() -> anyhow::Result<()> {
                 args.generations,
                 ctx.best_f,
                 ctx.best.iter().cloned().collect::<Vec<f64>>()
-            )
+            );
+            if ctx.best_f < initial_fitness {
+                log::info!("Writing back to {}", args.player_code);
+                let new_src_code =
+                    rewrite_tunables(&player_src_code, ctx.best.slice(s![..]).as_slice().unwrap());
+                std::fs::write(&args.player_code, new_src_code).unwrap();
+            }
         })
         .solve()
         .unwrap();
@@ -96,14 +102,6 @@ async fn main() -> anyhow::Result<()> {
         s.best_fitness(),
         s.best_parameters()
     );
-
-    if args.dry_run {
-        log::info!("Dry run, not writing back to {}", args.player_code);
-    } else if s.best_fitness() < initial_fitness {
-        log::info!("Writing back to {}", args.player_code);
-        let new_src_code = rewrite_tunables(&player_src_code, s.best_parameters());
-        std::fs::write(&args.player_code, new_src_code)?;
-    }
 
     Ok(())
 }
