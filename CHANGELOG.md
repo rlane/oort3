@@ -1,3 +1,5 @@
+### 0.49.0
+
 - Ships that collide with the edge of the world will be destroyed.
 
 ### 0.48.0
