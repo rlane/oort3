@@ -120,7 +120,9 @@ impl TeamController {
             )?;
 
             generate_system_state(sim, handle, state);
-            let memory_view = vm.memory_view();
+
+            let store = vm.store();
+            let memory_view = vm.memory.view(store.deref());
             let slice = vm
                 .system_state_ptr
                 .slice(&memory_view, SystemState::Size as u32)
@@ -136,7 +138,8 @@ impl TeamController {
         )?;
 
         {
-            let memory_view = vm.memory_view();
+            let store = vm.store();
+            let memory_view = vm.memory.view(store.deref());
             let slice = vm
                 .system_state_ptr
                 .slice(&memory_view, SystemState::Size as u32)
@@ -252,10 +255,6 @@ impl WasmVm {
 
     fn store_mut(&self) -> RefMut<'_, Store> {
         self.store.borrow_mut()
-    }
-
-    fn memory_view(&self) -> MemoryView {
-        self.memory.view(self.store().deref())
     }
 
     fn read_string(memory_view: &MemoryView, offset: u32, length: u32) -> Option<String> {

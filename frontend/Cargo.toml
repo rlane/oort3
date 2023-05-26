@@ -12,7 +12,6 @@ members = [
 rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
 monaco = { git = "https://github.com/rlane/rust-monaco", rev = "fb9b66155ef17850ddc50e686e3912bdb037d313" }
 rayon = { path = "../rayno" }
-wasmer = { git = "https://github.com/rlane/wasmer", rev = "b5f288830c42494fef2e1b555ad417c602bf890f" }
 
 [profile.dev.package.'*']
 opt-level = 3
