@@ -417,7 +417,7 @@ pub fn missile(team: i32) -> ShipData {
         }),
         radar_cross_section: 0.1,
         radios: vec![radio()],
-        ttl: Some(20 * 60),
+        ttl: Some(60 * 60),
         abilities: vec![
             ShipAbility {
                 ability: Ability::ShapedCharge,
@@ -453,7 +453,7 @@ pub fn torpedo(team: i32) -> ShipData {
         }),
         radar_cross_section: 0.3,
         radios: vec![radio()],
-        ttl: Some(30 * 60),
+        ttl: Some(60 * 60),
         abilities: vec![ShipAbility {
             ability: Ability::Decoy,
             active_time: 0.5,
