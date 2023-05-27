@@ -19,24 +19,13 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let angle = rng.gen_range(0.0..TAU);
-        let rot = Rotation2::new(angle);
-        let distance = rng.gen_range(5000.0..10000.0);
+        let s = self.world_size() * 0.45;
+        let range = -s..s;
+        let p0 = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+        let p1 = vector![rng.gen_range(range.clone()), rng.gen_range(range)];
 
-        ship::create(
-            sim,
-            rot.transform_vector(&vector![-0.5, 0.0]) * distance,
-            vector![0.0, 0.0],
-            0.0,
-            cruiser(0),
-        );
-        ship::create(
-            sim,
-            rot.transform_vector(&vector![0.5, 0.0]) * distance,
-            vector![0.0, 0.0],
-            std::f64::consts::PI,
-            cruiser(1),
-        );
+        ship::create(sim, p0, vector![0.0, 0.0], 0.0, cruiser(0));
+        ship::create(sim, p1, vector![0.0, 0.0], 0.0, cruiser(1));
     }
 
     fn status(&self, sim: &Simulation) -> Status {
@@ -53,5 +42,9 @@ impl Scenario for CruiserDuel {
 
     fn is_tournament(&self) -> bool {
         true
+    }
+
+    fn world_size(&self) -> f64 {
+        100000.0
     }
 }
