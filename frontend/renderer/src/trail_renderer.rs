@@ -104,6 +104,11 @@ void main() {
             if let ShipClass::Asteroid { .. } = ship.class {
                 continue;
             }
+            if let Some(fuel) = ship.fuel {
+                if fuel == 0.0 {
+                    continue;
+                }
+            }
             let mut color = super::ShipRenderer::team_color(ship.team);
             color.w = match ship.class {
                 ShipClass::Missile => 0.10,
