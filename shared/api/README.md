@@ -191,30 +191,28 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 
 - [`Fighter`](prelude::Class::Fighter): Small, fast, and lightly armored.
   - Health: 100
-  - Acceleration: Forward/Reverse: 60 m/s², Lateral: 30 m/s², Angular: 2π rad/s²
-  - Weapon 0: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms
-  - Weapon 1: Torpedo, Reload: 5s
+  - Acceleration: Forward: 60 m/s², Lateral: 30 m/s², Reverse: 30 m/s², Angular: 2π rad/s²
+  - Weapon 0: Gun, Speed: 1000 m/s, Reload: 66ms
+  - Weapon 1: Missile, Reload: 5s
 - [`Frigate`](prelude::Class::Frigate): Medium size with heavy armor and an extremely powerful main gun.
   - Health: 10000
-  - Acceleration: Forward/Reverse: 10 m/s², Lateral: 5 m/s², Angular: π/4 rad/s²
-  - Weapon 0: Gun, Damage: 1000, Speed: 4000 m/s, Reload: 2 seconds
-  - Weapon 1: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate 180°/s
-  - Weapon 2: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate 180°/s
+  - Acceleration: Forward: 10 m/s², Lateral: 5 m/s², Reverse: 5 m/s², Angular: π/4 rad/s²
+  - Weapon 0: Gun, Speed: 4000 m/s, Reload: 2 seconds
+  - Weapon 1: Gun, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate: π rad/s
+  - Weapon 2: Gun, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate: π rad/s
   - Weapon 3: Missile, Reload: 2s
 - [`Cruiser`](prelude::Class::Cruiser): Large, slow, and heavily armored. Rapid fire missile launchers and devastating torpedos.
   - Health: 20000
-  - Acceleration: Forward/Reverse: 5 m/s², Lateral: 2.5 m/s², Angular: π/8 rad/s²
-  - Weapon 0: Gun, Damage: 6×7, Speed: 1000 m/s, Reload: 0.4s, Turreted, Slew Rate 360°/s
+  - Acceleration: Forward: 5 m/s², Lateral: 2.5 m/s², Reverse: 2.5 m/s², Angular: π/8 rad/s²
+  - Weapon 0: Gun, Speed: 1000 m/s, Burst size: 6, Reload: 0.4s, Turreted, Slew Rate: 2π rad/s
   - Weapon 1: Missile, Reload: 1.2s
   - Weapon 2: Missile, Reload: 1.2s
   - Weapon 3: Torpedo, Reload: 3s
 - [`Missile`](prelude::Class::Missile): Highly maneuverable but unarmored. Explodes on contact or after an [`explode`](prelude::explode) call.
   - Health: 20
   - Fuel: 3600 m/s
-  - Acceleration: Forward: 180 m/s², Reverse: 0 m/s², Lateral: 50 m/s², Angular: 2π rad/s²
-  - Warhead: 20×15
+  - Acceleration: Forward: 180 m/s², Reverse: 0 m/s², Lateral: 50 m/s², Angular: 4π rad/s²
 - [`Torpedo`](prelude::Class::Torpedo): Better armor, larger warhead, but less maneuverable than a missile. Explodes on contact or after an [`explode`](prelude::explode) call.
   - Health: 100
   - Fuel: 4000 m/s
-  - Acceleration: Forward: 70 m/s², Reverse: 20 m/s², Lateral: 20 m/s², Angular: 2π rad/s²
-  - Warhead: 100×50
+  - Acceleration: Forward: 70 m/s², Reverse: 0 m/s², Lateral: 20 m/s², Angular: 4π rad/s²
