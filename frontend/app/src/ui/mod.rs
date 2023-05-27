@@ -14,7 +14,7 @@ use yew::NodeRef;
 
 const ZOOM_SPEED: f32 = 0.02;
 const MIN_ZOOM: f32 = 5e-6;
-const MAX_ZOOM: f32 = 5e-4;
+const MAX_ZOOM: f32 = 1e-3;
 const INITIAL_ZOOM: f32 = 5e-4;
 const SNAPSHOT_PRELOAD: usize = 5;
 const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
