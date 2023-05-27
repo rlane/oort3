@@ -129,6 +129,9 @@ pub enum SystemState {
 
     RadarEcmMode,
 
+    Health,
+    Fuel,
+
     Size,
     MaxSize = 128,
 }
@@ -398,6 +401,16 @@ mod api {
     /// This is commonly used by missiles.
     pub fn explode() {
         write_system_state(SystemState::Explode, 1.0);
+    }
+
+    /// Returns the current health.
+    pub fn health() -> f64 {
+        read_system_state(SystemState::Health)
+    }
+
+    /// Returns the current fuel (delta-v).
+    pub fn fuel() -> f64 {
+        read_system_state(SystemState::Fuel)
     }
 
     /// Returns the heading the radar is pointed at.

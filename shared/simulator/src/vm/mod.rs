@@ -371,6 +371,8 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
             SystemState::MaxAngularAcceleration,
             data.max_angular_acceleration,
         );
+        state.set(SystemState::Health, data.health);
+        state.set(SystemState::Fuel, data.fuel.unwrap_or(f64::INFINITY));
     }
 
     for (i, radio) in sim.ship(handle).data().radios.iter().enumerate() {

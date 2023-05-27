@@ -55,6 +55,8 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "velocity() → Vec2" }</code>{ ": Get the current velocity in m/s." }</li>
               <li><code>{ "heading() → f64" }</code>{ ": Get the current heading in radians." }</li>
               <li><code>{ "angular_velocity() → f64" }</code>{ ": Get the current angular velocity in radians/s." }</li>
+              <li><code>{ "health() → f64" }</code>{ ": Current health." }</li>
+              <li><code>{ "fuel() → f64" }</code>{ ": Current fuel (delta-v)." }</li>
               <li><code>{ "accelerate(acceleration: Vec2)" }</code>{ ": Accelerate the ship. Units are m/s²." }</li>
               <li><code>{ "turn(speed: f64)" }</code>{ ": Rotate the ship. Unit is radians/s." }</li>
               <li><code>{ "torque(acceleration: f64)" }</code>{ ": Angular acceleration. Unit is radians/s²." }</li>

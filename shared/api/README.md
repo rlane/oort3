@@ -47,6 +47,8 @@ Basic status:
 - [`velocity() → Vec2`](prelude::velocity): Get the current velocity in m/s.
 - [`heading() → f64`](prelude::heading): Get the current heading in radians.
 - [`angular_velocity() → f64`](prelude::angular_velocity): Get the current angular velocity in radians/s.
+- [`health() → f64`](prelude::health): Get the current health.
+- [`fuel() → f64`](prelude::fuel): Get the current fuel (delta-v).
 
 Engine control:
 
@@ -208,9 +210,11 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
   - Weapon 3: Torpedo, Reload: 3s
 - [`Missile`](prelude::Class::Missile): Highly maneuverable but unarmored. Explodes on contact or after an [`explode`](prelude::explode) call.
   - Health: 20
-  - Acceleration: Forward/Reverse: 200 m/s², Lateral: 50 m/s², Angular: 4π rad/s²
+  - Fuel: 3600 m/s
+  - Acceleration: Forward: 180 m/s², Reverse: 0 m/s², Lateral: 50 m/s², Angular: 2π rad/s²
   - Warhead: 20×15
 - [`Torpedo`](prelude::Class::Torpedo): Better armor, larger warhead, but less maneuverable than a missile. Explodes on contact or after an [`explode`](prelude::explode) call.
   - Health: 100
-  - Acceleration: Forward/Reverse: 70 m/s², Lateral: 20 m/s², Angular: 4π rad/s²
+  - Fuel: 4000 m/s
+  - Acceleration: Forward: 70 m/s², Reverse: 20 m/s², Lateral: 20 m/s², Angular: 2π rad/s²
   - Warhead: 100×50

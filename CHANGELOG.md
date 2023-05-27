@@ -1,5 +1,6 @@
 - Increased missile and torpedo lifetime.
 - Added limited fuel for missiles and torpedos.
+- Added APIs to get current health and fuel.
 
 ### 0.49.0
 
