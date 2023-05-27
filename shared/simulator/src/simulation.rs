@@ -339,6 +339,7 @@ impl Simulation {
             let team = ship.data().team;
             let class = ship.data().class;
             let health = ship.data().health;
+            let fuel = ship.data().fuel;
             snapshot.ships.push(ShipSnapshot {
                 id,
                 position,
@@ -348,6 +349,7 @@ impl Simulation {
                 team,
                 class,
                 health,
+                fuel,
                 active_abilities: ship.active_abilities(),
             });
         }

@@ -36,6 +36,7 @@ pub struct ShipSnapshot {
     pub team: i32,
     pub class: ShipClass,
     pub health: f64,
+    pub fuel: Option<f64>,
     pub active_abilities: Vec<Ability>,
 }
 

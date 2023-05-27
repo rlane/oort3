@@ -110,6 +110,7 @@ pub struct ShipData {
     pub max_angular_acceleration: f64,
     pub destroyed: bool,
     pub ttl: Option<u64>,
+    pub fuel: Option<f64>,
     pub guns: Vec<Gun>,
     pub missile_launchers: Vec<MissileLauncher>,
     pub radar: Option<Radar>,
@@ -140,6 +141,7 @@ impl Default for ShipData {
             max_angular_acceleration: 0.0,
             destroyed: false,
             ttl: None,
+            fuel: None,
             guns: vec![],
             missile_launchers: vec![],
             radar: None,
@@ -418,6 +420,7 @@ pub fn missile(team: i32) -> ShipData {
         radar_cross_section: 0.1,
         radios: vec![radio()],
         ttl: Some(60 * 60),
+        fuel: Some(3600.0),
         abilities: vec![
             ShipAbility {
                 ability: Ability::ShapedCharge,
@@ -454,6 +457,7 @@ pub fn torpedo(team: i32) -> ShipData {
         radar_cross_section: 0.3,
         radios: vec![radio()],
         ttl: Some(60 * 60),
+        fuel: Some(4000.0),
         abilities: vec![ShipAbility {
             ability: Ability::Decoy,
             active_time: 0.5,
@@ -839,16 +843,24 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         // Acceleration.
         {
-            let acceleration = self.data().acceleration;
+            let mut acceleration = self.data().acceleration;
+            if self.readonly().is_ability_active(Ability::Boost) {
+                acceleration += vector![100.0, 0.0];
+            }
+            let fuel_consumption = (acceleration * PHYSICS_TICK_LENGTH).norm();
+            if let Some(fuel) = self.data_mut().fuel {
+                if fuel < fuel_consumption {
+                    acceleration *= fuel / fuel_consumption;
+                    self.data_mut().fuel = Some(0.0);
+                } else {
+                    self.data_mut().fuel = Some(fuel - fuel_consumption);
+                }
+            }
             let mass = self.body().mass();
             let rotation_matrix = self.body().position().rotation.to_rotation_matrix();
             self.body().reset_forces(false);
             self.body()
                 .add_force(rotation_matrix * acceleration * mass, true);
-            if self.readonly().is_ability_active(Ability::Boost) {
-                self.body()
-                    .add_force(rotation_matrix * vector![100.0, 0.0] * mass, true);
-            }
             self.data_mut().acceleration = vector![0.0, 0.0];
         }
 

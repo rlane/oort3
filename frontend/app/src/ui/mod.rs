@@ -454,6 +454,7 @@ impl UI {
                 class,
                 team,
                 health,
+                fuel,
                 ..
             } = ship;
             let debug_text = self
@@ -463,8 +464,13 @@ impl UI {
                 .cloned()
                 .unwrap_or_default();
             if let Some(elem) = self.picked_ref.cast::<Element>() {
+                let fuel_text = if let Some(fuel) = fuel {
+                    format!("Fuel: {:.0}\n", fuel)
+                } else {
+                    "".to_string()
+                };
                 elem.set_text_content(Some(&format!(
-                    "{class:?}\nTeam: {team:?}\nHealth: {health:.0}\n{debug_text}"
+                    "{class:?}\nTeam: {team:?}\nHealth: {health:.0}\n{fuel_text}{debug_text}"
                 )));
             }
         } else if let Some(elem) = self.picked_ref.cast::<Element>() {
