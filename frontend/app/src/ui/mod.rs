@@ -355,6 +355,7 @@ impl UI {
         self.camera_target -= vector![diff.x as f32, diff.y as f32];
 
         self.needs_render = true;
+        let _ = self.canvas.focus();
     }
 
     fn ship_pick_radius(class: ShipClass) -> f64 {
@@ -429,6 +430,7 @@ impl UI {
         }
 
         self.needs_render = true;
+        let _ = self.canvas.focus();
     }
 
     pub fn on_blur_event(&mut self, _e: web_sys::FocusEvent) {
