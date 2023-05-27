@@ -14,7 +14,7 @@ use oort_api::Ability;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::f64::consts::TAU;
+use std::f64::consts::{PI, TAU};
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug, Ord, PartialOrd)]
 pub struct ShipHandle(pub Index);
@@ -72,6 +72,7 @@ pub struct Gun {
     pub heading: f64,
     pub min_angle: f64,
     pub max_angle: f64,
+    pub slew_rate: f64,
     pub inaccuracy: f64,
     pub burst_size: i32,
     pub ttl: f32,
@@ -167,6 +168,7 @@ impl Default for Gun {
             heading: 0.0,
             min_angle: 0.0,
             max_angle: 0.0,
+            slew_rate: 0.0,
             inaccuracy: 0.0,
             burst_size: 1,
             ttl: 10.0,
@@ -274,11 +276,13 @@ pub fn frigate(team: i32) -> ShipData {
             Gun {
                 offset: vector![0.0, 15.0],
                 max_angle: TAU,
+                slew_rate: TAU / 2.0,
                 ..vulcan_gun()
             },
             Gun {
                 offset: vector![0.0, -15.0],
                 max_angle: TAU,
+                slew_rate: TAU / 2.0,
                 ..vulcan_gun()
             },
         ],
@@ -329,6 +333,7 @@ pub fn cruiser(team: i32) -> ShipData {
             speed_error: 50.0,
             offset: vector![0.0, 0.0],
             max_angle: TAU,
+            slew_rate: TAU,
             inaccuracy: 0.02,
             burst_size: 6,
             ttl: 1.0,
@@ -753,7 +758,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             return;
         }
         let gun = &mut ship_data.guns[index as usize];
-        gun.heading = heading;
+        let slew = gun.slew_rate * PHYSICS_TICK_LENGTH;
+        gun.heading += angle_diff(gun.heading, heading).clamp(-slew, slew);
     }
 
     pub fn explode(&mut self) {
@@ -922,5 +928,14 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         if self.data().class == ShipClass::Missile || self.data().class == ShipClass::Torpedo {
             self.explode();
         }
+    }
+}
+
+fn angle_diff(a: f64, b: f64) -> f64 {
+    let c = (b - a).rem_euclid(TAU);
+    if c > PI {
+        c - TAU
+    } else {
+        c
     }
 }

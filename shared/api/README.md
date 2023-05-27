@@ -197,14 +197,14 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 - [`Frigate`](prelude::Class::Frigate): Medium size with heavy armor and an extremely powerful main gun.
   - Health: 10000
   - Acceleration: Forward/Reverse: 10 m/s², Lateral: 5 m/s², Angular: π/4 rad/s²
-  - Weapon 0: Gun, Damage: 1000, Speed: 4000 m/s, Reload: 1 second
-  - Weapon 1: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted
-  - Weapon 2: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted
+  - Weapon 0: Gun, Damage: 1000, Speed: 4000 m/s, Reload: 2 seconds
+  - Weapon 1: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate 180°/s
+  - Weapon 2: Gun, Damage: 7, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate 180°/s
   - Weapon 3: Missile, Reload: 2s
 - [`Cruiser`](prelude::Class::Cruiser): Large, slow, and heavily armored. Rapid fire missile launchers and devastating torpedos.
   - Health: 20000
   - Acceleration: Forward/Reverse: 5 m/s², Lateral: 2.5 m/s², Angular: π/8 rad/s²
-  - Weapon 0: Gun, Damage: 6×7, Speed: 1000 m/s, Reload: 0.4s, Turreted
+  - Weapon 0: Gun, Damage: 6×7, Speed: 1000 m/s, Reload: 0.4s, Turreted, Slew Rate 360°/s
   - Weapon 1: Missile, Reload: 1.2s
   - Weapon 2: Missile, Reload: 1.2s
   - Weapon 3: Torpedo, Reload: 3s
