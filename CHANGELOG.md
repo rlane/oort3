@@ -1,6 +1,8 @@
 - Increased missile and torpedo lifetime.
 - Added limited fuel for missiles and torpedos.
 - Added APIs to get current health and fuel.
+- Limited slew rate for turrets.
+- Increased world size for frigate and cruiser duel scenarios.
 
 ### 0.49.0
 
