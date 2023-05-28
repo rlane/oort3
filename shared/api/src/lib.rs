@@ -793,7 +793,7 @@ pub mod dbg {
             x: topleft.x,
             y: topleft.y,
             color,
-            length: text.len().min(buf.len()) as u8,
+            length: text.len().min(text_buf.len()) as u8,
             text: text_buf,
         });
     }
