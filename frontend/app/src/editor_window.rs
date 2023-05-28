@@ -221,11 +221,25 @@ impl Component for EditorWindow {
                 self.file_handle = Some(file_handle);
                 self.linked = true;
                 context.link().send_message(Msg::CheckLinkedFile);
+                let editor_link = context.props().editor_link.clone();
+                editor_link.with_editor(|editor| {
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    let options = monaco::sys::editor::IEditorOptions::from(empty());
+                    options.set_read_only(Some(true));
+                    ed.update_options(&options);
+                });
                 false
             }
             Msg::UnlinkedFile => {
                 self.linked = false;
                 self.file_handle = None;
+                let editor_link = context.props().editor_link.clone();
+                editor_link.with_editor(|editor| {
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    let options = monaco::sys::editor::IEditorOptions::from(empty());
+                    options.set_read_only(Some(false));
+                    ed.update_options(&options);
+                });
                 false
             }
             Msg::CheckLinkedFile => {
