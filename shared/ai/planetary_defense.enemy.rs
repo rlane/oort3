@@ -8,7 +8,7 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        let target = vec2(0.0, -7500.0);
+        let target = vec2(0.0, -17500.0);
         let dp = target - position();
         let err = velocity().normalize() - dp.normalize();
         let acc =
