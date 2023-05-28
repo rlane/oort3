@@ -29,7 +29,7 @@ impl Scenario for PlanetaryDefense {
 
         {
             let team = 0;
-            let center = point![0.0, -3000.0];
+            let center = point![0.0, -13000.0];
             let heading = TAU / 4.0;
             let num_fighters = 8;
             let num_frigates = 2;
@@ -95,7 +95,10 @@ impl Scenario for PlanetaryDefense {
                 ship_data.ttl = None;
                 ship::create(
                     sim,
-                    vector![self.rng.gen_range(-bound..bound), sim.world_size() / 2.0 - 30.0],
+                    vector![
+                        self.rng.gen_range(-bound..bound),
+                        sim.world_size() / 2.0 - 30.0
+                    ],
                     vector![
                         self.rng.gen_range(-30.0..30.0),
                         self.rng.gen_range(-1500.0..-500.0)
