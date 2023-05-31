@@ -7,6 +7,7 @@ mod frigate_duel;
 mod furball;
 mod gunnery;
 mod missile_duel;
+mod orbit;
 mod planetary_defense;
 mod primitive_duel;
 mod radar_duel;
@@ -150,6 +151,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "furball" => Some(Box::new(furball::Furball::new())),
         "fleet" => Some(Box::new(fleet::Fleet::new())),
         "belt" => Some(Box::new(belt::Belt::new())),
+        "orbit" => Some(Box::new(orbit::Orbit::new())),
         // Challenge
         "gunnery" => Some(Box::new(gunnery::GunneryScenario {})),
         "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
@@ -209,6 +211,7 @@ pub fn list() -> Vec<String> {
         "fleet",
         "belt",
         "planetary_defense",
+        "orbit",
     ]
     .iter()
     .map(|x| x.to_string())
