@@ -20,8 +20,9 @@ impl Scenario for Fleet {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
         for team in 0..2 {
+            let w = self.world_size() / 2.0;
             let signum = if team == 0 { -1.0 } else { 1.0 };
-            let center = point![signum * 8000.0, rng.gen_range(-6000.0..6000.0)];
+            let center = point![signum * w * 0.9, rng.gen_range(-1.0..1.0) * w * 0.7];
             let heading = if team == 0 { 0.0 } else { std::f64::consts::PI };
             let scale = 1;
             let num_fighters = scale * 40;
@@ -80,5 +81,9 @@ impl Scenario for Fleet {
 
     fn is_tournament(&self) -> bool {
         true
+    }
+
+    fn world_size(&self) -> f64 {
+        100e3
     }
 }
