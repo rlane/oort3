@@ -39,7 +39,10 @@ impl Ship {
             }
         }
 
-        let scan_result = scan();
+        let mut scan_result = scan();
+        if scan_result.is_some() && scan_result.as_ref().unwrap().class == Class::Unknown {
+            scan_result = None;
+        }
         if let Some(contact) = scan_result.as_ref() {
             let Δp = contact.position - position();
             let Δv = contact.velocity - velocity();
