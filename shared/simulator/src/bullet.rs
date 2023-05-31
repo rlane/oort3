@@ -59,6 +59,7 @@ pub fn create(
         .translation(position)
         .linvel(velocity)
         .ccd_enabled(true)
+        .additional_mass(0.1)
         .build();
     let body_handle = sim.bodies.insert(rigid_body);
     let handle = BulletHandle(body_handle.0);

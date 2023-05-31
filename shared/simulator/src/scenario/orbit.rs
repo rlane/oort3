@@ -1,3 +1,5 @@
+use rapier2d_f64::prelude::RigidBody;
+
 use super::prelude::*;
 use crate::ship::{ShipClass, ShipData};
 use crate::simulation::PHYSICS_TICK_LENGTH;
@@ -48,16 +50,27 @@ impl Scenario for Orbit {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        // Apply gravity
+        let g = 10.0;
+
+        let apply_gravity = |body: &mut RigidBody| {
+            let acc = body.translation().normalize() * -g;
+            let impulse = acc * body.mass() * PHYSICS_TICK_LENGTH;
+            body.apply_impulse(impulse, true);
+        };
+
         let handles = sim.ships.iter().cloned().collect::<Vec<_>>();
         for handle in handles {
             let mut ship = sim.ship_mut(handle);
             if ship.data().team == 2 {
                 continue;
             }
-            let acc = ship.readonly().position().vector.normalize() * -10.0;
-            let impulse = acc * ship.body().mass() * PHYSICS_TICK_LENGTH;
-            ship.body().apply_impulse(impulse, false);
+            apply_gravity(ship.body());
+        }
+
+        let handles = sim.bullets.iter().cloned().collect::<Vec<_>>();
+        for handle in handles {
+            let body = sim.bodies.get_mut(handle.into()).unwrap();
+            apply_gravity(body);
         }
     }
 
