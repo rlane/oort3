@@ -6,6 +6,7 @@ use nalgebra::{vector, Point2, Vector2};
 use oort_api::{Ability, EcmMode};
 use rand::Rng;
 use rand_distr::StandardNormal;
+use rapier2d_f64::parry;
 use rapier2d_f64::prelude::*;
 use std::collections::HashMap;
 use std::f64::consts::TAU;
@@ -164,6 +165,9 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
             class = ShipClass::Cruiser;
             radar_cross_section = ship::CRUISER_RADAR_CROSS_SECTION / 2.0;
         }
+        if class == ShipClass::BigPlanet || class == ShipClass::Planet {
+            continue;
+        }
         let jammer = ship_data
             .radar
             .as_ref()
@@ -225,6 +229,14 @@ pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
     let reflectors_by_team = build_reflector_team(sim);
     let mut candidates: Vec<(i32, usize)> = Vec::new();
+    let planets = sim
+        .ships
+        .iter()
+        .filter(|handle| {
+            [ShipClass::Planet, ShipClass::BigPlanet].contains(&sim.ship(**handle).data().class)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
 
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
@@ -247,7 +259,7 @@ pub fn tick(sim: &mut Simulation) {
             let ray1 = Rotation2::new(end_bearing).transform_vector(&vector![1.0, 0.0]);
             assert!(is_clockwise(ray1, ray0));
             let rays = [ray0, ray1];
-            let emitter = RadarEmitter {
+            let mut emitter = RadarEmitter {
                 handle,
                 team: ship_data.team,
                 center: ship.position().vector.into(),
@@ -282,6 +294,13 @@ pub fn tick(sim: &mut Simulation) {
             let mut best_reflector: Option<&RadarReflector> = None;
             let mut received_noise = BACKGROUND_NOISE;
             candidates.clear();
+
+            let planet_contact = check_planet_contact(sim, &emitter, &planets);
+            if let Some(planet_distance) =
+                planet_contact.map(|c| nalgebra::distance(&c, &emitter.center))
+            {
+                emitter.square_distance_range.end = planet_distance.powi(2);
+            }
 
             find_candidates(&emitter, &reflectors_by_team, &mut candidates);
 
@@ -492,6 +511,40 @@ fn compute_reliable_detection_range(radar: &Radar, target_cross_section: f64) ->
     (radar.power * target_cross_section * radar.rx_cross_section
         / (TAU * radar.width * radar.reliable_rssi))
         .powf(0.25)
+}
+
+fn check_planet_contact(
+    sim: &Simulation,
+    emitter: &RadarEmitter,
+    planets: &[ShipHandle],
+) -> Option<Point2<f64>> {
+    if planets.is_empty() {
+        return None;
+    }
+
+    let v = Rotation2::new(emitter.width / 2.0).transform_point(&point![1e6, 0.0]);
+    let emitter_shape = parry::shape::Triangle::new(point![0.0, 0.0], v, point![v.x, -v.y]);
+    let emitter_isometry = Isometry::new(emitter.center.coords, emitter.bearing);
+
+    planets
+        .iter()
+        .filter_map(|handle| {
+            let radius = 10e3;
+            let planet_shape = parry::shape::Ball::new(radius);
+            let planet_isometry = *sim.ship(*handle).body().position();
+
+            parry::query::contact(
+                &emitter_isometry,
+                &emitter_shape,
+                &planet_isometry,
+                &planet_shape,
+                0.0,
+            )
+            .unwrap()
+            .map(|contact| [contact.point1, contact.point2])
+        })
+        .flatten()
+        .min_by_key(|p| (emitter.center - p.coords).coords.norm_squared() as i64)
 }
 
 fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter, reliable_distance: f64) {
