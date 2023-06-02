@@ -15,7 +15,7 @@ impl Ship {
         if current_time() < self.course_correction_time {
             return;
         }
-        let target = vec2(0.0, -17500.0);
+        let target = vec2(0.0, -25000.0);
         let dp = target - position();
         let err = velocity().normalize() - dp.normalize();
         let mut acc =
