@@ -1,6 +1,6 @@
 use crate::bullet::{self, BulletHandle};
 use crate::index_set::HasIndex;
-use crate::ship::ShipHandle;
+use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Particle, Simulation, PHYSICS_TICK_LENGTH};
 use nalgebra::{Rotation2, UnitComplex};
 use oort_api::Ability;
@@ -11,8 +11,8 @@ use std::f64::consts::TAU;
 const DAMAGE_FACTOR: f64 = 0.00014;
 const WALL_COLLISION_GROUP: Group = Group::GROUP_1;
 const SHIP_COLLISION_GROUP: Group = Group::GROUP_2;
+const PLANET_COLLISION_GROUP: Group = Group::GROUP_3;
 const BULLET_GROUPS: &[Group] = &[
-    Group::GROUP_3,
     Group::GROUP_4,
     Group::GROUP_5,
     Group::GROUP_6,
@@ -37,7 +37,7 @@ fn all_bullet_groups() -> Group {
 pub fn bullet_interaction_groups(team: i32) -> InteractionGroups {
     InteractionGroups::new(
         bullet_group(team),
-        WALL_COLLISION_GROUP | SHIP_COLLISION_GROUP,
+        WALL_COLLISION_GROUP | SHIP_COLLISION_GROUP | PLANET_COLLISION_GROUP,
     )
 }
 
@@ -52,7 +52,15 @@ pub fn ship_interaction_groups(team: i32) -> InteractionGroups {
     let bullet_groups = all_bullet_groups() ^ bullet_group(team);
     InteractionGroups::new(
         SHIP_COLLISION_GROUP,
-        WALL_COLLISION_GROUP | SHIP_COLLISION_GROUP | bullet_groups,
+        WALL_COLLISION_GROUP | SHIP_COLLISION_GROUP | PLANET_COLLISION_GROUP | bullet_groups,
+    )
+}
+
+pub fn planet_interaction_groups() -> InteractionGroups {
+    let bullet_groups = all_bullet_groups();
+    InteractionGroups::new(
+        PLANET_COLLISION_GROUP,
+        SHIP_COLLISION_GROUP | PLANET_COLLISION_GROUP | bullet_groups,
     )
 }
 
@@ -159,7 +167,9 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                         }
                     }
                     [Collider::Ship(s), Collider::Wall] => {
-                        sim.ship_mut(s).explode();
+                        if sim.ship(s).data().class != ShipClass::BigPlanet {
+                            sim.ship_mut(s).explode();
+                        }
                     }
                     _ => {}
                 }

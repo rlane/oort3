@@ -504,7 +504,11 @@ pub fn create(
         .unwrap()
         .mass(data.mass)
         .restitution(restitution)
-        .collision_groups(collision::ship_interaction_groups(team))
+        .collision_groups(if data.class == ShipClass::BigPlanet {
+            collision::planet_interaction_groups()
+        } else {
+            collision::ship_interaction_groups(team)
+        })
         .active_events(ActiveEvents::COLLISION_EVENTS)
         .build();
     sim.colliders
