@@ -1,6 +1,6 @@
 use crate::ship::{self, ShipClass, ShipHandle};
 use crate::simulation::{Line, Simulation};
-use crate::{rng, simulation};
+use crate::{model, rng, simulation};
 use nalgebra::Rotation2;
 use nalgebra::{vector, Point2, Vector2};
 use oort_api::{Ability, EcmMode};
@@ -527,7 +527,7 @@ fn check_planet_contact(
     planets
         .iter()
         .filter_map(|handle| {
-            let radius = 10e3;
+            let radius = model::radius(sim.ship(*handle).data().class) as f64;
             let planet_shape = parry::shape::Ball::new(radius);
             let planet_isometry = *sim.ship(*handle).body().position();
 

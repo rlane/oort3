@@ -4,11 +4,11 @@ pub mod frame_timer;
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
 use oort_renderer::Renderer;
+use oort_simulator::model;
 use oort_simulator::scenario::Status;
-use oort_simulator::ship::ShipClass;
 use oort_simulator::simulation::{self, PHYSICS_TICK_LENGTH};
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
@@ -358,13 +358,6 @@ impl UI {
         let _ = self.canvas.focus();
     }
 
-    fn ship_pick_radius(class: ShipClass) -> f64 {
-        match class {
-            ShipClass::Planet => 10000.0,
-            _ => 60.0,
-        }
-    }
-
     pub fn on_pointer_event(&mut self, e: web_sys::PointerEvent) {
         let bounds = self.canvas.get_bounding_client_rect();
         let canvas_position = point![
@@ -396,13 +389,28 @@ impl UI {
                     let extra_radius = (self.renderer.unproject(10, 0)
                         - self.renderer.unproject(0, 0))
                     .magnitude();
+                    let classes = self
+                        .snapshot
+                        .as_ref()
+                        .map(|snapshot| {
+                            snapshot
+                                .ships
+                                .iter()
+                                .map(|ship| ship.class)
+                                .collect::<HashSet<_>>()
+                        })
+                        .unwrap_or_default();
+                    let radiuses = classes
+                        .iter()
+                        .map(|&class| (class, model::radius(class) as f64 + extra_radius))
+                        .collect::<HashMap<_, _>>();
                     self.picked_ship_id = self.snapshot.as_ref().and_then(|snapshot| {
                         snapshot
                             .ships
                             .iter()
                             .filter(|ship| {
                                 nalgebra::distance(&ship.position, &world_position)
-                                    < Self::ship_pick_radius(ship.class) + extra_radius
+                                    < radiuses[&ship.class]
                             })
                             .min_by_key(|ship| {
                                 nalgebra::distance(&ship.position, &world_position) as i64

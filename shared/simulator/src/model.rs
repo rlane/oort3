@@ -147,3 +147,11 @@ pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
         ShipClass::Planet => big_planet(),
     }
 }
+
+pub fn radius(class: ShipClass) -> f32 {
+    load(class)
+        .iter()
+        .map(|&v| v.norm())
+        .max_by(|a, b| a.partial_cmp(b).unwrap())
+        .unwrap()
+}
