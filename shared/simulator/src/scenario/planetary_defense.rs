@@ -65,11 +65,11 @@ impl Scenario for PlanetaryDefense {
 
             ship::create(
                 sim,
-                vector![0.0, -sim.world_size() / 2.0 + 2500.0],
+                vector![0.0, -sim.world_size() / 2.0 + -5000.0],
                 vector![0.0, 0.0],
                 0.0,
                 ShipData {
-                    class: ShipClass::Planet,
+                    class: ShipClass::BigPlanet,
                     team: 2,
                     health: Self::PLANET_HEALTH,
                     mass: 20e6,
@@ -114,7 +114,7 @@ impl Scenario for PlanetaryDefense {
         let planet_alive = sim
             .ships
             .iter()
-            .any(|&handle| sim.ship(handle).data().class == ShipClass::Planet);
+            .any(|&handle| sim.ship(handle).data().class == ShipClass::BigPlanet);
         let enemy_alive = sim
             .ships
             .iter()
@@ -144,7 +144,7 @@ impl Scenario for PlanetaryDefense {
         if let Some(&planet) = sim
             .ships
             .iter()
-            .find(|&&handle| sim.ship(handle).data().class == ShipClass::Planet)
+            .find(|&&handle| sim.ship(handle).data().class == ShipClass::BigPlanet)
         {
             sim.time() + (1.0 - sim.ship(planet).data().health / Self::PLANET_HEALTH) * 60.0
         } else {
