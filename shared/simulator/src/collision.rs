@@ -167,7 +167,7 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                         }
                     }
                     [Collider::Ship(s), Collider::Wall] => {
-                        if sim.ship(s).data().class != ShipClass::BigPlanet {
+                        if sim.ship(s).data().class != ShipClass::Planet {
                             sim.ship_mut(s).explode();
                         }
                     }

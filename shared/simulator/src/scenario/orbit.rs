@@ -39,7 +39,7 @@ impl Scenario for Orbit {
             vector![0.0, 0.0],
             0.0,
             ShipData {
-                class: ShipClass::BigPlanet,
+                class: ShipClass::Planet,
                 team: 2,
                 health: 1e9,
                 mass: 1e9,

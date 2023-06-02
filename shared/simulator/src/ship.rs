@@ -41,7 +41,7 @@ pub enum ShipClass {
     Target,
     Missile,
     Torpedo,
-    BigPlanet,
+    Planet,
 }
 
 impl ShipClass {
@@ -54,7 +54,7 @@ impl ShipClass {
             ShipClass::Target => "target",
             ShipClass::Missile => "missile",
             ShipClass::Torpedo => "torpedo",
-            ShipClass::BigPlanet => "planet",
+            ShipClass::Planet => "planet",
         }
     }
 }
@@ -502,7 +502,7 @@ pub fn create(
         .unwrap()
         .mass(data.mass)
         .restitution(restitution)
-        .collision_groups(if data.class == ShipClass::BigPlanet {
+        .collision_groups(if data.class == ShipClass::Planet {
             collision::planet_interaction_groups()
         } else {
             collision::ship_interaction_groups(team)
