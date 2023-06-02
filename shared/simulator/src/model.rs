@@ -144,7 +144,6 @@ pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
         ShipClass::Target => target(),
         ShipClass::Missile => missile(),
         ShipClass::Torpedo => torpedo(),
-        ShipClass::Planet => planet(),
         ShipClass::BigPlanet => big_planet(),
     }
 }

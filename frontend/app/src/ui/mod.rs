@@ -360,7 +360,7 @@ impl UI {
 
     fn ship_pick_radius(class: ShipClass) -> f64 {
         match class {
-            ShipClass::Planet => 2000.0,
+            ShipClass::BigPlanet => 10000.0,
             _ => 60.0,
         }
     }

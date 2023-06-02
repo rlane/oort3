@@ -165,7 +165,7 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
             class = ShipClass::Cruiser;
             radar_cross_section = ship::CRUISER_RADAR_CROSS_SECTION / 2.0;
         }
-        if class == ShipClass::BigPlanet || class == ShipClass::Planet {
+        if class == ShipClass::BigPlanet {
             continue;
         }
         let jammer = ship_data
@@ -232,9 +232,7 @@ pub fn tick(sim: &mut Simulation) {
     let planets = sim
         .ships
         .iter()
-        .filter(|handle| {
-            [ShipClass::Planet, ShipClass::BigPlanet].contains(&sim.ship(**handle).data().class)
-        })
+        .filter(|handle| sim.ship(**handle).data().class == ShipClass::BigPlanet)
         .cloned()
         .collect::<Vec<_>>();
 
