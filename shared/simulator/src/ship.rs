@@ -480,12 +480,15 @@ pub fn create(
     heading: f64,
     mut data: ShipData,
 ) -> ShipHandle {
-    let rigid_body = RigidBodyBuilder::dynamic()
+    let mut builder = RigidBodyBuilder::dynamic()
         .translation(position)
         .linvel(velocity)
         .rotation(heading)
-        .ccd_enabled(true)
-        .build();
+        .ccd_enabled(true);
+    if data.class == ShipClass::Planet {
+        builder = builder.lock_translations()
+    }
+    let rigid_body = builder.build();
     let body_handle = sim.bodies.insert(rigid_body);
     let handle = ShipHandle(body_handle.0);
     let team = data.team;
