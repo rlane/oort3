@@ -14,6 +14,7 @@ oort_simulator = { path = "../../shared/simulator", features = ["js"], default-f
 oort_proto = { path = "../../shared/proto" }
 oort_envelope = { path = "../../shared/envelope" }
 oort_version = { path = "../../shared/version" }
+oort_version_control = { path = "../version_control" }
 bincode = "1.3.3"
 chrono = "0.4.19"
 console_error_panic_hook = "0.1.7"

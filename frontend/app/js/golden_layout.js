@@ -1,5 +1,5 @@
 var goldenLayout;
-let configVersion = 3;
+let configVersion = 4;
 
 function make_config() {
   let editor_width_pct = 100.0 - 61.8;
@@ -42,6 +42,13 @@ function make_config() {
                 componentState: { team: 1 },
                 isClosable: false,
                 id: "editor.opponent",
+              },
+              {
+                type: "component",
+                componentName: "Versions",
+                componentState: {},
+                isClosable: false,
+                id: "versions",
               },
             ],
           },
@@ -144,6 +151,13 @@ export function init() {
     function (container, componentState) {
       container.getElement()[0].style.overflow = "auto";
       container.getElement()[0].id = "leaderboard-window";
+    }
+  );
+  goldenLayout.registerComponent(
+    "Versions",
+    function (container, componentState) {
+      container.getElement()[0].style.overflow = "auto";
+      container.getElement()[0].id = "versions-window";
     }
   );
   goldenLayout.init();

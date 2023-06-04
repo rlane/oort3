@@ -6,6 +6,7 @@ members = [
     "renderer",
     "simulation_worker",
     "analyzer_worker",
+    "version_control",
 ]
 
 [patch.crates-io]

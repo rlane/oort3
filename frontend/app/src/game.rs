@@ -1,3 +1,4 @@
+use crate::codestorage;
 use crate::compiler_output_window::CompilerOutputWindow;
 use crate::documentation::Documentation;
 use crate::editor_window::EditorWindow;
@@ -8,6 +9,7 @@ use crate::services;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
 use crate::userid;
+use crate::versions_window::VersionsWindow;
 use crate::welcome::Welcome;
 use monaco::yew::CodeEditorLink;
 use oort_proto::{LeaderboardSubmission, Telemetry};
@@ -57,6 +59,8 @@ pub enum Msg {
     ReplaceCode { team: usize, text: String },
     ShowError(String),
     Resized,
+    LoadVersion(String),
+    SaveVersion(String),
 }
 
 enum Overlay {
@@ -91,6 +95,7 @@ pub struct Game {
     compilation_cache: HashMap<Code, Code>,
     seed: Option<u32>,
     shortcodes: Vec<Option<String>>,
+    versions_update_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
 pub struct Team {
@@ -145,6 +150,7 @@ impl Component for Game {
             compilation_cache,
             seed: query_params.seed,
             shortcodes: vec![query_params.player0, query_params.player1],
+            versions_update_timestamp: chrono::Utc::now(),
         }
     }
 
@@ -202,10 +208,8 @@ impl Component for Game {
                 ref action,
             } if action == "oort-execute" => {
                 if !is_encrypted(&self.player_team().get_editor_code()) {
-                    crate::codestorage::save(
-                        &self.scenario_name,
-                        &self.player_team().get_editor_code(),
-                    );
+                    codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
+                    self.refresh_versions();
                 }
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
@@ -367,6 +371,47 @@ impl Component for Game {
                 self.team(team).set_editor_text(&text);
                 false
             }
+            Msg::LoadVersion(id) => {
+                if !self.teams.is_empty() && !is_encrypted(&self.player_team().get_editor_code()) {
+                    crate::codestorage::save(
+                        &self.scenario_name,
+                        &self.player_team().get_editor_code(),
+                    );
+                    self.refresh_versions();
+                }
+                self.focus_editor();
+
+                let link = context.link().clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let version_control =
+                        oort_version_control::VersionControl::new().await.unwrap();
+                    if let Some(version) = version_control.get_version(&id).await.unwrap() {
+                        link.send_message(Msg::ReplaceCode {
+                            team: 0,
+                            text: version.code,
+                        });
+                    }
+                });
+                true
+            }
+            Msg::SaveVersion(label) => {
+                if !self.teams.is_empty() {
+                    let scenario_name = self.scenario_name.clone();
+                    let code = self.player_team().get_editor_code();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        let version_control =
+                            oort_version_control::VersionControl::new().await.unwrap();
+                        let version = oort_version_control::CreateVersionParams {
+                            code: code_to_string(&code),
+                            scenario_name,
+                            label: Some(label),
+                        };
+                        version_control.create_version(&version).await.unwrap();
+                    });
+                    self.refresh_versions();
+                }
+                true
+            }
             Msg::SubmitToTournament => {
                 services::send_telemetry(Telemetry::SubmitToTournament {
                     scenario_name: self.scenario_name.clone(),
@@ -483,6 +528,13 @@ impl Component for Game {
             .get_element_by_id("leaderboard-window")
             .expect("a #leaderboard-window element");
 
+        // For VersionsWindow.
+        let versions_window_host = gloo_utils::document()
+            .get_element_by_id("versions-window")
+            .expect("a #versions-window element");
+        let load_cb = context.link().callback(Msg::LoadVersion);
+        let save_cb = context.link().callback(Msg::SaveVersion);
+
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
@@ -493,6 +545,7 @@ impl Component for Game {
             <Documentation host={documentation_window_host} {show_feedback_cb} />
             <CompilerOutputWindow host={compiler_output_window_host} {compiler_errors} />
             <LeaderboardWindow host={leaderboard_window_host} scenario_name={self.scenario_name.clone()} />
+            <VersionsWindow host={versions_window_host} scenario_name={self.scenario_name.clone()} {load_cb} {save_cb} update_timestamp={self.versions_update_timestamp} />
             { self.render_overlay(context) }
         </>
         }
@@ -952,7 +1005,8 @@ impl Game {
 
     pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, run: bool) {
         if !self.teams.is_empty() && !is_encrypted(&self.player_team().get_editor_code()) {
-            crate::codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
+            codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
+            self.refresh_versions();
         }
         self.scenario_name = scenario_name.to_string();
         let codes = crate::codestorage::load(&self.scenario_name);
@@ -1039,6 +1093,10 @@ impl Game {
             }
         }
         !is_encrypted(&self.player_team().running_source_code)
+    }
+
+    pub fn refresh_versions(&mut self) {
+        self.versions_update_timestamp = chrono::Utc::now();
     }
 }
 

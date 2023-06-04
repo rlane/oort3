@@ -16,6 +16,7 @@ pub mod toolbar;
 pub mod tournament;
 pub mod ui;
 pub mod userid;
+pub mod versions_window;
 pub mod welcome;
 
 use oort_version::version;

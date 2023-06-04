@@ -231,6 +231,10 @@ div.leaderboard {
   padding: 1rem;
 }
 
+div.versions {
+  padding: 1rem;
+}
+
 .errorDecoration {
   background-color: #ff000055;
 }

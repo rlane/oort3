@@ -16,11 +16,15 @@ pub fn is_local() -> bool {
 }
 
 pub fn compiler_url() -> String {
-    option_env!("COMPILER_URL").expect("missing COMPILER_URL build-time environment variable").to_string()
+    option_env!("COMPILER_URL")
+        .expect("missing COMPILER_URL build-time environment variable")
+        .to_string()
 }
 
 pub fn backend_url() -> String {
-    option_env!("BACKEND_URL").expect("missing BACKEND_URL build-time environment variable").to_string()
+    option_env!("BACKEND_URL")
+        .expect("missing BACKEND_URL build-time environment variable")
+        .to_string()
 }
 
 async fn send_request(request: Request) -> anyhow::Result<Response> {
@@ -40,11 +44,7 @@ pub fn get_leaderboard(
     scenario_name: &str,
     callback: yew::Callback<anyhow::Result<LeaderboardData>>,
 ) {
-    let url = format!(
-        "{}/leaderboard/{}",
-        backend_url(),
-        scenario_name
-    );
+    let url = format!("{}/leaderboard/{}", backend_url(), scenario_name);
     wasm_bindgen_futures::spawn_local(async move {
         match send_request(Request::get(&url)).await {
             Err(e) => {
@@ -96,9 +96,12 @@ pub fn send_telemetry(payload: Telemetry) {
         let url = format!("{}/telemetry", backend_url());
         let body = serde_json::to_string(&msg).unwrap();
         log::info!("Sending telemetry: {}", body);
-        let result = send_request(Request::post(&url)
-            .header("Content-Type", "application/json")
-            .body(body)).await;
+        let result = send_request(
+            Request::post(&url)
+                .header("Content-Type", "application/json")
+                .body(body),
+        )
+        .await;
         if let Err(e) = result {
             log::warn!("Error posting telemetry: {:?}", e);
         }
@@ -140,10 +143,12 @@ pub async fn upload_shortcode(code: &str) -> anyhow::Result<String> {
         code: code.to_string(),
     };
     let body = serde_json::to_string(&msg).unwrap();
-    let response =
-        send_request(Request::post(&format!("{}/shortcode", backend_url()))
+    let response = send_request(
+        Request::post(&format!("{}/shortcode", backend_url()))
             .header("Content-Type", "application/json")
-            .body(body)).await?;
+            .body(body),
+    )
+    .await?;
     response.text().await.map_err(|e| e.into())
 }
 
@@ -158,10 +163,12 @@ pub async fn submit_to_tournament(scenario_name: &str, code: &str) -> anyhow::Re
         code: code.to_string(),
     };
     let body = serde_json::to_string(&msg).unwrap();
-    send_request(Request::post(&format!("{}/tournament/submit", backend_url()))
-        .header("Content-Type", "application/json")
-        .body(body))
-        .await?;
+    send_request(
+        Request::post(&format!("{}/tournament/submit", backend_url()))
+            .header("Content-Type", "application/json")
+            .body(body),
+    )
+    .await?;
     Ok(())
 }
 
