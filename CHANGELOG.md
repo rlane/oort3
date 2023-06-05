@@ -1,3 +1,9 @@
+- Added a simple version control system.
+- Tweaked planetary_defense scenario.
+- Increased world size in fleet scenario.
+- Added orbit scenatio.
+- Made planets block radar.
+
 ### 0.50.0
 
 - Increased missile and torpedo lifetime.
