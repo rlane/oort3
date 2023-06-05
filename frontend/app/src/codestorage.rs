@@ -43,6 +43,8 @@ pub fn save(scenario_name: &str, code: &Code) {
             scenario_name,
             label: None,
         };
-        version_control.create_version(&version).await.unwrap();
+        if !version_control.check_code_exists(&version.code).await.unwrap() {
+            version_control.create_version(&version).await.unwrap();
+        }
     });
 }

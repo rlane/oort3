@@ -1,9 +1,9 @@
-// TODO: Skip adding duplicate non-tag versions
 use idb::{Database, Error, Factory, KeyPath, ObjectStoreParams, Query, TransactionMode};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use wasm_bindgen::prelude::*;
 
+const SCHEMA_VERSION: u32 = 2;
 const VERSIONS: &str = "versions";
 
 pub struct VersionControl {
@@ -13,21 +13,35 @@ pub struct VersionControl {
 impl VersionControl {
     pub async fn new() -> Result<VersionControl, Error> {
         let factory = Factory::new()?;
-        let mut open_request = factory.open("oort_version_control", Some(1)).unwrap();
+        let mut open_request = factory.open("oort_version_control", Some(SCHEMA_VERSION)).unwrap();
 
         open_request.on_upgrade_needed(|event| {
             let database = event.database().unwrap();
+            let transaction = event.transaction().unwrap().unwrap();
 
-            let mut store_params = ObjectStoreParams::new();
-            store_params.key_path(Some(KeyPath::new_single("id")));
+            if !database.store_names().contains(&VERSIONS.to_string()) {
+                let mut store_params = ObjectStoreParams::new();
+                store_params.key_path(Some(KeyPath::new_single("id")));
+                database
+                    .create_object_store(VERSIONS, store_params)
+                    .unwrap();
+            }
 
-            let store = database
-                .create_object_store(VERSIONS, store_params)
+            let store = transaction
+                .object_store(VERSIONS)
                 .unwrap();
 
-            store
-                .create_index("scenario_name", KeyPath::new_single("scenario_name"), None)
-                .unwrap();
+            if !store.index_names().contains(&"scenario_name".to_string()) {
+                store
+                    .create_index("scenario_name", KeyPath::new_single("scenario_name"), None)
+                    .unwrap();
+            }
+
+            if !store.index_names().contains(&"digest".to_string()) {
+                store
+                    .create_index("digest", KeyPath::new_single("digest"), None)
+                    .unwrap();
+            }
         });
 
         let database = open_request.await?;
@@ -94,6 +108,23 @@ impl VersionControl {
         result.reverse();
         transaction.done().await?;
         Ok(result)
+    }
+
+    pub async fn check_digest_exists(&self, digest: &str) -> Result<bool, Error> {
+        let transaction = self
+            .database
+            .transaction(&[VERSIONS], TransactionMode::ReadOnly)
+            .unwrap();
+        let store = transaction.object_store(VERSIONS).unwrap();
+        let index = store.index("digest").unwrap();
+        let digest = JsValue::from_str(digest);
+        let query = Query::Key(digest);
+        index.count(Some(query)).await.map(|count| count > 0)
+    }
+
+    pub async fn check_code_exists(&self, code: &str) -> Result<bool, Error> {
+        let digest = digest(code);
+        self.check_digest_exists(&digest).await
     }
 }
 

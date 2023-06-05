@@ -209,7 +209,7 @@ impl Component for Game {
             } if action == "oort-execute" => {
                 if !is_encrypted(&self.player_team().get_editor_code()) {
                     codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
-                    self.refresh_versions();
+                    self.refresh_versions();  // TODO: race
                 }
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
@@ -377,7 +377,7 @@ impl Component for Game {
                         &self.scenario_name,
                         &self.player_team().get_editor_code(),
                     );
-                    self.refresh_versions();
+                    self.refresh_versions();  // TODO: race
                 }
                 self.focus_editor();
 
@@ -408,7 +408,7 @@ impl Component for Game {
                         };
                         version_control.create_version(&version).await.unwrap();
                     });
-                    self.refresh_versions();
+                    self.refresh_versions();  // TODO: race
                 }
                 true
             }
@@ -1006,7 +1006,7 @@ impl Game {
     pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, run: bool) {
         if !self.teams.is_empty() && !is_encrypted(&self.player_team().get_editor_code()) {
             codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
-            self.refresh_versions();
+            self.refresh_versions();  // TODO: race
         }
         self.scenario_name = scenario_name.to_string();
         let codes = crate::codestorage::load(&self.scenario_name);
