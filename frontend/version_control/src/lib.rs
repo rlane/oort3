@@ -76,11 +76,9 @@ impl VersionControl {
             .add(&serde_wasm_bindgen::to_value(&version).unwrap(), None)
             .await?;
         let code_store = transaction.object_store(CODE).unwrap();
+        let value: js_sys::Uint8Array = params.code.as_bytes().into();
         code_store
-            .add(
-                &JsValue::from_str(&params.code),
-                Some(&JsValue::from_str(&digest)),
-            )
+            .add(&value, Some(&JsValue::from_str(&digest)))
             .await?;
         transaction.commit().await?;
         Ok(())
@@ -106,10 +104,11 @@ impl VersionControl {
             .unwrap();
         let store = transaction.object_store(CODE).unwrap();
         let key = JsValue::from_str(digest);
-        let stored = store.get(key).await?;
-        let result: Option<String> = stored.map(|v| serde_wasm_bindgen::from_value(v).unwrap());
+        let Some(value) = store.get(key).await? else { return Ok(None) };
+        let Ok(array) = value.dyn_into::<js_sys::Uint8Array>() else { return Ok(None) };
+        let Ok(result) = String::from_utf8(array.to_vec()) else { return Ok(None) };
         transaction.done().await?;
-        Ok(result)
+        Ok(Some(result))
     }
 
     pub async fn list_versions(&self, scenario_name: &str) -> Result<Vec<Version>, Error> {
