@@ -33,18 +33,4 @@ pub fn save(scenario_name: &str, code: &Code) {
     if let Err(msg) = storage.set_item(&format!("/code/{scenario_name}"), &code_to_string(code)) {
         error!("Failed to save code: {:?}", msg);
     }
-
-    let scenario_name = scenario_name.to_string();
-    let code = code.clone();
-    wasm_bindgen_futures::spawn_local(async move {
-        let version_control = oort_version_control::VersionControl::new().await.unwrap();
-        let version = oort_version_control::CreateVersionParams {
-            code: code_to_string(&code),
-            scenario_name,
-            label: None,
-        };
-        if !version_control.check_code_exists(&version.code).await.unwrap() {
-            version_control.create_version(&version).await.unwrap();
-        }
-    });
 }

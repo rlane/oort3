@@ -58,10 +58,14 @@ impl Component for VersionsWindow {
 
     fn view(&self, context: &yew::Context<Self>) -> Html {
         let input_ref = NodeRef::default();
-        let save_onclick = context.props().save_cb.clone().reform({
+        let submit_cb = {
             let input_ref = input_ref.clone();
-            move |_| input_ref.cast::<HtmlInputElement>().unwrap().value()
-        });
+            let save_cb = context.props().save_cb.clone();
+            Callback::from(move |event: yew::events::SubmitEvent| {
+                event.prevent_default();
+                save_cb.emit(input_ref.cast::<HtmlInputElement>().unwrap().value())
+            })};
+
         let versions_html = if self.versions.is_empty() {
             html! {
                 <li>{ "No previous versions found." }</li>
@@ -92,9 +96,9 @@ impl Component for VersionsWindow {
             html! {
                 <div class="versions">
                     <h1>{ "Versions" }</h1>
-                    <form>
+                    <form onsubmit={submit_cb}>
                         <input type="text" ref={input_ref} />
-                        <button type="submit" onclick={save_onclick}>{ "Save" }</button>
+                        <button type="submit">{ "Save" }</button>
                     </form>
                     <p>{ "This list shows previous versions of your code for this scenario. Click on a version to load it." }</p>
                     <ul>

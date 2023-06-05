@@ -61,6 +61,7 @@ pub enum Msg {
     Resized,
     LoadVersion(String),
     SaveVersion(String),
+    RefreshVersions,
 }
 
 enum Overlay {
@@ -207,10 +208,7 @@ impl Component for Game {
                 team: _,
                 ref action,
             } if action == "oort-execute" => {
-                if !is_encrypted(&self.player_team().get_editor_code()) {
-                    codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
-                    self.refresh_versions();  // TODO: race
-                }
+                self.save_current_code(context, None);
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
                 }
@@ -372,13 +370,7 @@ impl Component for Game {
                 false
             }
             Msg::LoadVersion(id) => {
-                if !self.teams.is_empty() && !is_encrypted(&self.player_team().get_editor_code()) {
-                    crate::codestorage::save(
-                        &self.scenario_name,
-                        &self.player_team().get_editor_code(),
-                    );
-                    self.refresh_versions();  // TODO: race
-                }
+                self.save_current_code(context, None);
                 self.focus_editor();
 
                 let link = context.link().clone();
@@ -392,24 +384,14 @@ impl Component for Game {
                         });
                     }
                 });
-                true
+                false
             }
             Msg::SaveVersion(label) => {
-                if !self.teams.is_empty() {
-                    let scenario_name = self.scenario_name.clone();
-                    let code = self.player_team().get_editor_code();
-                    wasm_bindgen_futures::spawn_local(async move {
-                        let version_control =
-                            oort_version_control::VersionControl::new().await.unwrap();
-                        let version = oort_version_control::CreateVersionParams {
-                            code: code_to_string(&code),
-                            scenario_name,
-                            label: Some(label),
-                        };
-                        version_control.create_version(&version).await.unwrap();
-                    });
-                    self.refresh_versions();  // TODO: race
-                }
+                self.save_current_code(context, Some(label));
+                false
+            }
+            Msg::RefreshVersions => {
+                self.versions_update_timestamp = chrono::Utc::now();
                 true
             }
             Msg::SubmitToTournament => {
@@ -1004,10 +986,7 @@ impl Game {
     }
 
     pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, run: bool) {
-        if !self.teams.is_empty() && !is_encrypted(&self.player_team().get_editor_code()) {
-            codestorage::save(&self.scenario_name, &self.player_team().get_editor_code());
-            self.refresh_versions();  // TODO: race
-        }
+        self.save_current_code(context, None);
         self.scenario_name = scenario_name.to_string();
         let codes = crate::codestorage::load(&self.scenario_name);
         let scenario = oort_simulator::scenario::load(&self.scenario_name);
@@ -1095,8 +1074,32 @@ impl Game {
         !is_encrypted(&self.player_team().running_source_code)
     }
 
-    pub fn refresh_versions(&mut self) {
-        self.versions_update_timestamp = chrono::Utc::now();
+    pub fn save_current_code(&self, context: &Context<Self>, label: Option<String>) {
+        if self.teams.is_empty() {
+            return;
+        }
+        let scenario_name = self.scenario_name.clone();
+        let code = self.player_team().get_editor_code();
+        if is_encrypted(&code) {
+            return;
+        }
+
+        codestorage::save(&scenario_name, &code);
+
+        let link = context.link().clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            let code = code_to_string(&code);
+            let version_control = oort_version_control::VersionControl::new().await.unwrap();
+            if label.is_some() || !version_control.check_code_exists(&code).await.unwrap() {
+                let version = oort_version_control::CreateVersionParams {
+                    code,
+                    scenario_name,
+                    label,
+                };
+                version_control.create_version(&version).await.unwrap();
+            }
+            link.send_message(Msg::RefreshVersions);
+        });
     }
 }
 
