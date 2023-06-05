@@ -1,6 +1,10 @@
+use flate2::read::DeflateDecoder;
+use flate2::write::DeflateEncoder;
+use flate2::Compression;
 use idb::{Database, Error, Factory, KeyPath, ObjectStoreParams, Query, TransactionMode};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::io::{Read, Write};
 use wasm_bindgen::prelude::*;
 
 const SCHEMA_VERSION: u32 = 3;
@@ -76,7 +80,12 @@ impl VersionControl {
             .add(&serde_wasm_bindgen::to_value(&version).unwrap(), None)
             .await?;
         let code_store = transaction.object_store(CODE).unwrap();
-        let value: js_sys::Uint8Array = params.code.as_bytes().into();
+        let compressed = {
+            let mut e = DeflateEncoder::new(Vec::new(), Compression::default());
+            e.write_all(params.code.as_bytes()).unwrap();
+            e.finish().unwrap()
+        };
+        let value: js_sys::Uint8Array = compressed[..].into();
         code_store
             .add(&value, Some(&JsValue::from_str(&digest)))
             .await?;
@@ -106,9 +115,14 @@ impl VersionControl {
         let key = JsValue::from_str(digest);
         let Some(value) = store.get(key).await? else { return Ok(None) };
         let Ok(array) = value.dyn_into::<js_sys::Uint8Array>() else { return Ok(None) };
-        let Ok(result) = String::from_utf8(array.to_vec()) else { return Ok(None) };
+        let vec = array.to_vec();
+        let mut deflater = DeflateDecoder::new(vec.as_slice());
+        let mut decompressed = String::new();
+        if deflater.read_to_string(&mut decompressed).is_err() {
+            return Ok(None);
+        }
         transaction.done().await?;
-        Ok(Some(result))
+        Ok(Some(decompressed))
     }
 
     pub async fn list_versions(&self, scenario_name: &str) -> Result<Vec<Version>, Error> {

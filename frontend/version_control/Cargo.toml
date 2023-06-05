@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.71"
 chrono = "0.4.26"
+flate2 = "1.0.26"
 idb = "0.4.1"
 js-sys = "0.3.63"
 log = "0.4.18"
