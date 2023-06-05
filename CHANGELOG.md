@@ -1,3 +1,5 @@
+### 0.51.0
+
 - Added a simple version control system.
 - Tweaked planetary_defense scenario.
 - Increased world size in fleet scenario.
