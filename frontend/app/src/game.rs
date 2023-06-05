@@ -372,20 +372,14 @@ impl Component for Game {
             Msg::LoadVersion(id) => {
                 self.save_current_code(context, None);
                 self.focus_editor();
-
-                let link = context.link().clone();
-                wasm_bindgen_futures::spawn_local(async move {
-                    let version_control =
-                        oort_version_control::VersionControl::new().await.unwrap();
-                    if let Some(version) = version_control.get_version(&id).await.unwrap() {
-                        if let Some(code) = version_control.get_code(&version.digest).await.unwrap()
-                        {
-                            link.send_message(Msg::ReplaceCode {
-                                team: 0,
-                                text: code,
-                            });
-                        }
-                    }
+                try_send_future(context.link(), async move {
+                    let version_control = oort_version_control::VersionControl::new().await?;
+                    let version = version_control.get_version(&id).await?;
+                    let code = version_control.get_code(&version.digest).await?;
+                    Ok::<_, oort_version_control::Error>(Msg::ReplaceCode {
+                        team: 0,
+                        text: code,
+                    })
                 });
                 false
             }
@@ -1089,19 +1083,18 @@ impl Game {
 
         codestorage::save(&scenario_name, &code);
 
-        let link = context.link().clone();
-        wasm_bindgen_futures::spawn_local(async move {
+        try_send_future(context.link(), async move {
             let code = code_to_string(&code);
-            let version_control = oort_version_control::VersionControl::new().await.unwrap();
-            if label.is_some() || !version_control.check_code_exists(&code).await.unwrap() {
+            let version_control = oort_version_control::VersionControl::new().await?;
+            if label.is_some() || !version_control.check_code_exists(&code).await? {
                 let version = oort_version_control::CreateVersionParams {
                     code,
                     scenario_name,
                     label,
                 };
-                version_control.create_version(&version).await.unwrap();
+                version_control.create_version(&version).await?;
             }
-            link.send_message(Msg::RefreshVersions);
+            Ok::<_, oort_version_control::Error>(Msg::RefreshVersions)
         });
     }
 }
@@ -1239,4 +1232,20 @@ pub(crate) fn is_encrypted(code: &Code) -> bool {
         Code::Rust(src) => src.starts_with("ENCRYPTED:"),
         _ => false,
     }
+}
+
+fn try_send_future<Fut, Msg, C, E>(link: &Scope<C>, future: Fut)
+where
+    C: Component,
+    Msg: Into<C::Message>,
+    Fut: std::future::Future<Output = Result<Msg, E>> + 'static,
+    E: std::fmt::Debug,
+{
+    let link = link.clone();
+    wasm_bindgen_futures::spawn_local(async move {
+        match future.await {
+            Ok(msg) => link.send_message(msg.into()),
+            Err(e) => log::error!("Async task failed: {:?}", e),
+        }
+    });
 }

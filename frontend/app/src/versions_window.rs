@@ -6,6 +6,7 @@ use yew::prelude::*;
 pub enum Msg {
     StartFetch,
     FetchFinished(Vec<Version>),
+    FetchFailed,
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -39,8 +40,13 @@ impl Component for VersionsWindow {
                 context.link().send_future(async move {
                     let version_control =
                         oort_version_control::VersionControl::new().await.unwrap();
-                    let versions = version_control.list_versions(&scenario_name).await.unwrap();
-                    Msg::FetchFinished(versions)
+                    match version_control.list_versions(&scenario_name).await {
+                        Ok(versions) => Msg::FetchFinished(versions),
+                        Err(e) => {
+                            log::error!("Error fetching versions: {:?}", e);
+                            Msg::FetchFailed
+                        }
+                    }
                 });
                 false
             }
@@ -48,6 +54,7 @@ impl Component for VersionsWindow {
                 self.versions = versions;
                 true
             }
+            Msg::FetchFailed => false,
         }
     }
 

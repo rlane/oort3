@@ -1975,6 +1975,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen 0.5.0",
  "sha2",
+ "thiserror",
  "wasm-bindgen",
 ]
 
