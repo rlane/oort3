@@ -7,7 +7,7 @@ use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 use wasm_bindgen::prelude::*;
 
-const SCHEMA_VERSION: u32 = 3;
+const SCHEMA_VERSION: u32 = 4;
 const VERSIONS: &str = "versions";
 const CODE: &str = "code";
 
@@ -45,10 +45,6 @@ impl VersionControl {
             if !store.index_names().contains(&"scenario_name".to_string()) {
                 store.create_index("scenario_name", KeyPath::new_single("scenario_name"), None)?;
             }
-
-            if !store.index_names().contains(&"digest".to_string()) {
-                store.create_index("digest", KeyPath::new_single("digest"), None)?;
-            }
         }
 
         if !database.store_names().contains(&CODE.to_string()) {
@@ -78,16 +74,24 @@ impl VersionControl {
         versions_store
             .add(&serde_wasm_bindgen::to_value(&version)?, None)
             .await?;
+
         let code_store = transaction.object_store(CODE)?;
-        let compressed = {
-            let mut e = DeflateEncoder::new(Vec::new(), Compression::default());
-            e.write_all(params.code.as_bytes())?;
-            e.finish()?
-        };
-        let value: js_sys::Uint8Array = compressed[..].into();
-        code_store
-            .add(&value, Some(&JsValue::from_str(&digest)))
-            .await?;
+        let has_digest = code_store
+            .count(Some(Query::Key(JsValue::from_str(&digest))))
+            .await?
+            > 0;
+
+        if !has_digest {
+            let compressed = {
+                let mut e = DeflateEncoder::new(Vec::new(), Compression::default());
+                e.write_all(params.code.as_bytes())?;
+                e.finish()?
+            };
+            let value: js_sys::Uint8Array = compressed[..].into();
+            code_store
+                .add(&value, Some(&JsValue::from_str(&digest)))
+                .await?;
+        }
         transaction.commit().await?;
         Ok(())
     }
@@ -153,12 +157,12 @@ impl VersionControl {
     pub async fn check_digest_exists(&self, digest: &str) -> Result<bool, Error> {
         let transaction = self
             .database
-            .transaction(&[VERSIONS], TransactionMode::ReadOnly)?;
-        let store = transaction.object_store(VERSIONS)?;
-        let index = store.index("digest")?;
-        let digest = JsValue::from_str(digest);
-        let query = Query::Key(digest);
-        Ok(index.count(Some(query)).await.map(|count| count > 0)?)
+            .transaction(&[CODE], TransactionMode::ReadOnly)?;
+        let store = transaction.object_store(CODE)?;
+        Ok(store
+            .count(Some(Query::Key(JsValue::from_str(digest))))
+            .await?
+            > 0)
     }
 
     pub async fn check_code_exists(&self, code: &str) -> Result<bool, Error> {
