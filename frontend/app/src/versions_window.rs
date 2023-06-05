@@ -64,7 +64,8 @@ impl Component for VersionsWindow {
             Callback::from(move |event: yew::events::SubmitEvent| {
                 event.prevent_default();
                 save_cb.emit(input_ref.cast::<HtmlInputElement>().unwrap().value())
-            })};
+            })
+        };
 
         let versions_html = if self.versions.is_empty() {
             html! {

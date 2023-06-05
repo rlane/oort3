@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use wasm_bindgen::prelude::*;
 
-const SCHEMA_VERSION: u32 = 2;
+const SCHEMA_VERSION: u32 = 3;
 const VERSIONS: &str = "versions";
+const CODE: &str = "code";
 
 pub struct VersionControl {
     pub database: Database,
@@ -13,7 +14,9 @@ pub struct VersionControl {
 impl VersionControl {
     pub async fn new() -> Result<VersionControl, Error> {
         let factory = Factory::new()?;
-        let mut open_request = factory.open("oort_version_control", Some(SCHEMA_VERSION)).unwrap();
+        let mut open_request = factory
+            .open("oort_version_control", Some(SCHEMA_VERSION))
+            .unwrap();
 
         open_request.on_upgrade_needed(|event| {
             let database = event.database().unwrap();
@@ -27,20 +30,25 @@ impl VersionControl {
                     .unwrap();
             }
 
-            let store = transaction
-                .object_store(VERSIONS)
-                .unwrap();
+            {
+                let store = transaction.object_store(VERSIONS).unwrap();
 
-            if !store.index_names().contains(&"scenario_name".to_string()) {
-                store
-                    .create_index("scenario_name", KeyPath::new_single("scenario_name"), None)
-                    .unwrap();
+                if !store.index_names().contains(&"scenario_name".to_string()) {
+                    store
+                        .create_index("scenario_name", KeyPath::new_single("scenario_name"), None)
+                        .unwrap();
+                }
+
+                if !store.index_names().contains(&"digest".to_string()) {
+                    store
+                        .create_index("digest", KeyPath::new_single("digest"), None)
+                        .unwrap();
+                }
             }
 
-            if !store.index_names().contains(&"digest".to_string()) {
-                store
-                    .create_index("digest", KeyPath::new_single("digest"), None)
-                    .unwrap();
+            if !database.store_names().contains(&CODE.to_string()) {
+                let store_params = ObjectStoreParams::new();
+                database.create_object_store(CODE, store_params).unwrap();
             }
         });
 
@@ -55,18 +63,24 @@ impl VersionControl {
         let id = format!("{}-{}", timestamp_string, digest);
         let version = Version {
             id,
-            code: params.code.clone(),
             scenario_name: params.scenario_name.clone(),
             timestamp,
-            digest,
+            digest: digest.clone(),
             label: params.label.clone(),
         };
         let transaction = self
             .database
-            .transaction(&[VERSIONS], TransactionMode::ReadWrite)?;
-        let store = transaction.object_store(VERSIONS).unwrap();
-        store
+            .transaction(&[VERSIONS, CODE], TransactionMode::ReadWrite)?;
+        let versions_store = transaction.object_store(VERSIONS).unwrap();
+        versions_store
             .add(&serde_wasm_bindgen::to_value(&version).unwrap(), None)
+            .await?;
+        let code_store = transaction.object_store(CODE).unwrap();
+        code_store
+            .add(
+                &JsValue::from_str(&params.code),
+                Some(&JsValue::from_str(&digest)),
+            )
             .await?;
         transaction.commit().await?;
         Ok(())
@@ -81,6 +95,19 @@ impl VersionControl {
         let id = JsValue::from_str(id);
         let stored = store.get(id).await?;
         let result: Option<Version> = stored.map(|v| serde_wasm_bindgen::from_value(v).unwrap());
+        transaction.done().await?;
+        Ok(result)
+    }
+
+    pub async fn get_code(&self, digest: &str) -> Result<Option<String>, Error> {
+        let transaction = self
+            .database
+            .transaction(&[CODE], TransactionMode::ReadOnly)
+            .unwrap();
+        let store = transaction.object_store(CODE).unwrap();
+        let key = JsValue::from_str(digest);
+        let stored = store.get(key).await?;
+        let result: Option<String> = stored.map(|v| serde_wasm_bindgen::from_value(v).unwrap());
         transaction.done().await?;
         Ok(result)
     }
@@ -131,7 +158,6 @@ impl VersionControl {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Version {
     pub id: String,
-    pub code: String,
     pub scenario_name: String,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub digest: String,

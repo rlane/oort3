@@ -378,10 +378,13 @@ impl Component for Game {
                     let version_control =
                         oort_version_control::VersionControl::new().await.unwrap();
                     if let Some(version) = version_control.get_version(&id).await.unwrap() {
-                        link.send_message(Msg::ReplaceCode {
-                            team: 0,
-                            text: version.code,
-                        });
+                        if let Some(code) = version_control.get_code(&version.digest).await.unwrap()
+                        {
+                            link.send_message(Msg::ReplaceCode {
+                                team: 0,
+                                text: code,
+                            });
+                        }
                     }
                 });
                 false
