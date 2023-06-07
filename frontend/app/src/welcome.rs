@@ -32,7 +32,7 @@ pub fn welcome(props: &WelcomeProps) -> Html {
             </p>
             <p>
                 { "The first couple of tutorials are very simple (uncomment the provided code) but you should expect the difficulty to ramp up quickly. " }
-                { "At the end of the tutorials you should have an AI that is becoming competitive in the \"tournament\" scenarios including Furball, Fleet, and Belt. " }
+                { "At the end of the tutorials you should have an AI that is becoming competitive in the \"tournament\" scenarios including Fighter Duel, Fleet, and Belt. " }
                 { "The endgame is to submit your AI to the tournament system where it will compete against other players' creations." }
             </p>
 
