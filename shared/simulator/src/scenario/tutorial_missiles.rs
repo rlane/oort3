@@ -19,7 +19,7 @@ impl Scenario for TutorialMissiles {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut shipdata = fighter(0);
-        shipdata.guns[0].cycle_time_remaining = 1e9;
+        shipdata.guns[0].reload_ticks_remaining = 100000;
         ship::create(sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, shipdata);
 
         let mut rng = new_rng(seed);
