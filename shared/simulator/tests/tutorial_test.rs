@@ -64,3 +64,20 @@ fn test_gunnery() {
 fn test_missiles() {
     check_solution("missile_test");
 }
+
+#[test]
+fn test_welcome() {
+    let scenario_name = "welcome";
+    let scenario = scenario::load(scenario_name);
+    let mut codes = scenario.initial_code();
+    codes[0] = scenario.solution();
+    let mut sim = simulation::Simulation::new(scenario_name, 0, &codes);
+
+    let mut i = 0;
+    while sim.status() == scenario::Status::Running && i < scenario::MAX_TICKS {
+        sim.step();
+        i += 1;
+    }
+
+    assert_eq!(sim.status(), scenario::Status::Running);
+}
