@@ -292,7 +292,7 @@ pub fn tick(sim: &mut Simulation) {
 
             let mut best_rssi = emitter.min_rssi;
             let mut best_reflector: Option<&RadarReflector> = None;
-            let mut received_noise = BACKGROUND_NOISE;
+            let mut received_noise = BACKGROUND_NOISE * 2.0f64.powf(rng.gen_range(-1.0..1.0));
             candidates.clear();
 
             let planet_contact = check_planet_contact(sim, &emitter, &planets);
@@ -335,7 +335,8 @@ pub fn tick(sim: &mut Simulation) {
                         &reflector.position,
                     ))
                 {
-                    let rssi = compute_rssi(&emitter, reflector);
+                    let rssi =
+                        compute_rssi(&emitter, reflector) * 1.2f64.powf(rng.gen_range(-1.0..1.0));
                     if rssi > best_rssi {
                         best_reflector = Some(reflector);
                         best_rssi = rssi;
@@ -781,24 +782,24 @@ mod test {
             sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
             sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 360.0;
 
-            (0..10)
+            (0..100)
                 .map(|_| {
                     sim.step();
                     sim.ship(ship0).radar().unwrap().result.is_some()
                 })
                 .filter(|x| *x)
                 .count()
-                > 6
+                > 50
         };
 
         use ShipClass::*;
-        assert!(check_detection(Fighter, Missile, 25e3));
+        assert!(check_detection(Fighter, Missile, 15e3));
         assert!(!check_detection(Fighter, Missile, 40e3));
         assert!(check_detection(Fighter, Torpedo, 30e3));
         assert!(!check_detection(Fighter, Torpedo, 50e3));
-        assert!(check_detection(Fighter, Fighter, 80e3));
+        assert!(check_detection(Fighter, Fighter, 70e3));
         assert!(!check_detection(Fighter, Fighter, 120e3));
-        assert!(check_detection(Fighter, Frigate, 100e3));
+        assert!(check_detection(Fighter, Frigate, 70e3));
         assert!(!check_detection(Fighter, Frigate, 150e3));
         assert!(check_detection(Fighter, Cruiser, 100e3));
         assert!(!check_detection(Fighter, Cruiser, 150e3));
