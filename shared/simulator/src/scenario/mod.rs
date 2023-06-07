@@ -10,6 +10,7 @@ mod orbit;
 mod planetary_defense;
 mod primitive_duel;
 mod radar_duel;
+mod squadrons;
 mod stress;
 mod test;
 mod tutorial_acceleration;
@@ -143,6 +144,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "frigate_duel" => Some(Box::new(frigate_duel::FrigateDuel::new())),
         "cruiser_duel" => Some(Box::new(cruiser_duel::CruiserDuel::new())),
         "asteroid_duel" => Some(Box::new(asteroid_duel::AsteroidDuel::new())),
+        "squadrons" => Some(Box::new(squadrons::Squadrons::new())),
         "furball" => Some(Box::new(furball::Furball::new())),
         "fleet" => Some(Box::new(fleet::Fleet::new())),
         "belt" => Some(Box::new(belt::Belt::new())),
@@ -202,6 +204,7 @@ pub fn list() -> Vec<String> {
         "cruiser_duel",
         "asteroid_duel",
         "furball",
+        "squadrons",
         "fleet",
         "belt",
         "planetary_defense",
