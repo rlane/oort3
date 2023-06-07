@@ -47,7 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if let Some(scenario) = args.scenario.as_ref() {
         scenario_names.push(scenario.clone());
     } else {
-        scenario_names = scenario::list();
+        scenario_names = scenario::list()
+            .iter()
+            .flat_map(|(_, v)| v.clone())
+            .collect();
     }
 
     for scenario_name in &scenario_names {

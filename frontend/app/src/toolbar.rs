@@ -52,10 +52,18 @@ impl Component for Toolbar {
             .get_element_by_id("toolbar")
             .expect("a #toolbar element");
 
-        let render_option = |name: String| {
-            let scenario = scenario::load(&name);
+        let render_scenario_option = |name: &str| {
+            let scenario = scenario::load(name);
             let selected = name == context.props().scenario_name;
-            html! { <option value={name.clone()} selected={selected}>{scenario.human_name()}</option> }
+            html! { <option value={name.to_string()} selected={selected}>{scenario.human_name()}</option> }
+        };
+
+        let render_scenario_category = |category: &str, scenario_names: &[String]| {
+            html! {
+                <optgroup label={category.to_string()}>
+                { for scenario_names.iter().map(|x| render_scenario_option(x.as_str())) }
+                </optgroup>
+            }
         };
 
         let username = crate::userid::get_username();
@@ -83,7 +91,7 @@ impl Component for Toolbar {
                     <div class="toolbar-elem title">{ "Oort" }</div>
                     <div class="toolbar-elem right">
                         <select onchange={select_scenario_cb}>
-                            { for scenario::list().iter().cloned().map(render_option) }
+                            { for scenario::list().iter().map(|x| render_scenario_category(&x.0, &x.1)) }
                         </select>
                     </div>
                     <div class="toolbar-elem right"><a href="#" onclick={show_feedback_cb}>{ "Feedback" }</a></div>

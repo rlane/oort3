@@ -45,11 +45,13 @@ fn check_solution(scenario_name: &str) {
 
 #[test]
 fn test_tutorials() {
-    let scenario_names: Vec<String> = scenario::list()
+    let categories = scenario::list();
+    let scenario_names: &Vec<String> = &categories
         .iter()
-        .filter(|x| x.starts_with("tutorial"))
-        .cloned()
-        .collect();
+        .find(|(category, _)| category == "Tutorial")
+        .unwrap()
+        .1;
+    assert!(!scenario_names.is_empty());
     scenario_names
         .into_par_iter()
         .for_each(|x| check_solution(&x));

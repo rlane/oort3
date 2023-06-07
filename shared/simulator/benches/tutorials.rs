@@ -16,11 +16,13 @@ fn check_solution(scenario_name: &str) {
 }
 
 fn tutorials() {
-    let scenario_names: Vec<String> = scenario::list()
+    let categories = scenario::list();
+    let scenario_names: &Vec<String> = &categories
         .iter()
-        .filter(|x| x.starts_with("tutorial"))
-        .cloned()
-        .collect();
+        .find(|(category, _)| category == "Tutorial")
+        .unwrap()
+        .1;
+    assert!(!scenario_names.is_empty());
     for scenario_name in scenario_names {
         check_solution(&scenario_name);
     }

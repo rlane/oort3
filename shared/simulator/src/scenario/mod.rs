@@ -180,35 +180,49 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
     }
 }
 
-pub fn list() -> Vec<String> {
+pub fn list() -> Vec<(String, Vec<String>)> {
     vec![
-        "welcome",
-        "tutorial_guns",
-        "tutorial_acceleration",
-        "tutorial_acceleration2",
-        "tutorial_rotation",
-        "tutorial_deflection",
-        "tutorial_radar",
-        "tutorial_search",
-        "tutorial_radio",
-        "tutorial_missiles",
-        "tutorial_squadron",
-        "tutorial_frigate",
-        "tutorial_cruiser",
-        "gunnery",
-        "primitive_duel",
-        "fighter_duel",
-        "frigate_duel",
-        "cruiser_duel",
-        "asteroid_duel",
-        "squadrons",
-        "fleet",
-        "belt",
-        "planetary_defense",
-        "orbit",
+        ("Introduction", vec!["welcome"]),
+        (
+            "Tutorial",
+            vec![
+                "tutorial_guns",
+                "tutorial_acceleration",
+                "tutorial_acceleration2",
+                "tutorial_rotation",
+                "tutorial_deflection",
+                "tutorial_radar",
+                "tutorial_search",
+                "tutorial_radio",
+                "tutorial_missiles",
+                "tutorial_squadron",
+                "tutorial_frigate",
+                "tutorial_cruiser",
+            ],
+        ),
+        ("Challenge", vec!["gunnery", "planetary_defense"]),
+        (
+            "Tournament",
+            vec![
+                "primitive_duel",
+                "fighter_duel",
+                "frigate_duel",
+                "cruiser_duel",
+                "asteroid_duel",
+                "squadrons",
+                "fleet",
+                "belt",
+                "orbit",
+            ],
+        ),
     ]
     .iter()
-    .map(|x| x.to_string())
+    .map(|(category, scenario_names)| {
+        (
+            category.to_string(),
+            scenario_names.iter().map(|name| name.to_string()).collect(),
+        )
+    })
     .collect()
 }
 
