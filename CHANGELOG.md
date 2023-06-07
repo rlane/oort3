@@ -1,3 +1,5 @@
+### 0.52.0
+
 - Added RSSI and SNR to radar scan result.
 - Randomized radar return and noise.
 - Added weapon reload_ticks API.
