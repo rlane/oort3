@@ -393,6 +393,18 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
     }
 
     state.set(SystemState::CurrentTick, sim.tick() as f64);
+
+    for (i, idx) in [
+        SystemState::ReloadTicks0,
+        SystemState::ReloadTicks1,
+        SystemState::ReloadTicks2,
+        SystemState::ReloadTicks3,
+    ]
+    .iter()
+    .enumerate()
+    {
+        state.set(*idx, sim.ship(handle).get_reload_ticks(i) as f64)
+    }
 }
 
 fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {

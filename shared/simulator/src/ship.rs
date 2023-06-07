@@ -588,6 +588,20 @@ impl<'a> ShipAccessor<'a> {
             .map(|x| x.ability)
             .collect()
     }
+
+    pub fn get_reload_ticks(&self, idx: usize) -> u32 {
+        if let Some(gun) = self.data().guns.get(idx) {
+            (gun.cycle_time_remaining / PHYSICS_TICK_LENGTH) as u32
+        } else if let Some(missile) = self
+            .data()
+            .missile_launchers
+            .get(idx - self.data().guns.len())
+        {
+            (missile.reload_time_remaining / PHYSICS_TICK_LENGTH) as u32
+        } else {
+            0
+        }
+    }
 }
 
 pub struct ShipAccessorMut<'a> {
@@ -728,7 +742,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             if let Some(missile_launcher) =
                 ship_data.missile_launchers.get_mut(index as usize).as_mut()
             {
-                if missile_launcher.reload_time_remaining > 0.0 {
+                if missile_launcher.reload_time_remaining > 1e-6 {
                     return;
                 }
                 missile_launcher.reload_time_remaining += missile_launcher.reload_time;
@@ -944,5 +958,72 @@ fn angle_diff(a: f64, b: f64) -> f64 {
         c - TAU
     } else {
         c
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::ship;
+    use crate::simulation::Code;
+    use crate::simulation::Simulation;
+    use crate::simulation::PHYSICS_TICK_LENGTH;
+    use nalgebra::vector;
+    use test_log::test;
+
+    #[test]
+    fn test_gun_reload_ticks() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        // Initial state.
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+
+        assert_eq!(sim.ship(ship0).get_reload_ticks(0), 0);
+        sim.ship_mut(ship0).fire(0);
+        assert_eq!(sim.bullets.len(), 1);
+
+        for i in [3, 2, 1, 0].iter() {
+            sim.ship_mut(ship0).fire(0);
+            assert_eq!(sim.bullets.len(), 1);
+
+            sim.step();
+            assert_eq!(sim.ship(ship0).get_reload_ticks(0), *i);
+        }
+
+        sim.ship_mut(ship0).fire(0);
+        assert_eq!(sim.bullets.len(), 2);
+    }
+
+    #[test]
+    fn test_missile_reload_ticks() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        let mut data = ship::fighter(0);
+        data.missile_launchers[0].reload_time = PHYSICS_TICK_LENGTH * 4.0;
+
+        // Initial state.
+        let ship0 = ship::create(&mut sim, vector![0.0, 0.0], vector![0.0, 0.0], 0.0, data);
+
+        assert_eq!(sim.ships.len(), 1);
+
+        assert_eq!(sim.ship(ship0).get_reload_ticks(0), 0);
+        sim.ship_mut(ship0).fire(1);
+        assert_eq!(sim.ships.len(), 2);
+
+        for i in [3, 2, 1, 0].iter() {
+            sim.ship_mut(ship0).fire(1);
+            assert_eq!(sim.ships.len(), 2);
+
+            sim.step();
+            assert_eq!(sim.ship(ship0).get_reload_ticks(1), *i);
+        }
+
+        sim.ship_mut(ship0).fire(1);
+        assert_eq!(sim.ships.len(), 3);
     }
 }

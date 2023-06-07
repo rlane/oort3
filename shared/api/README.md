@@ -65,10 +65,9 @@ Engine limits:
 
 ## Weapons
 
-Guns:
-
 - [`fire(index: usize)`](prelude::fire): Fire a weapon (gun or missile).
 - [`aim(index: usize, angle: f64)`](prelude::aim): Aim a weapon (for weapons on a turret).
+- [`reload_ticks(index: usize) -> u32`](prelude::reload_ticks): Number of ticks until the weapon is ready to fire.
 - [`explode()`](prelude::explode): Self-destruct.
 
 ## Radar

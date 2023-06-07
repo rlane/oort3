@@ -135,6 +135,11 @@ pub enum SystemState {
     RadarContactRssi,
     RadarContactSnr,
 
+    ReloadTicks0,
+    ReloadTicks1,
+    ReloadTicks2,
+    ReloadTicks3,
+
     Size,
     MaxSize = 128,
 }
@@ -397,6 +402,20 @@ mod api {
             _ => return,
         };
         write_system_state(state_index, 1.0);
+    }
+
+    /// Returns the number of ticks until a weapon is ready to fire.
+    ///
+    /// `index` selects the weapon. Returns 0 if the weapon is ready.
+    pub fn reload_ticks(index: usize) -> u32 {
+        let state_index = match index {
+            0 => SystemState::ReloadTicks0,
+            1 => SystemState::ReloadTicks1,
+            2 => SystemState::ReloadTicks2,
+            3 => SystemState::ReloadTicks3,
+            _ => return 0,
+        };
+        read_system_state(state_index) as u32
     }
 
     /// Self-destructs, producing a damaging explosion.
