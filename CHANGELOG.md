@@ -1,3 +1,9 @@
+- Added RSSI and SNR to radar scan result.
+- Randomized radar return and noise.
+- Added weapon reload_ticks API.
+- Removed missile_duel scenario and added squadrons scenario.
+- Fixed a bug in the welcome scenario.
+
 ### 0.51.0
 
 - Added a simple version control system.
