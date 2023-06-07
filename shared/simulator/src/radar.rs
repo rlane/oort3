@@ -135,6 +135,8 @@ pub struct ScanResult {
     pub class: ShipClass,
     pub position: Vector2<f64>,
     pub velocity: Vector2<f64>,
+    pub rssi: f64,
+    pub snr: f64,
 }
 
 struct ReflectorTeam {
@@ -341,7 +343,9 @@ pub fn tick(sim: &mut Simulation) {
                 }
             }
 
-            let signal_db = into_dbm(best_rssi) - into_dbm(received_noise);
+            let best_rssi_dbm = into_dbm(best_rssi);
+            let received_noise_dbm = into_dbm(received_noise);
+            let signal_db = best_rssi_dbm - received_noise_dbm;
 
             if DEBUG {
                 if let Some(reflector) = best_reflector {
@@ -365,8 +369,15 @@ pub fn tick(sim: &mut Simulation) {
             {
                 None
             } else {
-                best_reflector
-                    .map(|reflector| make_scan_result(&emitter, reflector, signal_db, &mut rng))
+                best_reflector.map(|reflector| {
+                    make_scan_result(
+                        &emitter,
+                        reflector,
+                        best_rssi_dbm,
+                        received_noise_dbm,
+                        &mut rng,
+                    )
+                })
             };
 
             {
@@ -433,9 +444,11 @@ fn find_candidates(
 fn make_scan_result(
     emitter: &RadarEmitter,
     reflector: &RadarReflector,
-    signal_db: f64,
+    rssi_dbm: f64,
+    noise_dbm: f64,
     rng: &mut impl Rng,
 ) -> ScanResult {
+    let signal_db = rssi_dbm - noise_dbm;
     let error_factor = 10.0f64.powf(-signal_db / 10.0);
     let dp = reflector.position - emitter.center;
     let beam_rot = Rotation2::new(emitter.bearing);
@@ -465,6 +478,8 @@ fn make_scan_result(
         class: reflector.class,
         position,
         velocity,
+        rssi: rssi_dbm,
+        snr: signal_db,
     }
 }
 

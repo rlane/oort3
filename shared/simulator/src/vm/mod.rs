@@ -342,6 +342,8 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
                 SystemState::RadarContactClass,
                 translate_class(contact.class) as u32 as f64,
             );
+            state.set(SystemState::RadarContactRssi, contact.rssi);
+            state.set(SystemState::RadarContactSnr, contact.snr);
         } else {
             state.set(SystemState::RadarContactFound, 0.0);
         }

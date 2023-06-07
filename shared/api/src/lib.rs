@@ -132,6 +132,9 @@ pub enum SystemState {
     Health,
     Fuel,
 
+    RadarContactRssi,
+    RadarContactSnr,
+
     Size,
     MaxSize = 128,
 }
@@ -478,6 +481,10 @@ mod api {
         pub position: Vec2,
         /// The contact's approximate velocity.
         pub velocity: Vec2,
+        /// The received signal strength measured in dBm.
+        pub rssi: f64,
+        /// The signal-to-noise ratio measured in dB.
+        pub snr: f64,
     }
 
     /// Returns the radar contact with the highest signal strength.
@@ -495,6 +502,8 @@ mod api {
                 read_system_state(SystemState::RadarContactVelocityX),
                 read_system_state(SystemState::RadarContactVelocityY),
             ),
+            rssi: read_system_state(SystemState::RadarContactRssi),
+            snr: read_system_state(SystemState::RadarContactSnr),
         })
     }
 
