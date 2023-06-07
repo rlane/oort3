@@ -22,6 +22,7 @@ const BULLET_GROUPS: &[Group] = &[
     Group::GROUP_10,
     Group::GROUP_11,
     Group::GROUP_12,
+    Group::GROUP_13,
 ];
 
 fn bullet_group(team: i32) -> Group {
