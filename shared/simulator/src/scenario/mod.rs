@@ -6,7 +6,6 @@ mod fleet;
 mod frigate_duel;
 mod furball;
 mod gunnery;
-mod missile_duel;
 mod orbit;
 mod planetary_defense;
 mod primitive_duel;
@@ -39,10 +38,7 @@ pub mod prelude {
     pub use super::{
         check_capital_ship_tournament_victory, check_tournament_victory, check_tutorial_victory,
     };
-    pub use super::{
-        fighter_without_guns, fighter_without_missiles, fighter_without_missiles_or_radar,
-        target_asteroid,
-    };
+    pub use super::{fighter_without_missiles, fighter_without_missiles_or_radar, target_asteroid};
     pub use super::{DEFAULT_TUTORIAL_MAX_TICKS, TOURNAMENT_MAX_TICKS};
     pub use crate::rng::{new_rng, SeededRng};
     pub use crate::ship::{
@@ -144,7 +140,6 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "primitive_duel" => Some(Box::new(primitive_duel::PrimitiveDuel::new())),
         "radar_duel" => Some(Box::new(radar_duel::RadarDuel::new())),
         "fighter_duel" => Some(Box::new(fighter_duel::FighterDuel::new())),
-        "missile_duel" => Some(Box::new(missile_duel::MissileDuel::new())),
         "frigate_duel" => Some(Box::new(frigate_duel::FrigateDuel::new())),
         "cruiser_duel" => Some(Box::new(cruiser_duel::CruiserDuel::new())),
         "asteroid_duel" => Some(Box::new(asteroid_duel::AsteroidDuel::new())),
@@ -203,7 +198,6 @@ pub fn list() -> Vec<String> {
         "gunnery",
         "primitive_duel",
         "fighter_duel",
-        "missile_duel",
         "frigate_duel",
         "cruiser_duel",
         "asteroid_duel",
@@ -289,12 +283,6 @@ pub fn fighter_without_missiles_or_radar(team: i32) -> ShipData {
     let mut data = fighter(team);
     data.missile_launchers.pop();
     data.radar = None;
-    data
-}
-
-pub fn fighter_without_guns(team: i32) -> ShipData {
-    let mut data = fighter(team);
-    data.guns.pop();
     data
 }
 
