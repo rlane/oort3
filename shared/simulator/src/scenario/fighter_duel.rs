@@ -19,25 +19,18 @@ impl Scenario for FighterDuel {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let angle = rng.gen_range(0.0..TAU);
-        let rot = Rotation2::new(angle);
-        let distance = rng.gen_range(10000.0..12000.0);
-        let offset = vector![rng.gen_range(-10e3..10e3), rng.gen_range(-10e3..10e3)];
+        let placements = place_teams(&mut rng, self.world_size());
 
-        ship::create(
-            sim,
-            offset + rot.transform_vector(&vector![-0.5, 0.0]) * distance,
-            vector![0.0, 0.0],
-            0.0,
-            fighter(0),
-        );
-        ship::create(
-            sim,
-            offset + rot.transform_vector(&vector![0.5, 0.0]) * distance,
-            vector![0.0, 0.0],
-            std::f64::consts::PI,
-            fighter(1),
-        );
+        for (team, placement) in placements.into_iter().enumerate() {
+            let Placement { position, heading } = placement;
+            ship::create(
+                sim,
+                position,
+                vector![0.0, 0.0],
+                heading,
+                fighter(team as i32),
+            );
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {

@@ -20,26 +20,19 @@ impl Scenario for Squadrons {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let s = self.world_size() * 0.45;
-        let range = -s..s;
-        let centers = [
-            vector![-s, rng.gen_range(range.clone())],
-            vector![s, rng.gen_range(range)],
-        ];
-        let headings = [0.0, std::f64::consts::PI];
+        let placements = place_teams(&mut rng, self.world_size());
         let offsets = [
             vector![0.0, 0.0],
             vector![-100.0, 100.0],
             vector![-100.0, -100.0],
         ];
 
-        for team in 0..2 {
-            let center = centers[team];
-            let heading = headings[team];
+        for (team, placement) in placements.into_iter().enumerate() {
+            let Placement { position, heading } = placement;
             for offset in &offsets {
                 ship::create(
                     sim,
-                    center + UnitComplex::new(heading).transform_vector(offset),
+                    position + UnitComplex::new(heading).transform_vector(offset),
                     vector![0.0, 0.0],
                     heading,
                     fighter(team as i32),

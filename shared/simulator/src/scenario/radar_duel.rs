@@ -25,24 +25,18 @@ impl Scenario for RadarDuel {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let range = -15000.0..15000.0;
-        let p0 = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
-        let p1 = vector![rng.gen_range(range.clone()), rng.gen_range(range)];
+        let placements = place_teams(&mut rng, self.world_size());
 
-        self.ship0 = Some(ship::create(
-            sim,
-            p0,
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles(0),
-        ));
-        self.ship1 = Some(ship::create(
-            sim,
-            p1,
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles(1),
-        ));
+        for (team, placement) in placements.into_iter().enumerate() {
+            let Placement { position, heading } = placement;
+            ship::create(
+                sim,
+                position,
+                vector![0.0, 0.0],
+                heading,
+                fighter_without_missiles(team as i32),
+            );
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {

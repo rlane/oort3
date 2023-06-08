@@ -25,24 +25,23 @@ impl Scenario for PrimitiveDuel {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let angle = rng.gen_range(0.0..TAU);
-        let rot = Rotation2::new(angle);
-        let distance = rng.gen_range(2000.0..4000.0);
+        let placements = place_teams(&mut rng, self.world_size());
 
-        self.ship0 = Some(ship::create(
-            sim,
-            rot.transform_vector(&vector![-0.5, 0.0]) * distance,
-            vector![0.0, 0.0],
-            0.0,
-            fighter_without_missiles_or_radar(0),
-        ));
-        self.ship1 = Some(ship::create(
-            sim,
-            rot.transform_vector(&vector![0.5, 0.0]) * distance,
-            vector![0.0, 0.0],
-            std::f64::consts::PI,
-            fighter_without_missiles_or_radar(1),
-        ));
+        for (team, placement) in placements.into_iter().enumerate() {
+            let Placement { position, heading } = placement;
+            let handle = ship::create(
+                sim,
+                position,
+                vector![0.0, 0.0],
+                heading,
+                fighter_without_missiles_or_radar(team as i32),
+            );
+            if team == 0 {
+                self.ship0 = Some(handle);
+            } else {
+                self.ship1 = Some(handle);
+            }
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {

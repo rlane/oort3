@@ -28,6 +28,8 @@ mod welcome;
 
 use crate::ship::{asteroid, fighter, ShipAccessor, ShipClass, ShipData};
 use crate::simulation::{Code, Line, Simulation};
+use nalgebra::{vector, Vector2};
+use rand::{Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -39,6 +41,7 @@ pub mod prelude {
         check_capital_ship_tournament_victory, check_tournament_victory, check_tutorial_victory,
     };
     pub use super::{fighter_without_missiles, fighter_without_missiles_or_radar, target_asteroid};
+    pub use super::{place_teams, Placement};
     pub use super::{DEFAULT_TUTORIAL_MAX_TICKS, TOURNAMENT_MAX_TICKS};
     pub use crate::rng::{new_rng, SeededRng};
     pub use crate::ship::{
@@ -304,4 +307,24 @@ pub fn target_asteroid(variant: i32) -> ShipData {
     let mut asteroid = asteroid(variant);
     asteroid.team = 1;
     asteroid
+}
+
+pub struct Placement {
+    pub position: Vector2<f64>,
+    pub heading: f64,
+}
+
+pub fn place_teams(rng: &mut dyn RngCore, world_size: f64) -> Vec<Placement> {
+    let s = world_size * 0.45;
+    let range = -s..s;
+    vec![
+        Placement {
+            position: vector![-s, rng.gen_range(range.clone())],
+            heading: 0.0,
+        },
+        Placement {
+            position: vector![s, rng.gen_range(range)],
+            heading: std::f64::consts::PI,
+        },
+    ]
 }

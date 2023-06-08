@@ -19,13 +19,18 @@ impl Scenario for CruiserDuel {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let s = self.world_size() * 0.45;
-        let range = -s..s;
-        let p0 = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
-        let p1 = vector![rng.gen_range(range.clone()), rng.gen_range(range)];
+        let placements = place_teams(&mut rng, self.world_size());
 
-        ship::create(sim, p0, vector![0.0, 0.0], 0.0, cruiser(0));
-        ship::create(sim, p1, vector![0.0, 0.0], 0.0, cruiser(1));
+        for (team, placement) in placements.into_iter().enumerate() {
+            let Placement { position, heading } = placement;
+            ship::create(
+                sim,
+                position,
+                vector![0.0, 0.0],
+                heading,
+                cruiser(team as i32),
+            );
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {
