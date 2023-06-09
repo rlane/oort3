@@ -1,3 +1,5 @@
+use nalgebra::UnitComplex;
+
 use super::prelude::*;
 
 pub struct Fleet {}
@@ -23,46 +25,43 @@ impl Scenario for Fleet {
 
         for (team, placement) in placements.into_iter().enumerate() {
             let Placement { position, heading } = placement;
-            let signum = if team == 0 { -1.0 } else { 1.0 };
-            let scale = 1;
-            let num_fighters = scale * 40;
-            let num_frigates = scale * 4;
-            let num_cruisers = scale * 2;
-            for i in 0..num_fighters {
+            let signum = if team == 0 { 1.0 } else { -1.0 };
+            let frigate_separation = 1000.0;
+
+            // Cruiser
+            ship::create(
+                sim,
+                vector![position.x, position.y],
+                vector![0.0, 0.0],
+                heading,
+                cruiser(team as i32),
+            );
+
+            // Frigates
+            for s in [-1.0, 1.0] {
                 ship::create(
                     sim,
-                    vector![
-                        position.x - signum * 200.0,
-                        position.y + i as f64 * 50.0 - (num_fighters - 1) as f64 * 25.0
-                    ],
-                    vector![0.0, 0.0],
-                    heading,
-                    fighter(team as i32),
-                );
-            }
-            for i in 0..num_frigates {
-                ship::create(
-                    sim,
-                    vector![
-                        position.x,
-                        position.y + i as f64 * 300.0 - 150.0 * (num_frigates - 1) as f64
-                    ],
+                    vector![position.x, position.y + s * frigate_separation],
                     vector![0.0, 0.0],
                     heading,
                     frigate(team as i32),
                 );
             }
-            for i in 0..num_cruisers {
-                ship::create(
-                    sim,
-                    vector![
-                        position.x + signum * 500.0,
-                        position.y + 400.0 * i as f64 - 200.0 * (num_cruisers - 1) as f64
-                    ],
-                    vector![0.0, 0.0],
-                    heading,
-                    cruiser(team as i32),
-                );
+
+            // Fighters
+            for s in [-1.0, 1.0] {
+                let n = 5;
+                for i in 0..n {
+                    ship::create(
+                        sim,
+                        position
+                            + vector![signum * 1000.0, s * frigate_separation]
+                            + wedge(i, heading) * 100.0,
+                        vector![0.0, 0.0],
+                        heading,
+                        fighter(team as i32),
+                    );
+                }
             }
         }
     }
@@ -86,4 +85,14 @@ impl Scenario for Fleet {
     fn world_size(&self) -> f64 {
         100e3
     }
+}
+
+fn wedge(i: usize, heading: f64) -> Vector2<f64> {
+    if i == 0 {
+        return vector![0.0, 0.0];
+    }
+
+    let s = [-1.0, 1.0][i % 2];
+    let j = ((i + 1) / 2) as f64;
+    UnitComplex::new(heading).transform_vector(&vector![-j, s * j])
 }
