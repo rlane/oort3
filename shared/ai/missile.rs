@@ -18,16 +18,21 @@ impl Ship {
             }
 
             set_radar_heading((contact.position - position()).angle());
-            set_radar_width((20.0 * TAU / dp.length()).clamp(TAU / 128.0, TAU));
+            set_radar_width((20.0 * TAU / dp.length()).clamp(TAU / 360.0, TAU));
         } else {
-            set_radar_heading(radar_heading() + TAU / 128.0);
+            set_radar_width(TAU / 16.0);
+            set_radar_heading(radar_heading() + radar_width());
         }
     }
 }
 
 pub fn seek(p: Vec2, v: Vec2) {
     const N: f64 = 4.0;
-    let acc = max_acceleration().x;
+    let acc = if fuel() > 200.0 {
+        max_acceleration().x
+    } else {
+        0.0
+    };
     let dp = p - position();
     let dv = v - velocity();
     let closing_speed = -(dp.y * dv.y - dp.x * dv.x).abs() / dp.length();
@@ -39,6 +44,7 @@ pub fn seek(p: Vec2, v: Vec2) {
     let a = vec2(ax, ay).rotate(los);
     let a = vec2(max_acceleration().x, 0.0).rotate(a.angle());
     accelerate(a);
+
     turn_to(a.angle(), 0.0);
 }
 
@@ -46,5 +52,4 @@ fn turn_to(target_heading: f64, target_angular_velocity: f64) {
     let heading_error = angle_diff(heading(), target_heading);
     turn(10.0 * heading_error);
 }
-
 
