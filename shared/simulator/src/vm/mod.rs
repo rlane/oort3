@@ -57,6 +57,7 @@ pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
 pub struct TeamController {
     vm: WasmVm,
     states: HashMap<ShipHandle, LocalSystemState>,
+    next_id: u32,
 }
 
 impl TeamController {
@@ -64,6 +65,7 @@ impl TeamController {
         Ok(Box::new(TeamController {
             vm: WasmVm::create(code)?,
             states: HashMap::new(),
+            next_id: 1,
         }))
     }
 
@@ -74,6 +76,8 @@ impl TeamController {
             SystemState::Seed,
             (make_seed(sim.seed(), handle) & 0xffffff) as f64,
         );
+        state.set(SystemState::Id, self.next_id as f64);
+        self.next_id += 1;
         if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
             state.set(SystemState::RadarHeading, radar.heading);
             state.set(SystemState::RadarWidth, radar.width);

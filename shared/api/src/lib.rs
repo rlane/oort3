@@ -140,6 +140,8 @@ pub enum SystemState {
     ReloadTicks2,
     ReloadTicks3,
 
+    Id,
+
     Size,
     MaxSize = 128,
 }
@@ -338,6 +340,11 @@ mod api {
 
     /// The time between each simulation tick.
     pub const TICK_LENGTH: f64 = 1.0 / 60.0;
+
+    /// Returns a per-ship ID that is unique within a team.
+    pub fn id() -> u32 {
+        read_system_state(SystemState::Id) as u32
+    }
 
     /// Returns the ship [`Class`] (Fighter, Cruiser, etc).
     pub fn class() -> Class {

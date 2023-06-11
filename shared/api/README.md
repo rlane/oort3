@@ -187,6 +187,7 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 - [`seed() → u128`](prelude::seed): Returns a seed useful for initializing a random number generator.
 - [`scenario_name() → &str`](prelude::scenario_name): Returns the name of the current scenario.
 - [`world_size() → f64`](prelude::world_size): Returns the width of the world in meters.
+- [`id() → u32`](prelude::id): Returns a per-ship ID that is unique within a team.
 
 ## Ship Classes
 

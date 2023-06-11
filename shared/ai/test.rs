@@ -12,7 +12,8 @@ impl Ship {
         match testcase {
             "scenario_name" => debug!("Scenario: {}", scenario_name()),
             "world_size" => debug!("World size: {}", world_size()),
-            _ => {}
+            "id" => debug!("ID: {}", id()),
+            _ => debug!("Unknown testcase: {:?}", testcase),
         }
     }
 }
