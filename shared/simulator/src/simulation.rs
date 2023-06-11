@@ -381,6 +381,7 @@ impl Simulation {
             "SCENARIO_NAME".to_string(),
             self.scenario.as_ref().unwrap().name(),
         );
+        environment.insert("WORLD_SIZE".to_string(), format!("{}", self.world_size));
         if let Some(team_ctrl) = self.get_team_controller(team) {
             team_ctrl
                 .borrow_mut()

@@ -354,6 +354,14 @@ mod api {
         super::sys::getenv("SCENARIO_NAME").unwrap_or("unknown")
     }
 
+    /// Returns the world size in meters.
+    pub fn world_size() -> f64 {
+        super::sys::getenv("WORLD_SIZE")
+            .unwrap_or("0.0")
+            .parse()
+            .unwrap_or(0.0)
+    }
+
     /// Returns the current position (in meters).
     pub fn position() -> Vec2 {
         vec2(
