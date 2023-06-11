@@ -234,10 +234,15 @@ impl WasmVm {
                 .unwrap();
         let system_state_ptr: WasmPtr<f64> = WasmPtr::new(system_state_offset as u32);
 
+        let initialize =
+            translate_error(instance.exports.get_function("export_initialize"))?.clone();
         let tick_ship = translate_error(instance.exports.get_function("export_tick_ship"))?.clone();
         let delete_ship =
             translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
         let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
+
+        translate_runtime_error(reset_gas.call(&mut store, &[GAS_PER_TICK.into()]))?;
+        translate_runtime_error(initialize.call(&mut store, &[]))?;
 
         Ok(WasmVm {
             store: Rc::new(RefCell::new(store)),

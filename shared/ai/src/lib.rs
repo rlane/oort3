@@ -12,18 +12,17 @@ struct ShipWrapper {
 
 static mut SHIPS: Option<HashMap<i32, ShipWrapper>> = None;
 
-fn ensure_initialized() {
+#[doc(hidden)]
+#[no_mangle]
+fn export_initialize() {
     unsafe {
-        if SHIPS.is_none() {
-            SHIPS = Some(HashMap::new());
-        }
+        SHIPS = Some(HashMap::new());
     }
 }
 
 #[doc(hidden)]
 #[no_mangle]
 pub fn export_tick_ship(key: i32) {
-    ensure_initialized();
     oort_api::dbg::reset();
     unsafe {
         let ship = SHIPS.as_mut().unwrap().entry(key).or_insert_with(|| {
@@ -44,7 +43,6 @@ pub fn export_tick_ship(key: i32) {
 #[doc(hidden)]
 #[no_mangle]
 pub fn export_delete_ship(key: i32) {
-    ensure_initialized();
     unsafe {
         SHIPS.as_mut().unwrap().remove(&key);
     }
