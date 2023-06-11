@@ -239,6 +239,7 @@ pub fn fighter(team: i32) -> ShipData {
         radar: Some(Radar {
             power: 20e3,
             rx_cross_section: 5.0,
+            min_width: TAU / 720.0,
             ..Default::default()
         }),
         radar_cross_section: 10.0,
@@ -298,6 +299,7 @@ pub fn frigate(team: i32) -> ShipData {
         radar: Some(Radar {
             power: 100e3,
             rx_cross_section: 10.0,
+            min_width: TAU / 3600.0,
             ..Default::default()
         }),
         radar_cross_section: 30.0,
@@ -364,6 +366,7 @@ pub fn cruiser(team: i32) -> ShipData {
         radar: Some(Radar {
             power: 200e3,
             rx_cross_section: 20.0,
+            min_width: TAU / 3600.0,
             ..Default::default()
         }),
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
