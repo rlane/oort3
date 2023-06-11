@@ -1,10 +1,12 @@
+use oort_simulator::scenario;
 use oort_version_control::Version;
+use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 #[derive(Debug)]
 pub enum Msg {
-    StartFetch,
+    StartFetch(String),
     FetchFinished(Vec<Version>),
     FetchFailed,
 }
@@ -27,7 +29,9 @@ impl Component for VersionsWindow {
     type Properties = VersionsWindowProps;
 
     fn create(context: &yew::Context<Self>) -> Self {
-        context.link().send_message(Msg::StartFetch);
+        context
+            .link()
+            .send_message(Msg::StartFetch(context.props().scenario_name.clone()));
         Self {
             versions: Vec::new(),
         }
@@ -35,8 +39,7 @@ impl Component for VersionsWindow {
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::StartFetch => {
-                let scenario_name = context.props().scenario_name.clone();
+            Msg::StartFetch(scenario_name) => {
                 context.link().send_future(async move {
                     let version_control =
                         oort_version_control::VersionControl::new().await.unwrap();
@@ -59,7 +62,9 @@ impl Component for VersionsWindow {
     }
 
     fn changed(&mut self, context: &Context<Self>, _old_props: &Self::Properties) -> bool {
-        context.link().send_message(Msg::StartFetch);
+        context
+            .link()
+            .send_message(Msg::StartFetch(context.props().scenario_name.clone()));
         false
     }
 
@@ -100,6 +105,25 @@ impl Component for VersionsWindow {
                 })
                 .collect::<Html>()
         };
+
+        let scenario_names = scenario::list()
+            .iter()
+            .flat_map(|x| x.1.clone())
+            .collect::<Vec<_>>();
+        let scenario_options = scenario_names
+            .iter()
+            .map(|scenario_name| {
+                let selected = scenario_name == &context.props().scenario_name;
+                html! { <option value={scenario_name.clone()} {selected}>{ scenario_name }</option> }
+            })
+            .collect::<Html>();
+
+        let scenario_select_cb = context.link().callback(move |e: Event| {
+            let target: web_sys::EventTarget = e.target().unwrap();
+            let scenario_name = target.unchecked_into::<HtmlInputElement>().value();
+            Msg::StartFetch(scenario_name)
+        });
+
         create_portal(
             html! {
                 <div class="versions">
@@ -109,6 +133,7 @@ impl Component for VersionsWindow {
                         <button type="submit">{ "Save" }</button>
                     </form>
                     <p>{ "This list shows previous versions of your code for this scenario. Click on a version to load it." }</p>
+                    <p><select onchange={scenario_select_cb}>{scenario_options}</select></p>
                     <ul>
                     { versions_html }
                     </ul>
