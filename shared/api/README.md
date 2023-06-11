@@ -185,6 +185,7 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 - [`angle_diff(a: f64, b: f64) → f64`](prelude::angle_diff): Returns the shortest (possibly negative) distance between two angles.
 - [`rand(low: f64, high: f64) → f64`](prelude::rand): Get a random number.
 - [`seed() → u128`](prelude::seed): Returns a seed useful for initializing a random number generator.
+- [`scenario_name() → &str`](prelude::scenario_name): Name of the current scenario.
 
 ## Ship Classes
 

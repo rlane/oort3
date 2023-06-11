@@ -9,12 +9,14 @@ use nalgebra::point;
 use oort_api::{Ability, Class, EcmMode, Line, SystemState, Text};
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use wasmer::{imports, Instance, MemoryView, Module, Store, WasmPtr};
 
 pub type Vec2 = nalgebra::Vector2<f64>;
+pub type Environment = BTreeMap<String, String>;
 
 const GAS_PER_TICK: i32 = 1_000_000;
 
@@ -194,6 +196,10 @@ impl TeamController {
 
         Ok(())
     }
+
+    pub fn update_environment(&mut self, environment: &Environment) -> Result<(), Error> {
+        self.vm.update_environment(environment)
+    }
 }
 
 #[derive(Clone)]
@@ -201,6 +207,7 @@ pub struct WasmVm {
     store: Rc<RefCell<wasmer::Store>>,
     memory: wasmer::Memory,
     system_state_ptr: WasmPtr<f64>,
+    environment_ptr: WasmPtr<u8>,
     tick_ship: wasmer::Function,
     delete_ship: wasmer::Function,
     reset_gas: wasmer::Function,
@@ -233,6 +240,11 @@ impl WasmVm {
                 .i32()
                 .unwrap();
         let system_state_ptr: WasmPtr<f64> = WasmPtr::new(system_state_offset as u32);
+        let environment_offset: i32 = translate_error(instance.exports.get_global("ENVIRONMENT"))?
+            .get(&mut store)
+            .i32()
+            .unwrap();
+        let environment_ptr: WasmPtr<u8> = WasmPtr::new(environment_offset as u32);
 
         let initialize =
             translate_error(instance.exports.get_function("export_initialize"))?.clone();
@@ -248,6 +260,7 @@ impl WasmVm {
             store: Rc::new(RefCell::new(store)),
             memory,
             system_state_ptr,
+            environment_ptr,
             tick_ship,
             delete_ship,
             reset_gas,
@@ -283,6 +296,31 @@ impl WasmVm {
         let src_ptr = unsafe { std::mem::transmute::<*const u8, *const T>(byte_vec.as_ptr()) };
         let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, length as usize) };
         Some(src_slice.to_vec())
+    }
+
+    fn update_environment(&self, environment: &Environment) -> Result<(), Error> {
+        let environment_string = environment
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<String>>()
+            .join("\n");
+        if environment_string.len() > oort_api::MAX_ENVIRONMENT_SIZE {
+            return Err(Error {
+                msg: "environment too large".to_string(),
+            });
+        }
+        let store = self.store_mut();
+        let view = self.memory.view(&store);
+        let slice = self
+            .environment_ptr
+            .slice(&view, environment_string.bytes().len() as u32)
+            .ok()
+            .unwrap();
+        slice
+            .write_slice(environment_string.as_bytes())
+            .ok()
+            .unwrap();
+        Ok(())
     }
 }
 

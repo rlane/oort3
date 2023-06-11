@@ -115,6 +115,10 @@ impl Simulation {
         scenario.init(&mut sim, seed);
         sim.scenario = Some(scenario);
 
+        for team in sim.team_controllers.keys().copied().collect::<Vec<_>>() {
+            sim.update_environment(team, BTreeMap::new());
+        }
+
         sim
     }
 
@@ -370,6 +374,19 @@ impl Simulation {
 
     pub fn get_team_controller(&mut self, team: i32) -> Option<Rc<RefCell<Box<TeamController>>>> {
         self.team_controllers.get_mut(&team).map(|x| x.clone())
+    }
+
+    pub fn update_environment(&mut self, team: i32, mut environment: BTreeMap<String, String>) {
+        environment.insert(
+            "SCENARIO_NAME".to_string(),
+            self.scenario.as_ref().unwrap().name(),
+        );
+        if let Some(team_ctrl) = self.get_team_controller(team) {
+            team_ctrl
+                .borrow_mut()
+                .update_environment(&environment)
+                .unwrap();
+        }
     }
 }
 

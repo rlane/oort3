@@ -144,6 +144,9 @@ pub enum SystemState {
     MaxSize = 128,
 }
 
+#[allow(missing_docs)]
+pub const MAX_ENVIRONMENT_SIZE: usize = 1024;
+
 /// Identifiers for each class of ship.
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -228,6 +231,8 @@ pub type Message = [f64; 4];
 // Public for fuzzer.
 #[doc(hidden)]
 pub mod sys {
+    use crate::MAX_ENVIRONMENT_SIZE;
+
     use super::SystemState;
 
     #[no_mangle]
@@ -242,6 +247,32 @@ pub mod sys {
     pub fn write_system_state(index: SystemState, value: f64) {
         let system_state = unsafe { &mut SYSTEM_STATE };
         system_state[index as usize] = value;
+    }
+
+    #[no_mangle]
+    pub static mut ENVIRONMENT: [u8; MAX_ENVIRONMENT_SIZE] = [0; MAX_ENVIRONMENT_SIZE];
+
+    pub fn read_environment() -> &'static str {
+        // Format is key=value\nkey=value\n... ending with a null byte.
+        let environment = unsafe { &ENVIRONMENT };
+        let n = environment
+            .iter()
+            .position(|&c| c == 0)
+            .unwrap_or(environment.len());
+        std::str::from_utf8(&environment[..n]).expect("Failed to convert environment to string")
+    }
+
+    pub fn getenv(key: &str) -> Option<&'static str> {
+        let environment = read_environment();
+        for line in environment.lines() {
+            let mut parts = line.splitn(2, '=');
+            if let Some(k) = parts.next() {
+                if k == key {
+                    return parts.next();
+                }
+            }
+        }
+        None
     }
 }
 
@@ -316,6 +347,11 @@ mod api {
     /// Returns a random number useful for initializing a random number generator.
     pub fn seed() -> u128 {
         read_system_state(super::SystemState::Seed) as u128
+    }
+
+    /// Returns the scenario name.
+    pub fn scenario_name() -> &'static str {
+        super::sys::getenv("SCENARIO_NAME").unwrap_or("unknown")
     }
 
     /// Returns the current position (in meters).
