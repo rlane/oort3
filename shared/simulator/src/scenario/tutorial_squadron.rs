@@ -44,13 +44,13 @@ impl Scenario for TutorialSquadron {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_squadron.initial"),
-            builtin("tutorial/tutorial_squadron.enemy"),
+            builtin("tutorial/tutorial_squadron_initial"),
+            builtin("tutorial/tutorial_squadron_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_squadron.solution")
+        builtin("tutorial/tutorial_squadron_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

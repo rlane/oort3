@@ -33,11 +33,11 @@ impl Scenario for TutorialGuns {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial_guns.initial")]
+        vec![builtin("tutorial/tutorial_guns_initial")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_guns.solution")
+        builtin("tutorial/tutorial_guns_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

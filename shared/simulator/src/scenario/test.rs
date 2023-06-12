@@ -290,7 +290,7 @@ impl Scenario for RadarTest {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("radar_test"), builtin("radar_test.enemy")]
+        vec![builtin("radar_test"), builtin("radar_test_enemy")]
     }
 
     fn world_size(&self) -> f64 {

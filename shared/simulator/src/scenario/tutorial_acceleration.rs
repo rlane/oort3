@@ -73,11 +73,11 @@ impl Scenario for TutorialAcceleration {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial_acceleration.initial")]
+        vec![builtin("tutorial/tutorial_acceleration_initial")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_acceleration.solution")
+        builtin("tutorial/tutorial_acceleration_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

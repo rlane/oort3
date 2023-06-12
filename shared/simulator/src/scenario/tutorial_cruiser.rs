@@ -36,13 +36,13 @@ impl Scenario for TutorialCruiser {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_cruiser.initial"),
-            builtin("tutorial/tutorial_cruiser.enemy"),
+            builtin("tutorial/tutorial_cruiser_initial"),
+            builtin("tutorial/tutorial_cruiser_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_cruiser.solution")
+        builtin("tutorial/tutorial_cruiser_solution")
     }
 
     fn previous_names(&self) -> Vec<String> {

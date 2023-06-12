@@ -44,11 +44,11 @@ impl Scenario for TutorialRotation {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("tutorial/tutorial_rotation.initial")]
+        vec![builtin("tutorial/tutorial_rotation_initial")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_rotation.solution")
+        builtin("tutorial/tutorial_rotation_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

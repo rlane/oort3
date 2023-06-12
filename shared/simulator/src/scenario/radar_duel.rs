@@ -45,8 +45,8 @@ impl Scenario for RadarDuel {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_radar.initial"),
-            builtin("tutorial/tutorial_radar.solution"),
+            builtin("tutorial/tutorial_radar_initial"),
+            builtin("tutorial/tutorial_radar_solution"),
         ]
     }
 

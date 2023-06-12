@@ -50,13 +50,13 @@ impl Scenario for TutorialRadar {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_radar.initial"),
-            builtin("tutorial/tutorial_radar.enemy"),
+            builtin("tutorial/tutorial_radar_initial"),
+            builtin("tutorial/tutorial_radar_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_radar.solution")
+        builtin("tutorial/tutorial_radar_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

@@ -49,13 +49,13 @@ impl Scenario for TutorialSearch {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_search.initial"),
-            builtin("tutorial/tutorial_search.enemy"),
+            builtin("tutorial/tutorial_search_initial"),
+            builtin("tutorial/tutorial_search_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_search.solution")
+        builtin("tutorial/tutorial_search_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

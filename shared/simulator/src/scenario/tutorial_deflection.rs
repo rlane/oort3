@@ -70,13 +70,13 @@ impl Scenario for TutorialDeflection {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_deflection.initial"),
-            builtin("tutorial/tutorial_deflection.enemy"),
+            builtin("tutorial/tutorial_deflection_initial"),
+            builtin("tutorial/tutorial_deflection_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_deflection.solution")
+        builtin("tutorial/tutorial_deflection_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

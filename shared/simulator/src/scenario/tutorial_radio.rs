@@ -49,13 +49,13 @@ impl Scenario for TutorialRadio {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_radio.initial"),
-            builtin("tutorial/tutorial_radio.enemy"),
+            builtin("tutorial/tutorial_radio_initial"),
+            builtin("tutorial/tutorial_radio_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_radio.solution")
+        builtin("tutorial/tutorial_radio_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

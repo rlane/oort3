@@ -38,13 +38,13 @@ impl Scenario for TutorialMissiles {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_missiles.initial"),
-            builtin("tutorial/tutorial_missiles.enemy"),
+            builtin("tutorial/tutorial_missiles_initial"),
+            builtin("tutorial/tutorial_missiles_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_missiles.solution")
+        builtin("tutorial/tutorial_missiles_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

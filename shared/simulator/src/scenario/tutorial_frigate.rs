@@ -36,13 +36,13 @@ impl Scenario for TutorialFrigate {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_frigate.initial"),
-            builtin("tutorial/tutorial_frigate.enemy"),
+            builtin("tutorial/tutorial_frigate_initial"),
+            builtin("tutorial/tutorial_frigate_enemy"),
         ]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_frigate.solution")
+        builtin("tutorial/tutorial_frigate_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {

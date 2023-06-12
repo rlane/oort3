@@ -50,8 +50,8 @@ impl Scenario for PrimitiveDuel {
 
     fn initial_code(&self) -> Vec<Code> {
         vec![
-            builtin("tutorial/tutorial_deflection.initial"),
-            builtin("tutorial/tutorial_deflection.solution"),
+            builtin("tutorial/tutorial_deflection_initial"),
+            builtin("tutorial/tutorial_deflection_solution"),
         ]
     }
 
