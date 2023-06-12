@@ -176,14 +176,109 @@ impl Frigate {
 }
 
 // Cruisers
-pub struct Cruiser {}
+pub struct Cruiser {
+    pub move_target: Vec2,
+    pub radar_state: CruiserRadarState,
+    pub torpedo_radar: RadarRegs,
+    pub missile_radar: RadarRegs,
+    pub point_defense_radar: RadarRegs,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum CruiserRadarState {
+    Torpedo,
+    Missile,
+    PointDefense,
+}
 
 impl Cruiser {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            move_target: vec2(0.0, 0.0),
+            radar_state: CruiserRadarState::Torpedo,
+            torpedo_radar: RadarRegs::new(),
+            missile_radar: RadarRegs::new(),
+            point_defense_radar: RadarRegs::new(),
+        }
     }
 
-    pub fn tick(&mut self) {}
+    pub fn tick(&mut self) {
+        seek(self.move_target, vec2(0.0, 0.0), 5.0, true, 1e3);
+
+        if self.radar_state == CruiserRadarState::Torpedo {
+            if let Some(contact) =
+                scan().filter(|c| [Class::Frigate, Class::Cruiser].contains(&c.class))
+            {
+                let dp = contact.position - position();
+                set_radar_heading(dp.angle());
+                set_radar_width(radar_width() * 0.5);
+
+                if reload_ticks(3) == 0 {
+                    send(make_orders(contact.position, contact.velocity));
+                    fire(3);
+                }
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+                set_radar_width(TAU / 120.0);
+            }
+
+            self.torpedo_radar.save();
+            self.missile_radar.restore();
+            self.radar_state = CruiserRadarState::Missile;
+        } else if self.radar_state == CruiserRadarState::Missile {
+            set_radar_width(TAU / 64.0);
+
+            if let Some(contact) = scan().filter(|c| {
+                [
+                    Class::Fighter,
+                    Class::Frigate,
+                    Class::Cruiser,
+                    Class::Torpedo,
+                ]
+                .contains(&c.class)
+            }) {
+                let mut fired = false;
+                for idx in [1, 2] {
+                    if reload_ticks(idx) == 0 {
+                        send(make_orders(contact.position, contact.velocity));
+                        fire(idx);
+                        fired = true;
+                        break;
+                    }
+                }
+                if fired {
+                    set_radar_heading(radar_heading() + radar_width());
+                } else {
+                    set_radar_heading((contact.position - position()).angle());
+                }
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+            }
+
+            self.missile_radar.save();
+            self.point_defense_radar.restore();
+            self.radar_state = CruiserRadarState::PointDefense;
+        } else if self.radar_state == CruiserRadarState::PointDefense {
+            set_radar_width(TAU / 16.0);
+
+            if let Some(contact) =
+                scan().filter(|c| [Class::Missile, Class::Torpedo].contains(&c.class))
+            {
+                let dp = contact.position - position();
+                if dp.length() < 2e3 {
+                    aim(0, dp.angle());
+                    fire(0);
+                }
+                set_radar_heading(dp.angle());
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+            }
+
+            self.point_defense_radar.save();
+            self.torpedo_radar.restore();
+            self.radar_state = CruiserRadarState::Torpedo;
+        }
+    }
 }
 
 // Missiles and Torpedos
@@ -204,15 +299,20 @@ impl Missile {
     pub fn tick(&mut self) {
         self.target_position += self.target_velocity * TICK_LENGTH;
 
-        if let Some(contact) = scan().filter(|c| {
-            [
-                Class::Fighter,
-                Class::Frigate,
-                Class::Cruiser,
-                Class::Torpedo,
-            ]
-            .contains(&c.class)
-        }) {
+        let missile_target_classes = [
+            Class::Fighter,
+            Class::Frigate,
+            Class::Cruiser,
+            Class::Torpedo,
+        ];
+        let torpedo_target_classes = [Class::Frigate, Class::Cruiser];
+        let target_classes = if class() == Class::Missile {
+            missile_target_classes.as_slice()
+        } else {
+            torpedo_target_classes.as_slice()
+        };
+
+        if let Some(contact) = scan().filter(|c| target_classes.contains(&c.class)) {
             let dp = contact.position - position();
             set_radar_heading(dp.angle());
             set_radar_width(radar_width() * 0.5);
