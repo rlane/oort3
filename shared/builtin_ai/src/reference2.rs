@@ -1,7 +1,5 @@
 use oort_api::prelude::*;
 
-const BULLET_SPEED: f64 = 1000.0; // m/s
-
 pub enum Ship {
     Fighter(Fighter),
     Frigate(Frigate),
@@ -67,7 +65,7 @@ impl Fighter {
             );
 
             // Guns
-            if let Some(angle) = lead_target(contact.position, contact.velocity) {
+            if let Some(angle) = lead_target(contact.position, contact.velocity, 1e3, 10.0) {
                 let angle = angle + rand(-1.0, 1.0) * TAU / 120.0;
                 turn_to(angle);
                 if angle_diff(angle, heading()).abs() < TAU / 60.0 {
@@ -89,14 +87,92 @@ impl Fighter {
 }
 
 // Frigates
-pub struct Frigate {}
+pub struct Frigate {
+    pub move_target: Vec2,
+    pub radar_state: FrigateRadarState,
+    pub main_gun_radar: RadarRegs,
+    pub point_defense_radar: RadarRegs,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum FrigateRadarState {
+    MainGun,
+    PointDefense,
+}
 
 impl Frigate {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            move_target: vec2(0.0, 0.0),
+            radar_state: FrigateRadarState::MainGun,
+            main_gun_radar: RadarRegs::new(),
+            point_defense_radar: RadarRegs::new(),
+        }
     }
 
-    pub fn tick(&mut self) {}
+    pub fn tick(&mut self) {
+        if self.radar_state == FrigateRadarState::MainGun {
+            if let Some(contact) = scan()
+                .filter(|c| [Class::Fighter, Class::Frigate, Class::Cruiser].contains(&c.class))
+            {
+                let dp = contact.position - position();
+                let dv = contact.velocity - velocity();
+                set_radar_heading(dp.angle());
+                set_radar_width(radar_width() * 0.5);
+
+                seek(
+                    contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
+                    vec2(0.0, 0.0),
+                    5.0,
+                    true,
+                    1e3,
+                );
+
+                // Main gun
+                if let Some(angle) = lead_target(contact.position, contact.velocity, 4e3, 60.0) {
+                    turn_to(angle);
+                    if angle_diff(angle, heading()).abs() < TAU / 360.0 {
+                        fire(0);
+                    }
+                }
+
+                // Missiles
+                if reload_ticks(3) == 0 {
+                    send(make_orders(contact.position, contact.velocity));
+                    fire(3);
+                }
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+                set_radar_width(TAU / 120.0);
+                seek(self.move_target, vec2(0.0, 0.0), 5.0, true, 1e3);
+            }
+
+            self.main_gun_radar.save();
+            self.point_defense_radar.restore();
+            self.radar_state = FrigateRadarState::PointDefense;
+        } else if self.radar_state == FrigateRadarState::PointDefense {
+            set_radar_width(TAU / 16.0);
+
+            if let Some(contact) = scan()
+                .filter(|c| [Class::Fighter, Class::Missile, Class::Torpedo].contains(&c.class))
+            {
+                for idx in [1, 2] {
+                    if let Some(angle) = lead_target(contact.position, contact.velocity, 1e3, 10.0)
+                    {
+                        aim(idx, angle + rand(-1.0, 1.0) * TAU / 120.0);
+                        fire(idx);
+                    }
+                }
+                set_radar_heading((contact.position - position()).angle());
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+            }
+
+            self.point_defense_radar.save();
+            self.main_gun_radar.restore();
+            self.radar_state = FrigateRadarState::MainGun;
+        }
+    }
 }
 
 // Cruisers
@@ -184,13 +260,18 @@ fn turn_to(target_heading: f64) {
     turn(10.0 * heading_error);
 }
 
-fn lead_target(target_position: Vec2, target_velocity: Vec2) -> Option<f64> {
+fn lead_target(
+    target_position: Vec2,
+    target_velocity: Vec2,
+    bullet_speed: f64,
+    ttl: f64,
+) -> Option<f64> {
     let dp = target_position - position();
     let dv = target_velocity - velocity();
-    for i in 0..60 {
+    for i in 0..((ttl / TICK_LENGTH) as usize / 10) {
         let t = 10.0 * i as f64 * TICK_LENGTH;
         let dp2 = dp + dv * t;
-        if (dp2.length() - BULLET_SPEED * t).abs() < 1e3 {
+        if (dp2.length() - bullet_speed * t).abs() < 1e3 {
             return Some(dp2.angle());
         }
     }
@@ -207,4 +288,29 @@ fn parse_orders(msg: Option<Message>) -> (Vec2, Vec2) {
 
 fn make_orders(p: Vec2, v: Vec2) -> Message {
     [p.x, p.y, v.x, v.y]
+}
+
+/// Save and restore radar registers in order to use a single radar for multiple functions.
+pub struct RadarRegs {
+    heading: f64,
+    width: f64,
+}
+
+impl RadarRegs {
+    fn new() -> Self {
+        Self {
+            heading: 0.0,
+            width: TAU / 120.0,
+        }
+    }
+
+    fn save(&mut self) {
+        self.heading = radar_heading();
+        self.width = radar_width();
+    }
+
+    fn restore(&self) {
+        set_radar_heading(self.heading);
+        set_radar_width(self.width);
+    }
 }
