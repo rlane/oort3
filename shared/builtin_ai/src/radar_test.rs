@@ -19,7 +19,7 @@ impl Ship {
 
         let t = 120;
         if current_tick() <= t {
-            return;
+            /* nop */
         } else if current_tick() % t == 0 {
             set_radar_width(TAU / 60.0);
         } else if current_tick() % (t / 2) == 0 {
@@ -27,4 +27,3 @@ impl Ship {
         }
     }
 }
-

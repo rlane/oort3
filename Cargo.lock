@@ -2411,6 +2411,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_builtin_ai"
+version = "0.1.0"
+dependencies = [
+ "oort_api",
+]
+
+[[package]]
 name = "oort_code_encryption"
 version = "0.52.0"
 dependencies = [

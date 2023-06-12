@@ -29,7 +29,7 @@ impl Ship {
 pub fn seek(p: Vec2, v: Vec2) {
     const N: f64 = 4.0;
     let acc = if fuel() > 200.0 {
-        max_acceleration().x
+        max_forward_acceleration()
     } else {
         0.0
     };
@@ -42,14 +42,13 @@ pub fn seek(p: Vec2, v: Vec2) {
     let ax = (acc - badv.length() * 5.0).clamp(0.0, acc);
     let ay = N * closing_speed * los_rate;
     let a = vec2(ax, ay).rotate(los);
-    let a = vec2(max_acceleration().x, 0.0).rotate(a.angle());
+    let a = vec2(max_forward_acceleration(), 0.0).rotate(a.angle());
     accelerate(a);
 
-    turn_to(a.angle(), 0.0);
+    turn_to(a.angle());
 }
 
-fn turn_to(target_heading: f64, target_angular_velocity: f64) {
+fn turn_to(target_heading: f64) {
     let heading_error = angle_diff(heading(), target_heading);
     turn(10.0 * heading_error);
 }
-

@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "shared/simulator",
     "shared/ai",
+    "shared/builtin_ai",
     "shared/api",
     "shared/proto",
     "shared/envelope",

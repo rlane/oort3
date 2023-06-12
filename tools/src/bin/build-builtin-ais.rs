@@ -29,7 +29,7 @@ fn main() -> Result<()> {
 
     let paths: Vec<_> = glob(&format!("{}/**/*.rs", args.input))?
         .map(|x| x.unwrap())
-        .filter(|x| !["lib.rs"].contains(&x.file_name().unwrap().to_str().unwrap()))
+        .filter(|x| !["lib.rs", "mod.rs"].contains(&x.file_name().unwrap().to_str().unwrap()))
         .collect();
 
     let results: Vec<_> = paths

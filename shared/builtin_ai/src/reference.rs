@@ -1,3 +1,4 @@
+#![allow(non_upper_case_globals, non_snake_case)]
 use oort_api::prelude::*;
 
 const τ: f64 = TAU;
@@ -125,7 +126,7 @@ impl Ship {
             self.target_velocity = contact.velocity;
             set_radar_width((radar_width() * 0.9).max(τ / 360.0));
             draw_diamond(self.target_position, 20.0, 0x00ff00);
-        } else if let Some(_) = receive() {
+        } else if receive().is_some() {
             let (new_target_position, new_target_velocity) = parse_orders(receive());
             if new_target_position.distance(self.target_position) < 100.0 {
                 self.target_position = new_target_position;
