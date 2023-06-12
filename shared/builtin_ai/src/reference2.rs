@@ -151,7 +151,7 @@ impl Frigate {
             self.point_defense_radar.restore();
             self.radar_state = FrigateRadarState::PointDefense;
         } else if self.radar_state == FrigateRadarState::PointDefense {
-            set_radar_width(TAU / 16.0);
+            set_radar_width(TAU / 4.0);
 
             if let Some(contact) = scan()
                 .filter(|c| [Class::Fighter, Class::Missile, Class::Torpedo].contains(&c.class))
@@ -226,7 +226,7 @@ impl Cruiser {
             self.missile_radar.restore();
             self.radar_state = CruiserRadarState::Missile;
         } else if self.radar_state == CruiserRadarState::Missile {
-            set_radar_width(TAU / 64.0);
+            set_radar_width(TAU / 8.0);
 
             if let Some(contact) = scan().filter(|c| {
                 [
@@ -259,16 +259,15 @@ impl Cruiser {
             self.point_defense_radar.restore();
             self.radar_state = CruiserRadarState::PointDefense;
         } else if self.radar_state == CruiserRadarState::PointDefense {
-            set_radar_width(TAU / 16.0);
+            set_radar_width(TAU / 4.0);
+            set_radar_max_distance(1e3);
 
             if let Some(contact) =
                 scan().filter(|c| [Class::Missile, Class::Torpedo].contains(&c.class))
             {
                 let dp = contact.position - position();
-                if dp.length() < 2e3 {
-                    aim(0, dp.angle());
-                    fire(0);
-                }
+                aim(0, dp.angle());
+                fire(0);
                 set_radar_heading(dp.angle());
             } else {
                 set_radar_heading(radar_heading() + radar_width());
@@ -394,6 +393,8 @@ fn make_orders(p: Vec2, v: Vec2) -> Message {
 pub struct RadarRegs {
     heading: f64,
     width: f64,
+    min_distance: f64,
+    max_distance: f64,
 }
 
 impl RadarRegs {
@@ -401,16 +402,22 @@ impl RadarRegs {
         Self {
             heading: 0.0,
             width: TAU / 120.0,
+            min_distance: 0.0,
+            max_distance: 1e9,
         }
     }
 
     fn save(&mut self) {
         self.heading = radar_heading();
         self.width = radar_width();
+        self.min_distance = radar_min_distance();
+        self.max_distance = radar_max_distance();
     }
 
     fn restore(&self) {
         set_radar_heading(self.heading);
         set_radar_width(self.width);
+        set_radar_min_distance(self.min_distance);
+        set_radar_max_distance(self.max_distance);
     }
 }
