@@ -5,15 +5,27 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("compile without reuse", |b| {
         b.iter(|| {
             let mut compiler = Compiler::new();
-            black_box(compiler.compile(include_str!("../../ai/empty.rs")).unwrap());
+            black_box(
+                compiler
+                    .compile(include_str!("../../builtin_ai/src/empty.rs"))
+                    .unwrap(),
+            );
         })
     });
 
     c.bench_function("compile with reuse", |b| {
         let mut compiler = Compiler::new();
-        black_box(compiler.compile(include_str!("../../ai/empty.rs")).unwrap());
+        black_box(
+            compiler
+                .compile(include_str!("../../builtin_ai/src/empty.rs"))
+                .unwrap(),
+        );
         b.iter(|| {
-            black_box(compiler.compile(include_str!("../../ai/empty.rs")).unwrap());
+            black_box(
+                compiler
+                    .compile(include_str!("../../builtin_ai/src/empty.rs"))
+                    .unwrap(),
+            );
         })
     });
 }

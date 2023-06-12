@@ -22,7 +22,10 @@ async fn main() -> Result<(), GooseError> {
 
 async fn compile(user: &mut GooseUser) -> TransactionResult {
     let _goose = user
-        .post("/compile", include_str!("../../../shared/ai/reference.rs"))
+        .post(
+            "/compile",
+            include_str!("../../../shared/builtin_ai/src/reference.rs"),
+        )
         .await?;
 
     Ok(())

@@ -17,6 +17,6 @@ fn main() -> Result<()> {
     std::fs::remove_dir_all(&args.dir)?;
     std::fs::create_dir_all(&args.dir)?;
     let mut compiler = oort_compiler::Compiler::new_with_dir(std::path::Path::new(&args.dir));
-    compiler.compile(include_str!("../../../shared/ai/empty.rs"))?;
+    compiler.compile(include_str!("../../../shared/builtin_ai/src/empty.rs"))?;
     Ok(())
 }

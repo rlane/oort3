@@ -4,7 +4,7 @@ use std::io::Read;
 use tar::Archive;
 
 fn builtin_ai_data() -> &'static [u8] {
-    include_bytes!("../../../ai/builtin-ai.tar.gz")
+    include_bytes!("../../../builtin_ai/builtin-ai.tar.gz")
 }
 
 pub fn load_source(name: &str) -> Result<Code, String> {

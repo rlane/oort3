@@ -20,16 +20,16 @@ fn main() -> Result<()> {
 
     #[derive(clap::Parser, Debug)]
     struct Arguments {
-        #[clap(short, long, default_value = "shared/ai")]
+        #[clap(short, long, default_value = "shared/builtin_ai/src")]
         input: String,
-        #[clap(short, long, default_value = "shared/ai/builtin-ai.tar.gz")]
+        #[clap(short, long, default_value = "shared/builtin_ai/builtin-ai.tar.gz")]
         output: String,
     }
     let args = Arguments::parse();
 
     let paths: Vec<_> = glob(&format!("{}/**/*.rs", args.input))?
         .map(|x| x.unwrap())
-        .filter(|x| !["user.rs", "lib.rs"].contains(&x.file_name().unwrap().to_str().unwrap()))
+        .filter(|x| !["lib.rs"].contains(&x.file_name().unwrap().to_str().unwrap()))
         .collect();
 
     let results: Vec<_> = paths

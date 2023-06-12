@@ -103,7 +103,7 @@ async fn main() {
     if args.prepare {
         compiler.enable_online();
         compiler
-            .compile(include_str!("../../../shared/ai/empty.rs"))
+            .compile(include_str!("../../../shared/builtin_ai/src/empty.rs"))
             .unwrap();
         return;
     }
