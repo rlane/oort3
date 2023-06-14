@@ -26,12 +26,14 @@ impl Ship {
         accelerate(self.target - position() - velocity());
 
         if let Some(contact) = scan() {
-            turn_to((contact.position - position()).angle());
-            set_radar_heading((contact.position - position()).angle());
-            if (contact.position - position()).length() < 1000.0 {
-                fire(0);
+            if contact.class != Class::Missile {
+                turn_to((contact.position - position()).angle());
+                set_radar_heading((contact.position - position()).angle());
+                if (contact.position - position()).length() < 1000.0 {
+                    fire(0);
+                }
+                fire(1);
             }
-            fire(1);
         } else {
             turn_to((self.target - position()).angle());
             set_radar_heading(heading());
