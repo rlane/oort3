@@ -152,6 +152,7 @@ impl Frigate {
             self.radar_state = FrigateRadarState::PointDefense;
         } else if self.radar_state == FrigateRadarState::PointDefense {
             set_radar_width(TAU / 4.0);
+            set_radar_max_distance(1e3);
 
             if let Some(contact) = scan()
                 .filter(|c| [Class::Fighter, Class::Missile, Class::Torpedo].contains(&c.class))
@@ -367,14 +368,12 @@ fn lead_target(
 ) -> Option<f64> {
     let dp = target_position - position();
     let dv = target_velocity - velocity();
-    for i in 0..((ttl / TICK_LENGTH) as usize / 10) {
-        let t = 10.0 * i as f64 * TICK_LENGTH;
-        let dp2 = dp + dv * t;
-        if (dp2.length() - bullet_speed * t).abs() < 1e3 {
-            return Some(dp2.angle());
-        }
+    let predicted_dp = dp + dv * dp.length() / bullet_speed;
+    if predicted_dp.length() / bullet_speed < ttl {
+        Some(predicted_dp.angle())
+    } else {
+        None
     }
-    None
 }
 
 fn parse_orders(msg: Option<Message>) -> (Vec2, Vec2) {
