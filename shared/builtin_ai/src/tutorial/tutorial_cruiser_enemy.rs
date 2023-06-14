@@ -27,12 +27,14 @@ impl Ship {
 
         if let Some(contact) = scan() {
             turn_to((contact.position - position()).angle());
+            set_radar_heading((contact.position - position()).angle());
             if (contact.position - position()).length() < 1000.0 {
                 fire(0);
             }
             fire(1);
         } else {
             turn_to((self.target - position()).angle());
+            set_radar_heading(heading());
         }
     }
 
@@ -51,6 +53,7 @@ impl Ship {
         } else {
             accelerate(vec2(100.0, 0.0).rotate(heading()));
             set_radar_width(TAU / 4.0);
+            set_radar_heading(heading());
         }
     }
 }
