@@ -59,9 +59,7 @@ impl Fighter {
             seek(
                 contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
                 vec2(0.0, 0.0),
-                5.0,
                 true,
-                1e3,
             );
 
             // Guns
@@ -81,7 +79,7 @@ impl Fighter {
         } else {
             set_radar_heading(radar_heading() + radar_width());
             set_radar_width(TAU / 120.0);
-            seek(self.move_target, vec2(0.0, 0.0), 5.0, true, 1e3);
+            seek(self.move_target, vec2(0.0, 0.0), true);
         }
     }
 }
@@ -123,9 +121,7 @@ impl Frigate {
                 seek(
                     contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
                     vec2(0.0, 0.0),
-                    5.0,
                     true,
-                    1e3,
                 );
 
                 // Main gun
@@ -144,7 +140,7 @@ impl Frigate {
             } else {
                 set_radar_heading(radar_heading() + radar_width());
                 set_radar_width(TAU / 120.0);
-                seek(self.move_target, vec2(0.0, 0.0), 5.0, true, 1e3);
+                seek(self.move_target, vec2(0.0, 0.0), true);
             }
 
             self.main_gun_radar.save();
@@ -204,7 +200,7 @@ impl Cruiser {
     }
 
     pub fn tick(&mut self) {
-        seek(self.move_target, vec2(0.0, 0.0), 5.0, true, 1e3);
+        seek(self.move_target, vec2(0.0, 0.0), true);
 
         if self.radar_state == CruiserRadarState::Torpedo {
             if let Some(contact) =
@@ -325,34 +321,26 @@ impl Missile {
             set_radar_width(TAU / 120.0);
         }
 
-        seek(self.target_position, self.target_velocity, 5.0, true, 10e3);
+        seek(self.target_position, self.target_velocity, true);
     }
 }
 
 // Library functions
-pub fn seek(p: Vec2, v: Vec2, n: f64, turn: bool, max_speed: f64) {
+pub fn seek(p: Vec2, v: Vec2, turn: bool) {
     let dp = p - position();
     let dv = v - velocity();
-    let los = dp.angle();
-    let los_rate = (dp.y * dv.x - dp.x * dv.y) / (dp.length() * dp.length());
-    let closing_speed = -dv.dot(dp).abs() / dp.length();
     let low_fuel = fuel() != 0.0 && fuel() < 500.0;
-    let closing_acc = (low_fuel || closing_speed.abs() > max_speed)
-        .then_some(0.0)
-        .unwrap_or_else(max_forward_acceleration);
-    let a = vec2(closing_acc, n * closing_speed * los_rate).rotate(los);
+
+    // Component of dv perpendicular to dp
+    let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
+    // Acceleration towards the target
+    let forward = if low_fuel { vec2(0.0, 0.0) } else { dp };
+    let a = (forward - badv * 10.0).normalize() * max_forward_acceleration();
     accelerate(a);
+
     if turn {
         turn_to(a.angle());
     }
-    let los_color = if los_rate.abs() < 0.01 {
-        0x42f560
-    } else if los_rate.abs() < 0.1 {
-        0xf5f242
-    } else {
-        0xf54242
-    };
-    draw_line(position(), p, los_color);
 }
 
 fn turn_to(target_heading: f64) {
