@@ -1,10 +1,11 @@
 use oort_api::prelude::*;
 
+// This enum stores a different struct for each ship class.
 pub enum Ship {
     Fighter(Fighter),
     Frigate(Frigate),
     Cruiser(Cruiser),
-    Missile(Missile),
+    Missile(Missile), // Also used for torpedos.
 }
 
 impl Ship {
@@ -53,9 +54,12 @@ impl Fighter {
         }) {
             let dp = contact.position - position();
             let dv = contact.velocity - velocity();
+
+            // Point the radar at the target and focus the beam.
             set_radar_heading(dp.angle());
             set_radar_width(radar_width() * 0.5);
 
+            // Fly to a point slightly offset from the target to be harder to hit.
             seek(
                 contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
                 vec2(0.0, 0.0),
@@ -64,6 +68,7 @@ impl Fighter {
 
             // Guns
             if let Some(angle) = lead_target(contact.position, contact.velocity, 1e3, 10.0) {
+                // Random jitter makes it more likely to hit accelerating targets.
                 let angle = angle + rand(-1.0, 1.0) * TAU / 120.0;
                 turn_to(angle);
                 if angle_diff(angle, heading()).abs() < TAU / 60.0 {
@@ -73,10 +78,13 @@ impl Fighter {
 
             // Missiles
             if reload_ticks(1) == 0 {
+                // The missile will fly towards this position and acquire the target with radar
+                // when close enough.
                 send(make_orders(contact.position, contact.velocity));
                 fire(1);
             }
         } else {
+            // Scan the radar around in a circle.
             set_radar_heading(radar_heading() + radar_width());
             set_radar_width(TAU / 120.0);
             seek(self.move_target, vec2(0.0, 0.0), true);
@@ -92,6 +100,9 @@ pub struct Frigate {
     pub point_defense_radar: RadarRegs,
 }
 
+// The ship only has one radar, but we need to track different targets for the main gun and
+// missiles versus point defense. We switch between these modes each tick and use this enum to
+// track which mode we're in.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FrigateRadarState {
     MainGun,
@@ -143,10 +154,13 @@ impl Frigate {
                 seek(self.move_target, vec2(0.0, 0.0), true);
             }
 
+            // Switch to the next radar mode.
             self.main_gun_radar.save();
             self.point_defense_radar.restore();
             self.radar_state = FrigateRadarState::PointDefense;
         } else if self.radar_state == FrigateRadarState::PointDefense {
+            // Point defense cares about very close targets and needs to cover 360 degrees as
+            // frequently as possible.
             set_radar_width(TAU / 4.0);
             set_radar_max_distance(1e3);
 
@@ -234,6 +248,7 @@ impl Cruiser {
                 ]
                 .contains(&c.class)
             }) {
+                // Only fire one missile at each target.
                 let mut fired = false;
                 for idx in [1, 2] {
                     if reload_ticks(idx) == 0 {
@@ -295,6 +310,7 @@ impl Missile {
     pub fn tick(&mut self) {
         self.target_position += self.target_velocity * TICK_LENGTH;
 
+        // Don't let torpedos get distracted by smaller ships.
         let missile_target_classes = [
             Class::Fighter,
             Class::Frigate,
@@ -315,6 +331,7 @@ impl Missile {
             self.target_position = contact.position;
             self.target_velocity = contact.velocity;
         } else {
+            // Search near the predicted target area.
             set_radar_heading(
                 (self.target_position - position()).angle() + rand(-1.0, 1.0) * TAU / 32.0,
             );
@@ -326,6 +343,8 @@ impl Missile {
 }
 
 // Library functions
+
+/// Flies towards a target which has the given position and velocity.
 pub fn seek(p: Vec2, v: Vec2, turn: bool) {
     let dp = p - position();
     let dv = v - velocity();
@@ -343,11 +362,13 @@ pub fn seek(p: Vec2, v: Vec2, turn: bool) {
     }
 }
 
+/// Turns towards the given heading.
 fn turn_to(target_heading: f64) {
     let heading_error = angle_diff(heading(), target_heading);
     turn(10.0 * heading_error);
 }
 
+/// Returns the angle at which to shoot to hit the given target.
 fn lead_target(
     target_position: Vec2,
     target_velocity: Vec2,
@@ -364,16 +385,18 @@ fn lead_target(
     }
 }
 
+/// Constructs a radio message from two vectors.
+fn make_orders(p: Vec2, v: Vec2) -> Message {
+    [p.x, p.y, v.x, v.y]
+}
+
+/// Reverse of make_orders.
 fn parse_orders(msg: Option<Message>) -> (Vec2, Vec2) {
     if let Some(msg) = msg {
         (vec2(msg[0], msg[1]), vec2(msg[2], msg[3]))
     } else {
         (vec2(0.0, 0.0), vec2(0.0, 0.0))
     }
-}
-
-fn make_orders(p: Vec2, v: Vec2) -> Message {
-    [p.x, p.y, v.x, v.y]
 }
 
 /// Save and restore radar registers in order to use a single radar for multiple functions.
