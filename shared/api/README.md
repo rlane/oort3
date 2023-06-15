@@ -200,13 +200,13 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
   - Health: 10000
   - Acceleration: Forward: 10 m/s², Lateral: 5 m/s², Reverse: 5 m/s², Angular: π/4 rad/s²
   - Weapon 0: Gun, Speed: 4000 m/s, Reload: 2 seconds
-  - Weapon 1: Gun, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate: π rad/s
-  - Weapon 2: Gun, Speed: 1000 m/s, Reload: 66ms, Turreted, Slew Rate: π rad/s
+  - Weapon 1: Gun, Speed: 1000 m/s, Reload: 66ms, Turreted
+  - Weapon 2: Gun, Speed: 1000 m/s, Reload: 66ms, Turreted
   - Weapon 3: Missile, Reload: 2s
 - [`Cruiser`](prelude::Class::Cruiser): Large, slow, and heavily armored. Rapid fire missile launchers and devastating torpedos.
   - Health: 20000
   - Acceleration: Forward: 5 m/s², Lateral: 2.5 m/s², Reverse: 2.5 m/s², Angular: π/8 rad/s²
-  - Weapon 0: Gun, Speed: 1000 m/s, Burst size: 6, Reload: 0.4s, Turreted, Slew Rate: 2π rad/s
+  - Weapon 0: Gun, Speed: 1000 m/s, Burst size: 6, Reload: 0.4s, Turreted
   - Weapon 1: Missile, Reload: 1.2s
   - Weapon 2: Missile, Reload: 1.2s
   - Weapon 3: Torpedo, Reload: 3s
