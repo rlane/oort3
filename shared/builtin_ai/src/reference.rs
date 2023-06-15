@@ -1,242 +1,396 @@
-#![allow(non_upper_case_globals, non_snake_case)]
 use oort_api::prelude::*;
 
-const τ: f64 = TAU;
-const π: f64 = PI;
-
-pub struct Ship {
-    target_position: Vec2,
-    target_velocity: Vec2,
-    last_contact_time: f64,
+// This enum stores a different struct for each ship class.
+pub enum Ship {
+    Fighter(Fighter),
+    Frigate(Frigate),
+    Cruiser(Cruiser),
+    Missile(Missile), // Also used for torpedos.
 }
 
 impl Ship {
     pub fn new() -> Ship {
-        let (target_position, target_velocity) = parse_orders(receive());
-        Ship {
-            target_position,
-            target_velocity,
-            last_contact_time: current_time(),
+        match class() {
+            Class::Fighter => Ship::Fighter(Fighter::new()),
+            Class::Frigate => Ship::Frigate(Frigate::new()),
+            Class::Cruiser => Ship::Cruiser(Cruiser::new()),
+            Class::Missile => Ship::Missile(Missile::new()),
+            Class::Torpedo => Ship::Missile(Missile::new()),
+            _ => unreachable!(),
         }
     }
 
     pub fn tick(&mut self) {
-        if class() == Class::Missile {
-            self.missile_tick();
-        } else if class() == Class::Torpedo {
-            self.torpedo_tick();
-        } else {
-            self.ship_tick();
+        match self {
+            Ship::Fighter(fighter) => fighter.tick(),
+            Ship::Frigate(frigate) => frigate.tick(),
+            Ship::Cruiser(cruiser) => cruiser.tick(),
+            Ship::Missile(missile) => missile.tick(),
         }
-    }
-
-    pub fn ship_tick(&mut self) {
-        if class() == Class::Cruiser {
-            if current_tick() % 6 == 0 {
-                set_radar_width(τ);
-            } else {
-                set_radar_width(τ / 60.0);
-                set_radar_heading(τ * (current_tick() as f64 * 2.0) / 60.0);
-            }
-        }
-
-        let mut scan_result = scan();
-        if scan_result.is_some() && scan_result.as_ref().unwrap().class == Class::Unknown {
-            scan_result = None;
-        }
-        if let Some(contact) = scan_result.as_ref() {
-            let Δp = contact.position - position();
-            let Δv = contact.velocity - velocity();
-            let mut predicted_dp = Δp;
-            let bullet_speed = 1000.0;
-            if Δp.dot(Δv) > -0.9 {
-                for _ in 0..3 {
-                    predicted_dp = Δp + Δv * predicted_dp.length() / bullet_speed;
-                }
-            }
-            set_radar_heading(Δp.angle());
-            self.target_position = contact.position;
-            self.target_velocity = contact.velocity;
-
-            if class() == Class::Fighter {
-                if predicted_dp.length() < 5000.0 {
-                    fire(0);
-                }
-                send(make_orders(contact.position, contact.velocity));
-                fire(1);
-            } else if class() == Class::Frigate {
-                fire(0);
-                aim(
-                    1,
-                    (predicted_dp - vec2(0.0, 15.0).rotate(heading())).angle(),
-                );
-                fire(1);
-                aim(
-                    2,
-                    (predicted_dp - vec2(0.0, -15.0).rotate(heading())).angle(),
-                );
-                fire(2);
-                send(make_orders(contact.position, contact.velocity));
-                fire(3);
-            } else if class() == Class::Cruiser {
-                if predicted_dp.length() < 5000.0 {
-                    aim(0, predicted_dp.angle());
-                    fire(0);
-                }
-                for i in [1, 2] {
-                    send(make_orders(contact.position, contact.velocity));
-                    fire(i);
-                }
-                if contact.class == Class::Frigate || contact.class == Class::Cruiser {
-                    send(make_orders(contact.position, contact.velocity));
-                    fire(3);
-                }
-                //dbg.draw_diamond(contact.position, 30.0, 0xffff00);
-            }
-        } else {
-            set_radar_heading(rand(0.0, τ));
-            if (self.target_position - position()).length() < 100.0 {
-                self.target_position = vec2(rand(3500.0, 4500.0), 0.0).rotate(rand(0.0, τ));
-                self.target_velocity = vec2(0.0, 0.0);
-            }
-        }
-
-        let Δp = self.target_position - position();
-        let dist = Δp.length();
-        let mut bullet_speed = 1000.0;
-        if class() == Class::Frigate {
-            bullet_speed = 4000.0;
-        }
-        let t = dist / bullet_speed;
-        let predicted_dp = Δp + t * (self.target_velocity - velocity());
-        self.turn_to(predicted_dp.angle());
-
-        if scan_result.is_some() && dist < 1000.0 {
-            accelerate(-velocity());
-        } else {
-            accelerate(Δp - velocity());
-        }
-    }
-
-    fn missile_tick(&mut self) {
-        let acc = max_forward_acceleration();
-
-        if let Some(contact) = scan() {
-            self.target_position = contact.position;
-            self.target_velocity = contact.velocity;
-            set_radar_width((radar_width() * 0.9).max(τ / 360.0));
-            draw_diamond(self.target_position, 20.0, 0x00ff00);
-        } else if receive().is_some() {
-            let (new_target_position, new_target_velocity) = parse_orders(receive());
-            if new_target_position.distance(self.target_position) < 100.0 {
-                self.target_position = new_target_position;
-                self.target_velocity = new_target_velocity;
-                set_radar_width(τ / 360.0);
-                draw_diamond(self.target_position, 20.0, 0xf5da42);
-            } else {
-                set_radar_width((radar_width() * 2.0).min(τ / 16.0));
-                draw_diamond(self.target_position, 20.0, 0xff0000);
-            }
-        } else {
-            set_radar_width((radar_width() * 2.0).min(τ / 16.0));
-            draw_diamond(self.target_position, 20.0, 0xff0000);
-        }
-
-        set_radar_heading((self.target_position - position()).angle());
-
-        let Δp = self.target_position - position();
-        let Δv = self.target_velocity - velocity();
-
-        let dist = Δp.length();
-        let next_dist = (Δp + Δv / 60.0).length();
-        if next_dist < 30.0 || dist < 100.0 && next_dist > dist {
-            explode();
-            return;
-        }
-
-        if dist < 300.0 {
-            set_radar_width(τ / 6.0);
-        }
-
-        let badv = -(Δv - Δv.dot(Δp) * Δp.normalize() / Δp.length());
-        let a = (Δp - badv * 10.0).normalize() * acc;
-        accelerate(a);
-        self.turn_to(a.angle());
-    }
-
-    fn torpedo_tick(&mut self) {
-        let mut acc = max_forward_acceleration();
-        self.target_velocity = velocity();
-
-        let target_heading = (self.target_position - position()).angle();
-        set_radar_heading(
-            target_heading + rand(-π, π) * ((current_time() - self.last_contact_time) / 10.0),
-        );
-        if (self.target_position - position()).length() < 200.0 {
-            set_radar_width(π * 2.0 / 6.0);
-        } else {
-            set_radar_width(π * 2.0 / 60.0);
-        }
-
-        let mut contact = scan();
-        if contact.is_some()
-            && class() == Class::Torpedo
-            && contact.as_ref().unwrap().class != Class::Frigate
-            && contact.as_ref().unwrap().class != Class::Cruiser
-        {
-            contact = None;
-        }
-        if let Some(contact) = &contact {
-            self.target_position = contact.position;
-            self.target_velocity = contact.velocity;
-            self.last_contact_time = current_time();
-        } else {
-            self.target_position += self.target_velocity / 60.0;
-        }
-
-        let Δp = self.target_position - position();
-        let Δv = self.target_velocity - velocity();
-
-        if contact.is_some() {
-            let dist = Δp.length();
-            let next_dist = (Δp + Δv / 60.0).length();
-            if next_dist < 60.0 || dist < 100.0 && next_dist > dist {
-                explode();
-                return;
-            }
-        } else {
-            acc /= 2.0;
-        }
-
-        let predicted_position =
-            self.target_position + self.target_velocity * (Δp.length() / 8000.0);
-        let pdp = predicted_position - position();
-
-        let badv = -(Δv - Δv.dot(Δp) * pdp.normalize() / pdp.length());
-        let a = (pdp - badv * 10.0).normalize() * acc;
-        accelerate(a);
-        self.turn_to(a.angle());
-
-        /*
-        if no_contact_ticks > 0 {
-            dbg.draw_diamond(target_position, 20.0, 0xff0000);
-        } else {
-            dbg.draw_diamond(contact.position, 20.0, 0xffff00);
-            dbg.draw_diamond(position() + pdp, 5.0, 0xffffff);
-        }
-
-        dbg.draw_line(position(), position() + Δp, 0x222222);
-        dbg.draw_line(position(), position() - Δv, 0xffffff);
-        dbg.draw_line(position(), position() + badv, 0x222299);
-        */
-    }
-
-    fn turn_to(&mut self, target_heading: f64) {
-        let heading_error = angle_diff(heading(), target_heading);
-        turn(10.0 * heading_error);
     }
 }
 
+// Fighters
+pub struct Fighter {
+    pub move_target: Vec2,
+}
+
+impl Fighter {
+    pub fn new() -> Self {
+        Self {
+            move_target: vec2(0.0, 0.0),
+        }
+    }
+
+    pub fn tick(&mut self) {
+        if let Some(contact) = scan().filter(|c| {
+            [
+                Class::Fighter,
+                Class::Frigate,
+                Class::Cruiser,
+                Class::Torpedo,
+            ]
+            .contains(&c.class)
+        }) {
+            let dp = contact.position - position();
+            let dv = contact.velocity - velocity();
+
+            // Point the radar at the target and focus the beam.
+            set_radar_heading(dp.angle());
+            set_radar_width(radar_width() * 0.5);
+
+            // Fly to a point slightly offset from the target to be harder to hit.
+            seek(
+                contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
+                vec2(0.0, 0.0),
+                true,
+            );
+
+            // Guns
+            if let Some(angle) = lead_target(contact.position, contact.velocity, 1e3, 10.0) {
+                // Random jitter makes it more likely to hit accelerating targets.
+                let angle = angle + rand(-1.0, 1.0) * TAU / 120.0;
+                turn_to(angle);
+                if angle_diff(angle, heading()).abs() < TAU / 60.0 {
+                    fire(0);
+                }
+            }
+
+            // Missiles
+            if reload_ticks(1) == 0 {
+                // The missile will fly towards this position and acquire the target with radar
+                // when close enough.
+                send(make_orders(contact.position, contact.velocity));
+                fire(1);
+            }
+        } else {
+            // Scan the radar around in a circle.
+            set_radar_heading(radar_heading() + radar_width());
+            set_radar_width(TAU / 120.0);
+            seek(self.move_target, vec2(0.0, 0.0), true);
+        }
+    }
+}
+
+// Frigates
+pub struct Frigate {
+    pub move_target: Vec2,
+    pub radar_state: FrigateRadarState,
+    pub main_gun_radar: RadarRegs,
+    pub point_defense_radar: RadarRegs,
+}
+
+// The ship only has one radar, but we need to track different targets for the main gun and
+// missiles versus point defense. We switch between these modes each tick and use this enum to
+// track which mode we're in.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum FrigateRadarState {
+    MainGun,
+    PointDefense,
+}
+
+impl Frigate {
+    pub fn new() -> Self {
+        Self {
+            move_target: vec2(0.0, 0.0),
+            radar_state: FrigateRadarState::MainGun,
+            main_gun_radar: RadarRegs::new(),
+            point_defense_radar: RadarRegs::new(),
+        }
+    }
+
+    pub fn tick(&mut self) {
+        if self.radar_state == FrigateRadarState::MainGun {
+            if let Some(contact) = scan()
+                .filter(|c| [Class::Fighter, Class::Frigate, Class::Cruiser].contains(&c.class))
+            {
+                let dp = contact.position - position();
+                let dv = contact.velocity - velocity();
+                set_radar_heading(dp.angle());
+                set_radar_width(radar_width() * 0.5);
+
+                seek(
+                    contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
+                    vec2(0.0, 0.0),
+                    true,
+                );
+
+                // Main gun
+                if let Some(angle) = lead_target(contact.position, contact.velocity, 4e3, 60.0) {
+                    turn_to(angle);
+                    if angle_diff(angle, heading()).abs() < TAU / 360.0 {
+                        fire(0);
+                    }
+                }
+
+                // Missiles
+                if reload_ticks(3) == 0 {
+                    send(make_orders(contact.position, contact.velocity));
+                    fire(3);
+                }
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+                set_radar_width(TAU / 120.0);
+                seek(self.move_target, vec2(0.0, 0.0), true);
+            }
+
+            // Switch to the next radar mode.
+            self.main_gun_radar.save();
+            self.point_defense_radar.restore();
+            self.radar_state = FrigateRadarState::PointDefense;
+        } else if self.radar_state == FrigateRadarState::PointDefense {
+            // Point defense cares about very close targets and needs to cover 360 degrees as
+            // frequently as possible.
+            set_radar_width(TAU / 4.0);
+            set_radar_max_distance(1e3);
+
+            if let Some(contact) = scan()
+                .filter(|c| [Class::Fighter, Class::Missile, Class::Torpedo].contains(&c.class))
+            {
+                for idx in [1, 2] {
+                    if let Some(angle) = lead_target(contact.position, contact.velocity, 1e3, 10.0)
+                    {
+                        aim(idx, angle + rand(-1.0, 1.0) * TAU / 120.0);
+                        fire(idx);
+                    }
+                }
+                set_radar_heading((contact.position - position()).angle());
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+            }
+
+            self.point_defense_radar.save();
+            self.main_gun_radar.restore();
+            self.radar_state = FrigateRadarState::MainGun;
+        }
+    }
+}
+
+// Cruisers
+pub struct Cruiser {
+    pub move_target: Vec2,
+    pub radar_state: CruiserRadarState,
+    pub torpedo_radar: RadarRegs,
+    pub missile_radar: RadarRegs,
+    pub point_defense_radar: RadarRegs,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum CruiserRadarState {
+    Torpedo,
+    Missile,
+    PointDefense,
+}
+
+impl Cruiser {
+    pub fn new() -> Self {
+        Self {
+            move_target: vec2(0.0, 0.0),
+            radar_state: CruiserRadarState::Torpedo,
+            torpedo_radar: RadarRegs::new(),
+            missile_radar: RadarRegs::new(),
+            point_defense_radar: RadarRegs::new(),
+        }
+    }
+
+    pub fn tick(&mut self) {
+        seek(self.move_target, vec2(0.0, 0.0), true);
+
+        if self.radar_state == CruiserRadarState::Torpedo {
+            if let Some(contact) =
+                scan().filter(|c| [Class::Frigate, Class::Cruiser].contains(&c.class))
+            {
+                let dp = contact.position - position();
+                set_radar_heading(dp.angle());
+                set_radar_width(radar_width() * 0.5);
+
+                if reload_ticks(3) == 0 {
+                    send(make_orders(contact.position, contact.velocity));
+                    fire(3);
+                }
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+                set_radar_width(TAU / 120.0);
+            }
+
+            self.torpedo_radar.save();
+            self.missile_radar.restore();
+            self.radar_state = CruiserRadarState::Missile;
+        } else if self.radar_state == CruiserRadarState::Missile {
+            set_radar_width(TAU / 8.0);
+
+            if let Some(contact) = scan().filter(|c| {
+                [
+                    Class::Fighter,
+                    Class::Frigate,
+                    Class::Cruiser,
+                    Class::Torpedo,
+                ]
+                .contains(&c.class)
+            }) {
+                // Only fire one missile at each target.
+                let mut fired = false;
+                for idx in [1, 2] {
+                    if reload_ticks(idx) == 0 {
+                        send(make_orders(contact.position, contact.velocity));
+                        fire(idx);
+                        fired = true;
+                        break;
+                    }
+                }
+                if fired {
+                    set_radar_heading(radar_heading() + radar_width());
+                } else {
+                    set_radar_heading((contact.position - position()).angle());
+                }
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+            }
+
+            self.missile_radar.save();
+            self.point_defense_radar.restore();
+            self.radar_state = CruiserRadarState::PointDefense;
+        } else if self.radar_state == CruiserRadarState::PointDefense {
+            set_radar_width(TAU / 4.0);
+            set_radar_max_distance(1e3);
+
+            if let Some(contact) =
+                scan().filter(|c| [Class::Missile, Class::Torpedo].contains(&c.class))
+            {
+                let dp = contact.position - position();
+                aim(0, dp.angle());
+                fire(0);
+                set_radar_heading(dp.angle());
+            } else {
+                set_radar_heading(radar_heading() + radar_width());
+            }
+
+            self.point_defense_radar.save();
+            self.torpedo_radar.restore();
+            self.radar_state = CruiserRadarState::Torpedo;
+        }
+    }
+}
+
+// Missiles and Torpedos
+pub struct Missile {
+    target_position: Vec2,
+    target_velocity: Vec2,
+}
+
+impl Missile {
+    pub fn new() -> Self {
+        let (target_position, target_velocity) = parse_orders(receive());
+        Self {
+            target_position,
+            target_velocity,
+        }
+    }
+
+    pub fn tick(&mut self) {
+        self.target_position += self.target_velocity * TICK_LENGTH;
+
+        // Don't let torpedos get distracted by smaller ships.
+        let missile_target_classes = [
+            Class::Fighter,
+            Class::Frigate,
+            Class::Cruiser,
+            Class::Torpedo,
+        ];
+        let torpedo_target_classes = [Class::Frigate, Class::Cruiser];
+        let target_classes = if class() == Class::Missile {
+            missile_target_classes.as_slice()
+        } else {
+            torpedo_target_classes.as_slice()
+        };
+
+        if let Some(contact) = scan().filter(|c| target_classes.contains(&c.class)) {
+            let dp = contact.position - position();
+            set_radar_heading(dp.angle());
+            set_radar_width(radar_width() * 0.5);
+            self.target_position = contact.position;
+            self.target_velocity = contact.velocity;
+        } else {
+            // Search near the predicted target area.
+            set_radar_heading(
+                (self.target_position - position()).angle() + rand(-1.0, 1.0) * TAU / 32.0,
+            );
+            set_radar_width(TAU / 120.0);
+        }
+
+        seek(self.target_position, self.target_velocity, true);
+    }
+}
+
+// Library functions
+
+/// Flies towards a target which has the given position and velocity.
+pub fn seek(p: Vec2, v: Vec2, turn: bool) {
+    let dp = p - position();
+    let dv = v - velocity();
+    let low_fuel = fuel() != 0.0 && fuel() < 500.0;
+
+    // Component of dv perpendicular to dp
+    let badv = -(dv - dv.dot(dp) * dp.normalize() / dp.length());
+    // Acceleration towards the target
+    let forward = if low_fuel { vec2(0.0, 0.0) } else { dp };
+    let a = (forward - badv * 10.0).normalize() * max_forward_acceleration();
+    accelerate(a);
+
+    if turn {
+        turn_to(a.angle());
+    }
+}
+
+/// Turns towards the given heading.
+fn turn_to(target_heading: f64) {
+    let heading_error = angle_diff(heading(), target_heading);
+    turn(10.0 * heading_error);
+}
+
+/// Returns the angle at which to shoot to hit the given target.
+fn lead_target(
+    target_position: Vec2,
+    target_velocity: Vec2,
+    bullet_speed: f64,
+    ttl: f64,
+) -> Option<f64> {
+    let dp = target_position - position();
+    let dv = target_velocity - velocity();
+    let predicted_dp = dp + dv * dp.length() / bullet_speed;
+    if predicted_dp.length() / bullet_speed < ttl {
+        Some(predicted_dp.angle())
+    } else {
+        None
+    }
+}
+
+/// Constructs a radio message from two vectors.
+fn make_orders(p: Vec2, v: Vec2) -> Message {
+    [p.x, p.y, v.x, v.y]
+}
+
+/// Reverse of make_orders.
 fn parse_orders(msg: Option<Message>) -> (Vec2, Vec2) {
     if let Some(msg) = msg {
         (vec2(msg[0], msg[1]), vec2(msg[2], msg[3]))
@@ -245,6 +399,35 @@ fn parse_orders(msg: Option<Message>) -> (Vec2, Vec2) {
     }
 }
 
-fn make_orders(p: Vec2, v: Vec2) -> Message {
-    [p.x, p.y, v.x, v.y]
+/// Save and restore radar registers in order to use a single radar for multiple functions.
+pub struct RadarRegs {
+    heading: f64,
+    width: f64,
+    min_distance: f64,
+    max_distance: f64,
+}
+
+impl RadarRegs {
+    fn new() -> Self {
+        Self {
+            heading: 0.0,
+            width: TAU / 120.0,
+            min_distance: 0.0,
+            max_distance: 1e9,
+        }
+    }
+
+    fn save(&mut self) {
+        self.heading = radar_heading();
+        self.width = radar_width();
+        self.min_distance = radar_min_distance();
+        self.max_distance = radar_max_distance();
+    }
+
+    fn restore(&self) {
+        set_radar_heading(self.heading);
+        set_radar_width(self.width);
+        set_radar_min_distance(self.min_distance);
+        set_radar_max_distance(self.max_distance);
+    }
 }

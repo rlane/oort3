@@ -7,5 +7,4 @@ pub mod planetary_defense_enemy;
 pub mod radar_test;
 pub mod radar_test_enemy;
 pub mod reference;
-pub mod reference2;
 pub mod test;
