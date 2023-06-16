@@ -53,18 +53,13 @@ impl Fighter {
             .contains(&c.class)
         }) {
             let dp = contact.position - position();
-            let dv = contact.velocity - velocity();
 
             // Point the radar at the target and focus the beam.
             set_radar_heading(dp.angle());
             set_radar_width(radar_width() * 0.5);
 
-            // Fly to a point slightly offset from the target to be harder to hit.
-            seek(
-                contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
-                vec2(0.0, 0.0),
-                true,
-            );
+            // Fly towards the target.
+            seek(contact.position, vec2(0.0, 0.0), true);
 
             // Guns
             if let Some(angle) = lead_target(contact.position, contact.velocity, 1e3, 10.0) {
