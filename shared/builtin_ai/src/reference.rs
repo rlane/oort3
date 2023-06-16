@@ -120,15 +120,10 @@ impl Frigate {
                 .filter(|c| [Class::Fighter, Class::Frigate, Class::Cruiser].contains(&c.class))
             {
                 let dp = contact.position - position();
-                let dv = contact.velocity - velocity();
                 set_radar_heading(dp.angle());
                 set_radar_width(radar_width() * 0.5);
 
-                seek(
-                    contact.position + dv.normalize().rotate(TAU / 4.0) * 5e3,
-                    vec2(0.0, 0.0),
-                    true,
-                );
+                seek(contact.position, vec2(0.0, 0.0), true);
 
                 // Main gun
                 if let Some(angle) = lead_target(contact.position, contact.velocity, 4e3, 60.0) {
