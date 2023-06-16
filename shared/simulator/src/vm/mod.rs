@@ -395,10 +395,15 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
             state.set(SystemState::RadarContactFound, 0.0);
         }
     } else if let Some(target) = sim.ship(handle).data().target.as_ref() {
+        state.set(SystemState::RadarContactFound, 1.0);
         state.set(SystemState::RadarContactPositionX, target.position.x);
         state.set(SystemState::RadarContactPositionY, target.position.y);
         state.set(SystemState::RadarContactVelocityX, target.velocity.x);
         state.set(SystemState::RadarContactVelocityY, target.velocity.y);
+        state.set(
+            SystemState::RadarContactClass,
+            oort_api::Class::Fighter as u32 as f64,
+        );
     }
 
     {
