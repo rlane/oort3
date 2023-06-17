@@ -49,6 +49,7 @@ impl Fighter {
                 Class::Frigate,
                 Class::Cruiser,
                 Class::Torpedo,
+                Class::Asteroid,
             ]
             .contains(&c.class)
         }) {
@@ -116,9 +117,15 @@ impl Frigate {
 
     pub fn tick(&mut self) {
         if self.radar_state == FrigateRadarState::MainGun {
-            if let Some(contact) = scan()
-                .filter(|c| [Class::Fighter, Class::Frigate, Class::Cruiser].contains(&c.class))
-            {
+            if let Some(contact) = scan().filter(|c| {
+                [
+                    Class::Fighter,
+                    Class::Frigate,
+                    Class::Cruiser,
+                    Class::Asteroid,
+                ]
+                .contains(&c.class)
+            }) {
                 let dp = contact.position - position();
                 set_radar_heading(dp.angle());
                 set_radar_width(radar_width() * 0.5);
@@ -154,9 +161,15 @@ impl Frigate {
             set_radar_width(TAU / 4.0);
             set_radar_max_distance(1e3);
 
-            if let Some(contact) = scan()
-                .filter(|c| [Class::Fighter, Class::Missile, Class::Torpedo].contains(&c.class))
-            {
+            if let Some(contact) = scan().filter(|c| {
+                [
+                    Class::Fighter,
+                    Class::Missile,
+                    Class::Torpedo,
+                    Class::Asteroid,
+                ]
+                .contains(&c.class)
+            }) {
                 for idx in [1, 2] {
                     if let Some(angle) = lead_target(contact.position, contact.velocity, 1e3, 10.0)
                     {
@@ -207,8 +220,8 @@ impl Cruiser {
         seek(self.move_target, vec2(0.0, 0.0), true);
 
         if self.radar_state == CruiserRadarState::Torpedo {
-            if let Some(contact) =
-                scan().filter(|c| [Class::Frigate, Class::Cruiser].contains(&c.class))
+            if let Some(contact) = scan()
+                .filter(|c| [Class::Frigate, Class::Cruiser, Class::Asteroid].contains(&c.class))
             {
                 let dp = contact.position - position();
                 set_radar_heading(dp.angle());
@@ -235,6 +248,7 @@ impl Cruiser {
                     Class::Frigate,
                     Class::Cruiser,
                     Class::Torpedo,
+                    Class::Asteroid,
                 ]
                 .contains(&c.class)
             }) {
