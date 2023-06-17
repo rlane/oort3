@@ -1,3 +1,5 @@
+### 0.53.0
+
 - Tweaked team placement and composition in tournament scenarios.
 - Increased missile acceleration and decreased delta-v.
 - Changed missiles to explode on running out of fuel.
