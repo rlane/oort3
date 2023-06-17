@@ -1,3 +1,14 @@
+- Tweaked team placement and composition in tournament scenarios.
+- Increased missile acceleration and decreased delta-v.
+- Changed missiles to explode on running out of fuel.
+- Increased frigate main gun bullet TTL.
+- Added scenario_name(), world_size(), and id() APIs.
+- Added the ability to load code versions from other scenarios.
+- Decreased minimum radar beamwidth and increased maximum.
+- Replaced the reference AI with a more readable one.
+- Reverted limited turret slew rate.
+- scan() API now works in scenarios without radar.
+
 ### 0.52.0
 
 - Added RSSI and SNR to radar scan result.
@@ -11,7 +22,7 @@
 - Added a simple version control system.
 - Tweaked planetary_defense scenario.
 - Increased world size in fleet scenario.
-- Added orbit scenatio.
+- Added orbit scenario.
 - Made planets block radar.
 
 ### 0.50.0
