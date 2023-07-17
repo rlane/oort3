@@ -340,6 +340,7 @@ impl Simulation {
             let ship = self.ship(handle);
             let id = handle.into();
             let position = ship.position().vector.into();
+            let acceleration = ship.data().last_acceleration;
             let team = ship.data().team;
             let class = ship.data().class;
             let health = ship.data().health;
@@ -348,6 +349,7 @@ impl Simulation {
                 id,
                 position,
                 velocity: ship.velocity(),
+                acceleration,
                 heading: ship.heading(),
                 angular_velocity: ship.angular_velocity(),
                 team,

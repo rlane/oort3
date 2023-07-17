@@ -1,5 +1,6 @@
 pub mod buffer_arena;
 pub mod bullet_renderer;
+pub mod flare_renderer;
 pub mod geometry;
 pub mod glutil;
 pub mod grid_renderer;
@@ -13,6 +14,7 @@ pub mod trail_renderer;
 extern crate memoffset;
 
 use bullet_renderer::BulletRenderer;
+use flare_renderer::FlareRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
 use nalgebra::{point, vector, Matrix4, Point2};
@@ -38,6 +40,7 @@ pub struct Renderer {
     particle_renderer: ParticleRenderer,
     trail_renderer: TrailRenderer,
     text_renderer: TextRenderer,
+    flare_renderer: FlareRenderer,
     projection_matrix: Matrix4<f32>,
     base_line_width: f32,
     debug: bool,
@@ -63,7 +66,8 @@ impl Renderer {
             bullet_renderer: BulletRenderer::new(context.clone())?,
             particle_renderer: ParticleRenderer::new(context.clone())?,
             trail_renderer: TrailRenderer::new(context.clone())?,
-            text_renderer: TextRenderer::new(context)?,
+            text_renderer: TextRenderer::new(context.clone())?,
+            flare_renderer: FlareRenderer::new(context)?,
             projection_matrix: Matrix4::identity(),
             base_line_width: 1.0,
             debug: false,
@@ -143,6 +147,8 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
         self.text_renderer
             .update_projection_matrix(&self.projection_matrix);
+        self.flare_renderer
+            .update_projection_matrix(&self.projection_matrix);
 
         self.grid_renderer
             .draw(zoom, camera_target, snapshot.world_size);
@@ -163,6 +169,7 @@ impl Renderer {
         self.line_renderer.draw(&lines);
         self.bullet_renderer.draw(snapshot, self.base_line_width);
         self.ship_renderer.draw(snapshot, self.base_line_width);
+        self.flare_renderer.draw(snapshot);
         self.particle_renderer.draw(snapshot);
 
         let mut texts: Vec<Text> = Vec::new();

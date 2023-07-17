@@ -104,6 +104,7 @@ pub struct ShipData {
     pub health: f64,
     pub mass: f64,
     pub acceleration: Vector2<f64>,
+    pub last_acceleration: Vector2<f64>,
     pub angular_acceleration: f64,
     pub max_forward_acceleration: f64,
     pub max_backward_acceleration: f64,
@@ -135,6 +136,7 @@ impl Default for ShipData {
             health: 100.0,
             mass: 1000.0,
             acceleration: vector![0.0, 0.0],
+            last_acceleration: vector![0.0, 0.0],
             angular_acceleration: 0.0,
             max_forward_acceleration: 0.0,
             max_backward_acceleration: 0.0,
@@ -885,9 +887,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             }
             let mass = self.body().mass();
             let rotation_matrix = self.body().position().rotation.to_rotation_matrix();
+            let inertial_acceleration = rotation_matrix * acceleration;
             self.body().reset_forces(false);
-            self.body()
-                .add_force(rotation_matrix * acceleration * mass, true);
+            self.body().add_force(inertial_acceleration * mass, true);
+            self.data_mut().last_acceleration = inertial_acceleration;
             self.data_mut().acceleration = vector![0.0, 0.0];
         }
 
