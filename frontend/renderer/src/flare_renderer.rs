@@ -12,7 +12,7 @@ use WebGl2RenderingContext as gl;
 struct FlarePosition {
     offset: Vector2<f32>,
     angle: f32,
-    scale: f32,
+    scale: Vector2<f32>,
 }
 
 fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
@@ -23,27 +23,121 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
                 FlarePosition {
                     offset: vector![-7.0, 0.0],
                     angle: TAU / 2.0,
-                    scale: 1.0,
+                    scale: vector![20.0, 16.0],
+                },
+                FlarePosition {
+                    offset: vector![-7.0, 0.0],
+                    angle: 0.0,
+                    scale: vector![10.0, 10.0],
                 },
                 FlarePosition {
                     offset: vector![0.0, x],
                     angle: TAU / 4.0,
-                    scale: 1.0,
+                    scale: vector![10.0, 8.0],
                 },
                 FlarePosition {
                     offset: vector![0.0, -x],
                     angle: -TAU / 4.0,
-                    scale: 1.0,
+                    scale: vector![10.0, 8.0],
+                },
+            ]
+        }
+        ShipClass::Frigate => {
+            let x = -48.0;
+            vec![
+                FlarePosition {
+                    offset: vector![x, 0.0],
+                    angle: TAU / 2.0,
+                    scale: vector![200.0, 50.0],
                 },
                 FlarePosition {
-                    offset: vector![0.0, -x],
+                    offset: vector![x, 0.0],
                     angle: 0.0,
-                    scale: 0.5,
+                    scale: vector![100.0, 40.0],
                 },
                 FlarePosition {
-                    offset: vector![0.0, x],
+                    offset: vector![-24.0, 18.0],
+                    angle: TAU / 4.0,
+                    scale: vector![10.0, 10.0],
+                },
+                FlarePosition {
+                    offset: vector![24.0, -18.0],
+                    angle: -TAU / 4.0,
+                    scale: vector![10.0, 10.0],
+                },
+            ]
+        }
+        ShipClass::Cruiser => {
+            let x = -96.0;
+            let y = 48.0;
+            vec![
+                FlarePosition {
+                    offset: vector![x, 0.0],
+                    angle: TAU / 2.0,
+                    scale: vector![150.0, 80.0],
+                },
+                FlarePosition {
+                    offset: vector![x, 0.0],
                     angle: 0.0,
-                    scale: 0.5,
+                    scale: vector![100.0, 80.0],
+                },
+                FlarePosition {
+                    offset: vector![0.0, y],
+                    angle: TAU / 4.0,
+                    scale: vector![10.0, 10.0],
+                },
+                FlarePosition {
+                    offset: vector![0.0, -y],
+                    angle: -TAU / 4.0,
+                    scale: vector![10.0, 10.0],
+                },
+            ]
+        }
+        ShipClass::Missile => {
+            vec![
+                FlarePosition {
+                    offset: vector![-2.1, 0.0],
+                    angle: TAU / 2.0,
+                    scale: vector![10.0, 6.0],
+                },
+                FlarePosition {
+                    offset: vector![-2.1, 0.0],
+                    angle: 0.0,
+                    scale: vector![10.0, 6.0],
+                },
+                FlarePosition {
+                    offset: vector![0.0, 0.0],
+                    angle: TAU / 4.0,
+                    scale: vector![5.0, 3.0],
+                },
+                FlarePosition {
+                    offset: vector![0.0, 0.0],
+                    angle: -TAU / 4.0,
+                    scale: vector![5.0, 3.0],
+                },
+            ]
+        }
+        ShipClass::Torpedo => {
+            vec![
+                FlarePosition {
+                    offset: vector![-6.4, 0.0],
+                    angle: TAU / 2.0,
+                    scale: vector![10.0, 8.0],
+                },
+                FlarePosition {
+                    offset: vector![-6.4, 0.0],
+                    angle: 0.0,
+                    scale: vector![10.0, 8.0],
+                },
+                FlarePosition {
+                    offset: vector![0.0, 1.6],
+                    angle: TAU / 4.0,
+                    scale: vector![5.0, 3.0],
+                },
+                FlarePosition {
+                    offset: vector![0.0, -1.6],
+                    angle: -TAU / 4.0,
+                    scale: vector![5.0, 3.0],
                 },
             ]
         }
@@ -67,15 +161,14 @@ impl FlareRenderer {
             gl::VERTEX_SHADER,
             r#"#version 300 es
 uniform mat4 projection;
-uniform float current_time;
 layout(location = 0) in vec4 vertex;
 layout(location = 1) in vec4 color;
 layout(location = 2) in mat4 transform;
-out vec4 varying_color;
+out vec2 varying_vertex;
 
 void main() {
+    varying_vertex = vertex.xy;
     gl_Position = projection * (transform * vertex);
-    varying_color = color * ((sin(current_time * 10.0) * 0.5 + 1.0) * 0.1 + 0.9);
 }
     "#,
         )?;
@@ -84,11 +177,64 @@ void main() {
             gl::FRAGMENT_SHADER,
             r#"#version 300 es
 precision mediump float;
-in vec4 varying_color;
+uniform float current_time;
+in vec2 varying_vertex;
 out vec4 fragmentColor;
 
+const float M_PI = 3.14159265358979323846264338327950288;
+
+// https://www.shadertoy.com/view/4sc3D7
+// Copyright (C) 2014 by Benjamin 'BeRo' Rosseaux
+// http://creativecommons.org/publicdomain/zero/1.0/
+vec3 colorTemperatureToRGB(const in float temperature){
+  // Values from: http://blenderartists.org/forum/showthread.php?270332-OSL-Goodness&p=2268693&viewfull=1#post2268693   
+  mat3 m = (temperature <= 6500.0) ? mat3(vec3(0.0, -2902.1955373783176, -8257.7997278925690),
+                                          vec3(0.0, 1669.5803561666639, 2575.2827530017594),
+                                          vec3(1.0, 1.3302673723350029, 1.8993753891711275)) : 
+                                     mat3(vec3(1745.0425298314172, 1216.6168361476490, -8257.7997278925690),
+                                          vec3(-2666.3474220535695, -2173.1012343082230, 2575.2827530017594),
+                                          vec3(0.55995389139931482, 0.70381203140554553, 1.8993753891711275)); 
+  return mix(clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0)), vec3(1.0), smoothstep(1000.0, 0.0, temperature));
+}
+
+// https://www.shadertoy.com/view/4dS3Wd
+// By Morgan McGuire @morgan3d, http://graphicscodex.com
+// Reuse permitted under the BSD license.
+float hash(float p) { p = fract(p * 0.011); p *= p + 7.5; p *= p + p; return fract(p); }
+float hash(vec2 p) {vec3 p3 = fract(vec3(p.xyx) * 0.13); p3 += dot(p3, p3.yzx + 3.333); return fract((p3.x + p3.y) * p3.z); }
+
+float noise(vec2 x) {
+    vec2 i = floor(x);
+    vec2 f = fract(x);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+
+float fbm(vec2 x) {
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * noise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+
 void main() {
-    fragmentColor = varying_color;
+    vec2 uv = varying_vertex + vec2(0.5, 0.5);
+    float bx = cos((1.0 - uv.x) * M_PI * 0.25);
+    float by = sin(uv.y * M_PI * 0.5 + M_PI / 4.0);
+    float brightness = clamp(pow(bx * by, 10.0), 0.0, 1.0);
+    float max_temp = 7000.0 + 7000.0 * fbm(uv - vec2(current_time * 5.0, sin(current_time)));
+    fragmentColor = vec4(colorTemperatureToRGB(brightness * max_temp), brightness);
 }
     "#,
         )?;
@@ -177,16 +323,16 @@ void main() {
                             .transform_vector(&vector![1.0, 0.0]);
                     let strength = (-ship.acceleration.cast::<f32>().dot(&direction)).max(0.0);
 
-                    let strength_scale_transform =
-                        Matrix4::new_nonuniform_scaling(&vector![strength, 1.0, 1.0]);
+                    let strength_scale_transform = Matrix4::new_nonuniform_scaling(&vector![
+                        -flare_position.scale.x * strength.sqrt(),
+                        flare_position.scale.y,
+                        1.0
+                    ]);
                     let flare_offset_transform = Matrix4::new_translation(&vector![
                         flare_position.offset.x,
                         flare_position.offset.y,
                         0.0
                     ]);
-                    let flare_scale_transform =
-                        Matrix4::new_nonuniform_scaling(&vector![-1.0, 0.3, 1.0])
-                            * flare_position.scale;
 
                     let flare_model_transform = Matrix4::new_translation(&vector![-0.5, 0.0, 0.0]);
 
@@ -199,7 +345,6 @@ void main() {
                         * flare_offset_transform
                         * flare_rotation_transform
                         * strength_scale_transform
-                        * flare_scale_transform
                         * flare_model_transform;
                     attribs.push(FlareAttribs {
                         color: Self::team_color(ship.team),
