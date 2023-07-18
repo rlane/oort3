@@ -696,8 +696,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         let mut rng =
             rng::new_rng(self.simulation.tick() ^ u64::from(self.handle) as u32 ^ index as u32);
-        let alpha = (gun.bullet_mass as f32).clamp(0.5, 1.0);
-        let color = color::to_u32(vector![1.00, 0.63, 0.00, alpha]);
+        let alpha = (gun.bullet_mass as f32).clamp(0.7, 1.0);
+        let color = color::to_u32(vector![1.0, 1.0, 1.0, alpha]);
         let mut t = 0.0;
         let dt = simulation::PHYSICS_TICK_LENGTH / gun.burst_size as f64;
 
