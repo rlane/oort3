@@ -162,12 +162,14 @@ impl FlareRenderer {
             r#"#version 300 es
 uniform mat4 projection;
 layout(location = 0) in vec4 vertex;
-layout(location = 1) in vec4 color;
+layout(location = 1) in float id;
 layout(location = 2) in mat4 transform;
 out vec2 varying_vertex;
+out float varying_id;
 
 void main() {
     varying_vertex = vertex.xy;
+    varying_id = id;
     gl_Position = projection * (transform * vertex);
 }
     "#,
@@ -179,6 +181,7 @@ void main() {
 precision mediump float;
 uniform float current_time;
 in vec2 varying_vertex;
+in float varying_id;
 out vec4 fragmentColor;
 
 const float M_PI = 3.14159265358979323846264338327950288;
@@ -233,8 +236,15 @@ void main() {
     float bx = cos((1.0 - uv.x) * M_PI * 0.25);
     float by = sin(uv.y * M_PI * 0.5 + M_PI / 4.0);
     float brightness = clamp(pow(bx * by, 10.0), 0.0, 1.0);
-    float max_temp = 7000.0 + 7000.0 * fbm(uv - vec2(current_time * 5.0, sin(current_time)));
-    fragmentColor = vec4(colorTemperatureToRGB(brightness * max_temp), brightness);
+    if (brightness < 0.01) {
+        discard;
+        return;
+    }
+    float t = current_time + varying_id * 0.01;
+    float max_temp = 2000.0 + 10000.0 * fbm(uv - vec2(t * 5.0, sin(t * 10.0)));
+    fragmentColor = vec4(
+        colorTemperatureToRGB(brightness * max_temp) * vec3(0.8, 0.8, 1.2),
+        brightness);
 }
     "#,
         )?;
@@ -293,7 +303,9 @@ void main() {
         }
 
         struct FlareAttribs {
-            color: Vector4<f32>,
+            id: f32,
+            #[allow(dead_code)]
+            pad: [f32; 3],
             transform: Matrix4<f32>,
         }
 
@@ -312,7 +324,7 @@ void main() {
                 .build();
 
             let mut attribs: Vec<FlareAttribs> = vec![];
-            attribs.reserve(ships.len());
+            attribs.reserve(ships.len() * 4);
             for ship in ships.iter() {
                 let p = ship.position.coords.cast::<f32>();
                 let ship_transform = Matrix4::new_translation(&vector![p.x, p.y, 0.0])
@@ -322,6 +334,9 @@ void main() {
                         UnitComplex::from_angle(ship.heading as f32 + flare_position.angle)
                             .transform_vector(&vector![1.0, 0.0]);
                     let strength = (-ship.acceleration.cast::<f32>().dot(&direction)).max(0.0);
+                    if strength <= 0.0 {
+                        continue;
+                    }
 
                     let strength_scale_transform = Matrix4::new_nonuniform_scaling(&vector![
                         -flare_position.scale.x * strength.sqrt(),
@@ -347,28 +362,36 @@ void main() {
                         * strength_scale_transform
                         * flare_model_transform;
                     attribs.push(FlareAttribs {
-                        color: Self::team_color(ship.team),
+                        id: (ship.id % 73) as f32,
+                        pad: [0.0; 3],
                         transform,
                     });
                 }
             }
 
+            if attribs.is_empty() {
+                continue;
+            }
+
             let vab = VertexAttribBuilder::new(&self.context)
                 .data(&mut self.buffer_arena, &attribs)
-                .size(4)
                 .divisor(1);
-            vab.index(1).offset(offset_of!(FlareAttribs, color)).build();
+            vab.index(1).offset(offset_of!(FlareAttribs, id)).build();
             vab.index(2)
                 .offset(offset_of!(FlareAttribs, transform))
+                .size(4)
                 .build();
             vab.index(3)
                 .offset(offset_of!(FlareAttribs, transform) + 16)
+                .size(4)
                 .build();
             vab.index(4)
                 .offset(offset_of!(FlareAttribs, transform) + 32)
+                .size(4)
                 .build();
             vab.index(5)
                 .offset(offset_of!(FlareAttribs, transform) + 48)
+                .size(4)
                 .build();
 
             // projection
