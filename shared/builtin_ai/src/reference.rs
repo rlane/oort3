@@ -126,11 +126,10 @@ impl Frigate {
                 ]
                 .contains(&c.class)
             }) {
+                self.move_target = contact.position;
                 let dp = contact.position - position();
                 set_radar_heading(dp.angle());
                 set_radar_width(radar_width() * 0.5);
-
-                seek(contact.position, vec2(0.0, 0.0), true);
 
                 // Main gun
                 if let Some(angle) = lead_target(contact.position, contact.velocity, 4e3, 60.0) {
@@ -146,9 +145,9 @@ impl Frigate {
                     fire(3);
                 }
             } else {
+                self.move_target = vec2(0.0, 0.0);
                 set_radar_heading(radar_heading() + radar_width());
                 set_radar_width(TAU / 120.0);
-                seek(self.move_target, vec2(0.0, 0.0), true);
             }
 
             // Switch to the next radar mode.
@@ -186,6 +185,8 @@ impl Frigate {
             self.main_gun_radar.restore();
             self.radar_state = FrigateRadarState::MainGun;
         }
+
+        seek(self.move_target, vec2(0.0, 0.0), true);
     }
 }
 
