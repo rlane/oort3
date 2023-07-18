@@ -48,7 +48,7 @@ pub struct Renderer {
     base_line_width: f32,
     debug: bool,
     picked_ship: Option<u64>,
-    minimal: bool,
+    blur_enabled: bool,
 }
 
 impl Renderer {
@@ -66,7 +66,7 @@ impl Renderer {
             .iter()
             .map(|s| s.as_string().unwrap())
             .collect::<Vec<_>>();
-        log::info!("Supported extensions: {:?}", extensions);
+        log::debug!("Supported extensions: {:?}", extensions);
 
         context.enable(gl::BLEND);
         context.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
@@ -87,7 +87,7 @@ impl Renderer {
             base_line_width: 1.0,
             debug: false,
             picked_ship: None,
-            minimal: false,
+            blur_enabled: false,
         })
     }
 
@@ -132,7 +132,6 @@ impl Renderer {
     }
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, snapshot: &Snapshot) {
-        let start_time = instant::Instant::now();
         let dpr = gloo_utils::window().device_pixel_ratio();
         let new_width = (self.canvas.client_width() as f64 * dpr) as u32;
         let new_height = (self.canvas.client_height() as f64 * dpr) as u32;
@@ -171,7 +170,7 @@ impl Renderer {
         self.grid_renderer
             .draw(zoom, camera_target, snapshot.world_size);
 
-        if !self.minimal {
+        if self.blur_enabled {
             self.blur.start();
             // Render to blur source texture
             self.context.clear_color(0.0, 0.0, 0.0, 0.0);
@@ -221,18 +220,14 @@ impl Renderer {
             }
         }
         self.text_renderer.draw(&texts);
-
-        if start_time.elapsed().as_millis() > 20 {
-            log::warn!(
-                "Rendering took {}ms, falling back to minimal graphics",
-                start_time.elapsed().as_millis()
-            );
-            self.minimal = true;
-        }
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
         self.particle_renderer.update(snapshot);
         self.trail_renderer.update(snapshot);
+    }
+
+    pub fn toggle_blur(&mut self) {
+        self.blur_enabled = !self.blur_enabled;
     }
 }

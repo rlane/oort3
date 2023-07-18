@@ -119,6 +119,11 @@ void main() {
             level,
         );
 
+        assert_eq!(
+            context.check_framebuffer_status(gl::FRAMEBUFFER),
+            gl::FRAMEBUFFER_COMPLETE
+        );
+
         context.bind_framebuffer(gl::FRAMEBUFFER, None);
 
         Ok(Self {

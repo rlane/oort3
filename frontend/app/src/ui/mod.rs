@@ -167,6 +167,10 @@ impl UI {
             self.quit = true;
         }
         let fast_forward = self.keys_down.contains("f");
+        if self.keys_down.contains("b") && !self.keys_ignored.contains("b") {
+            self.keys_ignored.insert("b".to_string());
+            self.renderer.toggle_blur();
+        }
 
         if self.paused {
             self.physics_time = now;
