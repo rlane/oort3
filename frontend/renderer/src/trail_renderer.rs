@@ -1,6 +1,6 @@
 use super::glutil;
 use log::warn;
-use nalgebra::{Matrix4, Point2};
+use nalgebra::{vector, Matrix4, Point2, UnitComplex, Vector2};
 use oort_api::Ability;
 use oort_simulator::ship::ShipClass;
 use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
@@ -118,7 +118,8 @@ void main() {
             if ship.active_abilities.contains(&Ability::Boost) {
                 color.w = (color.w * 4.0).clamp(0.0, 1.0);
             };
-            let current_position: Point2<f32> = ship.position.cast();
+            let current_position: Point2<f32> = ship.position.cast()
+                + UnitComplex::new(ship.heading as f32).transform_vector(&trail_offset(ship.class));
             {
                 use std::collections::hash_map::Entry;
                 match self.last_positions.entry(ship.id) {
@@ -260,5 +261,16 @@ void main() {
         self.context.disable_vertex_attrib_array(0);
         self.context.disable_vertex_attrib_array(1);
         self.context.disable_vertex_attrib_array(2);
+    }
+}
+
+fn trail_offset(class: ShipClass) -> Vector2<f32> {
+    match class {
+        ShipClass::Fighter => vector![-7.0, 0.0],
+        ShipClass::Frigate => vector![-48.0, 0.0],
+        ShipClass::Cruiser => vector![-96.0, 0.0],
+        ShipClass::Missile => vector![-2.1, 0.0],
+        ShipClass::Torpedo => vector![-6.4, 0.0],
+        _ => vector![0.0, 0.0],
     }
 }
