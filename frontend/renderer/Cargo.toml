@@ -38,4 +38,5 @@ features = [
   'Storage',
   'WheelEvent',
   'WebGlTexture',
+  'WebGlFramebuffer',
 ]

@@ -1,3 +1,4 @@
+pub mod blur;
 pub mod buffer_arena;
 pub mod bullet_renderer;
 pub mod flare_renderer;
@@ -13,6 +14,7 @@ pub mod trail_renderer;
 #[macro_use]
 extern crate memoffset;
 
+use blur::Blur;
 use bullet_renderer::BulletRenderer;
 use flare_renderer::FlareRenderer;
 use grid_renderer::GridRenderer;
@@ -41,6 +43,7 @@ pub struct Renderer {
     trail_renderer: TrailRenderer,
     text_renderer: TextRenderer,
     flare_renderer: FlareRenderer,
+    blur: Blur,
     projection_matrix: Matrix4<f32>,
     base_line_width: f32,
     debug: bool,
@@ -53,6 +56,16 @@ impl Renderer {
             .get_context("webgl2")?
             .expect("Failed to get webgl2 context")
             .dyn_into::<WebGl2RenderingContext>()?;
+
+        let extensions = context
+            .get_supported_extensions()
+            .expect("getting extensions")
+            .to_vec();
+        let extensions = extensions
+            .iter()
+            .map(|s| s.as_string().unwrap())
+            .collect::<Vec<_>>();
+        log::info!("Supported extensions: {:?}", extensions);
 
         context.enable(gl::BLEND);
         context.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
@@ -67,7 +80,8 @@ impl Renderer {
             particle_renderer: ParticleRenderer::new(context.clone())?,
             trail_renderer: TrailRenderer::new(context.clone())?,
             text_renderer: TextRenderer::new(context.clone())?,
-            flare_renderer: FlareRenderer::new(context)?,
+            flare_renderer: FlareRenderer::new(context.clone())?,
+            blur: Blur::new(context)?,
             projection_matrix: Matrix4::identity(),
             base_line_width: 1.0,
             debug: false,
@@ -130,7 +144,7 @@ impl Renderer {
 
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
-        self.context.viewport(0, 0, screen_width, screen_height);
+        self.context.viewport(0, 0, screen_width, screen_width);
         self.set_view(zoom, point![camera_target.x, camera_target.y]);
 
         self.grid_renderer
@@ -150,10 +164,30 @@ impl Renderer {
         self.flare_renderer
             .update_projection_matrix(&self.projection_matrix);
 
+        self.context.viewport(0, 0, screen_width, screen_height);
         self.grid_renderer
             .draw(zoom, camera_target, snapshot.world_size);
+
+        self.blur.start();
+        // Render to blur source texture
+        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
+        self.context.clear(gl::COLOR_BUFFER_BIT);
         self.trail_renderer.draw(snapshot.time as f32);
         self.flare_renderer.draw(snapshot);
+        self.ship_renderer
+            .draw(snapshot, self.base_line_width * blur::REDUCTION as f32);
+        self.bullet_renderer.draw(
+            snapshot,
+            self.base_line_width * blur::REDUCTION as f32 * 2.0,
+        );
+        self.particle_renderer.draw(snapshot);
+        self.blur.finish();
+
+        // Render non-blurred graphics
+        self.trail_renderer.draw(snapshot.time as f32);
+        self.flare_renderer.draw(snapshot);
+        self.bullet_renderer.draw(snapshot, self.base_line_width);
+
         let mut lines: Vec<Line> = Vec::new();
         if self.debug {
             for (_, debug_lines) in snapshot.debug_lines.iter() {
@@ -168,9 +202,7 @@ impl Renderer {
         }
         lines.extend(snapshot.scenario_lines.iter().cloned());
         self.line_renderer.draw(&lines);
-        self.bullet_renderer.draw(snapshot, self.base_line_width);
         self.ship_renderer.draw(snapshot, self.base_line_width);
-        self.particle_renderer.draw(snapshot);
 
         let mut texts: Vec<Text> = Vec::new();
         if self.debug {
