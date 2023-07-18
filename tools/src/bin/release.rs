@@ -198,9 +198,10 @@ async fn main() -> anyhow::Result<()> {
 
         let previous_changelog_contents =
             std::str::from_utf8(&std::fs::read("CHANGELOG.md")?)?.to_owned();
+        let date = chrono::Local::now().format("%Y-%m-%d").to_string();
         std::fs::write(
             "CHANGELOG.md",
-            &format!("### {version}\n\n{previous_changelog_contents}"),
+            &format!("### {version} - {date}\n\n{previous_changelog_contents}"),
         )?;
 
         sync_cmd_ok(&[
