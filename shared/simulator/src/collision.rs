@@ -98,13 +98,13 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                 let damage = energy * DAMAGE_FACTOR;
                 for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
                     let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
-                    let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..500.0), 0.0]);
+                    let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..1000.0), 0.0]);
                     let p = bullet_position + v * sim.rng.gen_range(0.0..0.1);
                     sim.events.particles.push(Particle {
                         position: p,
                         velocity: v,
                         color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
-                        lifetime: (PHYSICS_TICK_LENGTH * 10.0) as f32,
+                        lifetime: (PHYSICS_TICK_LENGTH * 30.0) as f32,
                     });
                 }
                 let ship_destroyed = {

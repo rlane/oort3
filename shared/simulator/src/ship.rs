@@ -828,7 +828,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 position: p + offset,
                 velocity: v,
                 color,
-                lifetime: ttl * 2.0,
+                lifetime: ttl * 4.0,
             });
         }
     }

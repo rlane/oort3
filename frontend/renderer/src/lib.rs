@@ -192,9 +192,7 @@ impl Renderer {
         self.trail_renderer.draw(snapshot.time as f32);
         self.flare_renderer.draw(snapshot);
         self.bullet_renderer.draw(snapshot, self.base_line_width);
-        if self.minimal {
-            self.particle_renderer.draw(snapshot);
-        }
+        self.particle_renderer.draw(snapshot);
 
         let mut lines: Vec<Line> = Vec::new();
         if self.debug {
