@@ -48,6 +48,7 @@ pub struct Renderer {
     base_line_width: f32,
     debug: bool,
     picked_ship: Option<u64>,
+    minimal: bool,
 }
 
 impl Renderer {
@@ -86,6 +87,7 @@ impl Renderer {
             base_line_width: 1.0,
             debug: false,
             picked_ship: None,
+            minimal: false,
         })
     }
 
@@ -130,6 +132,7 @@ impl Renderer {
     }
 
     pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, snapshot: &Snapshot) {
+        let start_time = instant::Instant::now();
         let dpr = gloo_utils::window().device_pixel_ratio();
         let new_width = (self.canvas.client_width() as f64 * dpr) as u32;
         let new_height = (self.canvas.client_height() as f64 * dpr) as u32;
@@ -168,25 +171,30 @@ impl Renderer {
         self.grid_renderer
             .draw(zoom, camera_target, snapshot.world_size);
 
-        self.blur.start();
-        // Render to blur source texture
-        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
-        self.context.clear(gl::COLOR_BUFFER_BIT);
-        self.trail_renderer.draw(snapshot.time as f32);
-        self.flare_renderer.draw(snapshot);
-        self.ship_renderer
-            .draw(snapshot, self.base_line_width * blur::REDUCTION as f32);
-        self.bullet_renderer.draw(
-            snapshot,
-            self.base_line_width * blur::REDUCTION as f32 * 2.0,
-        );
-        self.particle_renderer.draw(snapshot);
-        self.blur.finish();
+        if !self.minimal {
+            self.blur.start();
+            // Render to blur source texture
+            self.context.clear_color(0.0, 0.0, 0.0, 0.0);
+            self.context.clear(gl::COLOR_BUFFER_BIT);
+            self.trail_renderer.draw(snapshot.time as f32);
+            self.flare_renderer.draw(snapshot);
+            self.ship_renderer
+                .draw(snapshot, self.base_line_width * blur::REDUCTION as f32);
+            self.bullet_renderer.draw(
+                snapshot,
+                self.base_line_width * blur::REDUCTION as f32 * 2.0,
+            );
+            self.particle_renderer.draw(snapshot);
+            self.blur.finish();
+        }
 
         // Render non-blurred graphics
         self.trail_renderer.draw(snapshot.time as f32);
         self.flare_renderer.draw(snapshot);
         self.bullet_renderer.draw(snapshot, self.base_line_width);
+        if self.minimal {
+            self.particle_renderer.draw(snapshot);
+        }
 
         let mut lines: Vec<Line> = Vec::new();
         if self.debug {
@@ -215,6 +223,14 @@ impl Renderer {
             }
         }
         self.text_renderer.draw(&texts);
+
+        if start_time.elapsed().as_millis() > 20 {
+            log::warn!(
+                "Rendering took {}ms, falling back to minimal graphics",
+                start_time.elapsed().as_millis()
+            );
+            self.minimal = true;
+        }
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
