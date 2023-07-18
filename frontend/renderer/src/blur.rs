@@ -2,19 +2,29 @@ use super::{buffer_arena, geometry, glutil};
 use glutil::VertexAttribBuilder;
 use nalgebra::vector;
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlFramebuffer, WebGlProgram, WebGlTexture};
+use web_sys::{
+    WebGl2RenderingContext, WebGlFramebuffer, WebGlProgram, WebGlTexture, WebGlUniformLocation,
+};
 use WebGl2RenderingContext as gl;
 
-pub const TEXTURE_WIDTH: i32 = 2048;
-pub const TEXTURE_HEIGHT: i32 = 2048;
-pub const REDUCTION: i32 = 2;
+pub const TEXTURE_SIZE: i32 = 2048;
+pub const REDUCTION: i32 = 1;
+
+#[derive(PartialEq)]
+enum Direction {
+    Horizontal,
+    Vertical,
+}
 
 pub struct Blur {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     buffer_arena: buffer_arena::BufferArena,
-    texture: WebGlTexture,
-    fb: WebGlFramebuffer,
+    textures: Vec<WebGlTexture>,
+    fbs: Vec<WebGlFramebuffer>,
+    resolution_loc: WebGlUniformLocation,
+    radius_loc: WebGlUniformLocation,
+    dir_loc: WebGlUniformLocation,
 }
 
 impl Blur {
@@ -37,94 +47,120 @@ void main() {
             &context,
             gl::FRAGMENT_SHADER,
             r#"#version 300 es
+// https://github.com/mattdesl/lwjgl-basics/wiki/ShaderLesson5
 precision mediump float;
+
+uniform sampler2D tex;
+uniform float resolution;
+uniform float radius;
+uniform vec2 dir;
+
 in vec2 v_texcoord;
-uniform sampler2D u_texture;
 out vec4 fragmentColor;
+
 void main() {
-    vec2 iResolution = vec2(2048.0, 2048.0);
-    float Pi = 6.28318530718; // Pi*2
+    //this will be our RGBA sum
+    vec4 sum = vec4(0.0);
 
-    // GAUSSIAN BLUR SETTINGS {{{
-    float Directions = 16.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
-    float Quality = 16.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
-    float Size = 8.0; // BLUR SIZE (Radius)
-    // GAUSSIAN BLUR SETTINGS }}}
+    //our original texcoord for this fragment
+    vec2 tc = v_texcoord;
 
-    vec2 Radius = Size/iResolution.xy;
+    //the amount to blur, i.e. how far off center to sample from 
+    //1.0 -> blur by one pixel
+    //2.0 -> blur by two pixels, etc.
+    float blur = radius/resolution;
 
-    // Normalized pixel coordinates (from 0 to 1)
-    vec2 uv = gl_FragCoord.xy/iResolution.xy;
-    // Pixel colour
-    vec4 orig_color = texture(u_texture, v_texcoord);
-    vec4 blurred_color = orig_color;
+    //the direction of our blur
+    //(1.0, 0.0) -> x-axis blur
+    //(0.0, 1.0) -> y-axis blur
+    float hstep = dir.x;
+    float vstep = dir.y;
 
-    // Blur calculations
-    for( float d=0.0; d<Pi; d+=Pi/Directions)
-    {
-        for(float i=1.0/Quality; i<=1.0; i+=1.0/Quality)
-        {
-            blurred_color += texture( u_texture, v_texcoord+vec2(cos(d),sin(d))*Radius*i);
-        }
-    }
+    //apply blurring, using a 9-tap filter with predefined gaussian weights
 
-    // Output to screen
-    blurred_color /= Quality * Directions / 1.5;
+    sum += texture(tex, vec2(tc.x - 4.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.0162162162;
+    sum += texture(tex, vec2(tc.x - 3.0*blur*hstep, tc.y - 3.0*blur*vstep)) * 0.0540540541;
+    sum += texture(tex, vec2(tc.x - 2.0*blur*hstep, tc.y - 2.0*blur*vstep)) * 0.1216216216;
+    sum += texture(tex, vec2(tc.x - 1.0*blur*hstep, tc.y - 1.0*blur*vstep)) * 0.1945945946;
 
+    sum += texture(tex, vec2(tc.x, tc.y)) * 0.2270270270;
 
-    fragmentColor = blurred_color;
-}
-    "#,
+    sum += texture(tex, vec2(tc.x + 1.0*blur*hstep, tc.y + 1.0*blur*vstep)) * 0.1945945946;
+    sum += texture(tex, vec2(tc.x + 2.0*blur*hstep, tc.y + 2.0*blur*vstep)) * 0.1216216216;
+    sum += texture(tex, vec2(tc.x + 3.0*blur*hstep, tc.y + 3.0*blur*vstep)) * 0.0540540541;
+    sum += texture(tex, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0162162162;
+
+    sum.a *= 2.0;
+    fragmentColor = sum;
+}"#,
         )?;
         let program = glutil::link_program(&context, &vert_shader, &frag_shader)?;
 
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
-        let texture = context.create_texture().unwrap();
-        context.bind_texture(gl::TEXTURE_2D, Some(&texture));
-        let level = 0;
-        let internal_format = gl::RGBA;
-        let border = 0;
-        let format = gl::RGBA;
-        let typ = gl::UNSIGNED_BYTE;
-        context
+        let mut textures = vec![];
+        let mut fbs = vec![];
+
+        for _ in [0, 1] {
+            let texture = context.create_texture().unwrap();
+            context.bind_texture(gl::TEXTURE_2D, Some(&texture));
+            let level = 0;
+            let internal_format = gl::RGBA;
+            let border = 0;
+            let format = gl::RGBA;
+            let typ = gl::UNSIGNED_BYTE;
+            context
             .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view(
                 gl::TEXTURE_2D,
                 level,
                 internal_format as i32,
-                TEXTURE_WIDTH,
-                TEXTURE_HEIGHT,
+                TEXTURE_SIZE,
+                TEXTURE_SIZE,
                 border,
                 format,
                 typ,
                 None,
             )
             .unwrap();
-        // set the filtering so we don't need mips
-        context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-        context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-        context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-        context.bind_texture(gl::TEXTURE_2D, None);
+            // set the filtering so we don't need mips
+            context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+            context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+            context.bind_texture(gl::TEXTURE_2D, None);
 
-        let fb = context.create_framebuffer().unwrap();
-        context.bind_framebuffer(gl::FRAMEBUFFER, Some(&fb));
+            let fb = context.create_framebuffer().unwrap();
+            context.bind_framebuffer(gl::FRAMEBUFFER, Some(&fb));
 
-        // attach the texture as the first color attachment
-        let attachment_point = gl::COLOR_ATTACHMENT0;
-        context.framebuffer_texture_2d(
-            gl::FRAMEBUFFER,
-            attachment_point,
-            gl::TEXTURE_2D,
-            Some(&texture),
-            level,
-        );
+            // attach the texture as the first color attachment
+            let attachment_point = gl::COLOR_ATTACHMENT0;
+            context.framebuffer_texture_2d(
+                gl::FRAMEBUFFER,
+                attachment_point,
+                gl::TEXTURE_2D,
+                Some(&texture),
+                level,
+            );
 
-        assert_eq!(
-            context.check_framebuffer_status(gl::FRAMEBUFFER),
-            gl::FRAMEBUFFER_COMPLETE
-        );
+            assert_eq!(
+                context.check_framebuffer_status(gl::FRAMEBUFFER),
+                gl::FRAMEBUFFER_COMPLETE
+            );
 
-        context.bind_framebuffer(gl::FRAMEBUFFER, None);
+            context.bind_framebuffer(gl::FRAMEBUFFER, None);
+
+            textures.push(texture);
+            fbs.push(fb);
+        }
+
+        let resolution_loc = context
+            .get_uniform_location(&program, "resolution")
+            .ok_or("did not find uniform")?;
+        let radius_loc = context
+            .get_uniform_location(&program, "radius")
+            .ok_or("did not find uniform")?;
+        let dir_loc = context
+            .get_uniform_location(&program, "dir")
+            .ok_or("did not find uniform")?;
 
         Ok(Self {
             context: context.clone(),
@@ -135,15 +171,18 @@ void main() {
                 gl::ARRAY_BUFFER,
                 1024 * 1024,
             )?,
-            texture,
-            fb,
+            textures,
+            fbs,
+            resolution_loc,
+            radius_loc,
+            dir_loc,
         })
     }
 
     // Set up to render to the blur texture
     pub fn start(&mut self) {
         self.context
-            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fb));
+            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[0]));
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
         self.context
@@ -152,19 +191,38 @@ void main() {
 
     // Render blurred texture to screen
     pub fn finish(&mut self) {
-        self.context.bind_framebuffer(gl::FRAMEBUFFER, None);
+        // Horizontal pass into fbs[1]
+        self.context
+            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[1]));
+        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
+        self.context.clear(gl::COLOR_BUFFER_BIT);
+        self.context
+            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[0]));
+        self.draw(Direction::Horizontal);
 
+        // Vertical pass into screen
+        self.context.bind_framebuffer(gl::FRAMEBUFFER, None);
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
         self.context.viewport(0, 0, screen_width, screen_height);
         self.context
-            .bind_texture(gl::TEXTURE_2D, Some(&self.texture));
-        self.draw();
+            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[1]));
+        self.draw(Direction::Vertical);
         self.context.bind_texture(gl::TEXTURE_2D, None);
     }
 
-    fn draw(&mut self) {
+    fn draw(&mut self, direction: Direction) {
         self.context.use_program(Some(&self.program));
+
+        self.context.uniform1f(Some(&self.radius_loc), 1.0);
+        self.context
+            .uniform1f(Some(&self.resolution_loc), TEXTURE_SIZE as f32);
+
+        if direction == Direction::Vertical {
+            self.context.uniform2f(Some(&self.dir_loc), 0.0, 1.0);
+        } else {
+            self.context.uniform2f(Some(&self.dir_loc), 1.0, 0.0);
+        }
 
         // vertex
         let vertices = geometry::quad();
@@ -179,8 +237,8 @@ void main() {
         let screen_width = self.context.drawing_buffer_width() as f32;
         let screen_height = self.context.drawing_buffer_height() as f32;
         let scale = vector![
-            screen_width / (REDUCTION * TEXTURE_WIDTH) as f32,
-            screen_height / (REDUCTION * TEXTURE_HEIGHT) as f32
+            screen_width / (REDUCTION * TEXTURE_SIZE) as f32,
+            screen_height / (REDUCTION * TEXTURE_SIZE) as f32
         ];
         for point in texcoord.iter_mut() {
             point.x *= scale.x;

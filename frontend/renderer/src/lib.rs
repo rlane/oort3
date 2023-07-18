@@ -187,39 +187,41 @@ impl Renderer {
             self.blur.finish();
         }
 
-        // Render non-blurred graphics
-        self.trail_renderer.draw(snapshot.time as f32);
-        self.flare_renderer.draw(snapshot);
-        self.bullet_renderer.draw(snapshot, self.base_line_width);
-        self.particle_renderer.draw(snapshot);
+        if true {
+            // Render non-blurred graphics
+            self.trail_renderer.draw(snapshot.time as f32);
+            self.flare_renderer.draw(snapshot);
+            self.bullet_renderer.draw(snapshot, self.base_line_width);
+            self.particle_renderer.draw(snapshot);
 
-        let mut lines: Vec<Line> = Vec::new();
-        if self.debug {
-            for (_, debug_lines) in snapshot.debug_lines.iter() {
-                lines.extend(debug_lines.iter().cloned());
-            }
-        } else if let Some(ship) = self.picked_ship {
-            for (ship2, debug_lines) in snapshot.debug_lines.iter() {
-                if ship == *ship2 {
+            let mut lines: Vec<Line> = Vec::new();
+            if self.debug {
+                for (_, debug_lines) in snapshot.debug_lines.iter() {
                     lines.extend(debug_lines.iter().cloned());
                 }
+            } else if let Some(ship) = self.picked_ship {
+                for (ship2, debug_lines) in snapshot.debug_lines.iter() {
+                    if ship == *ship2 {
+                        lines.extend(debug_lines.iter().cloned());
+                    }
+                }
             }
-        }
-        lines.extend(snapshot.scenario_lines.iter().cloned());
-        self.line_renderer.draw(&lines);
-        self.ship_renderer.draw(snapshot, self.base_line_width);
+            lines.extend(snapshot.scenario_lines.iter().cloned());
+            self.line_renderer.draw(&lines);
+            self.ship_renderer.draw(snapshot, self.base_line_width);
 
-        let mut texts: Vec<Text> = Vec::new();
-        if self.debug {
-            for (_, drawn_text) in snapshot.drawn_text.iter() {
-                texts.extend(drawn_text.iter().cloned());
+            let mut texts: Vec<Text> = Vec::new();
+            if self.debug {
+                for (_, drawn_text) in snapshot.drawn_text.iter() {
+                    texts.extend(drawn_text.iter().cloned());
+                }
+            } else if let Some(ship) = self.picked_ship {
+                if let Some(drawn_text) = snapshot.drawn_text.get(&ship) {
+                    texts.extend(drawn_text.iter().cloned());
+                }
             }
-        } else if let Some(ship) = self.picked_ship {
-            if let Some(drawn_text) = snapshot.drawn_text.get(&ship) {
-                texts.extend(drawn_text.iter().cloned());
-            }
+            self.text_renderer.draw(&texts);
         }
-        self.text_renderer.draw(&texts);
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
