@@ -1,3 +1,5 @@
+- Added blur effect.
+
 ### 0.54.0
 
 - Added engine flares.
