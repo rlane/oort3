@@ -1,3 +1,5 @@
+- Added engine flares.
+
 ### 0.53.0
 
 - Tweaked team placement and composition in tournament scenarios.
