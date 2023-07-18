@@ -153,6 +153,7 @@ impl Renderer {
         self.grid_renderer
             .draw(zoom, camera_target, snapshot.world_size);
         self.trail_renderer.draw(snapshot.time as f32);
+        self.flare_renderer.draw(snapshot);
         let mut lines: Vec<Line> = Vec::new();
         if self.debug {
             for (_, debug_lines) in snapshot.debug_lines.iter() {
@@ -169,7 +170,6 @@ impl Renderer {
         self.line_renderer.draw(&lines);
         self.bullet_renderer.draw(snapshot, self.base_line_width);
         self.ship_renderer.draw(snapshot, self.base_line_width);
-        self.flare_renderer.draw(snapshot);
         self.particle_renderer.draw(snapshot);
 
         let mut texts: Vec<Text> = Vec::new();
