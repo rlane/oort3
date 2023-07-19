@@ -191,30 +191,56 @@ void main() {
 
     // Render blurred texture to screen
     pub fn finish(&mut self) {
-        // Horizontal pass into fbs[1]
+        self.context.disable(gl::BLEND);
+
+        // Horizontal pass textures[0] -> fbs[1]
         self.context
             .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[1]));
         self.context.clear_color(0.0, 0.0, 0.0, 0.0);
         self.context.clear(gl::COLOR_BUFFER_BIT);
         self.context
             .bind_texture(gl::TEXTURE_2D, Some(&self.textures[0]));
-        self.draw(Direction::Horizontal);
+        self.draw(Direction::Horizontal, 1.0);
 
-        // Vertical pass into screen
+        // Horizontal pass textures[1] -> fbs[0]
+        self.context
+            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[0]));
+        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
+        self.context.clear(gl::COLOR_BUFFER_BIT);
+        self.context
+            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[1]));
+        self.draw(Direction::Horizontal, 2.0);
+
+        // Vertical pass textures[0] -> fbs[1]
+        self.context
+            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[1]));
+        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
+        self.context.clear(gl::COLOR_BUFFER_BIT);
+        self.context
+            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[0]));
+        self.draw(Direction::Vertical, 1.0);
+
+        self.context.enable(gl::BLEND);
+        self.context.blend_func(gl::ONE, gl::ONE);
+
+        // Vertical pass textures[1] -> screen
         self.context.bind_framebuffer(gl::FRAMEBUFFER, None);
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
         self.context.viewport(0, 0, screen_width, screen_height);
         self.context
             .bind_texture(gl::TEXTURE_2D, Some(&self.textures[1]));
-        self.draw(Direction::Vertical);
+        self.draw(Direction::Vertical, 2.0);
         self.context.bind_texture(gl::TEXTURE_2D, None);
+
+        self.context
+            .blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
 
-    fn draw(&mut self, direction: Direction) {
+    fn draw(&mut self, direction: Direction, radius: f32) {
         self.context.use_program(Some(&self.program));
 
-        self.context.uniform1f(Some(&self.radius_loc), 1.0);
+        self.context.uniform1f(Some(&self.radius_loc), radius);
         self.context
             .uniform1f(Some(&self.resolution_loc), TEXTURE_SIZE as f32);
 
