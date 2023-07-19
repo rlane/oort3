@@ -196,7 +196,7 @@ impl Renderer {
                 snapshot,
                 self.base_line_width * blur::REDUCTION as f32 * 2.0,
             );
-            self.particle_renderer.draw(snapshot);
+            self.particle_renderer.draw(snapshot, 2.0);
             self.blur.finish();
         }
 
@@ -205,7 +205,7 @@ impl Renderer {
             self.trail_renderer.draw(snapshot.time as f32);
             self.flare_renderer.draw(snapshot);
             self.bullet_renderer.draw(snapshot, self.base_line_width);
-            self.particle_renderer.draw(snapshot);
+            self.particle_renderer.draw(snapshot, 1.0);
 
             let mut lines: Vec<Line> = Vec::new();
             if self.debug {

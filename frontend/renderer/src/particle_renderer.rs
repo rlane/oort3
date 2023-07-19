@@ -13,6 +13,7 @@ pub struct ParticleRenderer {
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
     current_time_loc: WebGlUniformLocation,
+    scale_loc: WebGlUniformLocation,
     projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
     particles: Vec<Particle>,
@@ -38,6 +39,7 @@ impl ParticleRenderer {
             r#"#version 300 es
 uniform mat4 transform;
 uniform float current_time;
+uniform float scale;
 layout(location = 0) in vec4 position;
 layout(location = 1) in vec3 velocity;
 layout(location = 2) in vec4 color;
@@ -50,7 +52,7 @@ void main() {
     float life_fraction = clamp(dt / lifetime, 0.0, 1.0);
     gl_Position = transform * (position + vec4(velocity, 0.0) * dt);
     varying_color = vec4(color.x, color.y, color.z, color.w * (1.0 - life_fraction));
-    gl_PointSize = (1.0 - life_fraction) * 10.0;
+    gl_PointSize = (1.0 - life_fraction) * 10.0 * scale;
 }
     "#,
         )?;
@@ -76,6 +78,10 @@ void main() {
             .get_uniform_location(&program, "current_time")
             .ok_or("did not find uniform")?;
 
+        let scale_loc = context
+            .get_uniform_location(&program, "scale")
+            .ok_or("did not find uniform")?;
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         let mut particles = vec![];
@@ -94,6 +100,7 @@ void main() {
             program,
             transform_loc,
             current_time_loc,
+            scale_loc,
             projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "particle_renderer",
@@ -135,12 +142,14 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot) {
+    pub fn draw(&mut self, snapshot: &Snapshot, scale: f32) {
         self.context.use_program(Some(&self.program));
 
         let current_time = snapshot.time as f32;
         self.context
             .uniform1f(Some(&self.current_time_loc), current_time);
+
+        self.context.uniform1f(Some(&self.scale_loc), scale);
 
         let data: Vec<Particle> = self
             .particles
