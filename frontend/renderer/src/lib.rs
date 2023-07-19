@@ -135,6 +135,15 @@ impl Renderer {
         let dpr = gloo_utils::window().device_pixel_ratio();
         let new_width = (self.canvas.client_width() as f64 * dpr) as u32;
         let new_height = (self.canvas.client_height() as f64 * dpr) as u32;
+        if new_width != self.canvas.width() || new_height != self.canvas.height() {
+            log::info!(
+                "Client size: {}x{}",
+                self.canvas.client_width(),
+                self.canvas.client_height()
+            );
+            log::info!("Device pixel ratio: {}", dpr);
+            log::info!("Resizing canvas to {}x{}", new_width, new_height);
+        }
         if new_width != self.canvas.width() {
             self.canvas.set_width(new_width);
         }
