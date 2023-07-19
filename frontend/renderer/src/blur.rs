@@ -7,7 +7,7 @@ use web_sys::{
 };
 use WebGl2RenderingContext as gl;
 
-pub const TEXTURE_SIZE: i32 = 2048;
+pub const TEXTURE_SIZE: i32 = 4096;
 pub const REDUCTION: i32 = 1;
 
 #[derive(PartialEq)]
