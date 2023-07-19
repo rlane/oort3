@@ -39,4 +39,5 @@ features = [
   'WheelEvent',
   'WebGlTexture',
   'WebGlFramebuffer',
+  'Screen',
 ]

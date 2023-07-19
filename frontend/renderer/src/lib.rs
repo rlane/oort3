@@ -71,6 +71,10 @@ impl Renderer {
         context.enable(gl::BLEND);
         context.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
+        // HACK: Disable blur on mobile devices
+        let blur_enabled = gloo_utils::window().screen().unwrap().width().unwrap() > 1024;
+        log::info!("Blur enabled: {}", blur_enabled);
+
         Ok(Renderer {
             canvas,
             context: context.clone(),
@@ -87,7 +91,7 @@ impl Renderer {
             base_line_width: 1.0,
             debug: false,
             picked_ship: None,
-            blur_enabled: false,
+            blur_enabled,
         })
     }
 
