@@ -209,7 +209,7 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self, current_time: f32) {
+    pub fn draw(&mut self, current_time: f32, scale: f32) {
         self.context.use_program(Some(&self.program));
 
         self.context
@@ -254,7 +254,7 @@ void main() {
         self.context
             .uniform1f(Some(&self.current_time_loc), current_time);
 
-        self.context.line_width(2.0);
+        self.context.line_width(scale);
 
         self.context.draw_arrays(gl::LINES, 0, MAX_VERTICES);
 
