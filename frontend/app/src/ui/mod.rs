@@ -9,6 +9,7 @@ use oort_simulator::scenario::Status;
 use oort_simulator::simulation::{self, PHYSICS_TICK_LENGTH};
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::time::Duration;
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
@@ -35,8 +36,9 @@ pub struct UI {
     keys_down: std::collections::HashSet<String>,
     keys_ignored: std::collections::HashSet<String>,
     frame: u64,
-    last_render_time: f64,
-    physics_time: f64,
+    start_time: instant::Instant,
+    last_render_time: instant::Instant,
+    physics_time: std::time::Duration,
     fps: fps::FPS,
     debug: bool,
     last_status_msg: String,
@@ -96,8 +98,9 @@ impl UI {
             keys_down,
             keys_ignored,
             frame: 0,
-            last_render_time: instant::now(),
-            physics_time: instant::now(),
+            start_time: instant::Instant::now(),
+            last_render_time: instant::Instant::now(),
+            physics_time: std::time::Duration::ZERO,
             fps: fps::FPS::new(),
             debug: false,
             last_status_msg: "".to_owned(),
@@ -119,12 +122,16 @@ impl UI {
         }
         self.needs_render = false;
 
-        let now = instant::now();
-        if now - self.last_render_time > 20.0 {
-            debug!("Late render: {:.1} ms", now - self.last_render_time);
+        let now = instant::Instant::now();
+        let elapsed = now - self.last_render_time;
+        self.last_render_time = now;
+        if elapsed.as_millis() > 20 {
+            debug!("Late render: {:.1} ms", elapsed.as_millis());
         }
-        self.fps.start_frame(now);
-        self.frame_timer.start(now);
+        self.fps
+            .start_frame((now - self.start_time).as_millis() as f64);
+        self.frame_timer
+            .start((now - self.start_time).as_millis() as f64);
 
         let mut status_msgs: Vec<String> = Vec::new();
 
@@ -172,27 +179,23 @@ impl UI {
             self.renderer.toggle_blur();
         }
 
-        if self.paused {
-            self.physics_time = now;
+        if !self.paused {
+            self.physics_time += elapsed;
         }
 
         if self.status == Status::Running && (!self.paused || self.single_steps > 0 || fast_forward)
         {
-            let dt = simulation::PHYSICS_TICK_LENGTH;
-            self.physics_time = self.physics_time.max(now - dt * 2.0);
+            let dt = std::time::Duration::from_secs_f64(simulation::PHYSICS_TICK_LENGTH);
             if fast_forward {
                 for _ in 0..10 {
                     self.physics_time += dt;
                     self.update_snapshot();
                 }
-            } else if self.single_steps > 0 || self.physics_time + dt < now {
+            } else if self.single_steps > 0 {
                 self.physics_time += dt;
                 self.update_snapshot();
-            } else if self.snapshot.is_some() {
-                snapshot::interpolate(
-                    self.snapshot.as_mut().unwrap(),
-                    (now - self.last_render_time) / 1e3,
-                );
+            } else {
+                self.update_snapshot();
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
@@ -271,7 +274,6 @@ impl UI {
         self.frame += 1;
 
         self.frame_timer.end(instant::now());
-        self.last_render_time = now;
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
@@ -296,14 +298,17 @@ impl UI {
             self.snapshot_requests_in_flight += 2;
         }
 
-        if self.pending_snapshots.is_empty() || self.pending_snapshots[0].time > self.physics_time {
+        if self.pending_snapshots.is_empty()
+            || std::time::Duration::from_secs_f64(self.pending_snapshots[0].time)
+                > self.physics_time
+        {
             return;
         }
 
         let first_snapshot = self.snapshot.is_none();
 
         self.snapshot = self.pending_snapshots.pop_front();
-        let snapshot = self.snapshot.as_ref().unwrap();
+        let snapshot = self.snapshot.as_mut().unwrap();
 
         if first_snapshot {
             // Zoom out to show all ships.
@@ -332,6 +337,16 @@ impl UI {
         }
 
         self.status = snapshot.status;
+
+        let t = std::time::Duration::from_secs_f64(snapshot.time);
+        assert!(self.physics_time >= t);
+        let mut delta = (self.physics_time - t).min(Duration::from_millis(16));
+        if delta > Duration::from_millis(3) {
+            delta -= Duration::from_millis(1);
+        }
+        self.physics_time = t + delta;
+
+        snapshot::interpolate(snapshot, delta.as_secs_f64());
 
         self.renderer.update(snapshot);
     }
