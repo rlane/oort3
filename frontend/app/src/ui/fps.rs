@@ -1,13 +1,19 @@
+const BUFFER_SIZE: usize = 32;
+
 pub struct FPS {
-    frame_time_moving_average: f64,
     last_frame_start_time: f64,
+    frames: usize,
+    sum: f32,
+    buffer: [f32; BUFFER_SIZE],
 }
 
 impl FPS {
     pub fn new() -> Self {
         FPS {
-            frame_time_moving_average: 0.0,
             last_frame_start_time: 0.0,
+            frames: 0,
+            sum: 0.0,
+            buffer: [0.0; BUFFER_SIZE],
         }
     }
 
@@ -16,26 +22,17 @@ impl FPS {
             // no-op
         } else {
             let elapsed = now - self.last_frame_start_time;
-            if elapsed > 1000.0 {
-                // Likely paused by browser.
-                self.frame_time_moving_average = 0.0;
-            } else if self.frame_time_moving_average == 0.0 {
-                self.frame_time_moving_average = elapsed;
-            } else {
-                let weight = 0.05;
-                self.frame_time_moving_average =
-                    weight * elapsed + (1.0 - weight) * self.frame_time_moving_average;
-            }
+            self.sum -= self.buffer[self.frames % BUFFER_SIZE];
+            self.buffer[self.frames % BUFFER_SIZE] = elapsed as f32;
+            self.sum += elapsed as f32;
+            self.frames += 1;
         }
         self.last_frame_start_time = now;
     }
 
     pub fn fps(&self) -> f64 {
-        if self.frame_time_moving_average == 0.0 {
-            0.0
-        } else {
-            1e3 / self.frame_time_moving_average
-        }
+        let frame_duration = self.sum / BUFFER_SIZE.min(self.frames) as f32;
+        1e3 / frame_duration as f64
     }
 }
 
