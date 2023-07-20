@@ -1,3 +1,5 @@
+use crate::ship::ShipClass;
+
 use super::prelude::*;
 use rand::seq::SliceRandom;
 
@@ -40,7 +42,12 @@ impl Scenario for Welcome {
     fn tick(&mut self, sim: &mut Simulation) {
         let rng = self.rng.as_mut().unwrap();
         let asteroid_variants = [1, 6, 14];
-        while sim.ships.len() < 20 {
+        let num_asteroids = sim
+            .ships
+            .iter()
+            .filter(|s| matches!(sim.ship(**s).data().class, ShipClass::Asteroid { .. }))
+            .count();
+        for _ in num_asteroids..20 {
             let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_point(&point![rng.gen_range(500.0..2000.0), 0.0]);
             ship::create(
