@@ -4,7 +4,7 @@ use super::{buffer_arena, geometry, glutil};
 use glutil::VertexAttribBuilder;
 use nalgebra::{vector, Matrix4, Unit, UnitComplex, Vector2, Vector4};
 use oort_simulator::ship::ShipClass;
-use oort_simulator::snapshot::{ShipSnapshot, Snapshot};
+use oort_simulator::snapshot::Snapshot;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
@@ -292,16 +292,6 @@ void main() {
     pub fn draw(&mut self, snapshot: &Snapshot) {
         self.context.use_program(Some(&self.program));
 
-        let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipSnapshot>>::new();
-
-        for ship in snapshot.ships.iter() {
-            ships_by_class.entry(ship.class).or_insert_with(Vec::new);
-            ships_by_class
-                .get_mut(&ship.class)
-                .unwrap()
-                .push((*ship).clone());
-        }
-
         struct FlareAttribs {
             id: f32,
             #[allow(dead_code)]
@@ -309,114 +299,112 @@ void main() {
             transform: Matrix4<f32>,
         }
 
-        for (class, ships) in ships_by_class.iter() {
-            let flare_positions = flare_positions(*class);
+        let mut attribs: Vec<FlareAttribs> = vec![];
+        attribs.reserve(snapshot.ships.len() * 4);
+
+        // vertex
+        let vertices = geometry::quad();
+        VertexAttribBuilder::new(&self.context)
+            .data(&mut self.buffer_arena, &vertices)
+            .index(0)
+            .size(2)
+            .build();
+
+        for ship in snapshot.ships.iter() {
+            let flare_positions = flare_positions(ship.class);
             if flare_positions.is_empty() {
                 continue;
             }
 
-            // vertex
-            let vertices = geometry::quad();
-            VertexAttribBuilder::new(&self.context)
-                .data(&mut self.buffer_arena, &vertices)
-                .index(0)
-                .size(2)
-                .build();
-
-            let mut attribs: Vec<FlareAttribs> = vec![];
-            attribs.reserve(ships.len() * 4);
-            for ship in ships.iter() {
-                let p = ship.position.coords.cast::<f32>();
-                let ship_transform = Matrix4::new_translation(&vector![p.x, p.y, 0.0])
-                    * Matrix4::from_euler_angles(0.0, 0.0, ship.heading as f32);
-                for flare_position in &flare_positions {
-                    let direction =
-                        UnitComplex::from_angle(ship.heading as f32 + flare_position.angle)
-                            .transform_vector(&vector![1.0, 0.0]);
-                    let strength = (-ship.acceleration.cast::<f32>().dot(&direction)).max(0.0);
-                    if strength <= 0.0 {
-                        continue;
-                    }
-
-                    let strength_scale_transform = Matrix4::new_nonuniform_scaling(&vector![
-                        -flare_position.scale.x * strength.sqrt(),
-                        flare_position.scale.y,
-                        1.0
-                    ]);
-                    let flare_offset_transform = Matrix4::new_translation(&vector![
-                        flare_position.offset.x,
-                        flare_position.offset.y,
-                        0.0
-                    ]);
-
-                    let flare_model_transform = Matrix4::new_translation(&vector![-0.5, 0.0, 0.0]);
-
-                    let flare_rotation_transform = Matrix4::from_axis_angle(
-                        &Unit::new_normalize(vector![0.0, 0.0, 1.0]),
-                        flare_position.angle,
-                    );
-
-                    let transform = ship_transform
-                        * flare_offset_transform
-                        * flare_rotation_transform
-                        * strength_scale_transform
-                        * flare_model_transform;
-                    attribs.push(FlareAttribs {
-                        id: (ship.id % 73) as f32,
-                        pad: [0.0; 3],
-                        transform,
-                    });
+            let p = ship.position.coords.cast::<f32>();
+            let ship_transform = Matrix4::new_translation(&vector![p.x, p.y, 0.0])
+                * Matrix4::from_euler_angles(0.0, 0.0, ship.heading as f32);
+            for flare_position in &flare_positions {
+                let direction = UnitComplex::from_angle(ship.heading as f32 + flare_position.angle)
+                    .transform_vector(&vector![1.0, 0.0]);
+                let strength = (-ship.acceleration.cast::<f32>().dot(&direction)).max(0.0);
+                if strength <= 0.0 {
+                    continue;
                 }
+
+                let strength_scale_transform = Matrix4::new_nonuniform_scaling(&vector![
+                    -flare_position.scale.x * strength.sqrt(),
+                    flare_position.scale.y,
+                    1.0
+                ]);
+                let flare_offset_transform = Matrix4::new_translation(&vector![
+                    flare_position.offset.x,
+                    flare_position.offset.y,
+                    0.0
+                ]);
+
+                let flare_model_transform = Matrix4::new_translation(&vector![-0.5, 0.0, 0.0]);
+
+                let flare_rotation_transform = Matrix4::from_axis_angle(
+                    &Unit::new_normalize(vector![0.0, 0.0, 1.0]),
+                    flare_position.angle,
+                );
+
+                let transform = ship_transform
+                    * flare_offset_transform
+                    * flare_rotation_transform
+                    * strength_scale_transform
+                    * flare_model_transform;
+                attribs.push(FlareAttribs {
+                    id: (ship.id % 73) as f32,
+                    pad: [0.0; 3],
+                    transform,
+                });
             }
+        }
 
-            if attribs.is_empty() {
-                continue;
-            }
+        if attribs.is_empty() {
+            return;
+        }
 
-            let vab = VertexAttribBuilder::new(&self.context)
-                .data(&mut self.buffer_arena, &attribs)
-                .divisor(1);
-            vab.index(1).offset(offset_of!(FlareAttribs, id)).build();
-            vab.index(2)
-                .offset(offset_of!(FlareAttribs, transform))
-                .size(4)
-                .build();
-            vab.index(3)
-                .offset(offset_of!(FlareAttribs, transform) + 16)
-                .size(4)
-                .build();
-            vab.index(4)
-                .offset(offset_of!(FlareAttribs, transform) + 32)
-                .size(4)
-                .build();
-            vab.index(5)
-                .offset(offset_of!(FlareAttribs, transform) + 48)
-                .size(4)
-                .build();
+        let vab = VertexAttribBuilder::new(&self.context)
+            .data(&mut self.buffer_arena, &attribs)
+            .divisor(1);
+        vab.index(1).offset(offset_of!(FlareAttribs, id)).build();
+        vab.index(2)
+            .offset(offset_of!(FlareAttribs, transform))
+            .size(4)
+            .build();
+        vab.index(3)
+            .offset(offset_of!(FlareAttribs, transform) + 16)
+            .size(4)
+            .build();
+        vab.index(4)
+            .offset(offset_of!(FlareAttribs, transform) + 32)
+            .size(4)
+            .build();
+        vab.index(5)
+            .offset(offset_of!(FlareAttribs, transform) + 48)
+            .size(4)
+            .build();
 
-            // projection
-            self.context.uniform_matrix4fv_with_f32_array(
-                Some(&self.projection_loc),
-                false,
-                self.projection_matrix.data.as_slice(),
-            );
+        // projection
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.projection_loc),
+            false,
+            self.projection_matrix.data.as_slice(),
+        );
 
-            // current_time
-            self.context
-                .uniform1f(Some(&self.current_time_loc), snapshot.time as f32);
+        // current_time
+        self.context
+            .uniform1f(Some(&self.current_time_loc), snapshot.time as f32);
 
-            let num_instances = attribs.len();
-            self.context.draw_arrays_instanced(
-                gl::TRIANGLE_STRIP,
-                0,
-                vertices.len() as i32,
-                num_instances as i32,
-            );
+        let num_instances = attribs.len();
+        self.context.draw_arrays_instanced(
+            gl::TRIANGLE_STRIP,
+            0,
+            vertices.len() as i32,
+            num_instances as i32,
+        );
 
-            for i in 0..6 {
-                self.context.vertex_attrib_divisor(i, 0);
-                self.context.disable_vertex_attrib_array(i);
-            }
+        for i in 0..6 {
+            self.context.vertex_attrib_divisor(i, 0);
+            self.context.disable_vertex_attrib_array(i);
         }
     }
 }
