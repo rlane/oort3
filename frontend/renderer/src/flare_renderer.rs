@@ -413,14 +413,10 @@ void main() {
                 num_instances as i32,
             );
 
-            self.context.vertex_attrib_divisor(1, 0);
-            self.context.vertex_attrib_divisor(2, 0);
-            self.context.vertex_attrib_divisor(3, 0);
-
-            self.context.disable_vertex_attrib_array(0);
-            self.context.disable_vertex_attrib_array(1);
-            self.context.disable_vertex_attrib_array(2);
-            self.context.disable_vertex_attrib_array(3);
+            for i in 0..6 {
+                self.context.vertex_attrib_divisor(i, 0);
+                self.context.disable_vertex_attrib_array(i);
+            }
         }
     }
 }
