@@ -118,8 +118,16 @@ void main() {
             attribs.reserve(ships.len());
             for ship in ships.iter() {
                 let p = ship.position.coords.cast::<f32>();
+                let shielded = ship.active_abilities.contains(&oort_api::Ability::Shield);
+                let team_color = Self::team_color(ship.team);
+                let color = if shielded {
+                    let frac = (snapshot.time as f32 * 30.0).sin() * 0.2 + 0.5;
+                    team_color * (1.0 - frac) + Vector4::new(0.0, 0.0, 1.0, 1.0) * frac
+                } else {
+                    team_color
+                };
                 attribs.push(ShipAttribs {
-                    color: Self::team_color(ship.team),
+                    color,
                     transform: Matrix4::new_translation(&vector![p.x, p.y, 0.0])
                         * Matrix4::from_euler_angles(0.0, 0.0, ship.heading as f32),
                 });
