@@ -1,4 +1,5 @@
 - Added blur effect.
+- Fixed game speed on high refresh rate monitors.
 
 ### 0.54.0
 
