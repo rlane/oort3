@@ -2,11 +2,11 @@ use std::f32::consts::TAU;
 
 use super::{buffer_arena, geometry, glutil};
 use glutil::VertexAttribBuilder;
-use nalgebra::{vector, Matrix4, Unit, UnitComplex, Vector2, Vector4};
+use nalgebra::{vector, Matrix4, Unit, UnitComplex, Vector2};
 use oort_simulator::ship::ShipClass;
 use oort_simulator::snapshot::Snapshot;
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlVertexArrayObject};
 use WebGl2RenderingContext as gl;
 
 struct FlarePosition {
@@ -150,8 +150,24 @@ pub struct FlareRenderer {
     program: WebGlProgram,
     projection_loc: WebGlUniformLocation,
     current_time_loc: WebGlUniformLocation,
-    projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
+    vao: WebGlVertexArrayObject,
+}
+
+pub struct DrawSet {
+    projection_matrix: Matrix4<f32>,
+    num_instances: usize,
+    vertices_token: buffer_arena::Token,
+    num_vertices: usize,
+    attribs_token: buffer_arena::Token,
+    time: f32,
+}
+
+struct Attribs {
+    id: f32,
+    #[allow(dead_code)]
+    pad: [f32; 3],
+    transform: Matrix4<f32>,
 }
 
 impl FlareRenderer {
@@ -260,56 +276,32 @@ void main() {
 
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
+        let vao = context
+            .create_vertex_array()
+            .ok_or("failed to create vertex array")?;
+
         Ok(Self {
             context: context.clone(),
             program,
             projection_loc,
             current_time_loc,
-            projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "flare_renderer",
                 context,
                 gl::ARRAY_BUFFER,
                 1024 * 1024,
             )?,
+            vao,
         })
     }
 
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
-    }
-
-    pub fn team_color(team: i32) -> Vector4<f32> {
-        match team {
-            0 => vector![0.99, 0.98, 0.00, 1.00],
-            1 => vector![0.99, 0.00, 0.98, 1.00],
-            2 => vector![0.13, 0.50, 0.73, 1.00],
-            9 => vector![0.40, 0.40, 0.40, 1.00],
-            _ => vector![1.0, 1.0, 1.0, 1.0],
-        }
-    }
-
-    pub fn draw(&mut self, snapshot: &Snapshot) {
-        self.context.use_program(Some(&self.program));
-
-        struct FlareAttribs {
-            id: f32,
-            #[allow(dead_code)]
-            pad: [f32; 3],
-            transform: Matrix4<f32>,
-        }
-
-        let mut attribs: Vec<FlareAttribs> = vec![];
-        attribs.reserve(snapshot.ships.len() * 4);
-
+    pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, snapshot: &Snapshot) -> DrawSet {
         // vertex
         let vertices = geometry::quad();
-        VertexAttribBuilder::new(&self.context)
-            .data(&mut self.buffer_arena, &vertices)
-            .index(0)
-            .size(2)
-            .build();
+        let vertices_token = self.buffer_arena.write(vertices.as_slice());
 
+        let mut attribs: Vec<Attribs> = vec![];
+        attribs.reserve(snapshot.ships.len() * 4);
         for ship in snapshot.ships.iter() {
             let flare_positions = flare_positions(ship.class);
             if flare_positions.is_empty() {
@@ -350,7 +342,7 @@ void main() {
                     * flare_rotation_transform
                     * strength_scale_transform
                     * flare_model_transform;
-                attribs.push(FlareAttribs {
+                attribs.push(Attribs {
                     id: (ship.id % 73) as f32,
                     pad: [0.0; 3],
                     transform,
@@ -358,28 +350,52 @@ void main() {
             }
         }
 
-        if attribs.is_empty() {
+        let attribs_token = self.buffer_arena.write(attribs.as_slice());
+
+        DrawSet {
+            projection_matrix: *projection_matrix,
+            num_instances: attribs.len(),
+            vertices_token,
+            num_vertices: vertices.len(),
+            attribs_token,
+            time: snapshot.time as f32,
+        }
+    }
+
+    pub fn draw(&mut self, drawset: &DrawSet) {
+        if drawset.num_instances == 0 {
             return;
         }
 
+        self.context.use_program(Some(&self.program));
+        self.context.bind_vertex_array(Some(&self.vao));
+
+        // vertex
+        VertexAttribBuilder::new(&self.context)
+            .data_token(&drawset.vertices_token)
+            .index(0)
+            .size(2)
+            .build();
+
+        // attribs
         let vab = VertexAttribBuilder::new(&self.context)
-            .data(&mut self.buffer_arena, &attribs)
+            .data_token(&drawset.attribs_token)
             .divisor(1);
-        vab.index(1).offset(offset_of!(FlareAttribs, id)).build();
+        vab.index(1).offset(offset_of!(Attribs, id)).build();
         vab.index(2)
-            .offset(offset_of!(FlareAttribs, transform))
+            .offset(offset_of!(Attribs, transform))
             .size(4)
             .build();
         vab.index(3)
-            .offset(offset_of!(FlareAttribs, transform) + 16)
+            .offset(offset_of!(Attribs, transform) + 16)
             .size(4)
             .build();
         vab.index(4)
-            .offset(offset_of!(FlareAttribs, transform) + 32)
+            .offset(offset_of!(Attribs, transform) + 32)
             .size(4)
             .build();
         vab.index(5)
-            .offset(offset_of!(FlareAttribs, transform) + 48)
+            .offset(offset_of!(Attribs, transform) + 48)
             .size(4)
             .build();
 
@@ -387,24 +403,20 @@ void main() {
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.projection_loc),
             false,
-            self.projection_matrix.data.as_slice(),
+            drawset.projection_matrix.data.as_slice(),
         );
 
         // current_time
         self.context
-            .uniform1f(Some(&self.current_time_loc), snapshot.time as f32);
+            .uniform1f(Some(&self.current_time_loc), drawset.time);
 
-        let num_instances = attribs.len();
         self.context.draw_arrays_instanced(
             gl::TRIANGLE_STRIP,
             0,
-            vertices.len() as i32,
-            num_instances as i32,
+            drawset.num_vertices as i32,
+            drawset.num_instances as i32,
         );
 
-        for i in 0..6 {
-            self.context.vertex_attrib_divisor(i, 0);
-            self.context.disable_vertex_attrib_array(i);
-        }
+        self.context.bind_vertex_array(None);
     }
 }

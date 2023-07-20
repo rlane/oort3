@@ -183,8 +183,9 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
         self.text_renderer
             .update_projection_matrix(&self.projection_matrix);
-        self.flare_renderer
-            .update_projection_matrix(&self.projection_matrix);
+        let flare_drawset = self
+            .flare_renderer
+            .upload(&self.projection_matrix, snapshot);
 
         self.context.viewport(0, 0, screen_width, screen_height);
         self.grid_renderer
@@ -196,7 +197,7 @@ impl Renderer {
             self.context.clear_color(0.0, 0.0, 0.0, 0.0);
             self.context.clear(gl::COLOR_BUFFER_BIT);
             self.trail_renderer.draw(snapshot.time as f32, 4.0);
-            self.flare_renderer.draw(snapshot);
+            self.flare_renderer.draw(&flare_drawset);
             self.ship_renderer.draw(&ship_drawset);
             self.bullet_renderer.draw(&blur_bullet_drawset);
             self.particle_renderer.draw(snapshot, 2.0);
@@ -206,7 +207,7 @@ impl Renderer {
         if true {
             // Render non-blurred graphics
             self.trail_renderer.draw(snapshot.time as f32, 2.0);
-            self.flare_renderer.draw(snapshot);
+            self.flare_renderer.draw(&flare_drawset);
             self.bullet_renderer.draw(&bullet_drawset);
             self.particle_renderer.draw(snapshot, 1.0);
 

@@ -51,8 +51,10 @@ impl BufferArena {
     }
 
     pub fn write_buf(&mut self, data: &[u8]) -> Token {
-        assert!(!data.is_empty());
         let data_length = data.len() as u32;
+        if data_length == 0 {
+            return (self.active_buffer.clone(), self.offset, 1);
+        }
         assert!(self.offset <= self.buffer_size);
         assert!(data_length <= self.buffer_size);
         if (self.buffer_size - self.offset) < data_length {
