@@ -166,8 +166,9 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
         self.line_renderer
             .update_projection_matrix(&self.projection_matrix);
-        self.ship_renderer
-            .update_projection_matrix(&self.projection_matrix);
+        let ship_drawset =
+            self.ship_renderer
+                .upload(&self.projection_matrix, snapshot, self.base_line_width);
         self.bullet_renderer
             .update_projection_matrix(&self.projection_matrix);
         self.particle_renderer
@@ -190,8 +191,7 @@ impl Renderer {
             self.context.clear(gl::COLOR_BUFFER_BIT);
             self.trail_renderer.draw(snapshot.time as f32, 4.0);
             self.flare_renderer.draw(snapshot);
-            self.ship_renderer
-                .draw(snapshot, self.base_line_width * blur::REDUCTION as f32);
+            self.ship_renderer.draw(&ship_drawset);
             self.bullet_renderer.draw(
                 snapshot,
                 self.base_line_width * blur::REDUCTION as f32 * 2.0,
@@ -221,7 +221,7 @@ impl Renderer {
             }
             lines.extend(snapshot.scenario_lines.iter().cloned());
             self.line_renderer.draw(&lines);
-            self.ship_renderer.draw(snapshot, self.base_line_width);
+            self.ship_renderer.draw(&ship_drawset);
 
             let mut texts: Vec<Text> = Vec::new();
             if self.debug {

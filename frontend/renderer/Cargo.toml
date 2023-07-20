@@ -40,4 +40,5 @@ features = [
   'WebGlTexture',
   'WebGlFramebuffer',
   'Screen',
+  'WebGlVertexArrayObject',
 ]

@@ -5,15 +5,32 @@ use oort_simulator::model;
 use oort_simulator::ship::ShipClass;
 use oort_simulator::snapshot::{ShipSnapshot, Snapshot};
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlVertexArrayObject};
 use WebGl2RenderingContext as gl;
 
 pub struct ShipRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     projection_loc: WebGlUniformLocation,
-    projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
+    vao: WebGlVertexArrayObject,
+}
+
+pub struct DrawSet {
+    projection_matrix: Matrix4<f32>,
+    draws: Vec<Draw>,
+}
+
+pub struct Draw {
+    num_instances: usize,
+    vertices_token: buffer_arena::Token,
+    num_vertices: usize,
+    attribs_token: buffer_arena::Token,
+}
+
+struct Attribs {
+    color: Vector4<f32>,
+    transform: Matrix4<f32>,
 }
 
 impl ShipRenderer {
@@ -53,24 +70,24 @@ void main() {
             .get_uniform_location(&program, "projection")
             .ok_or("did not find uniform")?;
 
+        let vao = context
+            .create_vertex_array()
+            .ok_or("failed to create vertex array")?;
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
             context: context.clone(),
             program,
             projection_loc,
-            projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "ship_renderer",
                 context,
                 gl::ARRAY_BUFFER,
                 1024 * 1024,
             )?,
+            vao,
         })
-    }
-
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
     }
 
     pub fn team_color(team: i32) -> Vector4<f32> {
@@ -83,21 +100,12 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot, base_line_width: f32) {
-        self.context.use_program(Some(&self.program));
-
-        struct ShipBatch {
-            num_instances: usize,
-            vertices_token: buffer_arena::Token,
-            num_vertices: usize,
-            attribs_token: buffer_arena::Token,
-        }
-
-        struct ShipAttribs {
-            color: Vector4<f32>,
-            transform: Matrix4<f32>,
-        }
-
+    pub fn upload(
+        &mut self,
+        projection_matrix: &Matrix4<f32>,
+        snapshot: &Snapshot,
+        base_line_width: f32,
+    ) -> DrawSet {
         let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipSnapshot>>::new();
 
         for ship in snapshot.ships.iter() {
@@ -108,13 +116,13 @@ void main() {
                 .push((*ship).clone());
         }
 
-        let mut batches = vec![];
+        let mut draws = vec![];
         for (&class, ships) in ships_by_class.iter() {
             let model_vertices = geometry::line_loop_mesh(&model::load(class), base_line_width);
             let vertices_token = self.buffer_arena.write(&model_vertices);
             let num_vertices = model_vertices.len();
 
-            let mut attribs: Vec<ShipAttribs> = vec![];
+            let mut attribs: Vec<Attribs> = vec![];
             attribs.reserve(ships.len());
             for ship in ships.iter() {
                 let p = ship.position.coords.cast::<f32>();
@@ -126,7 +134,7 @@ void main() {
                 } else {
                     team_color
                 };
-                attribs.push(ShipAttribs {
+                attribs.push(Attribs {
                     color,
                     transform: Matrix4::new_translation(&vector![p.x, p.y, 0.0])
                         * Matrix4::from_euler_angles(0.0, 0.0, ship.heading as f32),
@@ -134,7 +142,7 @@ void main() {
             }
             let attribs_token = self.buffer_arena.write(&attribs);
 
-            batches.push(ShipBatch {
+            draws.push(Draw {
                 num_instances: ships.len(),
                 vertices_token,
                 num_vertices,
@@ -142,50 +150,57 @@ void main() {
             });
         }
 
-        for batch in batches.iter() {
+        DrawSet {
+            projection_matrix: *projection_matrix,
+            draws,
+        }
+    }
+
+    pub fn draw(&mut self, drawset: &DrawSet) {
+        self.context.use_program(Some(&self.program));
+        self.context.bind_vertex_array(Some(&self.vao));
+
+        // projection
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.projection_loc),
+            false,
+            drawset.projection_matrix.data.as_slice(),
+        );
+
+        for draw in drawset.draws.iter() {
             // vertex
             VertexAttribBuilder::new(&self.context)
-                .data_token(&batch.vertices_token)
+                .data_token(&draw.vertices_token)
                 .index(0)
                 .size(2)
                 .build();
 
             let vab = VertexAttribBuilder::new(&self.context)
-                .data_token(&batch.attribs_token)
+                .data_token(&draw.attribs_token)
                 .divisor(1);
 
             // color
             vab.index(1)
                 .size(4)
-                .offset(offset_of!(ShipAttribs, color))
+                .offset(offset_of!(Attribs, color))
                 .build();
 
             // transform
             for i in 0..4 {
                 vab.index(2 + i)
                     .size(4)
-                    .offset(offset_of!(ShipAttribs, transform) + i as usize * 16)
+                    .offset(offset_of!(Attribs, transform) + i as usize * 16)
                     .build();
             }
-
-            // projection
-            self.context.uniform_matrix4fv_with_f32_array(
-                Some(&self.projection_loc),
-                false,
-                self.projection_matrix.data.as_slice(),
-            );
 
             self.context.draw_arrays_instanced(
                 gl::TRIANGLES,
                 0,
-                batch.num_vertices as i32,
-                batch.num_instances as i32,
+                draw.num_vertices as i32,
+                draw.num_instances as i32,
             );
         }
 
-        for i in 0..5 {
-            self.context.vertex_attrib_divisor(i, 0);
-            self.context.disable_vertex_attrib_array(i);
-        }
+        self.context.bind_vertex_array(None);
     }
 }
