@@ -1,3 +1,5 @@
+use crate::buffer_arena;
+
 use super::buffer_arena::BufferArena;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlShader};
 use WebGl2RenderingContext as gl;
@@ -131,12 +133,22 @@ impl VertexAttribBuilder {
         }
     }
 
-    pub fn data<T>(&self, arena: &mut BufferArena, data: &[T]) -> Self {
-        let (buffer, base) = arena.write(data);
+    pub fn data_token(&self, token: &buffer_arena::Token) -> Self {
+        let (buffer, base, stride) = token.clone();
         VertexAttribBuilder {
             buffer: Some(buffer),
             base,
-            stride: std::mem::size_of::<T>() as i32,
+            stride,
+            ..self.clone()
+        }
+    }
+
+    pub fn data<T>(&self, arena: &mut BufferArena, data: &[T]) -> Self {
+        let (buffer, base, stride) = arena.write(data);
+        VertexAttribBuilder {
+            buffer: Some(buffer),
+            base,
+            stride,
             ..self.clone()
         }
     }

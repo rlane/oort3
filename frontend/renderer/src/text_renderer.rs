@@ -213,7 +213,7 @@ void main() {
 
         self.context.use_program(Some(&self.program));
 
-        let (buffer, vertices_offset) = self.buffer_arena.write(&quad_vertices);
+        let (buffer, vertices_offset, _) = self.buffer_arena.write(&quad_vertices);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ 0,
@@ -225,7 +225,7 @@ void main() {
         );
         self.context.enable_vertex_attrib_array(0);
 
-        let (buffer, positions_offset) = self.buffer_arena.write(&positions);
+        let (buffer, positions_offset, _) = self.buffer_arena.write(&positions);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ 1,
@@ -238,7 +238,7 @@ void main() {
         self.context.enable_vertex_attrib_array(1);
         self.context.vertex_attrib_divisor(1, 1);
 
-        let (buffer, colors_offset) = self.buffer_arena.write(&colors);
+        let (buffer, colors_offset, _) = self.buffer_arena.write(&colors);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ 2,
@@ -251,7 +251,7 @@ void main() {
         self.context.enable_vertex_attrib_array(2);
         self.context.vertex_attrib_divisor(2, 1);
 
-        let (buffer, base_texcoords_offset) = self.buffer_arena.write(&base_texcoords);
+        let (buffer, base_texcoords_offset, _) = self.buffer_arena.write(&base_texcoords);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ 3,
@@ -264,7 +264,7 @@ void main() {
         self.context.enable_vertex_attrib_array(3);
         self.context.vertex_attrib_divisor(3, 1);
 
-        let (buffer, extent_texcoords_offset) = self.buffer_arena.write(&extent_texcoords);
+        let (buffer, extent_texcoords_offset, _) = self.buffer_arena.write(&extent_texcoords);
         self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
         self.context.vertex_attrib_pointer_with_i32(
             /*indx=*/ 4,

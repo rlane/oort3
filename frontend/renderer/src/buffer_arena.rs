@@ -3,6 +3,8 @@ use log::{debug, info};
 use web_sys::{WebGl2RenderingContext, WebGlBuffer};
 use WebGl2RenderingContext as gl;
 
+pub type Token = (WebGlBuffer, u32, i32);
+
 pub struct BufferArena {
     name: String,
     context: WebGl2RenderingContext,
@@ -40,17 +42,15 @@ impl BufferArena {
         })
     }
 
-    pub fn write<T>(&mut self, data: &[T]) -> (WebGlBuffer, u32) {
-        let buf = unsafe {
-            std::slice::from_raw_parts(
-                data.as_ptr() as *const u8,
-                data.len() * std::mem::size_of::<T>(),
-            )
-        };
-        self.write_buf(buf)
+    pub fn write<T>(&mut self, data: &[T]) -> Token {
+        let stride = std::mem::size_of::<T>();
+        let buf =
+            unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * stride) };
+        let (buf, offset, _) = self.write_buf(buf);
+        (buf, offset, stride as i32)
     }
 
-    pub fn write_buf(&mut self, data: &[u8]) -> (WebGlBuffer, u32) {
+    pub fn write_buf(&mut self, data: &[u8]) -> Token {
         assert!(!data.is_empty());
         let data_length = data.len() as u32;
         assert!(self.offset <= self.buffer_size);
@@ -101,6 +101,6 @@ impl BufferArena {
             );
         }
         self.offset += data_length;
-        (self.active_buffer.clone(), offset)
+        (self.active_buffer.clone(), offset, 1)
     }
 }

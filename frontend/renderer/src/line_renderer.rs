@@ -96,7 +96,7 @@ void main() {
 
             self.context.use_program(Some(&self.program));
 
-            let (buffer, vertices_offset) = self.buffer_arena.write(&vertices);
+            let (buffer, vertices_offset, _) = self.buffer_arena.write(&vertices);
             self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
             self.context.vertex_attrib_pointer_with_i32(
@@ -109,7 +109,7 @@ void main() {
             );
             self.context.enable_vertex_attrib_array(0);
 
-            let (buffer, colors_offset) = self.buffer_arena.write(&colors);
+            let (buffer, colors_offset, _) = self.buffer_arena.write(&colors);
             self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
 
             self.context.vertex_attrib_pointer_with_i32(
