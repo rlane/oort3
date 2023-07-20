@@ -5,15 +5,32 @@ use oort_simulator::color;
 use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use oort_simulator::snapshot::Snapshot;
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlVertexArrayObject};
 use WebGl2RenderingContext as gl;
 
 pub struct BulletRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     projection_loc: WebGlUniformLocation,
-    projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
+    vao: WebGlVertexArrayObject,
+}
+
+pub struct DrawSet {
+    projection_matrix: Matrix4<f32>,
+    draws: Vec<Draw>,
+}
+
+pub struct Draw {
+    num_instances: usize,
+    vertices_token: buffer_arena::Token,
+    num_vertices: usize,
+    attribs_token: buffer_arena::Token,
+}
+
+struct Attribs {
+    color: Vector4<f32>,
+    transform: Matrix4<f32>,
 }
 
 impl BulletRenderer {
@@ -52,47 +69,37 @@ void main() {
             .get_uniform_location(&program, "projection")
             .ok_or("did not find uniform")?;
 
+        let vao = context
+            .create_vertex_array()
+            .ok_or("failed to create vertex array")?;
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
             context: context.clone(),
             program,
             projection_loc,
-            projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "bullet_renderer",
                 context,
                 gl::ARRAY_BUFFER,
                 1024 * 1024,
             )?,
+            vao,
         })
     }
 
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
-    }
+    pub fn upload(
+        &mut self,
+        projection_matrix: &Matrix4<f32>,
+        snapshot: &Snapshot,
+        base_line_width: f32,
+    ) -> DrawSet {
+        let vertices = geometry::quad();
+        let vertices_token = self.buffer_arena.write(&vertices);
 
-    pub fn draw(&mut self, snapshot: &Snapshot, base_line_width: f32) {
-        if snapshot.bullets.is_empty() {
-            return;
-        }
-
-        self.context.use_program(Some(&self.program));
-
+        let mut draws = vec![];
         for bullets in snapshot.bullets.chunks(1000) {
-            // vertex
-            let vertices = geometry::quad();
-            VertexAttribBuilder::new(&self.context)
-                .data(&mut self.buffer_arena, &vertices)
-                .index(0)
-                .size(2)
-                .build();
-
-            struct BulletAttribs {
-                color: Vector4<f32>,
-                transform: Matrix4<f32>,
-            }
-
             let mut attribs = vec![];
             attribs.reserve(bullets.len());
             for bullet in bullets.iter() {
@@ -103,58 +110,69 @@ void main() {
                 if bullet.ttl < 0.3 {
                     color.w *= bullet.ttl + 0.3;
                 }
-                attribs.push(BulletAttribs {
+                attribs.push(Attribs {
                     color,
                     transform: geometry::line_transform(p - 2.0 * v * dt, p, base_line_width),
                 });
             }
+            draws.push(Draw {
+                num_instances: bullets.len(),
+                vertices_token: vertices_token.clone(),
+                num_vertices: vertices.len(),
+                attribs_token: self.buffer_arena.write(&attribs),
+            });
+        }
 
+        DrawSet {
+            projection_matrix: *projection_matrix,
+            draws,
+        }
+    }
+
+    pub fn draw(&mut self, drawset: &DrawSet) {
+        self.context.use_program(Some(&self.program));
+        self.context.bind_vertex_array(Some(&self.vao));
+
+        // projection
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.projection_loc),
+            false,
+            drawset.projection_matrix.data.as_slice(),
+        );
+
+        for draw in &drawset.draws {
+            // vertex
+            VertexAttribBuilder::new(&self.context)
+                .data_token(&draw.vertices_token)
+                .index(0)
+                .size(2)
+                .build();
+
+            // attribs
             let vab = VertexAttribBuilder::new(&self.context)
-                .data(&mut self.buffer_arena, &attribs)
+                .data_token(&draw.attribs_token)
                 .size(4)
                 .divisor(1);
-            vab.index(1)
-                .offset(offset_of!(BulletAttribs, color))
-                .build();
-            vab.index(2)
-                .offset(offset_of!(BulletAttribs, transform))
-                .build();
+            vab.index(1).offset(offset_of!(Attribs, color)).build();
+            vab.index(2).offset(offset_of!(Attribs, transform)).build();
             vab.index(3)
-                .offset(offset_of!(BulletAttribs, transform) + 16)
+                .offset(offset_of!(Attribs, transform) + 16)
                 .build();
             vab.index(4)
-                .offset(offset_of!(BulletAttribs, transform) + 32)
+                .offset(offset_of!(Attribs, transform) + 32)
                 .build();
             vab.index(5)
-                .offset(offset_of!(BulletAttribs, transform) + 48)
+                .offset(offset_of!(Attribs, transform) + 48)
                 .build();
-
-            // projection
-            self.context.uniform_matrix4fv_with_f32_array(
-                Some(&self.projection_loc),
-                false,
-                self.projection_matrix.data.as_slice(),
-            );
 
             self.context.draw_arrays_instanced(
                 gl::TRIANGLE_STRIP,
                 0,
-                vertices.len() as i32,
-                bullets.len() as i32,
+                draw.num_vertices as i32,
+                draw.num_instances as i32,
             );
-
-            self.context.vertex_attrib_divisor(1, 0);
-            self.context.vertex_attrib_divisor(2, 0);
-            self.context.vertex_attrib_divisor(3, 0);
-            self.context.vertex_attrib_divisor(4, 0);
-            self.context.vertex_attrib_divisor(5, 0);
-
-            self.context.disable_vertex_attrib_array(0);
-            self.context.disable_vertex_attrib_array(1);
-            self.context.disable_vertex_attrib_array(2);
-            self.context.disable_vertex_attrib_array(3);
-            self.context.disable_vertex_attrib_array(4);
-            self.context.disable_vertex_attrib_array(5);
         }
+
+        self.context.bind_vertex_array(None);
     }
 }

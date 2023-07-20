@@ -169,8 +169,14 @@ impl Renderer {
         let ship_drawset =
             self.ship_renderer
                 .upload(&self.projection_matrix, snapshot, self.base_line_width);
-        self.bullet_renderer
-            .update_projection_matrix(&self.projection_matrix);
+        let bullet_drawset =
+            self.bullet_renderer
+                .upload(&self.projection_matrix, snapshot, self.base_line_width);
+        let blur_bullet_drawset = self.bullet_renderer.upload(
+            &self.projection_matrix,
+            snapshot,
+            self.base_line_width * 2.0,
+        );
         self.particle_renderer
             .update_projection_matrix(&self.projection_matrix);
         self.trail_renderer
@@ -192,10 +198,7 @@ impl Renderer {
             self.trail_renderer.draw(snapshot.time as f32, 4.0);
             self.flare_renderer.draw(snapshot);
             self.ship_renderer.draw(&ship_drawset);
-            self.bullet_renderer.draw(
-                snapshot,
-                self.base_line_width * blur::REDUCTION as f32 * 2.0,
-            );
+            self.bullet_renderer.draw(&blur_bullet_drawset);
             self.particle_renderer.draw(snapshot, 2.0);
             self.blur.finish();
         }
@@ -204,7 +207,7 @@ impl Renderer {
             // Render non-blurred graphics
             self.trail_renderer.draw(snapshot.time as f32, 2.0);
             self.flare_renderer.draw(snapshot);
-            self.bullet_renderer.draw(snapshot, self.base_line_width);
+            self.bullet_renderer.draw(&bullet_drawset);
             self.particle_renderer.draw(snapshot, 1.0);
 
             let mut lines: Vec<Line> = Vec::new();
