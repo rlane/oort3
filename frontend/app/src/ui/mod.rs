@@ -273,7 +273,8 @@ impl UI {
 
         self.frame += 1;
 
-        self.frame_timer.end(instant::now());
+        self.frame_timer
+            .end((instant::Instant::now() - self.start_time).as_millis() as f64);
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
