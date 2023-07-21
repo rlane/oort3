@@ -176,7 +176,7 @@ impl UI {
         let fast_forward = self.keys_down.contains("f");
         if self.keys_down.contains("b") && !self.keys_ignored.contains("b") {
             self.keys_ignored.insert("b".to_string());
-            self.renderer.toggle_blur();
+            self.renderer.set_blur(!self.renderer.get_blur());
         }
 
         if !self.paused {
@@ -275,6 +275,11 @@ impl UI {
 
         self.frame_timer
             .end((instant::Instant::now() - self.start_time).as_millis() as f64);
+
+        if self.renderer.get_blur() && self.frame == 60 && self.fps.fps() < 50.0 {
+            log::info!("Disabling blur due to low FPS");
+            self.renderer.set_blur(false);
+        }
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
