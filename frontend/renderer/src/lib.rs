@@ -163,8 +163,6 @@ impl Renderer {
             .update_projection_matrix(&self.projection_matrix);
         self.trail_renderer
             .update_projection_matrix(&self.projection_matrix);
-        self.text_renderer
-            .update_projection_matrix(&self.projection_matrix);
 
         let ship_drawset =
             self.ship_renderer
@@ -179,7 +177,7 @@ impl Renderer {
             .flare_renderer
             .upload(&self.projection_matrix, snapshot);
 
-        let texts = {
+        let text_drawset = {
             let mut texts: Vec<Text> = Vec::new();
             if self.debug {
                 for (_, drawn_text) in snapshot.drawn_text.iter() {
@@ -190,10 +188,10 @@ impl Renderer {
                     texts.extend(drawn_text.iter().cloned());
                 }
             }
-            texts
+            self.text_renderer.upload(&self.projection_matrix, &texts)
         };
 
-        let lines = {
+        let line_drawset = {
             let mut lines: Vec<Line> = Vec::new();
             if self.debug {
                 for (_, debug_lines) in snapshot.debug_lines.iter() {
@@ -207,9 +205,8 @@ impl Renderer {
                 }
             }
             lines.extend(snapshot.scenario_lines.iter().cloned());
-            lines
+            self.line_renderer.upload(&self.projection_matrix, &lines)
         };
-        let line_drawset = self.line_renderer.upload(&self.projection_matrix, &lines);
 
         self.context.viewport(0, 0, screen_width, screen_height);
 
@@ -247,7 +244,7 @@ impl Renderer {
             self.particle_renderer.draw(&particle_drawset, 1.0);
             self.line_renderer.draw(&line_drawset);
             self.ship_renderer.draw(&ship_drawset);
-            self.text_renderer.draw(&texts);
+            self.text_renderer.draw(&text_drawset);
         }
     }
 

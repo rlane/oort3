@@ -1,12 +1,16 @@
 use super::{buffer_arena, glutil};
 use crate::geometry;
+use glutil::VertexAttribBuilder;
 use image::io::Reader as ImageReader;
 use image::EncodableLayout;
-use nalgebra::{point, vector, Matrix4};
+use nalgebra::{point, vector, Matrix4, Vector2, Vector4};
 use oort_api::Text;
 use oort_simulator::color;
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlTexture, WebGlUniformLocation};
+use web_sys::{
+    WebGl2RenderingContext, WebGlProgram, WebGlTexture, WebGlUniformLocation,
+    WebGlVertexArrayObject,
+};
 use WebGl2RenderingContext as gl;
 
 const FONT_PNG: &[u8] = include_bytes!("../../../assets/null_terminator.png");
@@ -21,9 +25,26 @@ pub struct TextRenderer {
     glyph_size_loc: WebGlUniformLocation,
     sampler_loc: WebGlUniformLocation,
     texture: WebGlTexture,
-    pixel_projection_matrix: Matrix4<f32>,
-    world_projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
+    vao: WebGlVertexArrayObject,
+}
+
+pub struct DrawSet {
+    pixel_projection_matrix: Matrix4<f32>,
+    num_instances: usize,
+    vertices_token: buffer_arena::Token,
+    num_vertices: usize,
+    attribs_token: buffer_arena::Token,
+    screen_glyph_size: f32,
+}
+
+struct Attribs {
+    position: Vector2<f32>,
+    base_texcoord: Vector2<f32>,
+    extent_texcoord: Vector2<f32>,
+    #[allow(dead_code)]
+    pad: [f32; 2],
+    color: Vector4<f32>,
 }
 
 impl TextRenderer {
@@ -36,9 +57,9 @@ uniform mat4 transform;
 uniform float glyph_size;
 layout(location = 0) in vec2 vertex;
 layout(location = 1) in vec2 position;
-layout(location = 2) in vec4 color;
-layout(location = 3) in vec2 base_texcoord;
-layout(location = 4) in vec2 extent_texcoord;
+layout(location = 2) in vec2 base_texcoord;
+layout(location = 3) in vec2 extent_texcoord;
+layout(location = 4) in vec4 color;
 out vec2 varying_texcoord;
 out vec4 varying_color;
 void main() {
@@ -113,6 +134,10 @@ void main() {
             context.bind_texture(gl::TEXTURE_2D, None);
         }
 
+        let vao = context
+            .create_vertex_array()
+            .ok_or("failed to create vertex array")?;
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
@@ -122,44 +147,33 @@ void main() {
             glyph_size_loc,
             sampler_loc,
             texture,
-            pixel_projection_matrix: Matrix4::identity(),
-            world_projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "text_renderer",
                 context,
                 gl::ARRAY_BUFFER,
                 1024 * 1024,
             )?,
+            vao,
         })
     }
 
-    pub fn update_projection_matrix(&mut self, world_projection_matrix: &Matrix4<f32>) {
+    pub fn upload(&mut self, world_projection_matrix: &Matrix4<f32>, texts: &[Text]) -> DrawSet {
         let screen_width = self.context.drawing_buffer_width() as f32;
         let screen_height = self.context.drawing_buffer_height() as f32;
 
-        {
+        let pixel_projection_matrix = {
             let left = 0.0;
             let right = screen_width;
             let bottom = 0.0;
             let top = screen_height;
             let znear = -1.0;
             let zfar = 1.0;
-            self.pixel_projection_matrix =
-                Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
-        }
-
-        self.world_projection_matrix = *world_projection_matrix;
-    }
-
-    pub fn draw(&mut self, texts: &[Text]) {
-        if texts.is_empty() {
-            return;
-        }
-
-        let screen_width = self.context.drawing_buffer_width() as f32;
-        let screen_height = self.context.drawing_buffer_height() as f32;
+            Matrix4::new_orthographic(left, right, bottom, top, znear, zfar)
+        };
 
         let quad_vertices = geometry::triquad();
+        let vertices_token = self.buffer_arena.write(&quad_vertices);
+
         let num_glyphs: usize = texts.iter().map(|x| x.length as usize).sum();
         let scale = 2.0;
         let screen_glyph_size = (FONT_GLYPH_SIZE - 1) as f32 * scale;
@@ -168,19 +182,12 @@ void main() {
         let font_pixel_width = 1.0 / (FONT_COLS * FONT_GLYPH_SIZE) as f32;
         let font_pixel_height = 1.0 / (FONT_ROWS * FONT_GLYPH_SIZE) as f32;
 
-        let mut positions: Vec<f32> = vec![];
-        positions.reserve(2 * num_glyphs);
-        let mut colors: Vec<f32> = vec![];
-        colors.reserve(4 * num_glyphs);
-        let mut base_texcoords: Vec<f32> = vec![];
-        base_texcoords.reserve(2 * num_glyphs);
-        let mut extent_texcoords: Vec<f32> = vec![];
-        extent_texcoords.reserve(2 * num_glyphs);
+        let mut attribs = vec![];
+        attribs.reserve(num_glyphs);
         for text in texts {
             let worldpos = vector![text.x as f32, text.y as f32];
-            let projected = self
-                .world_projection_matrix
-                .transform_point(&point![worldpos.x, worldpos.y, 0.0]);
+            let projected =
+                world_projection_matrix.transform_point(&point![worldpos.x, worldpos.y, 0.0]);
             let projected_pixels = vector![
                 (projected.x + 1.0) * screen_width / 2.0,
                 (projected.y + 1.0) * screen_height / 2.0
@@ -192,100 +199,83 @@ void main() {
                 let row = FONT_ROWS - idx / FONT_COLS - 1;
                 let col = idx % FONT_COLS;
 
-                positions.push(pos.x);
-                positions.push(pos.y);
+                let base_texcoord = vector![
+                    col as f32 * font_glyph_width,
+                    row as f32 * font_glyph_height + font_pixel_height
+                ];
+                let extent_texcoord = vector![
+                    font_glyph_width - font_pixel_width,
+                    font_glyph_height - font_pixel_height
+                ];
 
-                colors.extend_from_slice(color.as_slice());
-
-                base_texcoords.push(col as f32 * font_glyph_width);
-                base_texcoords.push(row as f32 * font_glyph_height + font_pixel_height);
-
-                extent_texcoords.push(font_glyph_width - font_pixel_width);
-                extent_texcoords.push(font_glyph_height - font_pixel_height);
+                attribs.push(Attribs {
+                    position: pos,
+                    base_texcoord,
+                    extent_texcoord,
+                    pad: [0.0; 2],
+                    color,
+                });
 
                 pos.x += (FONT_GLYPH_SIZE as f32 + 1.0) * scale;
             }
         }
+        let attribs_token = self.buffer_arena.write(&attribs);
 
-        if positions.is_empty() {
+        DrawSet {
+            pixel_projection_matrix,
+            num_instances: attribs.len(),
+            vertices_token,
+            num_vertices: quad_vertices.len(),
+            attribs_token,
+            screen_glyph_size,
+        }
+    }
+
+    pub fn draw(&mut self, drawset: &DrawSet) {
+        if drawset.num_instances == 0 {
             return;
         }
 
         self.context.use_program(Some(&self.program));
+        self.context.bind_vertex_array(Some(&self.vao));
 
-        let (buffer, vertices_offset, _) = self.buffer_arena.write(&quad_vertices);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 0,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            vertices_offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(0);
+        // vertex
+        VertexAttribBuilder::new(&self.context)
+            .data_token(&drawset.vertices_token)
+            .index(0)
+            .size(2)
+            .build();
 
-        let (buffer, positions_offset, _) = self.buffer_arena.write(&positions);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 1,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            positions_offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(1);
-        self.context.vertex_attrib_divisor(1, 1);
-
-        let (buffer, colors_offset, _) = self.buffer_arena.write(&colors);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 2,
-            /*size=*/ 4,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            colors_offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(2);
-        self.context.vertex_attrib_divisor(2, 1);
-
-        let (buffer, base_texcoords_offset, _) = self.buffer_arena.write(&base_texcoords);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 3,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            base_texcoords_offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(3);
-        self.context.vertex_attrib_divisor(3, 1);
-
-        let (buffer, extent_texcoords_offset, _) = self.buffer_arena.write(&extent_texcoords);
-        self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-        self.context.vertex_attrib_pointer_with_i32(
-            /*indx=*/ 4,
-            /*size=*/ 2,
-            /*type_=*/ gl::FLOAT,
-            /*normalized=*/ false,
-            /*stride=*/ 0,
-            extent_texcoords_offset as i32,
-        );
-        self.context.enable_vertex_attrib_array(4);
-        self.context.vertex_attrib_divisor(4, 1);
+        // attribs
+        let vab = VertexAttribBuilder::new(&self.context)
+            .data_token(&drawset.attribs_token)
+            .divisor(1);
+        vab.index(1)
+            .size(2)
+            .offset(offset_of!(Attribs, position))
+            .build();
+        vab.index(2)
+            .size(2)
+            .offset(offset_of!(Attribs, base_texcoord))
+            .build();
+        vab.index(3)
+            .size(2)
+            .offset(offset_of!(Attribs, extent_texcoord))
+            .build();
+        vab.index(4)
+            .size(4)
+            .offset(offset_of!(Attribs, color))
+            .build();
 
         self.context
-            .uniform1f(Some(&self.glyph_size_loc), screen_glyph_size);
+            .uniform1f(Some(&self.glyph_size_loc), drawset.screen_glyph_size);
 
         self.context.uniform1i(Some(&self.sampler_loc), 0);
 
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
-            self.pixel_projection_matrix.data.as_slice(),
+            drawset.pixel_projection_matrix.data.as_slice(),
         );
 
         self.context.active_texture(gl::TEXTURE0);
@@ -295,21 +285,12 @@ void main() {
         self.context.draw_arrays_instanced(
             gl::TRIANGLES,
             0,
-            quad_vertices.len() as i32,
-            num_glyphs as i32,
+            drawset.num_vertices as i32,
+            drawset.num_instances as i32,
         );
 
         self.context.bind_texture(gl::TEXTURE_2D, None);
 
-        self.context.vertex_attrib_divisor(1, 0);
-        self.context.vertex_attrib_divisor(2, 0);
-        self.context.vertex_attrib_divisor(3, 0);
-        self.context.vertex_attrib_divisor(4, 0);
-
-        self.context.disable_vertex_attrib_array(0);
-        self.context.disable_vertex_attrib_array(1);
-        self.context.disable_vertex_attrib_array(2);
-        self.context.disable_vertex_attrib_array(3);
-        self.context.disable_vertex_attrib_array(4);
+        self.context.bind_vertex_array(None);
     }
 }
