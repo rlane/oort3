@@ -154,64 +154,48 @@ impl Renderer {
         if new_height != self.canvas.height() {
             self.canvas.set_height(new_height);
         }
-        self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-        self.context.clear(gl::COLOR_BUFFER_BIT);
 
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
-        self.context.viewport(0, 0, screen_width, screen_width);
         self.set_view(zoom, point![camera_target.x, camera_target.y]);
 
         self.grid_renderer
             .update_projection_matrix(&self.projection_matrix);
         self.line_renderer
             .update_projection_matrix(&self.projection_matrix);
+        self.trail_renderer
+            .update_projection_matrix(&self.projection_matrix);
+        self.text_renderer
+            .update_projection_matrix(&self.projection_matrix);
+
         let ship_drawset =
             self.ship_renderer
                 .upload(&self.projection_matrix, snapshot, self.base_line_width);
         let bullet_drawset =
             self.bullet_renderer
                 .upload(&self.projection_matrix, snapshot, self.base_line_width);
-        let blur_bullet_drawset = self.bullet_renderer.upload(
-            &self.projection_matrix,
-            snapshot,
-            self.base_line_width * 2.0,
-        );
         let particle_drawset = self
             .particle_renderer
             .upload(&self.projection_matrix, snapshot);
-        self.trail_renderer
-            .update_projection_matrix(&self.projection_matrix);
-        self.text_renderer
-            .update_projection_matrix(&self.projection_matrix);
         let flare_drawset = self
             .flare_renderer
             .upload(&self.projection_matrix, snapshot);
 
-        self.context.viewport(0, 0, screen_width, screen_height);
-        self.grid_renderer
-            .draw(zoom, camera_target, snapshot.world_size);
+        let texts = {
+            let mut texts: Vec<Text> = Vec::new();
+            if self.debug {
+                for (_, drawn_text) in snapshot.drawn_text.iter() {
+                    texts.extend(drawn_text.iter().cloned());
+                }
+            } else if let Some(ship) = self.picked_ship {
+                if let Some(drawn_text) = snapshot.drawn_text.get(&ship) {
+                    texts.extend(drawn_text.iter().cloned());
+                }
+            }
+            texts
+        };
 
-        if self.blur_enabled {
-            self.blur.start();
-            // Render to blur source texture
-            self.context.clear_color(0.0, 0.0, 0.0, 0.0);
-            self.context.clear(gl::COLOR_BUFFER_BIT);
-            self.trail_renderer.draw(snapshot.time as f32, 4.0);
-            self.flare_renderer.draw(&flare_drawset);
-            self.ship_renderer.draw(&ship_drawset);
-            self.bullet_renderer.draw(&blur_bullet_drawset);
-            self.particle_renderer.draw(&particle_drawset, 2.0);
-            self.blur.finish();
-        }
-
-        if true {
-            // Render non-blurred graphics
-            self.trail_renderer.draw(snapshot.time as f32, 2.0);
-            self.flare_renderer.draw(&flare_drawset);
-            self.bullet_renderer.draw(&bullet_drawset);
-            self.particle_renderer.draw(&particle_drawset, 1.0);
-
+        let lines = {
             let mut lines: Vec<Line> = Vec::new();
             if self.debug {
                 for (_, debug_lines) in snapshot.debug_lines.iter() {
@@ -225,19 +209,45 @@ impl Renderer {
                 }
             }
             lines.extend(snapshot.scenario_lines.iter().cloned());
+            lines
+        };
+
+        self.context.viewport(0, 0, screen_width, screen_height);
+
+        if self.blur_enabled {
+            let blur_bullet_drawset = self.bullet_renderer.upload(
+                &self.projection_matrix,
+                snapshot,
+                self.base_line_width * 2.0,
+            );
+
+            self.blur.start();
+            // Render to blur source texture
+            self.context.clear_color(0.0, 0.0, 0.0, 0.0);
+            self.context.clear(gl::COLOR_BUFFER_BIT);
+            self.trail_renderer.draw(snapshot.time as f32, 4.0);
+            self.flare_renderer.draw(&flare_drawset);
+            self.bullet_renderer.draw(&blur_bullet_drawset);
+            self.particle_renderer.draw(&particle_drawset, 2.0);
+            self.ship_renderer.draw(&ship_drawset);
+            self.blur.finish();
+        }
+
+        {
+            // Render non-blurred graphics
+            self.context.clear_color(0.0, 0.0, 0.0, 1.0);
+            self.context.clear(gl::COLOR_BUFFER_BIT);
+            self.grid_renderer
+                .draw(zoom, camera_target, snapshot.world_size);
+            if self.blur_enabled {
+                self.blur.draw();
+            }
+            self.trail_renderer.draw(snapshot.time as f32, 2.0);
+            self.flare_renderer.draw(&flare_drawset);
+            self.bullet_renderer.draw(&bullet_drawset);
+            self.particle_renderer.draw(&particle_drawset, 1.0);
             self.line_renderer.draw(&lines);
             self.ship_renderer.draw(&ship_drawset);
-
-            let mut texts: Vec<Text> = Vec::new();
-            if self.debug {
-                for (_, drawn_text) in snapshot.drawn_text.iter() {
-                    texts.extend(drawn_text.iter().cloned());
-                }
-            } else if let Some(ship) = self.picked_ship {
-                if let Some(drawn_text) = snapshot.drawn_text.get(&ship) {
-                    texts.extend(drawn_text.iter().cloned());
-                }
-            }
             self.text_renderer.draw(&texts);
         }
     }

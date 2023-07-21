@@ -8,7 +8,6 @@ use web_sys::{
 use WebGl2RenderingContext as gl;
 
 pub const TEXTURE_SIZE: i32 = 4096;
-pub const REDUCTION: i32 = 1;
 
 #[derive(PartialEq)]
 enum Direction {
@@ -179,18 +178,19 @@ void main() {
         })
     }
 
-    // Set up to render to the blur texture
+    // Set up to render to texture
     pub fn start(&mut self) {
         self.context
             .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[0]));
-        let screen_width = self.context.drawing_buffer_width();
-        let screen_height = self.context.drawing_buffer_height();
-        self.context
-            .viewport(0, 0, screen_width / REDUCTION, screen_height / REDUCTION);
     }
 
-    // Render blurred texture to screen
+    // Stop rendering to texture
     pub fn finish(&mut self) {
+        self.context.bind_framebuffer(gl::FRAMEBUFFER, None);
+    }
+
+    // Draw blurred texture to screen
+    pub fn draw(&mut self) {
         self.context.disable(gl::BLEND);
 
         // Horizontal pass textures[0] -> fbs[1]
@@ -200,7 +200,7 @@ void main() {
         self.context.clear(gl::COLOR_BUFFER_BIT);
         self.context
             .bind_texture(gl::TEXTURE_2D, Some(&self.textures[0]));
-        self.draw(Direction::Horizontal, 1.0);
+        self.blur_once(Direction::Horizontal, 1.0);
 
         // Horizontal pass textures[1] -> fbs[0]
         self.context
@@ -209,7 +209,7 @@ void main() {
         self.context.clear(gl::COLOR_BUFFER_BIT);
         self.context
             .bind_texture(gl::TEXTURE_2D, Some(&self.textures[1]));
-        self.draw(Direction::Horizontal, 2.0);
+        self.blur_once(Direction::Horizontal, 2.0);
 
         // Vertical pass textures[0] -> fbs[1]
         self.context
@@ -218,7 +218,7 @@ void main() {
         self.context.clear(gl::COLOR_BUFFER_BIT);
         self.context
             .bind_texture(gl::TEXTURE_2D, Some(&self.textures[0]));
-        self.draw(Direction::Vertical, 1.0);
+        self.blur_once(Direction::Vertical, 1.0);
 
         self.context.enable(gl::BLEND);
         self.context.blend_func(gl::ONE, gl::ONE);
@@ -230,14 +230,14 @@ void main() {
         self.context.viewport(0, 0, screen_width, screen_height);
         self.context
             .bind_texture(gl::TEXTURE_2D, Some(&self.textures[1]));
-        self.draw(Direction::Vertical, 2.0);
+        self.blur_once(Direction::Vertical, 2.0);
         self.context.bind_texture(gl::TEXTURE_2D, None);
 
         self.context
             .blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
 
-    fn draw(&mut self, direction: Direction, radius: f32) {
+    fn blur_once(&mut self, direction: Direction, radius: f32) {
         self.context.use_program(Some(&self.program));
 
         self.context.uniform1f(Some(&self.radius_loc), radius);
@@ -263,8 +263,8 @@ void main() {
         let screen_width = self.context.drawing_buffer_width() as f32;
         let screen_height = self.context.drawing_buffer_height() as f32;
         let scale = vector![
-            screen_width / (REDUCTION * TEXTURE_SIZE) as f32,
-            screen_height / (REDUCTION * TEXTURE_SIZE) as f32
+            screen_width / TEXTURE_SIZE as f32,
+            screen_height / TEXTURE_SIZE as f32
         ];
         for point in texcoord.iter_mut() {
             point.x *= scale.x;
