@@ -1,6 +1,6 @@
 [package]
 name = "oort_analyzer_worker"
-version = "0.54.0"
+version = "0.54.1"
 edition = "2021"
 publish = false
 

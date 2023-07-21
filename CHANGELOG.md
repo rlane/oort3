@@ -1,3 +1,5 @@
+### 0.54.1 - 2023-07-21
+
 - Added blur effect.
 - Fixed game speed on high refresh rate monitors.
 
