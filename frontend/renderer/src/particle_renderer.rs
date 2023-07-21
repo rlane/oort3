@@ -3,7 +3,7 @@ use glutil::VertexAttribBuilder;
 use nalgebra::{vector, Matrix4, Vector2, Vector4};
 use oort_simulator::snapshot::Snapshot;
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlVertexArrayObject};
 use WebGl2RenderingContext as gl;
 
 const MAX_PARTICLES: usize = 1000;
@@ -14,11 +14,11 @@ pub struct ParticleRenderer {
     transform_loc: WebGlUniformLocation,
     current_time_loc: WebGlUniformLocation,
     scale_loc: WebGlUniformLocation,
-    projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
     particles: Vec<Particle>,
     next_particle_index: usize,
     max_particles_seen: usize,
+    vao: WebGlVertexArrayObject,
 }
 
 #[repr(C, packed)]
@@ -29,6 +29,13 @@ pub struct Particle {
     color: Vector4<f32>,
     lifetime: f32,
     creation_time: f32,
+}
+
+pub struct DrawSet {
+    projection_matrix: Matrix4<f32>,
+    num_vertices: usize,
+    attribs_token: buffer_arena::Token,
+    current_time: f32,
 }
 
 impl ParticleRenderer {
@@ -82,6 +89,10 @@ void main() {
             .get_uniform_location(&program, "scale")
             .ok_or("did not find uniform")?;
 
+        let vao = context
+            .create_vertex_array()
+            .ok_or("failed to create vertex array")?;
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         let mut particles = vec![];
@@ -101,7 +112,6 @@ void main() {
             transform_loc,
             current_time_loc,
             scale_loc,
-            projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "particle_renderer",
                 context,
@@ -111,11 +121,8 @@ void main() {
             particles,
             next_particle_index: 0,
             max_particles_seen: MAX_PARTICLES,
+            vao,
         })
-    }
-
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
     }
 
     pub fn add_particle(&mut self, particle: Particle) {
@@ -142,14 +149,8 @@ void main() {
         }
     }
 
-    pub fn draw(&mut self, snapshot: &Snapshot, scale: f32) {
-        self.context.use_program(Some(&self.program));
-
+    pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, snapshot: &Snapshot) -> DrawSet {
         let current_time = snapshot.time as f32;
-        self.context
-            .uniform1f(Some(&self.current_time_loc), current_time);
-
-        self.context.uniform1f(Some(&self.scale_loc), scale);
 
         let data: Vec<Particle> = self
             .particles
@@ -158,11 +159,28 @@ void main() {
             .cloned()
             .collect();
 
-        if data.is_empty() {
+        DrawSet {
+            projection_matrix: *projection_matrix,
+            num_vertices: data.len(),
+            attribs_token: self.buffer_arena.write(data.as_slice()),
+            current_time,
+        }
+    }
+
+    pub fn draw(&mut self, drawset: &DrawSet, scale: f32) {
+        if drawset.num_vertices == 0 {
             return;
         }
 
-        let vab = VertexAttribBuilder::new(&self.context).data(&mut self.buffer_arena, &data);
+        self.context.use_program(Some(&self.program));
+        self.context.bind_vertex_array(Some(&self.vao));
+
+        self.context
+            .uniform1f(Some(&self.current_time_loc), drawset.current_time);
+
+        self.context.uniform1f(Some(&self.scale_loc), scale);
+
+        let vab = VertexAttribBuilder::new(&self.context).data_token(&drawset.attribs_token);
         vab.index(0)
             .size(2)
             .offset(offset_of!(Particle, position))
@@ -188,13 +206,12 @@ void main() {
         self.context.uniform_matrix4fv_with_f32_array(
             Some(&self.transform_loc),
             false,
-            self.projection_matrix.data.as_slice(),
+            drawset.projection_matrix.data.as_slice(),
         );
 
-        self.context.draw_arrays(gl::POINTS, 0, data.len() as i32);
+        self.context
+            .draw_arrays(gl::POINTS, 0, drawset.num_vertices as i32);
 
-        self.context.disable_vertex_attrib_array(0);
-        self.context.disable_vertex_attrib_array(1);
-        self.context.disable_vertex_attrib_array(2);
+        self.context.bind_vertex_array(None);
     }
 }

@@ -177,8 +177,9 @@ impl Renderer {
             snapshot,
             self.base_line_width * 2.0,
         );
-        self.particle_renderer
-            .update_projection_matrix(&self.projection_matrix);
+        let particle_drawset = self
+            .particle_renderer
+            .upload(&self.projection_matrix, snapshot);
         self.trail_renderer
             .update_projection_matrix(&self.projection_matrix);
         self.text_renderer
@@ -200,7 +201,7 @@ impl Renderer {
             self.flare_renderer.draw(&flare_drawset);
             self.ship_renderer.draw(&ship_drawset);
             self.bullet_renderer.draw(&blur_bullet_drawset);
-            self.particle_renderer.draw(snapshot, 2.0);
+            self.particle_renderer.draw(&particle_drawset, 2.0);
             self.blur.finish();
         }
 
@@ -209,7 +210,7 @@ impl Renderer {
             self.trail_renderer.draw(snapshot.time as f32, 2.0);
             self.flare_renderer.draw(&flare_drawset);
             self.bullet_renderer.draw(&bullet_drawset);
-            self.particle_renderer.draw(snapshot, 1.0);
+            self.particle_renderer.draw(&particle_drawset, 1.0);
 
             let mut lines: Vec<Line> = Vec::new();
             if self.debug {
