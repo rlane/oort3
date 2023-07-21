@@ -161,8 +161,6 @@ impl Renderer {
 
         self.grid_renderer
             .update_projection_matrix(&self.projection_matrix);
-        self.line_renderer
-            .update_projection_matrix(&self.projection_matrix);
         self.trail_renderer
             .update_projection_matrix(&self.projection_matrix);
         self.text_renderer
@@ -211,6 +209,7 @@ impl Renderer {
             lines.extend(snapshot.scenario_lines.iter().cloned());
             lines
         };
+        let line_drawset = self.line_renderer.upload(&self.projection_matrix, &lines);
 
         self.context.viewport(0, 0, screen_width, screen_height);
 
@@ -246,7 +245,7 @@ impl Renderer {
             self.flare_renderer.draw(&flare_drawset);
             self.bullet_renderer.draw(&bullet_drawset);
             self.particle_renderer.draw(&particle_drawset, 1.0);
-            self.line_renderer.draw(&lines);
+            self.line_renderer.draw(&line_drawset);
             self.ship_renderer.draw(&ship_drawset);
             self.text_renderer.draw(&texts);
         }

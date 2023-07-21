@@ -1,16 +1,32 @@
 use super::{buffer_arena, glutil};
-use nalgebra::Matrix4;
+use glutil::VertexAttribBuilder;
+use nalgebra::{vector, Matrix4, Vector4};
 use oort_simulator::simulation::Line;
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlVertexArrayObject};
 use WebGl2RenderingContext as gl;
 
 pub struct LineRenderer {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     transform_loc: WebGlUniformLocation,
-    projection_matrix: Matrix4<f32>,
     buffer_arena: buffer_arena::BufferArena,
+    vao: WebGlVertexArrayObject,
+}
+
+pub struct DrawSet {
+    projection_matrix: Matrix4<f32>,
+    draws: Vec<Draw>,
+}
+
+pub struct Draw {
+    num_vertices: usize,
+    attribs_token: buffer_arena::Token,
+}
+
+struct Attribs {
+    vertex: Vector4<f32>,
+    color: Vector4<f32>,
 }
 
 impl LineRenderer {
@@ -47,94 +63,84 @@ void main() {
             .get_uniform_location(&program, "transform")
             .ok_or("did not find uniform")?;
 
+        let vao = context
+            .create_vertex_array()
+            .ok_or("failed to create vertex array")?;
+
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
         Ok(Self {
             context: context.clone(),
             program,
             transform_loc,
-            projection_matrix: Matrix4::identity(),
             buffer_arena: buffer_arena::BufferArena::new(
                 "line_renderer",
                 context,
                 gl::ARRAY_BUFFER,
                 1024 * 1024,
             )?,
+            vao,
         })
     }
 
-    pub fn update_projection_matrix(&mut self, m: &Matrix4<f32>) {
-        self.projection_matrix = *m;
+    pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, lines: &[Line]) -> DrawSet {
+        let mut draws = vec![];
+        for lines in lines.chunks(1000) {
+            let mut attribs = vec![];
+            attribs.reserve(2 * lines.len());
+            for line in lines {
+                for position in [line.a, line.b] {
+                    let p = position.coords.cast();
+                    attribs.push(Attribs {
+                        vertex: vector![p.x, p.y, 0.0, 1.0],
+                        color: line.color,
+                    });
+                }
+            }
+
+            let attribs_token = self.buffer_arena.write(&attribs);
+            draws.push(Draw {
+                num_vertices: attribs.len(),
+                attribs_token,
+            });
+        }
+        DrawSet {
+            projection_matrix: *projection_matrix,
+            draws,
+        }
     }
 
-    pub fn draw(&mut self, lines: &[Line]) {
-        if lines.is_empty() {
+    pub fn draw(&mut self, drawset: &DrawSet) {
+        if drawset.draws.is_empty() {
             return;
         }
 
-        for lines in lines.chunks(1000) {
-            let mut vertices: Vec<f32> = vec![];
-            vertices.reserve(4 * lines.len());
-            let mut colors: Vec<f32> = vec![];
-            colors.reserve(8 * lines.len());
-            for line in lines {
-                vertices.push(line.a.x as f32);
-                vertices.push(line.a.y as f32);
-                vertices.push(line.b.x as f32);
-                vertices.push(line.b.y as f32);
+        self.context.use_program(Some(&self.program));
+        self.context.bind_vertex_array(Some(&self.vao));
 
-                colors.push(line.color[0]);
-                colors.push(line.color[1]);
-                colors.push(line.color[2]);
-                colors.push(line.color[3]);
+        self.context.line_width(1.0);
 
-                colors.push(line.color[0]);
-                colors.push(line.color[1]);
-                colors.push(line.color[2]);
-                colors.push(line.color[3]);
-            }
+        self.context.uniform_matrix4fv_with_f32_array(
+            Some(&self.transform_loc),
+            false,
+            drawset.projection_matrix.data.as_slice(),
+        );
 
-            self.context.use_program(Some(&self.program));
-
-            let (buffer, vertices_offset, _) = self.buffer_arena.write(&vertices);
-            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-            self.context.vertex_attrib_pointer_with_i32(
-                /*indx=*/ 0,
-                /*size=*/ 2,
-                /*type_=*/ gl::FLOAT,
-                /*normalized=*/ false,
-                /*stride=*/ 0,
-                vertices_offset as i32,
-            );
-            self.context.enable_vertex_attrib_array(0);
-
-            let (buffer, colors_offset, _) = self.buffer_arena.write(&colors);
-            self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
-
-            self.context.vertex_attrib_pointer_with_i32(
-                /*indx=*/ 1,
-                /*size=*/ 4,
-                /*type_=*/ gl::FLOAT,
-                /*normalized=*/ false,
-                /*stride=*/ 0,
-                colors_offset as i32,
-            );
-            self.context.enable_vertex_attrib_array(1);
-
-            self.context.uniform_matrix4fv_with_f32_array(
-                Some(&self.transform_loc),
-                false,
-                self.projection_matrix.data.as_slice(),
-            );
-
-            self.context.line_width(1.0);
+        for draw in &drawset.draws {
+            let vab = VertexAttribBuilder::new(&self.context).data_token(&draw.attribs_token);
+            vab.index(0)
+                .size(4)
+                .offset(offset_of!(Attribs, vertex))
+                .build();
+            vab.index(1)
+                .size(4)
+                .offset(offset_of!(Attribs, color))
+                .build();
 
             self.context
-                .draw_arrays(gl::LINES, 0, (vertices.len() / 2) as i32);
-
-            self.context.disable_vertex_attrib_array(0);
-            self.context.disable_vertex_attrib_array(1);
+                .draw_arrays(gl::LINES, 0, draw.num_vertices as i32);
         }
+
+        self.context.bind_vertex_array(None);
     }
 }
