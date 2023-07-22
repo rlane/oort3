@@ -304,57 +304,60 @@ impl UI {
             self.snapshot_requests_in_flight += 2;
         }
 
-        if self.pending_snapshots.is_empty()
-            || std::time::Duration::from_secs_f64(self.pending_snapshots[0].time)
-                > self.physics_time
+        if !self.pending_snapshots.is_empty()
+            && std::time::Duration::from_secs_f64(self.pending_snapshots[0].time)
+                <= self.physics_time
         {
-            return;
-        }
+            let first_snapshot = self.snapshot.is_none();
 
-        let first_snapshot = self.snapshot.is_none();
+            self.snapshot = self.pending_snapshots.pop_front();
+            let snapshot = self.snapshot.as_mut().unwrap();
 
-        self.snapshot = self.pending_snapshots.pop_front();
-        let snapshot = self.snapshot.as_mut().unwrap();
+            if first_snapshot {
+                // Zoom out to show all ships.
+                let maxdist = snapshot
+                    .ships
+                    .iter()
+                    .map(|ship| nalgebra::distance(&ship.position, &point![0.0, 0.0]))
+                    .fold(0.0, |a, b| if a > b { a } else { b });
+                let cornerdist =
+                    nalgebra::distance(&point![0.0, 0.0], &self.renderer.unproject(0, 0));
+                self.zoom = (self.zoom * cornerdist as f32 / (2.0 * maxdist as f32))
+                    .clamp(MIN_ZOOM, INITIAL_ZOOM);
 
-        if first_snapshot {
-            // Zoom out to show all ships.
-            let maxdist = snapshot
-                .ships
-                .iter()
-                .map(|ship| nalgebra::distance(&ship.position, &point![0.0, 0.0]))
-                .fold(0.0, |a, b| if a > b { a } else { b });
-            let cornerdist = nalgebra::distance(&point![0.0, 0.0], &self.renderer.unproject(0, 0));
-            self.zoom = (self.zoom * cornerdist as f32 / (2.0 * maxdist as f32))
-                .clamp(MIN_ZOOM, INITIAL_ZOOM);
-
-            // Pick player ship if there's only one.
-            let own_ships: Vec<_> = snapshot
-                .ships
-                .iter()
-                .filter(|ship| ship.team == 0)
-                .collect();
-            if own_ships.len() == 1 {
-                self.picked_ship_id = Some(own_ships[0].id);
+                // Pick player ship if there's only one.
+                let own_ships: Vec<_> = snapshot
+                    .ships
+                    .iter()
+                    .filter(|ship| ship.team == 0)
+                    .collect();
+                if own_ships.len() == 1 {
+                    self.picked_ship_id = Some(own_ships[0].id);
+                }
             }
+
+            if !snapshot.errors.is_empty() {
+                self.paused = true;
+            }
+
+            self.status = snapshot.status;
         }
 
-        if !snapshot.errors.is_empty() {
-            self.paused = true;
+        if let Some(snapshot) = self.snapshot.as_mut() {
+            let t = std::time::Duration::from_secs_f64(snapshot.time);
+            assert!(self.physics_time >= t);
+            let mut delta = (self.physics_time - t).min(Duration::from_millis(16));
+            if delta > Duration::from_millis(3) {
+                delta -= Duration::from_millis(1);
+            }
+            self.physics_time = t + delta;
+
+            snapshot::interpolate(snapshot, delta.as_secs_f64());
+
+            self.renderer.update(snapshot);
+
+            snapshot.particles.clear();
         }
-
-        self.status = snapshot.status;
-
-        let t = std::time::Duration::from_secs_f64(snapshot.time);
-        assert!(self.physics_time >= t);
-        let mut delta = (self.physics_time - t).min(Duration::from_millis(16));
-        if delta > Duration::from_millis(3) {
-            delta -= Duration::from_millis(1);
-        }
-        self.physics_time = t + delta;
-
-        snapshot::interpolate(snapshot, delta.as_secs_f64());
-
-        self.renderer.update(snapshot);
     }
 
     pub fn on_key_event(&mut self, e: web_sys::KeyboardEvent) {
