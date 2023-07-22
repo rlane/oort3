@@ -220,7 +220,8 @@ impl Renderer {
             self.trail_renderer.draw(snapshot.time as f32, 4.0);
             self.flare_renderer.draw(&flare_drawset);
             self.bullet_renderer.draw(&blur_bullet_drawset);
-            self.particle_renderer.draw(&particle_drawset, 2.0);
+            self.particle_renderer
+                .draw(&particle_drawset, 10.0 * self.base_line_width);
             self.ship_renderer.draw(&ship_drawset);
             self.blur.finish();
         }
@@ -237,7 +238,8 @@ impl Renderer {
             self.trail_renderer.draw(snapshot.time as f32, 2.0);
             self.flare_renderer.draw(&flare_drawset);
             self.bullet_renderer.draw(&bullet_drawset);
-            self.particle_renderer.draw(&particle_drawset, 1.0);
+            self.particle_renderer
+                .draw(&particle_drawset, 5.0 * self.base_line_width);
             self.line_renderer.draw(&line_drawset);
             self.ship_renderer.draw(&ship_drawset);
             self.text_renderer.draw(&text_drawset);

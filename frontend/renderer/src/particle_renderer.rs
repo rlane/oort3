@@ -1,3 +1,5 @@
+use crate::geometry;
+
 use super::{buffer_arena, glutil};
 use glutil::VertexAttribBuilder;
 use nalgebra::{vector, Matrix4, Vector2, Vector4};
@@ -31,10 +33,13 @@ pub struct Particle {
     creation_time: f32,
 }
 
+#[derive(Debug)]
 pub struct DrawSet {
     projection_matrix: Matrix4<f32>,
+    vertices_token: buffer_arena::Token,
     num_vertices: usize,
     attribs_token: buffer_arena::Token,
+    num_instances: usize,
     current_time: f32,
 }
 
@@ -47,19 +52,21 @@ impl ParticleRenderer {
 uniform mat4 transform;
 uniform float current_time;
 uniform float scale;
-layout(location = 0) in vec4 position;
-layout(location = 1) in vec3 velocity;
-layout(location = 2) in vec4 color;
-layout(location = 3) in float lifetime;
-layout(location = 4) in float creation_time;
+layout(location = 0) in vec4 vertex;
+layout(location = 1) in vec2 position;
+layout(location = 2) in vec2 velocity;
+layout(location = 3) in vec4 color;
+layout(location = 4) in float lifetime;
+layout(location = 5) in float creation_time;
 out vec4 varying_color;
 
 void main() {
     float dt = current_time - creation_time;
     float life_fraction = clamp(dt / lifetime, 0.0, 1.0);
-    gl_Position = transform * (position + vec4(velocity, 0.0) * dt);
+    float size = (1.0 - life_fraction) * scale;
+    vec2 p = vertex.xy * size + position + velocity * dt;
+    gl_Position = transform * vec4(p, 0.0, 1.0);
     varying_color = vec4(color.x, color.y, color.z, color.w * (1.0 - life_fraction));
-    gl_PointSize = (1.0 - life_fraction) * 10.0 * scale;
 }
     "#,
         )?;
@@ -152,7 +159,9 @@ void main() {
     pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, snapshot: &Snapshot) -> DrawSet {
         let current_time = snapshot.time as f32;
 
-        let data: Vec<Particle> = self
+        let vertices = geometry::quad();
+
+        let attribs: Vec<Particle> = self
             .particles
             .iter()
             .filter(|x| x.creation_time >= current_time - 10.0)
@@ -161,14 +170,16 @@ void main() {
 
         DrawSet {
             projection_matrix: *projection_matrix,
-            num_vertices: data.len(),
-            attribs_token: self.buffer_arena.write(data.as_slice()),
+            vertices_token: self.buffer_arena.write(&vertices),
+            num_vertices: vertices.len(),
+            attribs_token: self.buffer_arena.write(attribs.as_slice()),
+            num_instances: attribs.len(),
             current_time,
         }
     }
 
     pub fn draw(&mut self, drawset: &DrawSet, scale: f32) {
-        if drawset.num_vertices == 0 {
+        if drawset.num_instances == 0 {
             return;
         }
 
@@ -180,24 +191,34 @@ void main() {
 
         self.context.uniform1f(Some(&self.scale_loc), scale);
 
-        let vab = VertexAttribBuilder::new(&self.context).data_token(&drawset.attribs_token);
-        vab.index(0)
+        // vertices
+        VertexAttribBuilder::new(&self.context)
+            .data_token(&drawset.vertices_token)
+            .index(0)
+            .size(2)
+            .build();
+
+        // attribs
+        let vab = VertexAttribBuilder::new(&self.context)
+            .data_token(&drawset.attribs_token)
+            .divisor(1);
+        vab.index(1)
             .size(2)
             .offset(offset_of!(Particle, position))
             .build();
-        vab.index(1)
+        vab.index(2)
             .size(2)
             .offset(offset_of!(Particle, velocity))
             .build();
-        vab.index(2)
+        vab.index(3)
             .size(4)
             .offset(offset_of!(Particle, color))
             .build();
-        vab.index(3)
+        vab.index(4)
             .size(1)
             .offset(offset_of!(Particle, lifetime))
             .build();
-        vab.index(4)
+        vab.index(5)
             .size(1)
             .offset(offset_of!(Particle, creation_time))
             .build();
@@ -209,8 +230,12 @@ void main() {
             drawset.projection_matrix.data.as_slice(),
         );
 
-        self.context
-            .draw_arrays(gl::POINTS, 0, drawset.num_vertices as i32);
+        self.context.draw_arrays_instanced(
+            gl::TRIANGLE_STRIP,
+            0,
+            drawset.num_vertices as i32,
+            drawset.num_instances as i32,
+        );
 
         self.context.bind_vertex_array(None);
     }
