@@ -159,7 +159,7 @@ void main() {
     pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, snapshot: &Snapshot) -> DrawSet {
         let current_time = snapshot.time as f32;
 
-        let vertices = geometry::quad();
+        let vertices = geometry::hexagon();
 
         let attribs: Vec<Particle> = self
             .particles
@@ -231,7 +231,7 @@ void main() {
         );
 
         self.context.draw_arrays_instanced(
-            gl::TRIANGLE_STRIP,
+            gl::TRIANGLE_FAN,
             0,
             drawset.num_vertices as i32,
             drawset.num_instances as i32,

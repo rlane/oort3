@@ -26,6 +26,20 @@ pub fn triquad() -> [Point2<f32>; 6] {
     ]
 }
 
+// Use gl::TRIANGLE_FAN
+pub fn hexagon() -> [Point2<f32>; 8] {
+    [
+        point![0.0, 0.0],
+        point![0.5, 0.0],
+        point![0.25, 0.433],
+        point![-0.25, 0.433],
+        point![-0.5, 0.0],
+        point![-0.25, -0.433],
+        point![0.25, -0.433],
+        point![0.5, 0.0],
+    ]
+}
+
 pub fn line_transform(p1: Point2<f32>, p2: Point2<f32>, width: f32) -> Matrix4<f32> {
     let axis = Unit::new_normalize(vector![0.0, 0.0, 1.0]);
     let dp = p2 - p1;
