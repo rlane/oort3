@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Rich Lane"]
 description = "APIs for Oort, a space fleet programming game."
 license = "GPL-3.0-or-later"
-repository = "http://github.com/rlane/oort3"
+repository = "https://github.com/rlane/oort3"
 
 [dependencies]
 oorandom = "11.1.3"
