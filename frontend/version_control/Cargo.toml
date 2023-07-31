@@ -6,14 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.71"
+anyhow = "1.0.72"
 chrono = "0.4.26"
 flate2 = "1.0.26"
 idb = "0.4.1"
-js-sys = "0.3.63"
-log = "0.4.18"
-serde = { version = "1.0.163", features = ["derive"] }
+js-sys = "0.3.64"
+log = "0.4.19"
+serde = { version = "1.0.180", features = ["derive"] }
 serde-wasm-bindgen = "0.5.0"
-sha2 = "0.10.6"
-thiserror = "1.0.40"
-wasm-bindgen = "0.2.86"
+sha2 = "0.10.7"
+thiserror = "1.0.44"
+wasm-bindgen = "0.2.87"

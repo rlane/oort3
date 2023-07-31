@@ -12,43 +12,43 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-crossbeam = "0.8.1"
-getrandom = { version = "0.2.6", features = ["js"] }
-log = "0.4.17"
-nalgebra = { version = "0.32.1", features = ["serde-serialize"] }
+crossbeam = "0.8.2"
+getrandom = { version = "0.2.10", features = ["js"] }
+log = "0.4.19"
+nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 oorandom = "11.1.3"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_distr = "0.4.3"
 rand_seeder = "0.2.3"
-rapier2d-f64 = { version = "0.17.1", features = ["wasm-bindgen"] }
-serde = { version = "1.0.137", features = ["derive"] }
+rapier2d-f64 = { version = "0.17.2", features = ["wasm-bindgen"] }
+serde = { version = "1.0.180", features = ["derive"] }
 instant = "0.1.12"
 oort_api = { path = "../api", features = ["serde"] }
-wasmer = { version = "4.0.0-alpha.1", default-features = false }
-tar = "0.4.38"
-libflate = "1.2.0"
+wasmer = { version = "4.1.0", default-features = false }
+tar = "0.4.39"
+libflate = "2.0.0"
 walrus = { version = "0.19.0", git = "https://github.com/scrtlabs/walrus", rev = "c5777d4" }
 bytes = { version = "1.4.0", features = ["serde"] }
-static_aabb2d_index = { version = "0.7.0", features = ["unsafe_optimizations"] }
+static_aabb2d_index = { version = "1.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
-wide = "0.7.8"
+wide = "0.7.11"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-wasmer-compiler-singlepass = { version = "4.0.0-alpha.1" }
+wasmer-compiler-singlepass = { version = "4.1.0" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-js-sys = "0.3.57"
+js-sys = "0.3.64"
 wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4.30"
+wasm-bindgen-futures = "0.4.37"
 
 [dev-dependencies]
 bincode = "1.3.3"
-rayon = "1.5.3"
-criterion = { version = "0.4.0", features = ["html_reports"] }
-test-log = "0.2.10"
+rayon = "1.7.0"
+criterion = { version = "0.5.1", features = ["html_reports"] }
+test-log = "0.2.12"
 env_logger = "0.10.0"
-serde_json = "1.0.81"
+serde_json = "1.0.104"
 approx = "0.5.1"
 wabt = "0.10.0"
 
