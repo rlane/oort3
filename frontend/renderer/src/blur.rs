@@ -7,26 +7,27 @@ use web_sys::{
 };
 use WebGl2RenderingContext as gl;
 
-pub const TEXTURE_SIZE: i32 = 4096;
-
-#[derive(PartialEq)]
-enum Direction {
-    Horizontal,
-    Vertical,
-}
+pub const TEXTURE_SIZE: i32 = 1024;
 
 pub struct Blur {
     context: WebGl2RenderingContext,
     program: WebGlProgram,
     buffer_arena: buffer_arena::BufferArena,
-    textures: Vec<WebGlTexture>,
-    fbs: Vec<WebGlFramebuffer>,
     resolution_loc: WebGlUniformLocation,
     radius_loc: WebGlUniformLocation,
-    dir_loc: WebGlUniformLocation,
+    active_framebuffers: Framebuffers,
+    standby_framebuffers: Framebuffers,
+}
+
+pub struct Framebuffers {
+    renderbuffer_fb: WebGlFramebuffer,
+    texture_fb: WebGlFramebuffer,
+    texture: WebGlTexture,
 }
 
 impl Blur {
+    const REDUCTION: i32 = 4;
+
     pub fn new(context: WebGl2RenderingContext) -> Result<Self, JsValue> {
         let vert_shader = glutil::compile_shader(
             &context,
@@ -37,7 +38,7 @@ layout(location = 1) in vec4 texcoord;
 out vec2 v_texcoord;
 
 void main() {
-    gl_Position = vec4(vertex.xyz * 2.0, vertex.w);
+    gl_Position = vertex;
     v_texcoord = texcoord.xy;
 }
     "#,
@@ -47,47 +48,49 @@ void main() {
             gl::FRAGMENT_SHADER,
             r#"#version 300 es
 // https://github.com/mattdesl/lwjgl-basics/wiki/ShaderLesson5
+// https://webgl-shaders.com/shaders/frag-blur.glsl
 precision mediump float;
 
 uniform sampler2D tex;
 uniform float resolution;
 uniform float radius;
-uniform vec2 dir;
 
 in vec2 v_texcoord;
 out vec4 fragmentColor;
 
 void main() {
-    //this will be our RGBA sum
+    float step = radius/resolution;
+
     vec4 sum = vec4(0.0);
-
-    //our original texcoord for this fragment
-    vec2 tc = v_texcoord;
-
-    //the amount to blur, i.e. how far off center to sample from 
-    //1.0 -> blur by one pixel
-    //2.0 -> blur by two pixels, etc.
-    float blur = radius/resolution;
-
-    //the direction of our blur
-    //(1.0, 0.0) -> x-axis blur
-    //(0.0, 1.0) -> y-axis blur
-    float hstep = dir.x;
-    float vstep = dir.y;
-
-    //apply blurring, using a 9-tap filter with predefined gaussian weights
-
-    sum += texture(tex, vec2(tc.x - 4.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.0162162162;
-    sum += texture(tex, vec2(tc.x - 3.0*blur*hstep, tc.y - 3.0*blur*vstep)) * 0.0540540541;
-    sum += texture(tex, vec2(tc.x - 2.0*blur*hstep, tc.y - 2.0*blur*vstep)) * 0.1216216216;
-    sum += texture(tex, vec2(tc.x - 1.0*blur*hstep, tc.y - 1.0*blur*vstep)) * 0.1945945946;
-
-    sum += texture(tex, vec2(tc.x, tc.y)) * 0.2270270270;
-
-    sum += texture(tex, vec2(tc.x + 1.0*blur*hstep, tc.y + 1.0*blur*vstep)) * 0.1945945946;
-    sum += texture(tex, vec2(tc.x + 2.0*blur*hstep, tc.y + 2.0*blur*vstep)) * 0.1216216216;
-    sum += texture(tex, vec2(tc.x + 3.0*blur*hstep, tc.y + 3.0*blur*vstep)) * 0.0540540541;
-    sum += texture(tex, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0162162162;
+    if (radius < 0.0) {
+    sum += texture(tex, v_texcoord + step * vec2(0, 0));
+    } else {
+    sum += (1.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-2, -2));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-2, -1));
+    sum += (6.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-2, 0));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-2, 1));
+    sum += (1.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-2, 2));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-1, -2));
+    sum += (16.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-1, -1));
+    sum += (24.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-1, 0));
+    sum += (16.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-1, 1));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(-1, 2));
+    sum += (6.0 / 256.0) * texture(tex, v_texcoord + step * vec2(0, -2));
+    sum += (24.0 / 256.0) * texture(tex, v_texcoord + step * vec2(0, -1));
+    sum += (36.0 / 256.0) * texture(tex, v_texcoord + step * vec2(0, 0));
+    sum += (24.0 / 256.0) * texture(tex, v_texcoord + step * vec2(0, 1));
+    sum += (6.0 / 256.0) * texture(tex, v_texcoord + step * vec2(0, 2));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(1, -2));
+    sum += (16.0 / 256.0) * texture(tex, v_texcoord + step * vec2(1, -1));
+    sum += (24.0 / 256.0) * texture(tex, v_texcoord + step * vec2(1, 0));
+    sum += (16.0 / 256.0) * texture(tex, v_texcoord + step * vec2(1, 1));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(1, 2));
+    sum += (1.0 / 256.0) * texture(tex, v_texcoord + step * vec2(2, -2));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(2, -1));
+    sum += (6.0 / 256.0) * texture(tex, v_texcoord + step * vec2(2, 0));
+    sum += (4.0 / 256.0) * texture(tex, v_texcoord + step * vec2(2, 1));
+    sum += (1.0 / 256.0) * texture(tex, v_texcoord + step * vec2(2, 2));
+    }
 
     sum.a *= 2.0;
     fragmentColor = sum;
@@ -97,10 +100,67 @@ void main() {
 
         assert_eq!(context.get_error(), gl::NO_ERROR);
 
-        let mut textures = vec![];
-        let mut fbs = vec![];
+        let resolution_loc = context
+            .get_uniform_location(&program, "resolution")
+            .ok_or("did not find uniform")?;
+        let radius_loc = context
+            .get_uniform_location(&program, "radius")
+            .ok_or("did not find uniform")?;
 
-        for _ in [0, 1] {
+        Ok(Self {
+            context: context.clone(),
+            program,
+            buffer_arena: buffer_arena::BufferArena::new(
+                "blur",
+                context.clone(),
+                gl::ARRAY_BUFFER,
+                1024 * 1024,
+            )?,
+            active_framebuffers: Self::create_framebuffers(context.clone()),
+            standby_framebuffers: Self::create_framebuffers(context),
+            resolution_loc,
+            radius_loc,
+        })
+    }
+
+    pub fn create_framebuffers(context: WebGl2RenderingContext) -> Framebuffers {
+        // Multisample framebuffer
+        let renderbuffer_fb = {
+            let max_samples = context
+                .get_parameter(gl::MAX_SAMPLES)
+                .unwrap()
+                .as_f64()
+                .unwrap() as i32;
+            let renderbuffer = context.create_renderbuffer().unwrap();
+            context.bind_renderbuffer(gl::RENDERBUFFER, Some(&renderbuffer));
+            context.renderbuffer_storage_multisample(
+                gl::RENDERBUFFER,
+                max_samples,
+                gl::RGBA8,
+                TEXTURE_SIZE,
+                TEXTURE_SIZE,
+            );
+
+            let fb = context.create_framebuffer().unwrap();
+            context.bind_framebuffer(gl::FRAMEBUFFER, Some(&fb));
+            context.framebuffer_renderbuffer(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0,
+                gl::RENDERBUFFER,
+                Some(&renderbuffer),
+            );
+
+            assert_eq!(
+                context.check_framebuffer_status(gl::FRAMEBUFFER),
+                gl::FRAMEBUFFER_COMPLETE
+            );
+
+            context.bind_framebuffer(gl::FRAMEBUFFER, None);
+            fb
+        };
+
+        // Texture-backed framebuffer
+        let (texture_fb, texture) = {
             let texture = context.create_texture().unwrap();
             context.bind_texture(gl::TEXTURE_2D, Some(&texture));
             let level = 0;
@@ -122,7 +182,12 @@ void main() {
             )
             .unwrap();
             // set the filtering so we don't need mips
-            context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
+            context.tex_parameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_MIN_FILTER,
+                gl::LINEAR_MIPMAP_LINEAR as i32,
+            );
+            context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
             context.bind_texture(gl::TEXTURE_2D, None);
@@ -147,111 +212,98 @@ void main() {
 
             context.bind_framebuffer(gl::FRAMEBUFFER, None);
 
-            textures.push(texture);
-            fbs.push(fb);
+            (fb, texture)
+        };
+
+        Framebuffers {
+            renderbuffer_fb,
+            texture_fb,
+            texture,
         }
-
-        let resolution_loc = context
-            .get_uniform_location(&program, "resolution")
-            .ok_or("did not find uniform")?;
-        let radius_loc = context
-            .get_uniform_location(&program, "radius")
-            .ok_or("did not find uniform")?;
-        let dir_loc = context
-            .get_uniform_location(&program, "dir")
-            .ok_or("did not find uniform")?;
-
-        Ok(Self {
-            context: context.clone(),
-            program,
-            buffer_arena: buffer_arena::BufferArena::new(
-                "blur",
-                context,
-                gl::ARRAY_BUFFER,
-                1024 * 1024,
-            )?,
-            textures,
-            fbs,
-            resolution_loc,
-            radius_loc,
-            dir_loc,
-        })
     }
 
-    // Set up to render to texture
+    // Set up to render to renderbuffer
     pub fn start(&mut self) {
-        self.context
-            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[0]));
+        std::mem::swap(
+            &mut self.active_framebuffers,
+            &mut self.standby_framebuffers,
+        );
+        let screen_width = self.context.drawing_buffer_width();
+        let screen_height = self.context.drawing_buffer_height();
+        self.context.viewport(
+            0,
+            0,
+            screen_width / Self::REDUCTION,
+            screen_height / Self::REDUCTION,
+        );
+        self.context.bind_framebuffer(
+            gl::FRAMEBUFFER,
+            Some(&self.active_framebuffers.renderbuffer_fb),
+        );
     }
 
-    // Stop rendering to texture
+    // Stop rendering to renderbuffer
     pub fn finish(&mut self) {
+        let screen_width = self.context.drawing_buffer_width();
+        let screen_height = self.context.drawing_buffer_height();
+        self.context.viewport(0, 0, screen_width, screen_height);
+
         self.context.bind_framebuffer(gl::FRAMEBUFFER, None);
+        self.context.bind_framebuffer(
+            gl::READ_FRAMEBUFFER,
+            Some(&self.active_framebuffers.renderbuffer_fb),
+        );
+        self.context.bind_framebuffer(
+            gl::DRAW_FRAMEBUFFER,
+            Some(&self.active_framebuffers.texture_fb),
+        );
+
+        self.context.blit_framebuffer(
+            0,
+            0,
+            screen_width / Self::REDUCTION,
+            screen_height / Self::REDUCTION,
+            0,
+            0,
+            screen_width / Self::REDUCTION,
+            screen_height / Self::REDUCTION,
+            gl::COLOR_BUFFER_BIT,
+            gl::LINEAR,
+        );
+
+        self.context.bind_framebuffer(gl::READ_FRAMEBUFFER, None);
+        self.context.bind_framebuffer(gl::DRAW_FRAMEBUFFER, None);
+
+        self.context
+            .bind_texture(gl::TEXTURE_2D, Some(&self.active_framebuffers.texture));
+        self.context.generate_mipmap(gl::TEXTURE_2D);
+        self.context.bind_texture(gl::TEXTURE_2D, None);
     }
 
     // Draw blurred texture to screen
     pub fn draw(&mut self) {
-        self.context.disable(gl::BLEND);
-
-        // Horizontal pass textures[0] -> fbs[1]
-        self.context
-            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[1]));
-        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
-        self.context.clear(gl::COLOR_BUFFER_BIT);
-        self.context
-            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[0]));
-        self.blur_once(Direction::Horizontal, 1.0);
-
-        // Horizontal pass textures[1] -> fbs[0]
-        self.context
-            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[0]));
-        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
-        self.context.clear(gl::COLOR_BUFFER_BIT);
-        self.context
-            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[1]));
-        self.blur_once(Direction::Horizontal, 2.0);
-
-        // Vertical pass textures[0] -> fbs[1]
-        self.context
-            .bind_framebuffer(gl::FRAMEBUFFER, Some(&self.fbs[1]));
-        self.context.clear_color(0.0, 0.0, 0.0, 0.0);
-        self.context.clear(gl::COLOR_BUFFER_BIT);
-        self.context
-            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[0]));
-        self.blur_once(Direction::Vertical, 1.0);
-
-        self.context.enable(gl::BLEND);
         self.context.blend_func(gl::ONE, gl::ONE);
 
-        // Vertical pass textures[1] -> screen
         self.context.bind_framebuffer(gl::FRAMEBUFFER, None);
-        let screen_width = self.context.drawing_buffer_width();
-        let screen_height = self.context.drawing_buffer_height();
-        self.context.viewport(0, 0, screen_width, screen_height);
         self.context
-            .bind_texture(gl::TEXTURE_2D, Some(&self.textures[1]));
-        self.blur_once(Direction::Vertical, 2.0);
+            .bind_texture(gl::TEXTURE_2D, Some(&self.active_framebuffers.texture));
+        self.blur_once(2.0);
         self.context.bind_texture(gl::TEXTURE_2D, None);
 
         self.context
             .blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
 
-    fn blur_once(&mut self, direction: Direction, radius: f32) {
+    fn blur_once(&mut self, radius: f32) {
         self.context.use_program(Some(&self.program));
 
-        self.context.uniform1f(Some(&self.radius_loc), radius);
+        self.context
+            .uniform1f(Some(&self.radius_loc), radius / Self::REDUCTION as f32);
         self.context
             .uniform1f(Some(&self.resolution_loc), TEXTURE_SIZE as f32);
 
-        if direction == Direction::Vertical {
-            self.context.uniform2f(Some(&self.dir_loc), 0.0, 1.0);
-        } else {
-            self.context.uniform2f(Some(&self.dir_loc), 1.0, 0.0);
-        }
-
         // vertex
-        let vertices = geometry::quad();
+        let vertices = geometry::clip_quad();
         VertexAttribBuilder::new(&self.context)
             .data(&mut self.buffer_arena, &vertices)
             .index(0)
@@ -263,8 +315,8 @@ void main() {
         let screen_width = self.context.drawing_buffer_width() as f32;
         let screen_height = self.context.drawing_buffer_height() as f32;
         let scale = vector![
-            screen_width / TEXTURE_SIZE as f32,
-            screen_height / TEXTURE_SIZE as f32
+            screen_width / (Self::REDUCTION * TEXTURE_SIZE) as f32,
+            screen_height / (Self::REDUCTION * TEXTURE_SIZE) as f32
         ];
         for point in texcoord.iter_mut() {
             point.x *= scale.x;

@@ -217,7 +217,7 @@ impl Renderer {
             // Render to blur source texture
             self.context.clear_color(0.0, 0.0, 0.0, 0.0);
             self.context.clear(gl::COLOR_BUFFER_BIT);
-            self.trail_renderer.draw(snapshot.time as f32, 4.0);
+            self.trail_renderer.draw(snapshot.time as f32, 2.0);
             self.flare_renderer.draw(&flare_drawset);
             self.bullet_renderer.draw(&blur_bullet_drawset);
             self.particle_renderer
@@ -228,7 +228,7 @@ impl Renderer {
 
         {
             // Render non-blurred graphics
-            self.context.clear_color(0.0, 0.0, 0.0, 1.0);
+            self.context.clear_color(0.0, 0.0, 0.0, 0.0);
             self.context.clear(gl::COLOR_BUFFER_BIT);
             self.grid_renderer
                 .draw(zoom, camera_target, snapshot.world_size);

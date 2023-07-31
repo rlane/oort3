@@ -1,3 +1,5 @@
+- Improved blur performance on iOS / Mac.
+
 ### 0.54.1 - 2023-07-21
 
 - Added blur effect.

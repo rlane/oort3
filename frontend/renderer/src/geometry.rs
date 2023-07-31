@@ -14,6 +14,15 @@ pub fn unit_quad() -> [Point2<f32>; 4] {
     ]
 }
 
+pub fn clip_quad() -> [Point2<f32>; 4] {
+    [
+        point![-1.0, -1.0],
+        point![-1.0, 1.0],
+        point![1.0, -1.0],
+        point![1.0, 1.0],
+    ]
+}
+
 pub fn triquad() -> [Point2<f32>; 6] {
     let x = 0.5;
     [
