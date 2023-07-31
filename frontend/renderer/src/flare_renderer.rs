@@ -252,10 +252,6 @@ void main() {
     float bx = cos((1.0 - uv.x) * M_PI * 0.25);
     float by = sin(uv.y * M_PI * 0.5 + M_PI / 4.0);
     float brightness = clamp(pow(bx * by, 10.0), 0.0, 1.0);
-    if (brightness < 0.01) {
-        discard;
-        return;
-    }
     float t = current_time + varying_id * 0.01;
     float max_temp = 2000.0 + 10000.0 * fbm(uv - vec2(t * 5.0, sin(t * 10.0)));
     fragmentColor = vec4(
