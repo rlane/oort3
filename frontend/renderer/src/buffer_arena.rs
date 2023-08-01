@@ -44,6 +44,7 @@ impl BufferArena {
 
     pub fn write<T>(&mut self, data: &[T]) -> Token {
         let stride = std::mem::size_of::<T>();
+        #[allow(clippy::manual_slice_size_calculation)]
         let buf =
             unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * stride) };
         let (buf, offset, _) = self.write_buf(buf);

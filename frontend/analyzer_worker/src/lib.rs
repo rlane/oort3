@@ -1,7 +1,7 @@
 use ide_db::SnippetCap;
 pub use oort_proto::analyzer::*;
 use std::default::Default;
-use std::sync::Arc;
+use triomphe::Arc;
 use yew_agent::{HandlerId, Private, WorkerLink};
 
 use cfg::CfgOptions;
@@ -39,12 +39,12 @@ pub fn create_crate(crate_graph: &mut CrateGraph, f: FileId) -> CrateId {
         cfg,
         Default::default(),
         Env::default(),
-        Ok(Vec::new()),
         false,
-        CrateOrigin::CratesIo {
+        CrateOrigin::Local {
             repo: None,
             name: None,
         },
+        Err("no target layout".into()),
         None,
     )
 }
@@ -61,11 +61,7 @@ impl yew_agent::Worker for AnalyzerAgent {
     type Output = Response;
 
     fn create(link: WorkerLink<Self>) -> Self {
-        let text = "".to_string();
-        let fake_std = FAKE_STD.to_string();
-        let fake_core = "".to_string();
-        let fake_alloc = "".to_string();
-        let fake_oort_api = include_str!("../../../shared/api/src/lib.rs").to_string();
+        let fake_oort_api = include_str!("../../../shared/api/src/lib.rs");
 
         let mut host = AnalysisHost::default();
         let file_id = FileId(0);
@@ -109,11 +105,11 @@ impl yew_agent::Worker for AnalyzerAgent {
         crate_graph.add_dep(my_crate, std_dep).unwrap();
         crate_graph.add_dep(my_crate, oort_api_dep).unwrap();
 
-        change.change_file(file_id, Some(Arc::new(text)));
-        change.change_file(std_id, Some(Arc::new(fake_std)));
-        change.change_file(core_id, Some(Arc::new(fake_core)));
-        change.change_file(alloc_id, Some(Arc::new(fake_alloc)));
-        change.change_file(oort_api_id, Some(Arc::new(fake_oort_api)));
+        change.change_file(file_id, Some(Arc::from("")));
+        change.change_file(std_id, Some(Arc::from(FAKE_STD)));
+        change.change_file(core_id, Some(Arc::from("")));
+        change.change_file(alloc_id, Some(Arc::from("")));
+        change.change_file(oort_api_id, Some(Arc::from(fake_oort_api)));
         change.set_crate_graph(crate_graph);
         host.apply_change(change);
 
@@ -145,7 +141,7 @@ impl AnalyzerAgent {
     fn diagnostics(&mut self, text: String) -> Option<Response> {
         let file_id = ide::FileId(0);
         let mut change = ide::Change::new();
-        change.change_file(file_id, Some(Arc::new(text)));
+        change.change_file(file_id, Some(Arc::from(text)));
         self.analysis_host.apply_change(change);
         let analysis = self.analysis_host.analysis();
         let line_index = analysis.file_line_index(file_id).unwrap();
@@ -190,6 +186,7 @@ impl AnalyzerAgent {
             },
             prefer_no_std: false,
             snippets: Vec::new(),
+            limit: Some(10),
         };
 
         let analysis = self.analysis_host.analysis();
@@ -214,14 +211,18 @@ impl AnalyzerAgent {
         let results = items
             .iter()
             .map(|item| {
-                let inserts: Vec<_> = item.text_edit().iter().map(|x| x.insert.clone()).collect();
+                let inserts: Vec<_> = item.text_edit.iter().map(|x| x.insert.clone()).collect();
                 let text = inserts.join("");
                 CompletionItem {
-                    label: item.label().to_string(),
+                    label: item.label.to_string(),
                     kind: 1,
-                    detail: item.detail().map(|it| it.to_string()).unwrap_or_default(),
+                    detail: item
+                        .detail
+                        .as_ref()
+                        .map(|it| it.to_string())
+                        .unwrap_or_default(),
                     insertText: text,
-                    insertTextRules: if item.is_snippet() { 4 } else { 0 },
+                    insertTextRules: if item.is_snippet { 4 } else { 0 },
                     filterText: item.lookup().to_string(),
                 }
             })

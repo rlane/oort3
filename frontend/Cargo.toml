@@ -12,7 +12,6 @@ members = [
 [patch.crates-io]
 rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
 monaco = { git = "https://github.com/rlane/rust-monaco", rev = "fb9b66155ef17850ddc50e686e3912bdb037d313" }
-rayon = { path = "../rayno" }
 
 [profile.dev.package.'*']
 opt-level = 3
