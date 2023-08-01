@@ -1,3 +1,5 @@
+### 0.54.2 - 2023-08-01
+
 - Improved blur performance on iOS / Mac.
 - Reduced scale of early tutorials.
 
