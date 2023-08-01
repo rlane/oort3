@@ -21,4 +21,5 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+        workspaces: frontend
       - run: cargo check --manifest-path=frontend/Cargo.toml --target=wasm32-unknown-unknown
