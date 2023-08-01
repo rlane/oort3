@@ -60,12 +60,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .query_doc(
                 FirestoreQueryParams::new("leaderboard".into())
                     .with_filter(FirestoreQueryFilter::Composite(
-                        FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(
-                            Some(FirestoreQueryFilterCompare::Equal(
-                                "scenario_name".into(),
-                                scenario_name.into(),
-                            )),
-                        )]),
+                        FirestoreQueryFilterComposite::new(
+                            vec![FirestoreQueryFilter::Compare(Some(
+                                FirestoreQueryFilterCompare::Equal(
+                                    "scenario_name".into(),
+                                    scenario_name.into(),
+                                ),
+                            ))],
+                            FirestoreQueryFilterCompositeOperator::And,
+                        ),
                     ))
                     .with_order_by(vec![
                         FirestoreQueryOrder::new(
@@ -158,9 +161,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     for (docname, _old_msg, new_msg) in &updates {
         let docid = extract_docid(docname);
         if let Some(new_msg) = new_msg {
-            db.update_obj("leaderboard", &docid, new_msg, None).await?;
+            db.update_obj("leaderboard", &docid, new_msg, None, None, None)
+                .await?;
         } else {
-            db.delete_by_id("leaderboard", &docid).await?;
+            db.delete_by_id("leaderboard", &docid, None).await?;
         }
     }
 

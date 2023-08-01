@@ -33,20 +33,23 @@ async fn run(
     let docs: Vec<Document> = db
         .query_doc(
             FirestoreQueryParams::new(COLLECTION_NAME.into()).with_filter(
-                FirestoreQueryFilter::Composite(FirestoreQueryFilterComposite::new(vec![
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "type".into(),
-                        "FinishScenario".into(),
-                    ))),
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "success".into(),
-                        true.into(),
-                    ))),
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "scenario_name".into(),
-                        scenario.clone().into(),
-                    ))),
-                ])),
+                FirestoreQueryFilter::Composite(FirestoreQueryFilterComposite::new(
+                    vec![
+                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                            "type".into(),
+                            "FinishScenario".into(),
+                        ))),
+                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                            "success".into(),
+                            true.into(),
+                        ))),
+                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                            "scenario_name".into(),
+                            scenario.clone().into(),
+                        ))),
+                    ],
+                    FirestoreQueryFilterCompositeOperator::And,
+                )),
             ),
         )
         .await?;
@@ -116,7 +119,8 @@ async fn run(
 
     for msg in msgs {
         let path = format!("{}.{}", msg.scenario_name, msg.userid);
-        db.create_obj("leaderboard", &path, &msg).await?;
+        db.create_obj("leaderboard", Some(&path), &msg, None)
+            .await?;
     }
 
     Ok(())

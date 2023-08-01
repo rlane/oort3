@@ -15,12 +15,15 @@ async fn fetch_leaderboard(
         .query_doc(
             FirestoreQueryParams::new("leaderboard".into())
                 .with_filter(FirestoreQueryFilter::Composite(
-                    FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
-                        FirestoreQueryFilterCompare::Equal(
-                            "scenario_name".into(),
-                            scenario_name.into(),
-                        ),
-                    ))]),
+                    FirestoreQueryFilterComposite::new(
+                        vec![FirestoreQueryFilter::Compare(Some(
+                            FirestoreQueryFilterCompare::Equal(
+                                "scenario_name".into(),
+                                scenario_name.into(),
+                            ),
+                        ))],
+                        FirestoreQueryFilterCompositeOperator::And,
+                    ),
                 ))
                 .with_order_by(vec![
                     FirestoreQueryOrder::new("time".to_owned(), FirestoreQueryDirection::Ascending),
@@ -77,7 +80,7 @@ pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
     let old_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
 
     if let Ok(existing_obj) = db
-        .get_obj::<LeaderboardSubmission>("leaderboard", &path)
+        .get_obj::<LeaderboardSubmission, _>("leaderboard", &path)
         .await
     {
         log::debug!("Got existing obj {:?}", existing_obj);
@@ -87,7 +90,8 @@ pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
         }
     }
 
-    db.update_obj("leaderboard", &path, &obj, None).await?;
+    db.update_obj("leaderboard", &path, &obj, None, None, None)
+        .await?;
 
     let new_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
 

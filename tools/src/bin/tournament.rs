@@ -307,10 +307,11 @@ async fn upload_results(
             code: entrant.source_code.clone(),
         };
         let shortcode = format!("{tournament_id}.{}", competitor.username);
-        db.create_obj("shortcode", &shortcode, &obj).await?;
+        db.create_obj("shortcode", Some(&shortcode), &obj, None)
+            .await?;
         competitor.shortcode = shortcode;
     }
-    db.create_obj("tournament_results", &tournament_id, &results)
+    db.create_obj("tournament_results", Some(&tournament_id), &results, None)
         .await?;
     println!();
     if project_id == "oort-dev" {
@@ -330,12 +331,15 @@ async fn get_entrants(
         .query_obj(
             FirestoreQueryParams::new("tournament".into())
                 .with_filter(FirestoreQueryFilter::Composite(
-                    FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
-                        FirestoreQueryFilterCompare::Equal(
-                            "scenario_name".into(),
-                            scenario_name.into(),
-                        ),
-                    ))]),
+                    FirestoreQueryFilterComposite::new(
+                        vec![FirestoreQueryFilter::Compare(Some(
+                            FirestoreQueryFilterCompare::Equal(
+                                "scenario_name".into(),
+                                scenario_name.into(),
+                            ),
+                        ))],
+                        FirestoreQueryFilterCompositeOperator::And,
+                    ),
                 ))
                 .with_order_by(vec![
                     FirestoreQueryOrder::new(

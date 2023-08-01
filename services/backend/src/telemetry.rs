@@ -24,7 +24,7 @@ pub async fn post(Json(mut obj): Json<TelemetryMsg>) -> Result<(), Error> {
     obj.timestamp = Utc::now();
     log::debug!("Got request obj {:?}", obj);
     let docid = generate_docid();
-    db.create_obj("telemetry", &docid, &obj).await?;
+    db.create_obj("telemetry", Some(&docid), &obj, None).await?;
     match obj.payload {
         Telemetry::Crash { msg } => {
             discord::send_message(

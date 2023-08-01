@@ -44,7 +44,8 @@ async fn run(args: &Arguments) -> Result<(), Box<dyn std::error::Error + Send + 
             if msg != original_msg {
                 let docid = doc.name.rsplit_once('/').unwrap().1.to_string();
                 log::info!("Updating doc {:?}", docid);
-                db.update_obj(COLLECTION_NAME, &docid, &msg, None).await?;
+                db.update_obj(COLLECTION_NAME, &docid, &msg, None, None, None)
+                    .await?;
             }
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
