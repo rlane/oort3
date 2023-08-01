@@ -32,12 +32,15 @@ async fn run(
         .query_doc(
             FirestoreQueryParams::new("leaderboard".into())
                 .with_filter(FirestoreQueryFilter::Composite(
-                    FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
-                        FirestoreQueryFilterCompare::Equal(
-                            "scenario_name".into(),
-                            src_scenario_name.into(),
-                        ),
-                    ))]),
+                    FirestoreQueryFilterComposite::new(
+                        vec![FirestoreQueryFilter::Compare(Some(
+                            FirestoreQueryFilterCompare::Equal(
+                                "scenario_name".into(),
+                                src_scenario_name.into(),
+                            ),
+                        ))],
+                        FirestoreQueryFilterCompositeOperator::And,
+                    ),
                 ))
                 .with_order_by(vec![
                     FirestoreQueryOrder::new("time".to_owned(), FirestoreQueryDirection::Ascending),
@@ -56,7 +59,8 @@ async fn run(
             let new_docid = format!("{dst_scenario_name}.{userid}");
             log::info!("copying {} to {}", docid, new_docid);
             msg.scenario_name = dst_scenario_name.into();
-            db.update_obj("leaderboard", &new_docid, &msg, None).await?;
+            db.update_obj("leaderboard", &new_docid, &msg, None, None, None)
+                .await?;
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
         }

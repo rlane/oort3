@@ -57,16 +57,23 @@ async fn fetch_leaderboard(
         .query_doc(
             FirestoreQueryParams::new("leaderboard".into())
                 .with_filter(FirestoreQueryFilter::Composite(
-                    FirestoreQueryFilterComposite::new(vec![
-                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                            "scenario_name".into(),
-                            scenario_name.into(),
-                        ))),
-                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                            "username".into(),
-                            username.into(),
-                        ))),
-                    ]),
+                    FirestoreQueryFilterComposite::new(
+                        vec![
+                            FirestoreQueryFilter::Compare(Some(
+                                FirestoreQueryFilterCompare::Equal(
+                                    "scenario_name".into(),
+                                    scenario_name.into(),
+                                ),
+                            )),
+                            FirestoreQueryFilter::Compare(Some(
+                                FirestoreQueryFilterCompare::Equal(
+                                    "username".into(),
+                                    username.into(),
+                                ),
+                            )),
+                        ],
+                        FirestoreQueryFilterCompositeOperator::And,
+                    ),
                 ))
                 .with_order_by(vec![
                     FirestoreQueryOrder::new("time".to_owned(), FirestoreQueryDirection::Ascending),
@@ -97,16 +104,23 @@ async fn fetch_tournament(
         .query_doc(
             FirestoreQueryParams::new("tournament".into())
                 .with_filter(FirestoreQueryFilter::Composite(
-                    FirestoreQueryFilterComposite::new(vec![
-                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                            "scenario_name".into(),
-                            scenario_name.into(),
-                        ))),
-                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                            "username".into(),
-                            username.into(),
-                        ))),
-                    ]),
+                    FirestoreQueryFilterComposite::new(
+                        vec![
+                            FirestoreQueryFilter::Compare(Some(
+                                FirestoreQueryFilterCompare::Equal(
+                                    "scenario_name".into(),
+                                    scenario_name.into(),
+                                ),
+                            )),
+                            FirestoreQueryFilter::Compare(Some(
+                                FirestoreQueryFilterCompare::Equal(
+                                    "username".into(),
+                                    username.into(),
+                                ),
+                            )),
+                        ],
+                        FirestoreQueryFilterCompositeOperator::And,
+                    ),
                 ))
                 .with_order_by(vec![FirestoreQueryOrder::new(
                     "timestamp".to_owned(),
@@ -137,7 +151,9 @@ pub async fn get(Path(id): Path<String>) -> Result<String, Error> {
             scenario_name,
         } => fetch_tournament(&db, &scenario_name, &username).await?,
         Shortcode::Uploaded { docid } => {
-            let obj = db.get_obj::<ShortcodeUpload>("shortcode", &docid).await?;
+            let obj = db
+                .get_obj::<ShortcodeUpload, _>("shortcode", &docid)
+                .await?;
             oort_code_encryption::encrypt(&obj.code)?
         }
     };
@@ -164,6 +180,6 @@ pub async fn post(Json(mut obj): Json<ShortcodeUpload>) -> Result<String, Error>
     let db = FirestoreDb::new(&project_id()).await?;
     obj.timestamp = Utc::now();
     let docid = generate_docid();
-    db.create_obj("shortcode", &docid, &obj).await?;
+    db.create_obj("shortcode", Some(&docid), &obj, None).await?;
     Ok(docid)
 }

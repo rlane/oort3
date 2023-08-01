@@ -63,12 +63,15 @@ async fn cmd_list(
         .query_doc(
             FirestoreQueryParams::new("leaderboard".into())
                 .with_filter(FirestoreQueryFilter::Composite(
-                    FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
-                        FirestoreQueryFilterCompare::Equal(
-                            "scenario_name".into(),
-                            scenario_name.into(),
-                        ),
-                    ))]),
+                    FirestoreQueryFilterComposite::new(
+                        vec![FirestoreQueryFilter::Compare(Some(
+                            FirestoreQueryFilterCompare::Equal(
+                                "scenario_name".into(),
+                                scenario_name.into(),
+                            ),
+                        ))],
+                        FirestoreQueryFilterCompositeOperator::And,
+                    ),
                 ))
                 .with_order_by(vec![
                     FirestoreQueryOrder::new("time".to_owned(), FirestoreQueryDirection::Ascending),
@@ -117,12 +120,15 @@ async fn cmd_download(
         .query_doc(
             FirestoreQueryParams::new("leaderboard".into())
                 .with_filter(FirestoreQueryFilter::Composite(
-                    FirestoreQueryFilterComposite::new(vec![FirestoreQueryFilter::Compare(Some(
-                        FirestoreQueryFilterCompare::Equal(
-                            "scenario_name".into(),
-                            scenario_name.into(),
-                        ),
-                    ))]),
+                    FirestoreQueryFilterComposite::new(
+                        vec![FirestoreQueryFilter::Compare(Some(
+                            FirestoreQueryFilterCompare::Equal(
+                                "scenario_name".into(),
+                                scenario_name.into(),
+                            ),
+                        ))],
+                        FirestoreQueryFilterCompositeOperator::And,
+                    ),
                 ))
                 .with_order_by(vec![
                     FirestoreQueryOrder::new("time".to_owned(), FirestoreQueryDirection::Ascending),
@@ -153,7 +159,7 @@ async fn cmd_get(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = FirestoreDb::new(project_id).await?;
     if let Ok(msg) = db
-        .get_obj::<LeaderboardSubmission>("leaderboard", &docid)
+        .get_obj::<LeaderboardSubmission, _>("leaderboard", &docid)
         .await
     {
         let datetime: DateTime<Local> = DateTime::from(msg.timestamp);
@@ -163,7 +169,7 @@ async fn cmd_get(
         println!("// Time: {:.2}s Size: {}", msg.time, msg.code_size);
         println!("{}", msg.code.trim());
     } else {
-        let doc = db.get_doc_by_id("", "leaderboard", &docid).await?;
+        let doc = db.get_doc("leaderboard", &docid, None).await?;
         println!("Failed to parse {doc:?}");
     }
 

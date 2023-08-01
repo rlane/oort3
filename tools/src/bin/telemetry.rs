@@ -118,7 +118,7 @@ async fn cmd_get(
     docid: String,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let db = FirestoreDb::new(project_id).await?;
-    if let Ok(msg) = db.get_obj::<TelemetryMsg>(COLLECTION_NAME, &docid).await {
+    if let Ok(msg) = db.get_obj::<TelemetryMsg, _>(COLLECTION_NAME, &docid).await {
         let user = &msg.username;
         match msg.payload {
             Telemetry::StartScenario {
@@ -165,7 +165,7 @@ async fn cmd_get(
             }
         }
     } else {
-        let doc = db.get_doc_by_id("", COLLECTION_NAME, &docid).await?;
+        let doc = db.get_doc(COLLECTION_NAME, &docid, None).await?;
         println!("Failed to parse {doc:?}");
     }
 
@@ -182,20 +182,23 @@ async fn cmd_top(
     let docs: Vec<Document> = db
         .query_doc(
             FirestoreQueryParams::new(COLLECTION_NAME.into()).with_filter(
-                FirestoreQueryFilter::Composite(FirestoreQueryFilterComposite::new(vec![
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "type".into(),
-                        "FinishScenario".into(),
-                    ))),
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "success".into(),
-                        true.into(),
-                    ))),
-                    FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
-                        "scenario_name".into(),
-                        scenario.clone().into(),
-                    ))),
-                ])),
+                FirestoreQueryFilter::Composite(FirestoreQueryFilterComposite::new(
+                    vec![
+                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                            "type".into(),
+                            "FinishScenario".into(),
+                        ))),
+                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                            "success".into(),
+                            true.into(),
+                        ))),
+                        FirestoreQueryFilter::Compare(Some(FirestoreQueryFilterCompare::Equal(
+                            "scenario_name".into(),
+                            scenario.clone().into(),
+                        ))),
+                    ],
+                    FirestoreQueryFilterCompositeOperator::And,
+                )),
             ),
         )
         .await?;

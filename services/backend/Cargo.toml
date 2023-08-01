@@ -10,8 +10,8 @@ oort_code_encryption = { path = "../../shared/code_encryption" }
 oort_proto = { path = "../../shared/proto" }
 anyhow = "1.0"
 chrono = "0.4.26"
-firestore = "0.6.3"
-gcloud-sdk = "0.18.7"
+firestore = "0.32.2"
+gcloud-sdk = "0.20.4"
 log = "0.4.19"
 rand = "0.8.5"
 regex = "1.9.1"
