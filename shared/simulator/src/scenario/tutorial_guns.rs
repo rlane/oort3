@@ -14,14 +14,14 @@ impl Scenario for TutorialGuns {
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         ship::create(
             sim,
-            vector![-1000.0, 0.0],
+            vector![-250.0, 0.0],
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),
         );
         ship::create(
             sim,
-            vector![1000.0, 0.0],
+            vector![250.0, 0.0],
             vector![0.0, 0.0],
             0.1,
             target_asteroid(1),

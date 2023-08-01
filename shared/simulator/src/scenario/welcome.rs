@@ -67,4 +67,13 @@ impl Scenario for Welcome {
     fn solution(&self) -> Code {
         reference_ai()
     }
+
+    fn lines(&self) -> Vec<Line> {
+        let x = 500.0;
+        vec![Line {
+            a: point![x, x],
+            b: point![x, x],
+            color: vector![0.0, 0.0, 0.0, 0.0],
+        }]
+    }
 }

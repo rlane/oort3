@@ -15,8 +15,8 @@ use yew::NodeRef;
 
 const ZOOM_SPEED: f32 = 0.02;
 const MIN_ZOOM: f32 = 5e-6;
-const MAX_ZOOM: f32 = 1e-3;
-const INITIAL_ZOOM: f32 = 5e-4;
+const MAX_ZOOM: f32 = 5e-3;
+const INITIAL_ZOOM: f32 = 5e-3;
 const SNAPSHOT_PRELOAD: usize = 5;
 const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
 
@@ -315,6 +315,14 @@ impl UI {
                     .iter()
                     .map(|ship| nalgebra::distance(&ship.position, &point![0.0, 0.0]))
                     .fold(0.0, |a, b| if a > b { a } else { b });
+                let maxdist = maxdist.max(
+                    snapshot
+                        .scenario_lines
+                        .iter()
+                        .flat_map(|line| [line.a, line.b])
+                        .map(|p| nalgebra::distance(&p, &point![0.0, 0.0]))
+                        .fold(0.0, |a, b| if a > b { a } else { b }),
+                );
                 let cornerdist =
                     nalgebra::distance(&point![0.0, 0.0], &self.renderer.unproject(0, 0));
                 self.zoom = (self.zoom * cornerdist as f32 / (2.0 * maxdist as f32))

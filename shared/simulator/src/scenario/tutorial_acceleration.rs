@@ -5,7 +5,7 @@ pub struct TutorialAcceleration {
 }
 
 impl TutorialAcceleration {
-    const TARGET: Vector2<f64> = vector![1000.0, 0.0];
+    const TARGET: Vector2<f64> = vector![250.0, 0.0];
 
     pub fn new() -> Self {
         Self { hit_target: false }
@@ -24,7 +24,7 @@ impl Scenario for TutorialAcceleration {
     fn init(&mut self, sim: &mut Simulation, _seed: u32) {
         let handle = ship::create(
             sim,
-            vector![-1000.0, 0.0],
+            vector![-250.0, 0.0],
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),
