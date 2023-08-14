@@ -11,16 +11,16 @@ oort_simulator = { path = "../shared/simulator", features = ["precompile"] }
 oort_compiler = { path = "../shared/compiler" }
 oort_api = { path = "../shared/api" }
 firestore = "0.32.2"
-gcloud-sdk = "0.20.4"
+gcloud-sdk = "0.20.6"
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.29", features = ["full"] }
-log = "0.4.19"
+tokio = { version = "1.31", features = ["full"] }
+log = "0.4.20"
 env_logger = "0.10.0"
 reqwest = { version = "0.11.18", default-features = false, features = ["json", "blocking", "rustls-tls"] }
 rayon = "1.7.0"
 serde_json = "1.0"
 chrono = "0.4.26"
-clap = { version = "4.3.19", features = ["derive"] }
+clap = { version = "4.3.21", features = ["derive"] }
 skillratings = "0.25.0"
 itertools = "0.11.0"
 comfy-table = "7.0.1"
@@ -31,14 +31,14 @@ rusqlite = { version = "0.29.0", features = ["bundled"] }
 anyhow = "1.0.72"
 shell-words = "1.1.0"
 toml = "0.7.6"
-indicatif = { version = "0.17.5", features = ["tokio"] }
+indicatif = { version = "0.17.6", features = ["tokio"] }
 once_cell = "1.18.0"
-regex = "1.9.1"
+regex = "1.9.3"
 rand = "0.8.5"
 metaheuristics-nature = { version = "9.2.2", features = ["clap", "rayon"] }
 tempdir = "0.3.7"
 glob = "0.3.1"
-tar = "0.4.39"
+tar = "0.4.40"
 libflate = "2.0.0"
 tokio-retry = "0.3.0"
 goose = "0.17.0"
