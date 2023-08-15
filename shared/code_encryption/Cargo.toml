@@ -11,7 +11,7 @@ base64 = "0.21.2"
 bincode = "1.3.3"
 flate2 = "1.0.26"
 rand = "0.8.5"
-serde = { version = "1.0.180", features = ["derive"] }
+serde = { version = "1.0.183", features = ["derive"] }
 sha2 = "0.10.7"
 
 [dev-dependencies]
