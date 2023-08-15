@@ -187,7 +187,11 @@ impl Renderer {
             self.text_renderer.upload(&self.projection_matrix, &texts)
         };
 
-        let line_drawset = {
+        let scenario_line_drawset = self
+            .line_renderer
+            .upload(&self.projection_matrix, &snapshot.scenario_lines);
+
+        let debug_line_drawset = {
             let mut lines: Vec<Line> = Vec::new();
             if self.debug {
                 for (_, debug_lines) in snapshot.debug_lines.iter() {
@@ -200,7 +204,6 @@ impl Renderer {
                     }
                 }
             }
-            lines.extend(snapshot.scenario_lines.iter().cloned());
             self.line_renderer.upload(&self.projection_matrix, &lines)
         };
 
@@ -222,6 +225,7 @@ impl Renderer {
             self.bullet_renderer.draw(&blur_bullet_drawset);
             self.particle_renderer
                 .draw(&particle_drawset, 10.0 * self.base_line_width);
+            self.line_renderer.draw(&scenario_line_drawset);
             self.ship_renderer.draw(&ship_drawset);
             self.blur.finish();
         }
@@ -240,7 +244,8 @@ impl Renderer {
             self.bullet_renderer.draw(&bullet_drawset);
             self.particle_renderer
                 .draw(&particle_drawset, 5.0 * self.base_line_width);
-            self.line_renderer.draw(&line_drawset);
+            self.line_renderer.draw(&scenario_line_drawset);
+            self.line_renderer.draw(&debug_line_drawset);
             self.ship_renderer.draw(&ship_drawset);
             self.text_renderer.draw(&text_drawset);
         }
