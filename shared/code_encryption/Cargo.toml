@@ -6,12 +6,12 @@ edition = "2021"
 
 [dependencies]
 aes-gcm = { version = "0.10.2", features = ["std"] }
-anyhow = "1.0.72"
+anyhow = "1.0.75"
 base64 = "0.21.2"
 bincode = "1.3.3"
-flate2 = "1.0.26"
+flate2 = "1.0.27"
 rand = "0.8.5"
-serde = { version = "1.0.183", features = ["derive"] }
+serde = { version = "1.0.185", features = ["derive"] }
 sha2 = "0.10.7"
 
 [dev-dependencies]
