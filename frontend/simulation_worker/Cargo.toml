@@ -7,4 +7,4 @@ publish = false
 [dependencies]
 oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
 yew-agent = "0.2.0"
-serde = "1.0.185"
+serde = "1.0.188"
