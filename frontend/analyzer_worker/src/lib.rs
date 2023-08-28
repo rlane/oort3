@@ -9,16 +9,10 @@ use ide::{
     AnalysisHost, Change, CompletionConfig, CrateGraph, CrateId, DiagnosticsConfig, Edition,
     FileId, LineIndex, SourceRoot, TextSize,
 };
-use ide_db::base_db::{CrateName, CrateOrigin, Dependency, Env, FileSet, VfsPath};
+use ide_db::base_db::{
+    CrateDisplayName, CrateName, CrateOrigin, Dependency, Env, FileSet, LangCrateOrigin, VfsPath,
+};
 use ide_db::imports::insert_use::{ImportGranularity, InsertUseConfig, PrefixKind};
-
-static FAKE_STD: &str = r#"
-#[macro_export]
-macro_rules! format_args {
-    ($fmt:expr) => {{ /* compiler built-in */ }};
-    ($fmt:expr, $($args:tt)*) => {{ /* compiler built-in */ }};
-}
-"#;
 
 pub fn create_source_root(name: &str, f: FileId) -> SourceRoot {
     let mut file_set = FileSet::default();
@@ -26,24 +20,26 @@ pub fn create_source_root(name: &str, f: FileId) -> SourceRoot {
     SourceRoot::new_library(file_set)
 }
 
-pub fn create_crate(crate_graph: &mut CrateGraph, f: FileId) -> CrateId {
+pub fn create_crate(
+    crate_graph: &mut CrateGraph,
+    name: &str,
+    f: FileId,
+    origin: CrateOrigin,
+) -> CrateId {
     let mut cfg = CfgOptions::default();
     cfg.insert_atom("unix".into());
     cfg.insert_key_value("target_arch".into(), "x86_64".into());
     cfg.insert_key_value("target_pointer_width".into(), "64".into());
     crate_graph.add_crate_root(
         f,
-        Edition::Edition2018,
-        None,
+        Edition::Edition2021,
+        Some(CrateDisplayName::from_canonical_name(name.to_string())),
         None,
         cfg,
         Default::default(),
         Env::default(),
         false,
-        CrateOrigin::Local {
-            repo: None,
-            name: None,
-        },
+        origin,
         Err("no target layout".into()),
         None,
     )
@@ -62,6 +58,8 @@ impl yew_agent::Worker for AnalyzerAgent {
 
     fn create(link: WorkerLink<Self>) -> Self {
         let fake_oort_api = include_str!("../../../shared/api/src/lib.rs");
+        let fake_core = include_str!("../stdlib/mini_core.rs");
+        let fake_std = include_str!("../stdlib/mini_std.rs");
 
         let mut host = AnalysisHost::default();
         let file_id = FileId(0);
@@ -77,6 +75,11 @@ impl yew_agent::Worker for AnalyzerAgent {
         );
         let source_root = SourceRoot::new_local(file_set);
 
+        let local_origin = CrateOrigin::Local {
+            repo: None,
+            name: None,
+        };
+
         let mut change = Change::new();
         change.set_roots(vec![
             source_root,
@@ -86,11 +89,31 @@ impl yew_agent::Worker for AnalyzerAgent {
             create_source_root("oort_api", oort_api_id),
         ]);
         let mut crate_graph = CrateGraph::default();
-        let my_crate = create_crate(&mut crate_graph, file_id);
-        let std_crate = create_crate(&mut crate_graph, std_id);
-        let core_crate = create_crate(&mut crate_graph, core_id);
-        let alloc_crate = create_crate(&mut crate_graph, alloc_id);
-        let oort_api_crate = create_crate(&mut crate_graph, oort_api_id);
+        let my_crate = create_crate(&mut crate_graph, "user", file_id, local_origin.clone());
+        let std_crate = create_crate(
+            &mut crate_graph,
+            "std",
+            std_id,
+            CrateOrigin::Lang(LangCrateOrigin::Std),
+        );
+        let core_crate = create_crate(
+            &mut crate_graph,
+            "core",
+            core_id,
+            CrateOrigin::Lang(LangCrateOrigin::Core),
+        );
+        let alloc_crate = create_crate(
+            &mut crate_graph,
+            "alloc",
+            alloc_id,
+            CrateOrigin::Lang(LangCrateOrigin::Alloc),
+        );
+        let oort_api_crate = create_crate(
+            &mut crate_graph,
+            "oort_api",
+            oort_api_id,
+            local_origin.clone(),
+        );
         let core_dep = Dependency::new(CrateName::new("core").unwrap(), core_crate);
         let alloc_dep = Dependency::new(CrateName::new("alloc").unwrap(), alloc_crate);
         let std_dep = Dependency::new(CrateName::new("std").unwrap(), std_crate);
@@ -106,8 +129,8 @@ impl yew_agent::Worker for AnalyzerAgent {
         crate_graph.add_dep(my_crate, oort_api_dep).unwrap();
 
         change.change_file(file_id, Some(Arc::from("")));
-        change.change_file(std_id, Some(Arc::from(FAKE_STD)));
-        change.change_file(core_id, Some(Arc::from("")));
+        change.change_file(std_id, Some(Arc::from(fake_std)));
+        change.change_file(core_id, Some(Arc::from(fake_core)));
         change.change_file(alloc_id, Some(Arc::from("")));
         change.change_file(oort_api_id, Some(Arc::from(fake_oort_api)));
         change.set_crate_graph(crate_graph);
