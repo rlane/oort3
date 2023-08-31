@@ -1,5 +1,16 @@
 #![rustc_coherence_is_core]
 
+fn loop_forever() -> ! {
+    loop {}
+}
+
+#[macro_export]
+macro_rules! unimplemented {
+    () => {{
+        loop_forever();
+    }};
+}
+
 impl f64 {
     pub const fn is_nan(self) -> bool {
         unimplemented!();
@@ -235,3 +246,5 @@ impl f64 {
         unimplemented!();
     }
 }
+
+pub mod prelude {}

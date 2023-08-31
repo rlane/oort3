@@ -237,6 +237,7 @@ pub mod sys {
 
     use super::SystemState;
 
+    // TODO crashes rust-analyzer
     #[no_mangle]
     pub static mut SYSTEM_STATE: [f64; SystemState::MaxSize as usize] =
         [0.0; SystemState::MaxSize as usize];

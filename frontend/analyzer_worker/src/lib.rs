@@ -57,9 +57,10 @@ impl yew_agent::Worker for AnalyzerAgent {
     type Output = Response;
 
     fn create(link: WorkerLink<Self>) -> Self {
-        let fake_oort_api = include_str!("../../../shared/api/src/lib.rs");
-        let fake_core = include_str!("../stdlib/mini_core.rs");
-        let fake_std = include_str!("../stdlib/mini_std.rs");
+        let oort_api_src = include_str!("../../../shared/api/src/lib.rs");
+        let vec_src = include_str!("../../../shared/api/src/vec.rs");
+        let fake_core_src = include_str!("../stdlib/mini_core.rs");
+        let fake_std_src = include_str!("../stdlib/mini_std.rs");
 
         let mut host = AnalysisHost::default();
         let file_id = FileId(0);
@@ -67,6 +68,7 @@ impl yew_agent::Worker for AnalyzerAgent {
         let core_id = FileId(2);
         let alloc_id = FileId(3);
         let oort_api_id = FileId(4);
+        let vec_id = FileId(5);
 
         let mut file_set = FileSet::default();
         file_set.insert(
@@ -80,13 +82,26 @@ impl yew_agent::Worker for AnalyzerAgent {
             name: None,
         };
 
+        let oort_api_source_root = {
+            let mut file_set = FileSet::default();
+            file_set.insert(
+                oort_api_id,
+                VfsPath::new_virtual_path("/oort_api/src/lib.rs".into()),
+            );
+            file_set.insert(
+                vec_id,
+                VfsPath::new_virtual_path("/oort_api/src/vec.rs".into()),
+            );
+            SourceRoot::new_library(file_set)
+        };
+
         let mut change = Change::new();
         change.set_roots(vec![
             source_root,
             create_source_root("std", std_id),
             create_source_root("core", core_id),
             create_source_root("alloc", alloc_id),
-            create_source_root("oort_api", oort_api_id),
+            oort_api_source_root,
         ]);
         let mut crate_graph = CrateGraph::default();
         let my_crate = create_crate(&mut crate_graph, "user", file_id, local_origin.clone());
@@ -129,12 +144,35 @@ impl yew_agent::Worker for AnalyzerAgent {
         crate_graph.add_dep(my_crate, oort_api_dep).unwrap();
 
         change.change_file(file_id, Some(Arc::from("")));
-        change.change_file(std_id, Some(Arc::from(fake_std)));
-        change.change_file(core_id, Some(Arc::from(fake_core)));
+        change.change_file(std_id, Some(Arc::from(fake_std_src)));
+        change.change_file(core_id, Some(Arc::from(fake_core_src)));
         change.change_file(alloc_id, Some(Arc::from("")));
-        change.change_file(oort_api_id, Some(Arc::from(fake_oort_api)));
+        change.change_file(oort_api_id, Some(Arc::from(oort_api_src)));
+        change.change_file(vec_id, Some(Arc::from(vec_src)));
         change.set_crate_graph(crate_graph);
         host.apply_change(change);
+
+        let analysis = host.analysis();
+        for (name, id) in [
+            ("std", std_id),
+            ("core", core_id),
+            ("alloc", alloc_id),
+            /* TODO
+            ("oort_api", oort_api_id),
+            ("vec", vec_id),
+            */
+        ] {
+            let diagnostics = analysis
+                .diagnostics(
+                    &DiagnosticsConfig::test_sample(),
+                    ide::AssistResolveStrategy::None,
+                    id,
+                )
+                .unwrap();
+            if !diagnostics.is_empty() {
+                log::error!("{} diagnostics: {:#?}", name, diagnostics);
+            }
+        }
 
         Self {
             link,
