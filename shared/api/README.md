@@ -188,6 +188,7 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 - [`scenario_name() → &str`](prelude::scenario_name): Returns the name of the current scenario.
 - [`world_size() → f64`](prelude::world_size): Returns the width of the world in meters.
 - [`id() → u32`](prelude::id): Returns a per-ship ID that is unique within a team.
+- [`TICK_LENGTH`](prelude::TICK_LENGTH): Length of a single game tick in seconds. There are 60 ticks per second.
 
 ## Ship Classes
 
