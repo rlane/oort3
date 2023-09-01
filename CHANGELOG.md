@@ -1,3 +1,8 @@
+- Made f64 methods visible to rust-analyzer.
+- Added blur to scenario lines.
+- Decreased text contrast.
+- Limited attributes supported in player code.
+
 ### 0.54.2 - 2023-08-01
 
 - Improved blur performance on iOS / Mac.
