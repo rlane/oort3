@@ -24,7 +24,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             <ul>
                 <li>{ "W/A/S/D: Pan the camera." }</li>
                 <li>{ "Space: Pause/resume." }</li>
-                <li>{ "N: Single-step." }</li>
+                <li>{ "N: Single-step (advance time by one tick and then pause)." }</li>
                 <li>{ "F: Fast-forward." }</li>
                 <li>{ "G: Show debug lines for all ships." }</li>
                 <li>{ "Mouse wheel: Zoom." }</li>
@@ -47,6 +47,16 @@ pub fn documentation(props: &DocumentationProps) -> Html {
                 { "Many of these functions take or return "}<code>{ "Vec2" }</code>{ ", which is a 2-dimensional double-precision vector type." }
             </p>
 
+            <h2>{ "Coordinate System" }</h2>
+            <p>
+                { "The game world is a 2D plane with the origin at the center. " }
+                { "The X axis points to the right and the Y axis points up. " }
+                { "The Wikipedia article on the " }<a href="https://en.wikipedia.org/wiki/Cartesian_coordinate_system" target="_blank">{ "Cartesian coordinate system" }</a>{ " has a picture." }
+            </p>
+
+            <p>
+                { "The API uses units of meters, radians, and seconds." }
+            </p>
 
             <h2>{ "Ship Status and Control" }</h2>
             <ul>
