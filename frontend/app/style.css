@@ -3,7 +3,7 @@ body {
   margin: 0px;
   padding: 0px;
   background: black;
-  color: #d4d4d4;
+  color: #c9c9c9;
   font-family: "Ubuntu", sans-serif;
   overflow: hidden;
   position: fixed;
@@ -98,7 +98,7 @@ body {
   overflow: hidden;
 
   background-color: #1e1e1e;
-  color: #d4d4d4;
+  color: #c9c9c9;
   border-bottom: 1px solid rgba(191, 191, 191, 0.4);
 }
 
@@ -108,7 +108,7 @@ body {
 
 #username input {
   background-color: #1e1e1e;
-  color: #d4d4d4;
+  color: #c9c9c9;
   border: none;
   font-family: "Ubuntu";
   font-size: 16px;
@@ -128,19 +128,19 @@ body {
 
 code {
   font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
-  color: #d4ffd4;
+  color: #c9ffc9;
 }
 
 a:link {
-  color: #d4d4ff;
+  color: #c9c9ff;
 }
 
 a:visited {
-  color: #d4d4ff;
+  color: #c9c9ff;
 }
 
 a:hover {
-  color: #d4ffff;
+  color: #c9ffff;
   text-decoration: underline;
   cursor: pointer;
 }
