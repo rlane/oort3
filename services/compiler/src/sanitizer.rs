@@ -8,10 +8,20 @@ pub fn check(text: &str) -> Result<(), anyhow::Error> {
             Regex::new(r#"\b(unsafe|extern|crate)\b|\b(macro_rules|include|include_bytes|include_str)\b|([^']static\b|^static\b)"#).unwrap();
     }
     if RE.is_match(text) {
-        Err(anyhow!("Code did not pass sanitizer"))
-    } else {
-        Ok(())
+        return Err(anyhow!("Code did not pass sanitizer"));
     }
+
+    lazy_static! {
+        static ref ATTR_RE: Regex = Regex::new(r#"#!?\[([^\[\] ]*)"#).unwrap();
+    }
+    for m in ATTR_RE.captures_iter(text) {
+        if m[1].starts_with("derive") {
+            continue;
+        }
+        return Err(anyhow!("Code did not pass sanitizer"));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -60,5 +70,24 @@ mod tests {
         assert!(check("... staticfoo {} ...").is_ok());
         assert!(check("... externfoo {} ...").is_ok());
         assert!(check("... cratefoo {} ...").is_ok());
+    }
+
+    #[test]
+    fn derive_attr() {
+        assert!(check("... #[derive(Clone)] ...").is_ok());
+        assert!(check("... #[derive(Debug, Serialize, Deserialize)] ...").is_ok());
+    }
+
+    #[test]
+    fn path_attr() {
+        assert!(check("... #[path = \"/dev/random\"] ...").is_err());
+        assert!(check("... #[\npath = \"/dev/random\"] ...").is_err());
+        assert!(check("... #[\t  path\n= \"/dev/random\"] ...").is_err());
+    }
+
+    #[test]
+    fn other_attrs() {
+        assert!(check("... #[inline] ...").is_err());
+        assert!(check("... #![no_std] ...").is_err());
     }
 }
