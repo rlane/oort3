@@ -1,3 +1,5 @@
+### 0.55.0 - 2023-09-01
+
 - Made f64 methods visible to rust-analyzer.
 - Added blur to scenario lines.
 - Decreased text contrast.
