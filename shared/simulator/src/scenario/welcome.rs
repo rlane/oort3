@@ -1,4 +1,4 @@
-use crate::ship::ShipClass;
+use crate::ship::{ShipClass, ShipData};
 
 use super::prelude::*;
 use rand::seq::SliceRandom;
@@ -36,6 +36,18 @@ impl Scenario for Welcome {
             vector![0.0, 0.0],
             0.0,
             ship_data.clone(),
+        );
+
+        // HACK: avoid automatically picking the player ship and showing debug lines.
+        ship::create(
+            sim,
+            vector![2000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ShipData {
+                team: 0,
+                ..asteroid(1)
+            },
         );
     }
 
