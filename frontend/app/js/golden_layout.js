@@ -171,6 +171,11 @@ export function init() {
     );
     return null;
   };
+
+  // HACK: Add role=tab to each tab so that Vimium will show link hints for them.
+  for (let elem of document.getElementsByClassName("lm_tab")) {
+    elem.setAttribute("role", "tab");
+  }
 }
 
 export function update_size() {
