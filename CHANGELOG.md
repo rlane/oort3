@@ -1,4 +1,5 @@
 - Improved error messages when player code panics or hits the instruction limit.
+- Added an `rgb` helper function.
 
 ### 0.56.0 - 2023-09-02
 

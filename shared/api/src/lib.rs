@@ -759,6 +759,14 @@ pub mod dbg {
         buf.push('\n');
     }
 
+    /// Creates a 24-bit RGB color from the arguments.
+    pub fn rgb(r: u8, g: u8, b: u8) -> u32 {
+        let r = r as u32;
+        let g = g as u32;
+        let b = b as u32;
+        r << 16 | g << 8 | b
+    }
+
     /// Draws a line visible in debug mode.
     ///
     /// `a` and `b` are positions in world coordinates.
