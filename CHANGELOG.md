@@ -1,3 +1,6 @@
+- Enabled Vimium link hints for tabs.
+- Turned off automatic debug line display in the welcome scenario.
+
 ### 0.55.1 - 2023-09-01
 
 - Improved documentation.
