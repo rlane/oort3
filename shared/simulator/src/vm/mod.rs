@@ -94,6 +94,10 @@ impl TeamController {
         self.states.remove(&handle);
         let (index, _) = handle.0.into_raw_parts();
         let index = index as i32;
+        self.vm
+            .reset_gas
+            .call(&mut self.vm.store_mut(), &[GAS_PER_TICK.into()])
+            .unwrap();
         if let Err(e) = translate_runtime_error(
             self.vm
                 .delete_ship
@@ -138,10 +142,26 @@ impl TeamController {
 
         let (index, _) = handle.0.into_raw_parts();
         let index = index as i32;
-        translate_runtime_error(
-            vm.tick_ship
-                .call(vm.store_mut().deref_mut(), &[index.into()]),
-        )?;
+        let result = vm
+            .tick_ship
+            .call(vm.store_mut().deref_mut(), &[index.into()]);
+        if let Err(e) = result {
+            if let Ok(ret) = vm.get_gas.call(vm.store_mut().deref_mut(), &[]) {
+                let gas: i32 = ret[0].i32().unwrap();
+                if gas <= 0 {
+                    return Err(Error {
+                        msg: "Ship exceeded maximum number of instructions and was destroyed"
+                            .to_string(),
+                    });
+                }
+            }
+            if e.message().contains("unreachable") {
+                return Err(Error {
+                    msg: "Ship panicked and was destroyed".to_string(),
+                });
+            }
+            return translate_runtime_error(Err(e));
+        }
 
         {
             let store = vm.store();
@@ -215,6 +235,7 @@ pub struct WasmVm {
     tick_ship: wasmer::Function,
     delete_ship: wasmer::Function,
     reset_gas: wasmer::Function,
+    get_gas: wasmer::Function,
 }
 
 impl WasmVm {
@@ -256,6 +277,7 @@ impl WasmVm {
         let delete_ship =
             translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
         let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
+        let get_gas = translate_error(instance.exports.get_function("get_gas"))?.clone();
 
         translate_runtime_error(reset_gas.call(&mut store, &[GAS_PER_TICK.into()]))?;
         translate_runtime_error(initialize.call(&mut store, &[]))?;
@@ -268,6 +290,7 @@ impl WasmVm {
             tick_ship,
             delete_ship,
             reset_gas,
+            get_gas,
         })
     }
 

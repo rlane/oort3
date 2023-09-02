@@ -1,3 +1,4 @@
+#![allow(clippy::empty_loop)]
 use oort_api::prelude::*;
 
 pub struct Ship {}
@@ -13,6 +14,8 @@ impl Ship {
             "scenario_name" => debug!("Scenario: {}", scenario_name()),
             "world_size" => debug!("World size: {}", world_size()),
             "id" => debug!("ID: {}", id()),
+            "panic" => panic!("Panic!"),
+            "infinite_loop" => loop {},
             _ => debug!("Unknown testcase: {:?}", testcase),
         }
     }

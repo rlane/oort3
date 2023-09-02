@@ -29,6 +29,14 @@ pub fn rewrite(wasm: &[u8]) -> Result<Vec<u8>, super::Error> {
         module.exports.add("reset_gas", reset_gas);
     }
 
+    // Create a get_gas() function.
+    {
+        let mut func = FunctionBuilder::new(&mut module.types, &[], &[ValType::I32]);
+        func.func_body().global_get(gas_global);
+        let get_gas = func.finish(vec![], &mut module.funcs);
+        module.exports.add("get_gas", get_gas);
+    }
+
     Ok(module.emit_wasm())
 }
 
@@ -159,8 +167,11 @@ mod tests {
   (func (;1;) (type 1) (param i32)
     local.get 0
     global.set 0)
+  (func (;2;) (type 0) (result i32)
+    global.get 0)
   (global (;0;) (mut i32) (i32.const 0))
-  (export \"reset_gas\" (func 1)))
+  (export \"reset_gas\" (func 1))
+  (export \"get_gas\" (func 2)))
 ",
         );
     }

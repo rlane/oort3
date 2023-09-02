@@ -51,6 +51,8 @@ env_logger = "0.10.0"
 serde_json = "1.0.105"
 approx = "0.5.1"
 wabt = "0.10.0"
+testing_logger = "0.1.1"
+serial_test = "2.0.0"
 
 [features]
 default = ["sys"]
