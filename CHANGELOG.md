@@ -1,3 +1,5 @@
+### 0.57.1 - 2023-09-02
+
 - Added time to the victory status line.
 
 ### 0.57.0 - 2023-09-02

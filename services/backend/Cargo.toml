@@ -1,6 +1,6 @@
 [package]
 name = "oort_backend_service"
-version = "0.57.0"
+version = "0.57.1"
 publish = false
 edition = "2021"
 
