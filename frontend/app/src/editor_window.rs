@@ -277,6 +277,10 @@ impl Component for EditorWindow {
             .props()
             .on_editor_action
             .reform(|_| "oort-execute".to_string());
+        let replay_cb = context
+            .props()
+            .on_editor_action
+            .reform(|_| "oort-replay".to_string());
         let cmd_or_ctrl = if is_mac() { "Cmd" } else { "Ctrl" };
 
         create_portal(
@@ -290,6 +294,11 @@ impl Component for EditorWindow {
                         class="material-symbols-outlined"
                         title={format!("Execute ({cmd_or_ctrl}-Enter)")}
                     >{ "play_circle" }</span></div>
+                    <div class="replay_button"><span
+                        onclick={replay_cb}
+                        class="material-symbols-outlined"
+                        title={format!("Replay ({cmd_or_ctrl}-Shift-Enter)")}
+                    >{ "replay" }</span></div>
                 </>
             },
             context.props().host.clone(),
@@ -353,6 +362,16 @@ impl Component for EditorWindow {
                     "Execute",
                     Some(
                         monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::Enter as u32,
+                    ),
+                );
+
+                add_action(
+                    "oort-replay",
+                    "Replay",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32
+                            | monaco::sys::KeyMod::shift() as u32
+                            | monaco::sys::KeyCode::Enter as u32,
                     ),
                 );
 

@@ -52,7 +52,7 @@ pub enum Msg {
     EditorAction { team: usize, action: String },
     ShowFeedback,
     DismissOverlay,
-    CompileFinished(Vec<Result<Code, String>>),
+    CompileFinished(Vec<Result<Code, String>>, ExecutionMode),
     SubmitToTournament,
     UploadShortcode,
     FormattedCode { team: usize, text: String },
@@ -70,6 +70,13 @@ enum Overlay {
     Compiling,
     Feedback,
     Error(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ExecutionMode {
+    Initial,
+    Run,
+    Replay,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -95,8 +102,10 @@ pub struct Game {
     editor_links: Vec<CodeEditorLink>,
     compilation_cache: HashMap<Code, Code>,
     seed: Option<u32>,
+    previous_seed: u32,
     shortcodes: Vec<Option<String>>,
     versions_update_timestamp: chrono::DateTime<chrono::Utc>,
+    execution_mode: ExecutionMode,
 }
 
 pub struct Team {
@@ -150,8 +159,10 @@ impl Component for Game {
             editor_links: vec![CodeEditorLink::default(), CodeEditorLink::default()],
             compilation_cache,
             seed: query_params.seed,
+            previous_seed: query_params.seed.unwrap_or(0),
             shortcodes: vec![query_params.player0, query_params.player1],
             versions_update_timestamp: chrono::Utc::now(),
+            execution_mode: ExecutionMode::Initial,
         }
     }
 
@@ -212,7 +223,18 @@ impl Component for Game {
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
                 }
-                self.start_compile(context);
+                self.start_compile(context, ExecutionMode::Run);
+                true
+            }
+            Msg::EditorAction {
+                team: _,
+                ref action,
+            } if action == "oort-replay" => {
+                self.save_current_code(context, None);
+                for team in self.teams.iter_mut() {
+                    team.running_source_code = team.get_editor_code();
+                }
+                self.start_compile(context, ExecutionMode::Replay);
                 true
             }
             Msg::EditorAction { team, ref action } if action == "oort-restore-initial-code" => {
@@ -320,7 +342,7 @@ impl Component for Game {
                 self.focus_editor();
                 true
             }
-            Msg::CompileFinished(results) => {
+            Msg::CompileFinished(results, execution_mode) => {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
@@ -352,7 +374,7 @@ impl Component for Game {
                         scenario_name: self.scenario_name.clone(),
                         code: code_to_string(&self.player_team().running_source_code),
                     });
-                    self.run(context);
+                    self.run(context, execution_mode);
                     self.focus_simulation();
                 } else {
                     self.compiler_errors = Some(errors.join("\n"));
@@ -565,7 +587,7 @@ impl Game {
             return false;
         }
 
-        {
+        if self.execution_mode == ExecutionMode::Run {
             if let Status::Victory { team: 0 } = status {
                 self.background_agents.clear();
                 self.background_snapshots.clear();
@@ -886,11 +908,13 @@ impl Game {
         }
     }
 
-    pub fn start_compile(&mut self, context: &Context<Self>) {
+    pub fn start_compile(&mut self, context: &Context<Self>, execution_mode: ExecutionMode) {
         self.compiler_errors = None;
         self.overlay = Some(Overlay::Compiling);
 
-        let finished_callback = context.link().callback(Msg::CompileFinished);
+        let finished_callback = context
+            .link()
+            .callback(move |results| Msg::CompileFinished(results, execution_mode));
 
         async fn compile(text: String) -> Result<Code, String> {
             if text.trim().is_empty() {
@@ -958,7 +982,7 @@ impl Game {
         });
     }
 
-    pub fn run(&mut self, _context: &Context<Self>) {
+    pub fn run(&mut self, _context: &Context<Self>, execution_mode: ExecutionMode) {
         self.compiler_errors = None;
 
         let codes: Vec<_> = self
@@ -966,7 +990,14 @@ impl Game {
             .iter()
             .map(|x| x.running_compiled_code.clone())
             .collect();
-        let seed = self.seed.unwrap_or_else(|| rand::thread_rng().gen());
+        let rand_seed = rand::thread_rng().gen();
+        let seed = match execution_mode {
+            ExecutionMode::Initial => self.seed.unwrap_or(rand_seed),
+            ExecutionMode::Replay => self.previous_seed,
+            ExecutionMode::Run => rand_seed,
+        };
+        self.previous_seed = seed;
+        self.execution_mode = execution_mode;
 
         if let Some(link) = self.simulation_window_link.as_ref() {
             link.send_message(crate::simulation_window::Msg::StartSimulation {
@@ -1044,7 +1075,7 @@ impl Game {
             crate::js::golden_layout::show_welcome(false);
         }
 
-        self.run(context);
+        self.run(context, ExecutionMode::Initial);
     }
 
     pub fn team(&self, index: usize) -> &Team {

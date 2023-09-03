@@ -2,6 +2,7 @@
 - Added an `rgb` helper function.
 - Reduced aliasing of debug lines (including the radar beam).
 - Fixed clipping of fighter lateral engine flare.
+- Added a "replay" button that reuses the same seed and doesn't trigger the "Mission Complete" screen.
 
 ### 0.56.0 - 2023-09-02
 
