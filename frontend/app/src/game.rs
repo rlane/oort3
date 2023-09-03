@@ -834,7 +834,7 @@ impl Game {
                 _ => html! {},
             };
             let submit_button = if scenario::load(&self.scenario_name).is_tournament()
-                && summary.victory_count >= (summary.count as f64 * 0.8) as usize
+                && summary.victory_count > 0
             {
                 let cb = context
                     .link()

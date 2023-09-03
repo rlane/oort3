@@ -1,3 +1,5 @@
+- Enabled submitting to tournament if solution won any simulations.
+
 ### 0.57.1 - 2023-09-02
 
 - Added time to the victory status line.
