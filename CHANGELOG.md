@@ -1,3 +1,5 @@
+### 0.57.0 - 2023-09-02
+
 - Improved error messages when player code panics or hits the instruction limit.
 - Added an `rgb` helper function.
 - Reduced aliasing of debug lines (including the radar beam).
