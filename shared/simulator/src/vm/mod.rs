@@ -147,12 +147,14 @@ impl TeamController {
             .call(vm.store_mut().deref_mut(), &[index.into()]);
         if let Err(e) = result {
             if let Ok(ret) = vm.get_gas.call(vm.store_mut().deref_mut(), &[]) {
-                let gas: i32 = ret[0].i32().unwrap();
-                if gas <= 0 {
-                    return Err(Error {
-                        msg: "Ship exceeded maximum number of instructions and was destroyed"
-                            .to_string(),
-                    });
+                if !ret.is_empty() {
+                    let gas: i32 = ret[0].i32().unwrap();
+                    if gas <= 0 {
+                        return Err(Error {
+                            msg: "Ship exceeded maximum number of instructions and was destroyed"
+                                .to_string(),
+                        });
+                    }
                 }
             }
             if e.message().contains("unreachable") {
