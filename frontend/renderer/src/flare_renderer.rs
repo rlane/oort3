@@ -32,12 +32,12 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
                 },
                 FlarePosition {
                     offset: vector![0.0, x],
-                    angle: TAU / 4.0,
+                    angle: 1.17517,
                     scale: vector![10.0, 8.0],
                 },
                 FlarePosition {
                     offset: vector![0.0, -x],
-                    angle: -TAU / 4.0,
+                    angle: -1.17517,
                     scale: vector![10.0, 8.0],
                 },
             ]
