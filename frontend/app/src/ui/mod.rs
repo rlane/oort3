@@ -216,7 +216,10 @@ impl UI {
 
         match self.status {
             Status::Victory { team: 0 } => {
-                status_msgs.push("VICTORY".to_string());
+                status_msgs.push(format!(
+                    "VICTORY in {:.2}s",
+                    self.snapshot.as_ref().unwrap().time
+                ));
             }
             Status::Victory { .. } | Status::Failed => {
                 status_msgs.push("DEFEAT".to_string());

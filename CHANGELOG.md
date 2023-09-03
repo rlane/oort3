@@ -1,3 +1,5 @@
+- Added time to the victory status line.
+
 ### 0.57.0 - 2023-09-02
 
 - Improved error messages when player code panics or hits the instruction limit.
