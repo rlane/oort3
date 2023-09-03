@@ -91,9 +91,11 @@ void main() {
             for line in lines {
                 for position in [line.a, line.b] {
                     let p = position.coords.cast();
+                    let mut color = line.color;
+                    color.w *= 0.5; // Will be drawn twice
                     attribs.push(Attribs {
                         vertex: vector![p.x, p.y, 0.0, 1.0],
-                        color: line.color,
+                        color,
                     });
                 }
             }
@@ -118,27 +120,33 @@ void main() {
         self.context.use_program(Some(&self.program));
         self.context.bind_vertex_array(Some(&self.vao));
 
-        self.context.line_width(1.0);
+        let mut line_width = 1.0;
 
-        self.context.uniform_matrix4fv_with_f32_array(
-            Some(&self.transform_loc),
-            false,
-            drawset.projection_matrix.data.as_slice(),
-        );
+        for _ in 0..2 {
+            self.context.line_width(line_width);
 
-        for draw in &drawset.draws {
-            let vab = VertexAttribBuilder::new(&self.context).data_token(&draw.attribs_token);
-            vab.index(0)
-                .size(4)
-                .offset(offset_of!(Attribs, vertex))
-                .build();
-            vab.index(1)
-                .size(4)
-                .offset(offset_of!(Attribs, color))
-                .build();
+            self.context.uniform_matrix4fv_with_f32_array(
+                Some(&self.transform_loc),
+                false,
+                drawset.projection_matrix.data.as_slice(),
+            );
 
-            self.context
-                .draw_arrays(gl::LINES, 0, draw.num_vertices as i32);
+            for draw in &drawset.draws {
+                let vab = VertexAttribBuilder::new(&self.context).data_token(&draw.attribs_token);
+                vab.index(0)
+                    .size(4)
+                    .offset(offset_of!(Attribs, vertex))
+                    .build();
+                vab.index(1)
+                    .size(4)
+                    .offset(offset_of!(Attribs, color))
+                    .build();
+
+                self.context
+                    .draw_arrays(gl::LINES, 0, draw.num_vertices as i32);
+
+                line_width *= 2.0;
+            }
         }
 
         self.context.bind_vertex_array(None);
