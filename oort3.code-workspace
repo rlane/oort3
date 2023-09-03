@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "path": "shared"
+    },
+    {
+      "path": "services"
+    },
+    {
+      "path": "frontend"
+    }
+  ],
+  "settings": {
+    "git.openRepositoryInParentFolders": "always"
+  }
+}
