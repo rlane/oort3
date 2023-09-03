@@ -108,8 +108,8 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             <ul>
               <li><code>{ "set_radio_channel(channel: usize)" }</code>{ ": Change the radio channel (0 to 9). Takes effect next tick." }</li>
               <li><code>{ "get_radio_channel() -> usize" }</code>{ ": Get the radio channel." }</li>
-              <li><code>{ "send(data: f64)" }</code>{ ": Send a message on a channel." }</li>
-              <li><code>{ "receive() -> f64" }</code>{ ": Receive a message from the channel. The message with the strongest signal is returned." }</li>
+              <li><code>{ "send(data: [f64; 4])" }</code>{ ": Send a message on a channel." }</li>
+              <li><code>{ "receive() -> Option<[f64; 4]>" }</code>{ ": Receive a message from the channel. The message with the strongest signal is returned." }</li>
               <li><code>{ "select_radio(index: usize)" }</code>{ ": Select the radio to control with subsequent API calls. Frigates have 4 radios and cruisers have 8." }</li>
             </ul>
 

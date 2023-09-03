@@ -115,13 +115,13 @@ Retrieving current state:
 
 ## Radio
 
-The radio can be used to send or receive a single value per tick. There are 10
+The radio can be used to send or receive a `[f64; 4]` message per tick. There are 10
 channels available (0 to 9), shared between all teams.
 
 - [`set_radio_channel(channel: usize)`](prelude::set_radio_channel): Change the radio channel. Takes effect next tick.
 - [`get_radio_channel() -> usize`](prelude::get_radio_channel): Get the radio channel.
-- [`send(data: f64)`](prelude::send): Send a message on a channel.
-- [`receive() -> f64`](prelude::receive): Receive a message from the channel. The message with the strongest signal is returned.
+- [`send(data: [f64; 4])`](prelude::send): Send a message on a channel.
+- [`receive() -> Option<[f64; 4]>`](prelude::receive): Receive a message from the channel. The message with the strongest signal is returned.
 - [`select_radio(index: usize)`](prelude::select_radio): Select the radio to control with subsequent API calls. Frigates have 4 radios and cruisers have 8.
 
 ## Special Abilities
