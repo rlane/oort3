@@ -1,3 +1,5 @@
+### 0.57.3 - 2023-09-04
+
 - Improved sanitizer error message.
 - Increased limit for debug lines and documented it.
 

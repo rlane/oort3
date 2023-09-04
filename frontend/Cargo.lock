@@ -1883,7 +1883,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort-app"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "anyhow",
  "bincode",
@@ -1928,7 +1928,7 @@ dependencies = [
 
 [[package]]
 name = "oort_analyzer_worker"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "console_error_panic_hook",
  "console_log",
@@ -1944,7 +1944,7 @@ dependencies = [
 
 [[package]]
 name = "oort_api"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "oorandom",
  "serde",
@@ -1952,14 +1952,14 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "sha2",
 ]
 
 [[package]]
 name = "oort_proto"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "chrono",
  "serde",
@@ -1967,7 +1967,7 @@ dependencies = [
 
 [[package]]
 name = "oort_renderer"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "gloo-utils 0.2.0",
  "image",
@@ -1984,7 +1984,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulation_worker"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "oort_simulator",
  "serde",
@@ -1993,7 +1993,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulator"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "bitvec",
  "bytes",
@@ -2024,14 +2024,14 @@ dependencies = [
 
 [[package]]
 name = "oort_version"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "built",
 ]
 
 [[package]]
 name = "oort_version_control"
-version = "0.57.2"
+version = "0.57.3"
 dependencies = [
  "anyhow",
  "chrono",
