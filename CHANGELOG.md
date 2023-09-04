@@ -1,3 +1,5 @@
+### 0.57.2 - 2023-09-03
+
 - Enabled submitting to tournament if solution won any simulations.
 - Fixed radio message docs.
 - Fixed a panic in WASM crash error handling.
