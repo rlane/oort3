@@ -19,6 +19,8 @@ pub type Vec2 = nalgebra::Vector2<f64>;
 pub type Environment = BTreeMap<String, String>;
 
 const GAS_PER_TICK: i32 = 1_000_000;
+const MAX_DEBUG_LINES: u32 = 1024;
+const MAX_DRAWN_TEXT: u32 = 128;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
@@ -188,7 +190,7 @@ impl TeamController {
             if state.get(SystemState::DebugLinesLength) > 0.0 {
                 let offset = state.get(SystemState::DebugLinesPointer) as u32;
                 let length = state.get(SystemState::DebugLinesLength) as u32;
-                if length <= 128 {
+                if length <= MAX_DEBUG_LINES {
                     if let Some(lines) = WasmVm::read_vec::<Line>(&memory_view, offset, length) {
                         if validate_lines(&lines) {
                             sim.emit_debug_lines(
@@ -210,7 +212,7 @@ impl TeamController {
             if state.get(SystemState::DrawnTextLength) > 0.0 {
                 let offset = state.get(SystemState::DrawnTextPointer) as u32;
                 let length = state.get(SystemState::DrawnTextLength) as u32;
-                if length <= 128 {
+                if length <= MAX_DRAWN_TEXT {
                     if let Some(texts) = WasmVm::read_vec::<Text>(&memory_view, offset, length) {
                         if validate_texts(&texts) {
                             sim.emit_drawn_text(handle, &texts);

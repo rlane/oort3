@@ -771,6 +771,9 @@ pub mod dbg {
     ///
     /// `a` and `b` are positions in world coordinates.
     /// `color` is 24-bit RGB.
+    ///
+    /// Up to 1024 lines can be drawn per ship, per tick. This quota is also consumed
+    /// by the various shape drawing functions.
     pub fn draw_line(a: Vec2, b: Vec2, color: u32) {
         let buf = unsafe { &mut LINE_BUFFER };
         buf.push(Line {
@@ -856,7 +859,7 @@ pub mod dbg {
 
     /// Adds text to be drawn in the world, visible in debug mode.
     ///
-    /// Works like [println!].
+    /// Works like [println!]. Up to 128 strings can be drawn per ship, per tick.
     #[macro_export]
     macro_rules! draw_text {
         ($topleft:expr, $color:expr, $($arg:tt)*) => {
