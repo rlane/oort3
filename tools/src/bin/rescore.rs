@@ -120,7 +120,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                             new_msg.time = new_time;
                             updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
                         } else {
-                            log::info!("Time unchanged");
+                            log::info!("Time unchanged, {}", new_time);
                         }
                     }
                     None => {
