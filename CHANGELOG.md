@@ -1,3 +1,5 @@
+### 0.58.0 - 2023-09-04
+
 - Added a replay-paused button (by @Nudelmeister).
 
 ### 0.57.3 - 2023-09-04
