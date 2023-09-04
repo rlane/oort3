@@ -64,6 +64,21 @@ body {
   color: #aaaaaa;
 }
 
+.replay_button_paused {
+  width: 30px;
+  height: 30px;
+  right: 29px;
+  top: 90px;
+  position: absolute;
+}
+
+.replay_button_paused span {
+  font-size: 36px;
+  cursor: pointer;
+  text-shadow: 1px 1px #444444;
+  color: #aaaaaa;
+}
+
 .glcanvas {
   width: 100%;
   height: 100%;

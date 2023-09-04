@@ -63,6 +63,7 @@ impl UI {
         canvas_ref: NodeRef,
         status_ref: NodeRef,
         picked_ref: NodeRef,
+        paused: bool,
     ) -> Self {
         if let Some(elem) = status_ref.cast::<Element>() {
             elem.set_text_content(Some("LOADING..."));
@@ -76,7 +77,6 @@ impl UI {
         let camera_target = point![0.0, 0.0];
         renderer.set_view(zoom, point![camera_target.x, camera_target.y]);
         let frame_timer: frame_timer::FrameTimer = Default::default();
-        let paused = false;
         let single_steps = 0;
 
         let keys_down = std::collections::HashSet::<String>::new();
@@ -183,7 +183,8 @@ impl UI {
             self.physics_time += elapsed;
         }
 
-        if self.status == Status::Running && (!self.paused || self.single_steps > 0 || fast_forward)
+        if self.status == Status::Running
+            && (!self.paused || self.single_steps > 0 || fast_forward || self.snapshot.is_none())
         {
             let dt = std::time::Duration::from_secs_f64(simulation::PHYSICS_TICK_LENGTH);
             if fast_forward {
