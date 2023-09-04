@@ -7,8 +7,11 @@ pub fn check(text: &str) -> Result<(), anyhow::Error> {
         static ref RE: Regex =
             Regex::new(r#"\b(unsafe|extern|crate)\b|\b(macro_rules|include|include_bytes|include_str)\b|([^']static\b|^static\b)"#).unwrap();
     }
-    if RE.is_match(text) {
-        return Err(anyhow!("Code did not pass sanitizer"));
+    if let Some(m) = RE.find(text) {
+        return Err(anyhow!(
+            "Code did not pass sanitizer (found {:?})",
+            m.as_str()
+        ));
     }
 
     lazy_static! {
@@ -18,7 +21,7 @@ pub fn check(text: &str) -> Result<(), anyhow::Error> {
         if m[1].starts_with("derive") {
             continue;
         }
-        return Err(anyhow!("Code did not pass sanitizer"));
+        return Err(anyhow!("Code did not pass sanitizer (found {:?})", &m[0]));
     }
 
     Ok(())

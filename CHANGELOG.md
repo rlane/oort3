@@ -1,3 +1,5 @@
+- Improved sanitizer error message.
+
 ### 0.57.2 - 2023-09-03
 
 - Enabled submitting to tournament if solution won any simulations.
