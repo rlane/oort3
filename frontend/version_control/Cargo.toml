@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-chrono = "0.4.26"
+chrono = "0.4.28"
 flate2 = "1.0.27"
 idb = "0.4.1"
 js-sys = "0.3.64"
@@ -15,5 +15,5 @@ log = "0.4.20"
 serde = { version = "1.0.188", features = ["derive"] }
 serde-wasm-bindgen = "0.5.0"
 sha2 = "0.10.7"
-thiserror = "1.0.47"
+thiserror = "1.0.48"
 wasm-bindgen = "0.2.87"
