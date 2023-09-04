@@ -12,6 +12,7 @@ use yew_agent::{Bridge, Bridged};
 pub enum Msg {
     StartSimulation {
         scenario_name: String,
+        start_paused: bool,
         seed: u32,
         codes: Vec<Code>,
     },
@@ -78,6 +79,7 @@ impl Component for SimulationWindow {
             Msg::StartSimulation {
                 scenario_name,
                 seed,
+                start_paused,
                 codes,
             } => {
                 self.nonce = rand::thread_rng().gen();
@@ -88,6 +90,7 @@ impl Component for SimulationWindow {
                     self.canvas_ref.clone(),
                     self.status_ref.clone(),
                     self.picked_ref.clone(),
+                    start_paused,
                 )));
                 self.sim_agent
                     .send(oort_simulation_worker::Request::StartScenario {

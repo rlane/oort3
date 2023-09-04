@@ -76,7 +76,7 @@ enum Overlay {
 pub enum ExecutionMode {
     Initial,
     Run,
-    Replay,
+    Replay { paused: bool },
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -234,7 +234,18 @@ impl Component for Game {
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
                 }
-                self.start_compile(context, ExecutionMode::Replay);
+                self.start_compile(context, ExecutionMode::Replay { paused: false });
+                true
+            }
+            Msg::EditorAction {
+                team: _,
+                ref action,
+            } if action == "oort-replay-paused" => {
+                self.save_current_code(context, None);
+                for team in self.teams.iter_mut() {
+                    team.running_source_code = team.get_editor_code();
+                }
+                self.start_compile(context, ExecutionMode::Replay { paused: true });
                 true
             }
             Msg::EditorAction { team, ref action } if action == "oort-restore-initial-code" => {
@@ -993,9 +1004,10 @@ impl Game {
         let rand_seed = rand::thread_rng().gen();
         let seed = match execution_mode {
             ExecutionMode::Initial => self.seed.unwrap_or(rand_seed),
-            ExecutionMode::Replay => self.previous_seed,
+            ExecutionMode::Replay { .. } => self.previous_seed,
             ExecutionMode::Run => rand_seed,
         };
+        let start_paused = matches!(execution_mode, ExecutionMode::Replay { paused: true });
         self.previous_seed = seed;
         self.execution_mode = execution_mode;
 
@@ -1003,6 +1015,7 @@ impl Game {
             link.send_message(crate::simulation_window::Msg::StartSimulation {
                 scenario_name: self.scenario_name.clone(),
                 seed,
+                start_paused,
                 codes: codes.to_vec(),
             });
         } else {

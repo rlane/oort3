@@ -281,6 +281,10 @@ impl Component for EditorWindow {
             .props()
             .on_editor_action
             .reform(|_| "oort-replay".to_string());
+        let replay_paused_cb = context
+            .props()
+            .on_editor_action
+            .reform(|_| "oort-replay-paused".to_string());
         let cmd_or_ctrl = if is_mac() { "Cmd" } else { "Ctrl" };
 
         create_portal(
@@ -299,6 +303,11 @@ impl Component for EditorWindow {
                         class="material-symbols-outlined"
                         title={format!("Replay ({cmd_or_ctrl}-Shift-Enter)")}
                     >{ "replay" }</span></div>
+                    <div class="replay_button_paused"><span
+                        onclick={replay_paused_cb}
+                        class="material-symbols-outlined"
+                        title={format!("Replay paused")}
+                    >{ "autopause" }</span></div>
                 </>
             },
             context.props().host.clone(),
@@ -374,6 +383,8 @@ impl Component for EditorWindow {
                             | monaco::sys::KeyCode::Enter as u32,
                     ),
                 );
+
+                add_action("oort-replay-paused", "Replay paused", None);
 
                 add_action("oort-restore-initial-code", "Restore initial code", None);
 
