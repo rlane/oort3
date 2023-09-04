@@ -306,7 +306,7 @@ impl Component for EditorWindow {
                     <div class="replay_button_paused"><span
                         onclick={replay_paused_cb}
                         class="material-symbols-outlined"
-                        title={format!("Replay paused")}
+                        title={"Replay paused"}
                     >{ "autopause" }</span></div>
                 </>
             },
