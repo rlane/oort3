@@ -29,13 +29,21 @@ pub async fn fetch_and_compile(
     };
     log::info!("Compiling {:?}", shortcode);
 
-    let compiled_code = http
+    let response = http
         .post(&format!("{compiler_url}/compile"))
         .body(source_code.clone())
         .send()
-        .await?
-        .bytes()
         .await?;
+
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Failed to compile {:?}: {:?}",
+            shortcode,
+            response.text().await?
+        );
+    }
+
+    let compiled_code = response.bytes().await?;
     let compiled_code = oort_simulator::vm::precompile(&compiled_code).unwrap();
 
     Ok(AI {
