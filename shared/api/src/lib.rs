@@ -206,6 +206,16 @@ pub enum EcmMode {
     Noise,
 }
 
+impl From<f64> for EcmMode {
+    fn from(x: f64) -> Self {
+        match x as u32 {
+            0 => EcmMode::None,
+            1 => EcmMode::Noise,
+            _ => EcmMode::None,
+        }
+    }
+}
+
 #[doc(hidden)]
 #[derive(Default, Clone)]
 pub struct Line {
@@ -536,6 +546,11 @@ mod api {
     /// Gets the current maximum distance filter of the radar (in meters).
     pub fn set_radar_max_distance(dist: f64) {
         write_system_state(SystemState::RadarMaxDistance, dist);
+    }
+
+    /// Gets the Electronic Counter Measures (ECM) mode.
+    pub fn radar_ecm_mode() -> EcmMode {
+        read_system_state(SystemState::RadarEcmMode).into()
     }
 
     /// Sets the Electronic Counter Measures (ECM) mode.
