@@ -1,3 +1,7 @@
+- Made the maths_rs crate available to player code and switched Vec2 to be a type alias.
+- Adding a missing `radar_ecm_mode` accessor.
+- Reenabled caching for web worker files.
+
 ### 0.58.0 - 2023-09-04
 
 - Added a replay-paused button (by @Nudelmeister).
