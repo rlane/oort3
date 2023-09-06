@@ -30,7 +30,7 @@ tar = "0.4.40"
 libflate = "2.0.0"
 walrus = { version = "0.19.0", git = "https://github.com/scrtlabs/walrus", rev = "c5777d4" }
 bytes = { version = "1.4.0", features = ["serde"] }
-static_aabb2d_index = { version = "1.0.0", features = ["unsafe_optimizations"] }
+static_aabb2d_index = { version = "2.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
 wide = "0.7.11"
 
