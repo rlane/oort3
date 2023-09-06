@@ -154,13 +154,14 @@ in Oort and are used to represent positions, velocities, accelerations, etc.
 - `v1 +- v2 → Vec2`: Basic arithmetic between vectors.
 - `v */ f64 → Vec2`: Basic arithmetic between vectors and scalars.
 - `-v → Vec2`: Negate a vector.
-- [`v.length() → f64`](prelude::Vec2::length): Length.
-- [`v.normalize() → Vec2`](prelude::Vec2::normalize): Normalize to a unit vector.
-- [`v.rotate(angle: f64) → Vec2`](prelude::Vec2::rotate): Rotate counter-clockwise.
-- [`v.angle() → f64`](prelude::Vec2::angle): Angle of a vector.
-- [`v1.dot(v2: Vec2) → f64`](prelude::Vec2::dot): Dot product.
-- [`v1.cross(v2: Vec2) → f64`](prelude::Vec2::cross): Cross product.
-- [`v1.distance(v2: Vec2) → f64`](prelude::Vec2::distance): Distance between two points.
+- [`v.length() → f64`](prelude::Vec2Extras::length): Length.
+- [`v.normalize() → Vec2`](prelude::Vec2Extras::normalize): Normalize to a unit vector.
+- [`v.rotate(angle: f64) → Vec2`](prelude::Vec2Extras::rotate): Rotate counter-clockwise.
+- [`v.angle() → f64`](prelude::Vec2Extras::angle): Angle of a vector.
+- [`v1.dot(v2: Vec2) → f64`](prelude::Vec2Extras::dot): Dot product.
+- [`v1.distance(v2: Vec2) → f64`](prelude::Vec2Extras::distance): Distance between two points.
+
+The entire [maths_rs](https://docs.rs/maths-rs/0.2.4/maths_rs/index.html) crate is also available.
 
 ## Debugging
 
