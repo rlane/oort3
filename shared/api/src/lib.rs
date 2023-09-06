@@ -1011,4 +1011,6 @@ pub mod prelude {
     pub use super::{Ability, Class, EcmMode, Message};
     #[doc(inline)]
     pub use crate::{debug, draw_text};
+
+    pub use maths_rs;
 }
