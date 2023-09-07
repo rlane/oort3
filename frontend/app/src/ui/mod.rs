@@ -178,6 +178,10 @@ impl UI {
             self.keys_ignored.insert("b".to_string());
             self.renderer.set_blur(!self.renderer.get_blur());
         }
+        if self.keys_down.contains("v") && !self.keys_ignored.contains("v") {
+            self.keys_ignored.insert("v".to_string());
+            self.renderer.set_nlips(!self.renderer.get_nlips());
+        }
 
         if !self.paused {
             self.physics_time += elapsed;

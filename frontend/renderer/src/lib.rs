@@ -49,6 +49,7 @@ pub struct Renderer {
     debug: bool,
     picked_ship: Option<u64>,
     blur_enabled: bool,
+    nlips_enabled: bool,
 }
 
 impl Renderer {
@@ -88,6 +89,7 @@ impl Renderer {
             debug: false,
             picked_ship: None,
             blur_enabled: true,
+            nlips_enabled: true,
         })
     }
 
@@ -160,9 +162,13 @@ impl Renderer {
         self.trail_renderer
             .update_projection_matrix(&self.projection_matrix);
 
-        let ship_drawset =
-            self.ship_renderer
-                .upload(&self.projection_matrix, snapshot, self.base_line_width);
+        let ship_drawset = self.ship_renderer.upload(
+            &self.projection_matrix,
+            snapshot,
+            self.base_line_width,
+            zoom,
+            self.nlips_enabled,
+        );
         let bullet_drawset =
             self.bullet_renderer
                 .upload(&self.projection_matrix, snapshot, self.base_line_width);
@@ -262,5 +268,13 @@ impl Renderer {
 
     pub fn get_blur(&self) -> bool {
         self.blur_enabled
+    }
+
+    pub fn set_nlips(&mut self, nlips: bool) {
+        self.nlips_enabled = nlips;
+    }
+
+    pub fn get_nlips(&self) -> bool {
+        self.nlips_enabled
     }
 }

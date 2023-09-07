@@ -105,6 +105,8 @@ void main() {
         projection_matrix: &Matrix4<f32>,
         snapshot: &Snapshot,
         base_line_width: f32,
+        zoom: f32,
+        nlips_enabled: bool,
     ) -> DrawSet {
         let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipSnapshot>>::new();
 
@@ -117,37 +119,61 @@ void main() {
         }
 
         let mut draws = vec![];
-        for (&class, ships) in ships_by_class.iter() {
-            let model_vertices = geometry::line_loop_mesh(&model::load(class), base_line_width);
-            let vertices_token = self.buffer_arena.write(&model_vertices);
-            let num_vertices = model_vertices.len();
 
-            let mut attribs: Vec<Attribs> = vec![];
-            attribs.reserve(ships.len());
-            for ship in ships.iter() {
-                let p = ship.position.coords.cast::<f32>();
-                let shielded = ship.active_abilities.contains(&oort_api::Ability::Shield);
-                let team_color = Self::team_color(ship.team);
-                let color = if shielded {
-                    let frac = (snapshot.time as f32 * 30.0).sin() * 0.2 + 0.5;
-                    team_color * (1.0 - frac) + Vector4::new(0.0, 0.0, 1.0, 1.0) * frac
-                } else {
-                    team_color
-                };
-                attribs.push(Attribs {
-                    color,
-                    transform: Matrix4::new_translation(&vector![p.x, p.y, 0.0])
-                        * Matrix4::from_euler_angles(0.0, 0.0, ship.heading as f32),
+        let zoom_factor = 2e-3 / zoom;
+
+        for (&class, ships) in ships_by_class.iter() {
+            let model = model::load(class);
+            let radius: f32 = model
+                .iter()
+                .max_by_key(|v| v.norm_squared() as i32)
+                .unwrap()
+                .norm();
+            let nlips_scale = 2.0 * zoom_factor / radius.log2();
+            for nlips_draw in [false, true] {
+                if nlips_draw
+                    && (!nlips_enabled
+                        || (radius / nlips_scale > 20.0 || nlips_scale < 4.0)
+                        || matches!(class, ShipClass::Asteroid { .. }))
+                {
+                    continue;
+                }
+                let scale = if nlips_draw { nlips_scale } else { 1.0 };
+                let vertices =
+                    geometry::line_loop_mesh(&model::scale(scale, &model), base_line_width);
+                let vertices_token = self.buffer_arena.write(&vertices);
+                let num_vertices = vertices.len();
+
+                let mut attribs: Vec<Attribs> = vec![];
+                attribs.reserve(ships.len());
+                for ship in ships.iter() {
+                    let p = ship.position.coords.cast::<f32>();
+                    let shielded = ship.active_abilities.contains(&oort_api::Ability::Shield);
+                    let mut team_color = Self::team_color(ship.team);
+                    if nlips_draw {
+                        team_color.w *= 0.5;
+                    }
+                    let color = if shielded {
+                        let frac = (snapshot.time as f32 * 30.0).sin() * 0.2 + 0.5;
+                        team_color * (1.0 - frac) + Vector4::new(0.0, 0.0, 1.0, 1.0) * frac
+                    } else {
+                        team_color
+                    };
+                    attribs.push(Attribs {
+                        color,
+                        transform: Matrix4::new_translation(&vector![p.x, p.y, 0.0])
+                            * Matrix4::from_euler_angles(0.0, 0.0, ship.heading as f32),
+                    });
+                }
+                let attribs_token = self.buffer_arena.write(&attribs);
+
+                draws.push(Draw {
+                    num_instances: ships.len(),
+                    vertices_token,
+                    num_vertices,
+                    attribs_token,
                 });
             }
-            let attribs_token = self.buffer_arena.write(&attribs);
-
-            draws.push(Draw {
-                num_instances: ships.len(),
-                vertices_token,
-                num_vertices,
-                attribs_token,
-            });
         }
 
         DrawSet {

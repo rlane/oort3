@@ -2,7 +2,7 @@ use crate::ship::ShipClass;
 use nalgebra::{vector, Rotation2, Vector2};
 use oorandom::Rand32;
 
-fn scale(scale: f32, vertices: &[Vector2<f32>]) -> Vec<Vector2<f32>> {
+pub fn scale(scale: f32, vertices: &[Vector2<f32>]) -> Vec<Vector2<f32>> {
     vertices
         .iter()
         .map(|&v| vector![scale * v.x, scale * v.y])
