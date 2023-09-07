@@ -124,6 +124,10 @@ pub fn documentation(props: &DocumentationProps) -> Html {
                   <li><code>{ "Ability::ShapedCharge" }</code>{ ": Missile only. " }<code>{ "explode()" }</code>{ " will create a jet of shrapnel instead of a circle." }</li>
                   <li><code>{ "Ability::Decoy" }</code>{ ": Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s." }</li>
                   <li><code>{ "Ability::Shield" }</code>{ ": Cruiser only. Deflects damage for 1s. Reloads in 5s." }</li>
+                  <li>
+                    <code>{ "Ability::None" }</code>{ ": Deactivate ability. If " }<code>{ "activate_ability(Ability::None)" }</code>{ " is not used, " }
+                    { "an ability will be automatically reactivated after its reload time." }
+                  </li>
                 </ul>
               </li>
             </ul>
