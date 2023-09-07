@@ -17,8 +17,13 @@ export class FileHandle {
   }
 
   async read() {
-    let file = await this._handle.getFile();
-    return file.text();
+    if ("getFile" in this._handle) {
+      let file = await this._handle.getFile();
+      return file.text();
+    } else {
+      let file = await new Promise((resolve) => this._handle.file(resolve));
+      return await file.text();
+    }
   }
 }
 

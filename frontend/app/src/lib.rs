@@ -68,6 +68,19 @@ fn switch(routes: Route) -> Html {
     }
 }
 
+fn prevent_drag_and_drop() {
+    let closure = Closure::wrap(Box::new(move |e: web_sys::DragEvent| {
+        e.prevent_default();
+        e.stop_propagation();
+    }) as Box<dyn FnMut(_)>);
+    for event in &["dragover", "drop"] {
+        gloo_utils::document()
+            .add_event_listener_with_callback(event, closure.as_ref().unchecked_ref())
+            .unwrap();
+    }
+    closure.forget();
+}
+
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {
     log::info!("Version {}", &version());
@@ -79,6 +92,7 @@ pub fn run_app() -> Result<(), JsValue> {
         &oort_envelope::hashed_secret()
     );
     js::completion::init();
+    prevent_drag_and_drop();
     yew::Renderer::<Main>::with_root(
         gloo_utils::document()
             .get_element_by_id("yew")
