@@ -110,6 +110,8 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "get_radio_channel() -> usize" }</code>{ ": Get the radio channel." }</li>
               <li><code>{ "send(data: [f64; 4])" }</code>{ ": Send a message on a channel." }</li>
               <li><code>{ "receive() -> Option<[f64; 4]>" }</code>{ ": Receive a message from the channel. The message with the strongest signal is returned." }</li>
+              <li><code>{ "send_bytes(data: &[u8])" }</code>{ ": Send a message on a channel as bytes, the data will be zero-filled or truncated to a length of 32 bytes." }</li>
+              <li><code>{ "receive_bytes() -> Option<[u8; 32]>" }</code>{ ": Just like receive, but instead the message will be returned as a byte array." }</li>
               <li><code>{ "select_radio(index: usize)" }</code>{ ": Select the radio to control with subsequent API calls. Frigates have 4 radios and cruisers have 8." }</li>
             </ul>
 
