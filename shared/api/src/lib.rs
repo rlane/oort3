@@ -1064,5 +1064,6 @@ pub mod prelude {
     #[doc(inline)]
     pub use crate::{debug, draw_text};
 
+    pub use byteorder;
     pub use maths_rs;
 }

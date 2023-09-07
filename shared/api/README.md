@@ -193,6 +193,13 @@ Entering debug mode by pressing the 'g' key also displays debug graphics from al
 - [`id() → u32`](prelude::id): Returns a per-ship ID that is unique within a team.
 - [`TICK_LENGTH`](prelude::TICK_LENGTH): Length of a single game tick in seconds. There are 60 ticks per second.
 
+## Extra Crates
+
+The following crates are available for use in your code:
+
+- [`byteorder`](prelude::byteorder): Utilities to read and write binary data, useful for radio.
+- [`maths_rs`](prelude::maths_rs): A linear algebra library.
+
 ## Ship Classes
 
 - [`Fighter`](prelude::Class::Fighter): Small, fast, and lightly armored.

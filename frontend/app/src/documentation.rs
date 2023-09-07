@@ -181,6 +181,13 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "seed() → u128" }</code>{ ": Returns a seed useful for initializing a random number generator." }</li>
             </ul>
 
+            <h2>{ "Extra Crates" }</h2>
+            <p>{ "The following crates are available for use in your code:" }</p>
+            <ul>
+                <li><a href="https://docs.rs/byteorder/1.4.3/byteorder/index.html" target="_blank">{ "byteorder" }</a>{ ": Utilities to read and write binary data, useful for radio." }</li>
+                <li><a href="https://docs.rs/maths-rs/0.2.4/maths_rs/index.html" target="_blank">{ "math_rs" }</a>{ ": A linear algebra library." }</li>
+            </ul>
+
             <h2>{ "Ship Classes" }</h2>
             <ul>
               <li>{ "Fighter: Small, fast, and lightly armored. One forward-facing gun and one missile launcher. "}</li>

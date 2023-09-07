@@ -1952,6 +1952,7 @@ dependencies = [
 name = "oort_api"
 version = "0.59.0"
 dependencies = [
+ "byteorder",
  "maths-rs",
  "oorandom",
  "serde",
