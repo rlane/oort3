@@ -15,6 +15,7 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
+use web_sys::{DragEvent, Element, FileSystemFileEntry};
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -46,6 +47,8 @@ pub enum Msg {
     LinkedFile(FileHandle),
     UnlinkedFile,
     CheckLinkedFile,
+    Drop(DragEvent),
+    CancelDrop(MouseEvent),
 }
 
 #[derive(Properties, Clone, PartialEq)]
@@ -67,6 +70,7 @@ pub struct EditorWindow {
     folded: bool,
     file_handle: Option<FileHandle>,
     linked: bool,
+    drop_target_ref: NodeRef,
 }
 
 impl Component for EditorWindow {
@@ -93,6 +97,7 @@ impl Component for EditorWindow {
             folded: false,
             file_handle: None,
             linked: false,
+            drop_target_ref: NodeRef::default(),
         }
     }
 
@@ -134,16 +139,23 @@ impl Component for EditorWindow {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-link-file" => {
-                let cb = context.link().callback(Msg::LinkedFile);
-                wasm_bindgen_futures::spawn_local(async move {
-                    match js::filesystem::open().await {
-                        Ok(file_handle) => {
-                            let file_handle = file_handle.dyn_into::<FileHandle>().unwrap();
-                            cb.emit(file_handle);
-                        }
-                        Err(e) => log::error!("open failed: {:?}", e),
-                    };
-                });
+                if has_open_file_picker() {
+                    let cb = context.link().callback(Msg::LinkedFile);
+                    wasm_bindgen_futures::spawn_local(async move {
+                        match js::filesystem::open().await {
+                            Ok(file_handle) => {
+                                let file_handle = file_handle.dyn_into::<FileHandle>().unwrap();
+                                cb.emit(file_handle);
+                            }
+                            Err(e) => log::error!("open failed: {:?}", e),
+                        };
+                    });
+                } else {
+                    self.drop_target_ref
+                        .cast::<Element>()
+                        .unwrap()
+                        .set_class_name("drop_target");
+                }
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-unlink-file" => {
@@ -267,6 +279,32 @@ impl Component for EditorWindow {
                 }
                 false
             }
+            Msg::CancelDrop(e) => {
+                self.drop_target_ref
+                    .cast::<Element>()
+                    .unwrap()
+                    .set_class_name("drop_target display_none");
+                e.prevent_default();
+                false
+            }
+            Msg::Drop(e) => {
+                self.drop_target_ref
+                    .cast::<Element>()
+                    .unwrap()
+                    .set_class_name("drop_target display_none");
+                e.prevent_default();
+                if let Some(data_transfer) = e.data_transfer() {
+                    if let Some(entry) = data_transfer.items().get(0) {
+                        if let Ok(Some(file_entry)) = entry.webkit_get_as_entry() {
+                            let file_entry = file_entry.unchecked_into::<FileSystemFileEntry>();
+                            context
+                                .link()
+                                .send_message(Msg::LinkedFile(FileHandle::new(file_entry)));
+                        }
+                    }
+                }
+                false
+            }
         }
     }
 
@@ -308,6 +346,15 @@ impl Component for EditorWindow {
                         class="material-symbols-outlined"
                         title={"Replay paused"}
                     >{ "autopause" }</span></div>
+                    <form>
+                        <div class="drop_target display_none" ref={self.drop_target_ref.clone()}>
+                            <span for="file" ondrop={context.link().callback(Msg::Drop)}>
+                                { "Drop file here " }
+                            </span>
+                            <input type="file" ondrop={context.link().callback(Msg::Drop)} />
+                            <button onclick={context.link().callback(Msg::CancelDrop)}>{ "cancel" }</button>
+                        </div>
+                    </form>
                 </>
             },
             context.props().host.clone(),
@@ -400,10 +447,8 @@ impl Component for EditorWindow {
                     ),
                 );
 
-                if gloo_utils::window().has_own_property(&"showOpenFilePicker".into()) {
-                    add_action("oort-link-file", "Link to file on disk", None);
-                    add_action("oort-unlink-file", "Unlink from a file on disk", None);
-                }
+                add_action("oort-link-file", "Link to file on disk", None);
+                add_action("oort-unlink-file", "Unlink from a file on disk", None);
 
                 add_action(
                     "oort-format",
@@ -564,4 +609,8 @@ fn is_mac() -> bool {
         .app_version()
         .unwrap()
         .contains("Mac")
+}
+
+fn has_open_file_picker() -> bool {
+    gloo_utils::window().has_own_property(&"showOpenFilePicker".into())
 }

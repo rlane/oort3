@@ -71,4 +71,9 @@ features = [
   'PointerEvent',
   'DomRect',
   'Navigator',
+  'FileSystemFileEntry',
+  'DataTransfer',
+  'DataTransferItem',
+  'DataTransferItemList',
+  'FileSystemEntry',
 ]

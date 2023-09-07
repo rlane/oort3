@@ -355,3 +355,42 @@ b.error {
 #tournament_results table {
   border-collapse: collapse;
 }
+
+.drop_target {
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+
+  backdrop-filter: blur(6px);
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.drop_target input {
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  width: 100%;
+  height: 100%;
+
+  opacity: 0%;
+}
+
+.drop_target span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.drop_target button {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.display_none {
+  display: none;
+}

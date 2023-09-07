@@ -1,11 +1,15 @@
 pub mod filesystem {
     use wasm_bindgen::prelude::*;
+    use web_sys::FileSystemFileEntry;
 
     #[wasm_bindgen(module = "/js/filesystem.js")]
     extern "C" {
         #[wasm_bindgen]
         #[derive(Debug, Clone)]
         pub type FileHandle;
+
+        #[wasm_bindgen(constructor)]
+        pub fn new(handle: FileSystemFileEntry) -> FileHandle;
 
         #[wasm_bindgen(method, catch)]
         pub async fn read(this: &FileHandle) -> Result<JsValue, JsValue>;
