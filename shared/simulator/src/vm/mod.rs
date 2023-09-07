@@ -234,7 +234,7 @@ impl TeamController {
 pub struct WasmVm {
     store: Rc<RefCell<wasmer::Store>>,
     memory: wasmer::Memory,
-    system_state_ptr: WasmPtr<f64>,
+    system_state_ptr: WasmPtr<u64>,
     environment_ptr: WasmPtr<u8>,
     tick_ship: wasmer::Function,
     delete_ship: wasmer::Function,
@@ -268,7 +268,7 @@ impl WasmVm {
                 .get(&mut store)
                 .i32()
                 .unwrap();
-        let system_state_ptr: WasmPtr<f64> = WasmPtr::new(system_state_offset as u32);
+        let system_state_ptr: WasmPtr<u64> = WasmPtr::new(system_state_offset as u32);
         let environment_offset: i32 = translate_error(instance.exports.get_global("ENVIRONMENT"))?
             .get(&mut store)
             .i32()
@@ -356,18 +356,26 @@ impl WasmVm {
 }
 
 struct LocalSystemState {
-    pub state: [f64; SystemState::Size as usize],
+    pub state: [u64; SystemState::Size as usize],
 }
 
 impl LocalSystemState {
     fn new() -> Self {
         Self {
-            state: [0.0; SystemState::Size as usize],
+            state: [0; SystemState::Size as usize],
         }
     }
 
+    fn get_u64(&self, index: SystemState) -> u64 {
+        self.state[index as usize]
+    }
+
+    fn set_u64(&mut self, index: SystemState, value: u64) {
+        self.state[index as usize] = value;
+    }
+
     fn get(&self, index: SystemState) -> f64 {
-        let v = self.state[index as usize];
+        let v = f64::from_bits(self.get_u64(index));
         if v.is_nan() || v.is_infinite() {
             0.0
         } else {
@@ -376,7 +384,7 @@ impl LocalSystemState {
     }
 
     fn set(&mut self, index: SystemState, value: f64) {
-        self.state[index as usize] = value;
+        self.set_u64(index, value.to_bits());
     }
 }
 

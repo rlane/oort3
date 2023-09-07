@@ -249,17 +249,25 @@ pub mod sys {
 
     // TODO crashes rust-analyzer
     #[no_mangle]
-    pub static mut SYSTEM_STATE: [f64; SystemState::MaxSize as usize] =
-        [0.0; SystemState::MaxSize as usize];
+    pub static mut SYSTEM_STATE: [u64; SystemState::MaxSize as usize] =
+        [0; SystemState::MaxSize as usize];
 
-    pub fn read_system_state(index: SystemState) -> f64 {
+    pub fn read_system_state_u64(index: SystemState) -> u64 {
         let system_state = unsafe { &SYSTEM_STATE };
         system_state[index as usize]
     }
 
-    pub fn write_system_state(index: SystemState, value: f64) {
+    pub fn write_system_state_u64(index: SystemState, value: u64) {
         let system_state = unsafe { &mut SYSTEM_STATE };
         system_state[index as usize] = value;
+    }
+
+    pub fn read_system_state(index: SystemState) -> f64 {
+        f64::from_bits(read_system_state_u64(index))
+    }
+
+    pub fn write_system_state(index: SystemState, value: f64) {
+        write_system_state_u64(index, value.to_bits())
     }
 
     #[no_mangle]
