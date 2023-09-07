@@ -1,3 +1,8 @@
+- Added `send_bytes` and `receive_bytes` radio functions (by @Nudelmeister).
+- Made the byteorder crate available to user code.
+- Implemented link-to-file editing for Firefox.
+- Changed the UI to drop frames when rendering at <60fps so that the simulation runs in real time.
+
 ### 0.59.0 - 2023-09-06
 
 - Made the maths_rs crate available to player code and switched Vec2 to be a type alias.
