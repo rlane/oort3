@@ -295,6 +295,13 @@ impl UI {
     }
 
     pub fn update_snapshot(&mut self) {
+        while self.pending_snapshots.len() > SNAPSHOT_PRELOAD / 2
+            && std::time::Duration::from_secs_f64(self.pending_snapshots[1].time)
+                <= self.physics_time
+        {
+            self.pending_snapshots.pop_front();
+        }
+
         if self.pending_snapshots.len() < SNAPSHOT_PRELOAD
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
