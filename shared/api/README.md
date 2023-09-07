@@ -123,7 +123,7 @@ channels available (0 to 9), shared between all teams.
 - [`send(data: [f64; 4])`](prelude::send): Send a message on a channel.
 - [`receive() -> Option<[f64; 4]>`](prelude::receive): Receive a message from the channel. The message with the strongest signal is returned.
 - [`send_bytes(data: &[u8])`](prelude::send_bytes): Send a message on a channel as bytes, the data will be zero-filled or truncated to a length of 32 bytes.
-- [`receive_bytes() -> Option<[u8; 32]>`](prelude::receive_bytes): Just like receive, but insted the message will be returned as a byte array.
+- [`receive_bytes() -> Option<[u8; 32]>`](prelude::receive_bytes): Just like receive, but instead the message will be returned as a byte array.
 - [`select_radio(index: usize)`](prelude::select_radio): Select the radio to control with subsequent API calls. Frigates have 4 radios and cruisers have 8.
 
 ## Special Abilities
