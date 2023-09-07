@@ -400,9 +400,10 @@ impl Component for EditorWindow {
                     ),
                 );
 
-                add_action("oort-link-file", "Link to file on disk", None);
-
-                add_action("oort-unlink-file", "Unlink from a file on disk", None);
+                if gloo_utils::window().has_own_property(&"showOpenFilePicker".into()) {
+                    add_action("oort-link-file", "Link to file on disk", None);
+                    add_action("oort-unlink-file", "Unlink from a file on disk", None);
+                }
 
                 add_action(
                     "oort-format",
