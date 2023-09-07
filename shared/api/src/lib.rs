@@ -355,6 +355,7 @@ pub mod rng_state {
 mod api {
     use super::sys::{read_system_state, write_system_state};
     use super::{Ability, Class, EcmMode, SystemState};
+    use crate::sys::{read_system_state_u64, write_system_state_u64};
     use crate::{vec::*, Message};
 
     /// The time between each simulation tick.
@@ -662,6 +663,8 @@ mod api {
     /// Sends a radio message.
     ///
     /// The message will be received on the next tick.
+    ///
+    /// If you want to send arbitrary data, consider using [`send_bytes`] instead.
     pub fn send(msg: Message) {
         let idxs =
             radio_internal::radio_indices(read_system_state(SystemState::SelectedRadio) as usize);
@@ -683,6 +686,47 @@ mod api {
                 read_system_state(idxs.data[2]),
                 read_system_state(idxs.data[3]),
             ])
+        } else {
+            None
+        }
+    }
+
+    /// Sends a radio message.
+    /// The message will be zero-filled or truncated to be 32 bytes long.
+    ///
+    /// The message will be received on the next tick.
+    ///
+    /// If you only want to send [`f64`]s consider using [`send`] instead.
+    pub fn send_bytes(msg: &[u8]) {
+        let mut bytes = [[0; 8]; 4];
+        bytes
+            .iter_mut()
+            .flatten()
+            .zip(msg)
+            .for_each(|(b, m)| *b = *m);
+
+        let idxs = radio_internal::radio_indices(
+            read_system_state_u64(SystemState::SelectedRadio) as usize
+        );
+        write_system_state(idxs.send, 1.0);
+        write_system_state_u64(idxs.data[0], u64::from_ne_bytes(bytes[0]));
+        write_system_state_u64(idxs.data[1], u64::from_ne_bytes(bytes[1]));
+        write_system_state_u64(idxs.data[2], u64::from_ne_bytes(bytes[2]));
+        write_system_state_u64(idxs.data[3], u64::from_ne_bytes(bytes[3]));
+    }
+
+    /// Returns the received radio message.
+    pub fn receive_bytes() -> Option<[u8; 32]> {
+        let idxs = radio_internal::radio_indices(
+            read_system_state_u64(SystemState::SelectedRadio) as usize
+        );
+        if read_system_state(idxs.receive) != 0.0 {
+            let mut bytes = [0; 32];
+            bytes[0..8].copy_from_slice(&read_system_state_u64(idxs.data[0]).to_ne_bytes());
+            bytes[8..16].copy_from_slice(&read_system_state_u64(idxs.data[1]).to_ne_bytes());
+            bytes[16..24].copy_from_slice(&read_system_state_u64(idxs.data[2]).to_ne_bytes());
+            bytes[24..32].copy_from_slice(&read_system_state_u64(idxs.data[3]).to_ne_bytes());
+            Some(bytes)
         } else {
             None
         }
