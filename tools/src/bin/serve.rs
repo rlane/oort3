@@ -22,6 +22,12 @@ fn main() -> Result<()> {
 
     let args = Arguments::parse();
 
+    for cmd in &["trunk", "wasm-opt"] {
+        if !Command::new("which").arg(cmd).output()?.status.success() {
+            return Err(anyhow::anyhow!("Missing dependency {}", cmd));
+        }
+    }
+
     if let Ok(contents) = std::fs::read_to_string(".secrets/secrets.toml") {
         let dev_mode_secrets = ["GOOGLE_APPLICATION_CREDENTIALS"];
         let secrets = contents.parse::<toml::Table>()?;
