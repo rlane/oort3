@@ -1,3 +1,5 @@
+### 0.60.0 - 2023-09-07
+
 - Added `send_bytes` and `receive_bytes` radio functions (by @Nudelmeister).
 - Made the byteorder crate available to user code.
 - Implemented link-to-file editing for Firefox.
