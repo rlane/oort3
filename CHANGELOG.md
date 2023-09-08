@@ -1,3 +1,5 @@
+- Added an NLIPS rendering mode toggled with 'v' that makes ships more visible when zoomed out.
+
 ### 0.60.0 - 2023-09-07
 
 - Added `send_bytes` and `receive_bytes` radio functions (by @Nudelmeister).
