@@ -152,7 +152,13 @@ void main() {
                     let shielded = ship.active_abilities.contains(&oort_api::Ability::Shield);
                     let mut team_color = Self::team_color(ship.team);
                     if nlips_draw {
-                        team_color.w *= (nlips_scale / min_nlips_scale - 1.0).clamp(0.0, 0.5);
+                        team_color.w *= (nlips_scale / min_nlips_scale - 1.0)
+                            .clamp(0.0, 1.0)
+                            .powi(4)
+                            .clamp(0.0, 0.5);
+                        if team_color.w < 0.05 {
+                            continue;
+                        }
                     }
                     let color = if shielded {
                         let frac = (snapshot.time as f32 * 30.0).sin() * 0.2 + 0.5;
