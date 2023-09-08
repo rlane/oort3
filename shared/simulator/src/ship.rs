@@ -181,7 +181,7 @@ impl Default for Gun {
 impl Default for ShipAbility {
     fn default() -> Self {
         Self {
-            ability: Ability::None,
+            ability: Ability::Boost,
             active_time: 0.0,
             reload_time: 0.0,
             active_time_remaining: 0.0,
@@ -845,6 +845,17 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             }
             ship_ability.active_time_remaining = ship_ability.active_time - PHYSICS_TICK_LENGTH;
             ship_ability.reload_time_remaining = ship_ability.reload_time;
+        }
+    }
+
+    pub fn deactivate_ability(&mut self, ability: oort_api::Ability) {
+        if let Some(ship_ability) = self
+            .data_mut()
+            .abilities
+            .iter_mut()
+            .find(|x| x.ability == ability)
+        {
+            ship_ability.active_time_remaining = 0.0;
         }
     }
 

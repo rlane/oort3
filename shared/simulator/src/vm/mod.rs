@@ -529,8 +529,19 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         radar.set_ecm_mode(translate_ecm_mode(state.get(SystemState::RadarEcmMode)));
     }
 
-    for ability in translate_ability(state.get(SystemState::ActivateAbility)).active_iter() {
-        sim.ship_mut(handle).activate_ability(ability);
+    let active_abilities = ActiveAbilities(state.get_u64(SystemState::ActivateAbility));
+    for &ability in oort_api::ABILITIES {
+        let current = sim.ship(handle).is_ability_active(ability);
+        let requested = active_abilities.get_ability(ability);
+        if requested != current {
+            if requested {
+                log::info!("activating ability {ability:?}");
+                sim.ship_mut(handle).activate_ability(ability);
+            } else {
+                log::info!("deactivating ability {ability:?}");
+                sim.ship_mut(handle).deactivate_ability(ability);
+            }
+        }
     }
 
     if state.get(SystemState::Explode) > 0.0 {
@@ -570,10 +581,6 @@ fn translate_class(class: ShipClass) -> Class {
         ShipClass::Torpedo => Class::Torpedo,
         _ => Class::Unknown,
     }
-}
-
-fn translate_ability(v: f64) -> ActiveAbilities {
-    ActiveAbilities(v as u64)
 }
 
 fn translate_ecm_mode(v: f64) -> EcmMode {
