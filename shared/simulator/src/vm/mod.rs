@@ -6,7 +6,7 @@ use crate::debug;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Simulation};
 use nalgebra::point;
-use oort_api::{Ability, Class, EcmMode, Line, SystemState, Text};
+use oort_api::{ActiveAbilities, Class, EcmMode, Line, SystemState, Text};
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeMap;
@@ -529,9 +529,18 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         radar.set_ecm_mode(translate_ecm_mode(state.get(SystemState::RadarEcmMode)));
     }
 
-    if let Some(ability) = translate_ability(state.get(SystemState::ActivateAbility)) {
-        if ability != Ability::None {
-            sim.ship_mut(handle).activate_ability(ability);
+    let active_abilities = ActiveAbilities(state.get_u64(SystemState::ActivateAbility));
+    for &ability in oort_api::ABILITIES {
+        let current = sim.ship(handle).is_ability_active(ability);
+        let requested = active_abilities.get_ability(ability);
+        if requested != current {
+            if requested {
+                log::info!("activating ability {ability:?}");
+                sim.ship_mut(handle).activate_ability(ability);
+            } else {
+                log::info!("deactivating ability {ability:?}");
+                sim.ship_mut(handle).deactivate_ability(ability);
+            }
         }
     }
 
@@ -571,23 +580,6 @@ fn translate_class(class: ShipClass) -> Class {
         ShipClass::Missile => Class::Missile,
         ShipClass::Torpedo => Class::Torpedo,
         _ => Class::Unknown,
-    }
-}
-
-fn translate_ability(v: f64) -> Option<Ability> {
-    let v = v as u32;
-    if v == Ability::None as u32 {
-        Some(Ability::None)
-    } else if v == Ability::Boost as u32 {
-        Some(Ability::Boost)
-    } else if v == Ability::ShapedCharge as u32 {
-        Some(Ability::ShapedCharge)
-    } else if v == Ability::Decoy as u32 {
-        Some(Ability::Decoy)
-    } else if v == Ability::Shield as u32 {
-        Some(Ability::Shield)
-    } else {
-        None
     }
 }
 

@@ -8,6 +8,35 @@ use test_log::test;
 #[test]
 fn test_boost() {
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None, Code::None]);
+    let mut prev_v = vector![0.0, 0.0];
+    let ship0 = ship::create(&mut sim, vector![0.0, 0.0], prev_v, 0.0, fighter(0));
+
+    sim.step();
+    let v = sim.ship(ship0).velocity();
+    let acc = (v - prev_v) / PHYSICS_TICK_LENGTH;
+    prev_v = v;
+    approx::assert_abs_diff_eq!(acc.magnitude(), 0.0, epsilon = 1.0);
+
+    sim.ship_mut(ship0).activate_ability(Ability::Boost);
+    sim.step();
+
+    for _ in 0..120 {
+        sim.step();
+        let v = sim.ship(ship0).velocity();
+        let acc = (v - prev_v) / PHYSICS_TICK_LENGTH;
+        prev_v = v;
+        approx::assert_abs_diff_eq!(acc.magnitude(), 100.0, epsilon = 1.0);
+    }
+
+    sim.step();
+    let v = sim.ship(ship0).velocity();
+    let acc = (v - prev_v) / PHYSICS_TICK_LENGTH;
+    approx::assert_abs_diff_eq!(acc.magnitude(), 0.0, epsilon = 1.0);
+}
+
+#[test]
+fn test_deactivate_boost() {
+    let mut sim = simulation::Simulation::new("test", 0, &[Code::None, Code::None]);
     let v0 = vector![0.0, 0.0];
     let ship0 = ship::create(&mut sim, vector![0.0, 0.0], v0, 0.0, fighter(0));
 
@@ -19,12 +48,22 @@ fn test_boost() {
     approx::assert_abs_diff_eq!(acc.magnitude(), 50.0, epsilon = 1.0);
 
     sim.ship_mut(ship0).activate_ability(Ability::Boost);
+    assert!(sim.ship(ship0).is_ability_active(Ability::Boost));
     sim.ship_mut(ship0).accelerate(vector![50.0, 0.0]);
     sim.ship_mut(ship0).tick();
     sim.step();
     let v2 = sim.ship(ship0).velocity();
     let acc = (v2 - v1) / PHYSICS_TICK_LENGTH;
     approx::assert_abs_diff_eq!(acc.magnitude(), 150.0, epsilon = 1.0);
+
+    sim.ship_mut(ship0).deactivate_ability(Ability::Boost);
+    assert!(!sim.ship(ship0).is_ability_active(Ability::Boost));
+    sim.ship_mut(ship0).accelerate(vector![50.0, 0.0]);
+    sim.ship_mut(ship0).tick();
+    sim.step();
+    let v3 = sim.ship(ship0).velocity();
+    let acc = (v3 - v2) / PHYSICS_TICK_LENGTH;
+    approx::assert_abs_diff_eq!(acc.magnitude(), 50.0, epsilon = 1.0);
 }
 
 #[test]

@@ -63,6 +63,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             <h2>{ "Ship Status and Control" }</h2>
             <ul>
               <li><code>{ "class() → Class" }</code>{ ": Returns the ship class." }</li>
+              <li><code>{ "active_abilities() → ActiveAbilities" }</code>{ ": Returns the ship's active abilities." }</li>
               <li><code>{ "position() → Vec2" }</code>{ ": Get the current position in meters." }</li>
               <li><code>{ "velocity() → Vec2" }</code>{ ": Get the current velocity in m/s." }</li>
               <li><code>{ "heading() → f64" }</code>{ ": Get the current heading in radians." }</li>
@@ -118,18 +119,19 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             </ul>
 
             <h2>{ "Special Abilities" }</h2>
+            <p>
+                { "Abilities are activated and remain activated, re-starting after reload, until manually de-activated." }
+            </p>
             <ul>
               <li><code>{ "activate_ability(ability: Ability)" }</code>{ ": Activates a ship's special ability." }</li>
+              <li><code>{ "deactivate_ability(ability: Ability)" }</code>{ ": Deactivates a ship's special ability." }</li>
               <li>{ "Available abilities:" }
                 <ul>
                   <li><code>{ "Ability::Boost" }</code>{ ": Fighter and missile only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s." }</li>
                   <li><code>{ "Ability::ShapedCharge" }</code>{ ": Missile only. " }<code>{ "explode()" }</code>{ " will create a jet of shrapnel instead of a circle." }</li>
                   <li><code>{ "Ability::Decoy" }</code>{ ": Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s." }</li>
                   <li><code>{ "Ability::Shield" }</code>{ ": Cruiser only. Deflects damage for 1s. Reloads in 5s." }</li>
-                  <li>
-                    <code>{ "Ability::None" }</code>{ ": Deactivate ability. If " }<code>{ "activate_ability(Ability::None)" }</code>{ " is not used, " }
-                    { "an ability will be automatically reactivated after its reload time." }
-                  </li>
+                  <li><code>{ "Ability::None" }</code>{ ": No-op" }</li>
                 </ul>
               </li>
             </ul>
