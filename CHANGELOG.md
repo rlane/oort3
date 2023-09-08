@@ -1,3 +1,9 @@
+- Changed seed selection links to preserve player and opponent code.
+- Added a "seed" tab so you can change the seed without editing the URL.
+- Added the seed to the debug status line.
+- Removed the upload-shortcode button when using encrypted code.
+- Fixed an NLIPS-related panic in planetary_defense.
+
 ### 0.61.1 - 2023-09-08
 
 - Fixed a rendering bug with NLIPS.
