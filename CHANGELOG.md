@@ -1,3 +1,6 @@
+- Revamped ability API to allow multiple abilities and deactivation (by @Easyoakland)
+- Added a play button to leaderboard rows.
+
 ### 0.62.0 - 2023-09-08
 
 - Changed seed selection links to preserve player and opponent code.
