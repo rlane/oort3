@@ -179,7 +179,7 @@ impl Class {
     }
 }
 
-/// List of activated abilities for an entity.
+/// List of active abilities for an entity.
 #[repr(transparent)]
 pub struct ActiveAbilities(pub u64);
 

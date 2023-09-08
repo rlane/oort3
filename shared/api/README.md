@@ -43,6 +43,7 @@ channel will affect the scan results or messages received on the next tick.
 Basic status:
 
 - [`class() → Class`](prelude::class): Get the ship class ([Fighter](prelude::Class::Fighter), [Cruiser](prelude::Class::Cruiser), etc).
+- [`active_abilities() → ActiveAbilities`](prelude::class): Returns the ship's active abilities.
 - [`position() → Vec2`](prelude::position): Get the current position in meters.
 - [`velocity() → Vec2`](prelude::velocity): Get the current velocity in m/s.
 - [`heading() → f64`](prelude::heading): Get the current heading in radians.
@@ -129,14 +130,16 @@ channels available (0 to 9), shared between all teams.
 ## Special Abilities
 
 Some ship classes have a unique special ability. These abilities are activated for a certain time and then need to reload.
+Abilities are activated, re-starting after reload, and remain activated until manually de-activated.
 
 - [`activate_ability(ability: Ability)`](prelude::activate_ability): Activates a special ability.
+- [`deactivate_ability(ability: Ability)`](prelude::activate_ability): Deactivates a ship's special ability.
 - Available abilities:
   - [`Ability::Boost`](prelude::Ability::Boost): Fighter and missile only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s.
   - [`Ability::ShapedCharge`](prelude::Ability::ShapedCharge): Missile only. [`explode()`][prelude::explode] will create a jet of shrapnel instead of a circle.
   - [`Ability::Decoy`](prelude::Ability::Decoy): Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s.
   - [`Ability::Shield`](prelude::Ability::Shield): Cruiser only. Deflects damage for 1s. Reloads in 5s.
-  - [`Ability::None`](prelude::Ability::None): Deactivate ability. If `activate_ability(Ability::None)` is not used, an ability will be automatically reactivated after its reload time.
+  - [`Ability::None`](prelude::Ability::None): No-op
 
 ## Scalar Math
 
