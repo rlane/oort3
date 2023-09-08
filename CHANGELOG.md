@@ -1,3 +1,5 @@
+### 0.62.0 - 2023-09-08
+
 - Changed seed selection links to preserve player and opponent code.
 - Added a "seed" tab so you can change the seed without editing the URL.
 - Added the seed to the debug status line.
