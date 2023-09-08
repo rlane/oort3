@@ -8,6 +8,7 @@ mod gunnery;
 mod orbit;
 mod planetary_defense;
 mod primitive_duel;
+mod racing;
 mod radar_duel;
 mod squadrons;
 mod stress;
@@ -28,7 +29,7 @@ mod welcome;
 
 use crate::ship::{asteroid, fighter, ShipAccessor, ShipClass, ShipData};
 use crate::simulation::{Code, Line, Simulation};
-use nalgebra::{vector, Vector2};
+use nalgebra::{vector, Point2, Vector2, Vector4};
 use rand::{Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -153,6 +154,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         // Challenge
         "gunnery" => Some(Box::new(gunnery::GunneryScenario {})),
         "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
+        "race" => Some(Box::new(racing::Race::new())),
         // Testing
         "test" => Some(Box::new(test::TestScenario {})),
         "basic" => Some(Box::new(test::BasicScenario {})),
@@ -203,7 +205,7 @@ pub fn list() -> Vec<(String, Vec<String>)> {
                 "tutorial_cruiser",
             ],
         ),
-        ("Challenge", vec!["gunnery", "planetary_defense"]),
+        ("Challenge", vec!["gunnery", "planetary_defense", "race"]),
         (
             "Tournament",
             vec![
@@ -327,4 +329,23 @@ pub fn place_teams(rng: &mut dyn RngCore, world_size: f64) -> Vec<Placement> {
             heading: std::f64::consts::PI,
         },
     ]
+}
+
+pub fn draw_ngon(
+    lines: &mut Vec<Line>,
+    n: usize,
+    center: Point2<f64>,
+    r: f64,
+    color: Vector4<f32>,
+) {
+    for i in 0..n {
+        let frac = (i as f64) / (n as f64);
+        let angle_a = std::f64::consts::TAU * frac;
+        let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
+        lines.push(Line {
+            a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
+            b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+            color,
+        });
+    }
 }

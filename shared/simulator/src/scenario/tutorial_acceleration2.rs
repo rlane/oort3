@@ -1,4 +1,4 @@
-use super::prelude::*;
+use super::{draw_ngon, prelude::*};
 
 pub struct TutorialAcceleration2 {
     hit_target: bool,
@@ -59,16 +59,8 @@ impl Scenario for TutorialAcceleration2 {
         } else {
             vector![1.0, 0.0, 0.0, 1.0]
         };
-        for i in 0..n {
-            let frac = (i as f64) / (n as f64);
-            let angle_a = std::f64::consts::TAU * frac;
-            let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
-            lines.push(Line {
-                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-                color,
-            });
-        }
+        draw_ngon(&mut lines, n, center, r, color);
+
         lines
     }
 
