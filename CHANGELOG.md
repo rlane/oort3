@@ -1,3 +1,5 @@
+### 0.61.0 - 2023-09-07
+
 - Added an NLIPS rendering mode toggled with 'v' that makes ships more visible when zoomed out.
 
 ### 0.60.0 - 2023-09-07
