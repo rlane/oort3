@@ -190,7 +190,7 @@ impl Default for ShipAbility {
     }
 }
 
-fn radio() -> Radio {
+pub fn radio() -> Radio {
     // TODO tune this
     Radio {
         power: 20e3,

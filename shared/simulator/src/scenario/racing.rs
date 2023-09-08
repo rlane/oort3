@@ -13,6 +13,7 @@ pub struct Race {
     obstacle_density: f64,
     checkpoints: Vec<Checkpoint>,
     next_checkpoints: Vec<usize>,
+    beacon: Option<ShipHandle>,
 }
 
 impl Race {
@@ -24,6 +25,7 @@ impl Race {
             checkpoints: vec![],
             next_checkpoints: vec![],
             num_checkpoints_range: 10..=15,
+            beacon: None,
         }
     }
 }
@@ -64,13 +66,17 @@ impl Scenario for Race {
             //sim.ship_mut(handle)
         }
 
-        ship::create(
-            sim,
-            vector![250.0, 0.0],
-            vector![0.0, 0.0],
-            0.1,
-            target_asteroid(4),
-        );
+        {
+            let mut data = target_asteroid(4);
+            data.radios.push(ship::radio());
+            self.beacon = Some(ship::create(
+                sim,
+                vector![250.0, 0.0],
+                vector![0.0, 0.0],
+                0.1,
+                data,
+            ));
+        }
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
@@ -86,9 +92,10 @@ impl Scenario for Race {
                     self.next_checkpoints[team as usize] += 1;
                 }
             }
+        }
 
-            let mut ship = sim.ship_mut(*handle);
-            ship.radio_mut(0).unwrap().received = Some([1.0, 2.0, 3.0, 4.0]); //
+        if let Some(handle) = self.beacon {
+            sim.ship_mut(handle).radio_mut(0).unwrap().sent = Some([1.0, 2.0, 3.0, 4.0]);
         }
     }
 
