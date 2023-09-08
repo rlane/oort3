@@ -46,7 +46,7 @@ pub enum Msg {
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
     Start,
     SelectScenario(String),
-    SelectScenarioAndRun(String, u32),
+    ChangeSeed(u32),
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
@@ -101,7 +101,7 @@ pub struct Game {
     teams: Vec<Team>,
     editor_links: Vec<CodeEditorLink>,
     compilation_cache: HashMap<Code, Code>,
-    seed: Option<u32>,
+    param_seed: Option<u32>,
     previous_seed: u32,
     shortcodes: Vec<Option<String>>,
     versions_update_timestamp: chrono::DateTime<chrono::Utc>,
@@ -158,7 +158,7 @@ impl Component for Game {
             teams: Vec::new(),
             editor_links: vec![CodeEditorLink::default(), CodeEditorLink::default()],
             compilation_cache,
-            seed: query_params.seed,
+            param_seed: query_params.seed,
             previous_seed: query_params.seed.unwrap_or(0),
             shortcodes: vec![query_params.player0, query_params.player1],
             versions_update_timestamp: chrono::Utc::now(),
@@ -209,9 +209,9 @@ impl Component for Game {
                 self.change_scenario(context, &scenario_name, false);
                 true
             }
-            Msg::SelectScenarioAndRun(scenario_name, seed) => {
-                self.seed = Some(seed);
-                self.change_scenario(context, &scenario_name, true);
+            Msg::ChangeSeed(seed) => {
+                self.param_seed = Some(seed);
+                self.run(context, ExecutionMode::Replay { paused: false });
                 true
             }
             Msg::SimulationFinished(snapshot) => self.on_simulation_finished(context, snapshot),
@@ -792,10 +792,7 @@ impl Game {
                         &query,
                     )
                     .unwrap();
-                vec![
-                    Msg::DismissOverlay,
-                    Msg::SelectScenarioAndRun(scenario_name.clone(), seed),
-                ]
+                vec![Msg::DismissOverlay, Msg::ChangeSeed(seed)]
             })
         };
         let make_seed_link =
@@ -1003,9 +1000,8 @@ impl Game {
             .collect();
         let rand_seed = rand::thread_rng().gen();
         let seed = match execution_mode {
-            ExecutionMode::Initial => self.seed.unwrap_or(rand_seed),
-            ExecutionMode::Replay { .. } => self.previous_seed,
-            ExecutionMode::Run => rand_seed,
+            ExecutionMode::Initial | ExecutionMode::Run => self.param_seed.unwrap_or(rand_seed),
+            ExecutionMode::Replay { .. } => self.param_seed.unwrap_or(self.previous_seed),
         };
         let start_paused = matches!(execution_mode, ExecutionMode::Replay { paused: true });
         self.previous_seed = seed;
