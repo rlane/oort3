@@ -22,6 +22,7 @@ const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
 
 pub struct UI {
     version: String,
+    seed: u32,
     snapshot: Option<Snapshot>,
     pending_snapshots: VecDeque<Snapshot>,
     renderer: Renderer,
@@ -56,8 +57,10 @@ pub struct UI {
 unsafe impl Send for UI {}
 
 impl UI {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         request_snapshot: yew::Callback<()>,
+        seed: u32,
         nonce: u32,
         version: String,
         canvas_ref: NodeRef,
@@ -84,6 +87,7 @@ impl UI {
 
         UI {
             version,
+            seed,
             snapshot: None,
             pending_snapshots: VecDeque::new(),
             renderer,
@@ -243,6 +247,7 @@ impl UI {
         }
 
         if self.debug {
+            status_msgs.push(format!("SEED {}", self.seed));
             if let Some(snapshot) = self.snapshot.as_ref() {
                 status_msgs.push(format!(
                     "TICK {}",

@@ -85,6 +85,7 @@ impl Component for SimulationWindow {
                 self.nonce = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
                     context.link().callback(|_| Msg::RequestSnapshot),
+                    seed,
                     self.nonce,
                     context.props().version.clone(),
                     self.canvas_ref.clone(),
