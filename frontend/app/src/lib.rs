@@ -21,6 +21,7 @@ pub mod versions_window;
 pub mod welcome;
 
 use oort_version::version;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yew::prelude::*;
@@ -40,6 +41,13 @@ pub enum Route {
     Tournament { id: String },
 }
 
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct QueryParams {
+    pub seed: Option<u32>,
+    pub player0: Option<String>,
+    pub player1: Option<String>,
+}
+
 #[function_component(Main)]
 fn app() -> Html {
     html! {
@@ -49,16 +57,37 @@ fn app() -> Html {
     }
 }
 
+#[derive(Properties, PartialEq, Eq, Debug)]
+struct GameWrapperProps {
+    scenario: String,
+    #[prop_or_default]
+    demo: bool,
+}
+
+#[function_component(GameWrapper)]
+fn game_wrapper(props: &GameWrapperProps) -> Html {
+    let location = use_location().expect("use_location");
+    let q = query_params(&location);
+    html! {
+        <game::Game
+            version={version()}
+            scenario={props.scenario.clone()}
+            seed={q.seed}
+            player0={q.player0.clone()}
+            player1={q.player1.clone()} />
+    }
+}
+
 fn switch(routes: Route) -> Html {
     match routes {
         Route::Home => html! {
-            <game::Game scenario="welcome" version={version()} />
+            <GameWrapper scenario="welcome" />
         },
         Route::Scenario { scenario } => html! {
-            <game::Game scenario={scenario} version={version()} />
+            <GameWrapper scenario={scenario} />
         },
         Route::Demo { scenario } => html! {
-            <game::Game scenario={scenario} demo=true version={version()} />
+            <GameWrapper scenario={scenario} demo=true />
         },
         Route::Benchmark { scenario } => html! {
             <benchmark::Benchmark scenario={scenario} />
@@ -66,6 +95,16 @@ fn switch(routes: Route) -> Html {
         Route::Tournament { id } => html! {
             <tournament::Tournament id={id} />
         },
+    }
+}
+
+pub fn query_params(location: &Location) -> QueryParams {
+    match location.query::<QueryParams>() {
+        Ok(q) => q,
+        Err(e) => {
+            log::info!("Failed to parse query params: {:?}", e);
+            Default::default()
+        }
     }
 }
 

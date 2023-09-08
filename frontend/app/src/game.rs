@@ -5,6 +5,7 @@ use crate::editor_window::EditorWindow;
 use crate::js;
 use crate::leaderboard::Leaderboard;
 use crate::leaderboard_window::LeaderboardWindow;
+use crate::query_params;
 use crate::seed_window::SeedWindow;
 use crate::services;
 use crate::simulation_window::SimulationWindow;
@@ -22,7 +23,6 @@ use oort_simulator::snapshot::Snapshot;
 use rand::Rng;
 use regex::Regex;
 use reqwasm::http::Request;
-use serde::Deserialize;
 use simulation::PHYSICS_TICK_LENGTH;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -46,8 +46,6 @@ fn empty() -> JsValue {
 pub enum Msg {
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
     Start,
-    SelectScenario(String),
-    ChangeSeed(Option<u32>),
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
@@ -63,6 +61,7 @@ pub enum Msg {
     LoadVersion(String),
     SaveVersion(String),
     RefreshVersions,
+    Nop,
 }
 
 enum Overlay {
@@ -80,15 +79,7 @@ pub enum ExecutionMode {
     Replay { paused: bool },
 }
 
-#[derive(Deserialize, Debug, Default)]
-struct QueryParams {
-    pub seed: Option<u32>,
-    pub player0: Option<String>,
-    pub player1: Option<String>,
-}
-
 pub struct Game {
-    scenario_name: String,
     background_agents: Vec<Box<dyn Bridge<SimAgent>>>,
     background_snapshots: Vec<(u32, Snapshot)>,
     background_nonce: u32,
@@ -102,9 +93,7 @@ pub struct Game {
     teams: Vec<Team>,
     editor_links: Vec<CodeEditorLink>,
     compilation_cache: HashMap<Code, Code>,
-    param_seed: Option<u32>,
-    previous_seed: u32,
-    shortcodes: Vec<Option<String>>,
+    previous_seed: Option<u32>,
     versions_update_timestamp: chrono::DateTime<chrono::Utc>,
     execution_mode: ExecutionMode,
 }
@@ -124,6 +113,9 @@ pub struct Props {
     #[prop_or_default]
     pub demo: bool,
     pub version: String,
+    pub seed: Option<u32>,
+    pub player0: Option<String>,
+    pub player1: Option<String>,
 }
 
 impl Component for Game {
@@ -142,10 +134,7 @@ impl Component for Game {
 
         let compilation_cache = HashMap::new();
 
-        let query_params = parse_query_params(context);
-
         Self {
-            scenario_name: context.props().scenario.clone(),
             background_agents: Vec::new(),
             background_snapshots: Vec::new(),
             background_nonce: 0,
@@ -159,9 +148,7 @@ impl Component for Game {
             teams: Vec::new(),
             editor_links: vec![CodeEditorLink::default(), CodeEditorLink::default()],
             compilation_cache,
-            param_seed: query_params.seed,
-            previous_seed: query_params.seed.unwrap_or(0),
-            shortcodes: vec![query_params.player0, query_params.player1],
+            previous_seed: None,
             versions_update_timestamp: chrono::Utc::now(),
             execution_mode: ExecutionMode::Initial,
         }
@@ -176,14 +163,15 @@ impl Component for Game {
                 false
             }
             Msg::Start => {
-                let scenario_name = context.props().scenario.clone();
-                let shortcodes = self.shortcodes.clone();
-                context.link().send_future_batch(async move {
-                    let mut msgs = vec![];
-                    msgs.push(Msg::SelectScenario(scenario_name));
-                    if shortcodes.iter().all(Option::is_none) {
-                        msgs
-                    } else {
+                let shortcodes = vec![
+                    context.props().player0.clone(),
+                    context.props().player1.clone(),
+                ];
+                let has_shortcodes = !shortcodes.iter().all(Option::is_none);
+                self.change_scenario(context, &context.props().scenario, !has_shortcodes);
+                if has_shortcodes {
+                    context.link().send_future_batch(async move {
+                        let mut msgs = vec![];
                         for (team, shortcode) in shortcodes.iter().enumerate() {
                             if let Some(shortcode) = shortcode {
                                 match services::get_shortcode(shortcode).await {
@@ -202,17 +190,8 @@ impl Component for Game {
                             action: "oort-execute".to_string(),
                         }); // TODO
                         msgs
-                    }
-                });
-                true
-            }
-            Msg::SelectScenario(scenario_name) => {
-                self.change_scenario(context, &scenario_name, false);
-                true
-            }
-            Msg::ChangeSeed(seed) => {
-                self.param_seed = seed;
-                self.run(context, ExecutionMode::Replay { paused: false });
+                    });
+                }
                 true
             }
             Msg::SimulationFinished(snapshot) => self.on_simulation_finished(context, snapshot),
@@ -220,7 +199,7 @@ impl Component for Game {
                 team: _,
                 ref action,
             } if action == "oort-execute" => {
-                self.save_current_code(context, None);
+                self.save_current_code(context, &context.props().scenario, None);
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
                 }
@@ -231,7 +210,7 @@ impl Component for Game {
                 team: _,
                 ref action,
             } if action == "oort-replay" => {
-                self.save_current_code(context, None);
+                self.save_current_code(context, &context.props().scenario, None);
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
                 }
@@ -242,7 +221,7 @@ impl Component for Game {
                 team: _,
                 ref action,
             } if action == "oort-replay-paused" => {
-                self.save_current_code(context, None);
+                self.save_current_code(context, &context.props().scenario, None);
                 for team in self.teams.iter_mut() {
                     team.running_source_code = team.get_editor_code();
                 }
@@ -250,7 +229,7 @@ impl Component for Game {
                 true
             }
             Msg::EditorAction { team, ref action } if action == "oort-restore-initial-code" => {
-                let mut code = scenario::load(&self.scenario_name)
+                let mut code = scenario::load(&context.props().scenario)
                     .initial_code()
                     .get(team)
                     .unwrap_or(&Code::None)
@@ -262,7 +241,7 @@ impl Component for Game {
                 false
             }
             Msg::EditorAction { team, ref action } if action == "oort-load-solution" => {
-                let mut code = scenario::load(&self.scenario_name).solution();
+                let mut code = scenario::load(&context.props().scenario).solution();
                 if let Code::Builtin(name) = code {
                     code = oort_simulator::vm::builtin::load_source(&name).unwrap()
                 }
@@ -281,7 +260,7 @@ impl Component for Game {
                 team: _,
                 ref action,
             } if action == "oort-submit-to-tournament" => {
-                let scenario_name = self.scenario_name.clone();
+                let scenario_name = context.props().scenario.clone();
                 let source_code = self.player_team().get_editor_text();
                 services::send_telemetry(Telemetry::SubmitToTournament {
                     scenario_name: scenario_name.clone(),
@@ -319,10 +298,12 @@ impl Component for Game {
                         false
                     } else {
                         self.background_snapshots.push((seed, snapshot));
-                        if let Some(summary) = self.summarize_background_simulations() {
+                        if let Some(summary) =
+                            self.summarize_background_simulations(&context.props().scenario)
+                        {
                             let code = self.player_team().running_source_code.clone();
                             services::send_telemetry(Telemetry::FinishScenario {
-                                scenario_name: self.scenario_name.clone(),
+                                scenario_name: context.props().scenario.clone(),
                                 code: code_to_string(&code),
                                 ticks: (summary.average_time.unwrap_or(0.0)
                                     / simulation::PHYSICS_TICK_LENGTH)
@@ -383,7 +364,7 @@ impl Component for Game {
                     .collect();
                 if errors.is_empty() {
                     services::send_telemetry(Telemetry::StartScenario {
-                        scenario_name: self.scenario_name.clone(),
+                        scenario_name: context.props().scenario.clone(),
                         code: code_to_string(&self.player_team().running_source_code),
                     });
                     self.run(context, execution_mode);
@@ -404,7 +385,7 @@ impl Component for Game {
                 false
             }
             Msg::LoadVersion(id) => {
-                self.save_current_code(context, None);
+                self.save_current_code(context, &context.props().scenario, None);
                 self.focus_editor();
                 try_send_future(context.link(), async move {
                     let version_control = oort_version_control::VersionControl::new().await?;
@@ -418,7 +399,7 @@ impl Component for Game {
                 false
             }
             Msg::SaveVersion(label) => {
-                self.save_current_code(context, Some(label));
+                self.save_current_code(context, &context.props().scenario, Some(label));
                 false
             }
             Msg::RefreshVersions => {
@@ -427,10 +408,10 @@ impl Component for Game {
             }
             Msg::SubmitToTournament => {
                 services::send_telemetry(Telemetry::SubmitToTournament {
-                    scenario_name: self.scenario_name.clone(),
+                    scenario_name: context.props().scenario.clone(),
                     code: code_to_string(&self.player_team().running_source_code),
                 });
-                let scenario_name = self.scenario_name.clone();
+                let scenario_name = context.props().scenario.clone();
                 let code = code_to_string(&self.player_team().running_source_code);
                 wasm_bindgen_futures::spawn_local(async move {
                     if let Err(e) = services::submit_to_tournament(&scenario_name, &code).await {
@@ -469,6 +450,7 @@ impl Component for Game {
                 }
                 false
             }
+            Msg::Nop => false,
         }
     }
 
@@ -483,7 +465,7 @@ impl Component for Game {
             navigator.push(&crate::Route::Scenario {
                 scenario: data.clone(),
             });
-            Msg::SelectScenario(data)
+            Msg::Nop
         });
         let show_feedback_cb = context.link().callback(|_| Msg::ShowFeedback);
 
@@ -522,7 +504,7 @@ impl Component for Game {
             navigator.push(&crate::Route::Scenario {
                 scenario: name.clone(),
             });
-            vec![Msg::SelectScenario(name), Msg::DismissOverlay]
+            vec![Msg::DismissOverlay]
         });
 
         // For Documentation.
@@ -552,62 +534,69 @@ impl Component for Game {
         let seed_window_host = gloo_utils::document()
             .get_element_by_id("seed-window")
             .expect("a #seed-window element");
-        let current_seed = self.param_seed.unwrap_or(self.previous_seed);
+        let current_seed = self
+            .configured_seed(context)
+            .unwrap_or(self.previous_seed.unwrap_or(0));
         let change_seed_cb = {
-            let scenario_name = self.scenario_name.clone();
+            let scenario_name = context.props().scenario.clone();
             let navigator = context.link().navigator().unwrap();
+            let link = context.link().clone();
             context.link().callback(move |seed: Option<u32>| {
-                if let Some(seed) = seed {
-                    let mut query = std::collections::HashMap::<&str, String>::new();
-                    query.insert("seed", seed.to_string());
-                    navigator
-                        .push_with_query(
-                            &crate::Route::Scenario {
-                                scenario: scenario_name.clone(),
-                            },
-                            &query,
-                        )
-                        .unwrap();
-                    Msg::ChangeSeed(Some(seed))
-                } else {
-                    let mut query = std::collections::HashMap::<&str, String>::new();
-                    query.remove("seed");
-                    navigator
-                        .push_with_query(
-                            &crate::Route::Scenario {
-                                scenario: scenario_name.clone(),
-                            },
-                            &query,
-                        )
-                        .unwrap();
-                    Msg::ChangeSeed(None)
-                }
+                let location = link.location().expect("location");
+                let mut query = query_params(&location);
+                query.seed = seed;
+                navigator
+                    .push_with_query(
+                        &crate::Route::Scenario {
+                            scenario: scenario_name.clone(),
+                        },
+                        &query,
+                    )
+                    .unwrap();
+                Msg::DismissOverlay
             })
         };
 
         html! {
         <>
-            <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
+            <Toolbar scenario_name={context.props().scenario.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
             <Welcome host={welcome_window_host} show_feedback_cb={show_feedback_cb.clone()} select_scenario_cb={select_scenario_cb2} />
             <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} team=0 />
             <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} team=1 />
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} canvas_ref={self.simulation_canvas_ref.clone()} />
             <Documentation host={documentation_window_host} {show_feedback_cb} />
             <CompilerOutputWindow host={compiler_output_window_host} {compiler_errors} />
-            <LeaderboardWindow host={leaderboard_window_host} scenario_name={self.scenario_name.clone()} />
-            <VersionsWindow host={versions_window_host} scenario_name={self.scenario_name.clone()} {load_cb} {save_cb} update_timestamp={self.versions_update_timestamp} />
+            <LeaderboardWindow host={leaderboard_window_host} scenario_name={context.props().scenario.clone()} />
+            <VersionsWindow host={versions_window_host} scenario_name={context.props().scenario.clone()} {load_cb} {save_cb} update_timestamp={self.versions_update_timestamp} />
             <SeedWindow host={seed_window_host} {current_seed} change_cb={change_seed_cb} />
             { self.render_overlay(context) }
         </>
         }
     }
 
-    fn rendered(&mut self, _context: &yew::Context<Self>, first_render: bool) {
+    fn rendered(&mut self, context: &yew::Context<Self>, first_render: bool) {
         if self.overlay.is_some() {
             self.focus_overlay();
-        } else if first_render && self.scenario_name != "welcome" {
+        } else if first_render && context.props().scenario != "welcome" {
             self.focus_editor();
         }
+    }
+
+    fn changed(&mut self, context: &Context<Self>, old_props: &Self::Properties) -> bool {
+        let props = context.props();
+        if props == old_props {
+            return false;
+        }
+
+        if props.scenario != old_props.scenario {
+            self.save_current_code(context, &old_props.scenario, None);
+            self.change_scenario(context, &props.scenario, true);
+            return true;
+        }
+
+        self.run(context, ExecutionMode::Initial);
+
+        true
     }
 }
 
@@ -631,9 +620,7 @@ impl Game {
         }
 
         if context.props().demo && status != Status::Running {
-            context
-                .link()
-                .send_message(Msg::SelectScenario(context.props().scenario.clone()));
+            self.run(context, ExecutionMode::Run);
             return false;
         }
 
@@ -654,7 +641,7 @@ impl Game {
                     };
                     let mut sim_agent = SimAgent::bridge(Rc::new(cb));
                     sim_agent.send(oort_simulation_worker::Request::StartScenario {
-                        scenario_name: self.scenario_name.to_owned(),
+                        scenario_name: context.props().scenario.clone(),
                         seed,
                         codes: codes.clone(),
                         nonce: self.background_nonce,
@@ -738,7 +725,10 @@ impl Game {
             .unwrap();
     }
 
-    fn summarize_background_simulations(&self) -> Option<BackgroundSimSummary> {
+    fn summarize_background_simulations(
+        &self,
+        scenario_name: &str,
+    ) -> Option<BackgroundSimSummary> {
         if self
             .background_snapshots
             .iter()
@@ -801,7 +791,7 @@ impl Game {
             average_time,
             best_seed,
             worst_seed,
-            scenario_name: self.scenario_name.clone(),
+            scenario_name: scenario_name.to_owned(),
         })
     }
 
@@ -815,14 +805,16 @@ impl Game {
         let code_size = crate::code_size::calculate(&source_code);
         let leaderboard_eligible = self.leaderboard_eligible();
 
-        let next_scenario = scenario::load(&self.scenario_name).next_scenario();
+        let next_scenario = scenario::load(&context.props().scenario).next_scenario();
 
         let make_seed_link_cb = |seed: u32| {
+            let link = context.link().clone();
             let navigator = context.link().navigator().unwrap();
-            let scenario_name = self.scenario_name.clone();
+            let scenario_name = context.props().scenario.clone();
             context.link().batch_callback(move |_| {
-                let mut query = std::collections::HashMap::<&str, String>::new();
-                query.insert("seed", seed.to_string());
+                let location = link.location().expect("location");
+                let mut query = query_params(&location);
+                query.seed = Some(seed);
                 navigator
                     .push_with_query(
                         &crate::Route::Scenario {
@@ -831,21 +823,24 @@ impl Game {
                         &query,
                     )
                     .unwrap();
-                vec![Msg::DismissOverlay, Msg::ChangeSeed(Some(seed))]
+                vec![Msg::DismissOverlay]
             })
         };
         let make_seed_link =
             |seed| html! { <a href="#" onclick={make_seed_link_cb(seed)}>{ seed }</a> };
 
-        let background_status = if let Some(summary) = self.summarize_background_simulations() {
+        let background_status = if let Some(summary) =
+            self.summarize_background_simulations(&context.props().scenario)
+        {
             let next_scenario_link = if summary.failed_seeds.is_empty() {
                 match next_scenario {
                     Some(scenario_name) => {
+                        let navigator = context.link().navigator().unwrap();
                         let next_scenario_cb = context.link().batch_callback(move |_| {
-                            vec![
-                                Msg::SelectScenario(scenario_name.clone()),
-                                Msg::DismissOverlay,
-                            ]
+                            navigator.push(&crate::Route::Scenario {
+                                scenario: scenario_name.clone(),
+                            });
+                            vec![Msg::DismissOverlay]
                         });
                         html! { <><br /><a href="#" onclick={next_scenario_cb}>{ "Next mission" }</a></> }
                     }
@@ -880,7 +875,7 @@ impl Game {
                 }
                 _ => html! {},
             };
-            let submit_button = if scenario::load(&self.scenario_name).is_tournament()
+            let submit_button = if scenario::load(&context.props().scenario).is_tournament()
                 && summary.victory_count > 0
             {
                 let cb = context
@@ -935,7 +930,7 @@ impl Game {
                     { next_scenario_link }
                     <br />
                     {
-                        if leaderboard_eligible { html! { <Leaderboard scenario_name={ self.scenario_name.clone() } submission={leaderboard_submission} /> } }
+                        if leaderboard_eligible { html! { <Leaderboard scenario_name={ context.props().scenario.clone() } submission={leaderboard_submission} /> } }
                         else { html! { <p>{ "Leaderboard skipped due to modified opponent code" }</p> } }
                     }
                 </>
@@ -1029,7 +1024,7 @@ impl Game {
         });
     }
 
-    pub fn run(&mut self, _context: &Context<Self>, execution_mode: ExecutionMode) {
+    pub fn run(&mut self, context: &Context<Self>, execution_mode: ExecutionMode) {
         self.compiler_errors = None;
 
         let codes: Vec<_> = self
@@ -1039,16 +1034,20 @@ impl Game {
             .collect();
         let rand_seed = rand::thread_rng().gen();
         let seed = match execution_mode {
-            ExecutionMode::Initial | ExecutionMode::Run => self.param_seed.unwrap_or(rand_seed),
-            ExecutionMode::Replay { .. } => self.param_seed.unwrap_or(self.previous_seed),
+            ExecutionMode::Initial | ExecutionMode::Run => {
+                self.configured_seed(context).unwrap_or(rand_seed)
+            }
+            ExecutionMode::Replay { .. } => self
+                .configured_seed(context)
+                .unwrap_or(self.previous_seed.unwrap_or(rand_seed)),
         };
         let start_paused = matches!(execution_mode, ExecutionMode::Replay { paused: true });
-        self.previous_seed = seed;
+        self.previous_seed = Some(seed);
         self.execution_mode = execution_mode;
 
         if let Some(link) = self.simulation_window_link.as_ref() {
             link.send_message(crate::simulation_window::Msg::StartSimulation {
-                scenario_name: self.scenario_name.clone(),
+                scenario_name: context.props().scenario.clone(),
                 seed,
                 start_paused,
                 codes: codes.to_vec(),
@@ -1062,10 +1061,8 @@ impl Game {
     }
 
     pub fn change_scenario(&mut self, context: &Context<Self>, scenario_name: &str, run: bool) {
-        self.save_current_code(context, None);
-        self.scenario_name = scenario_name.to_string();
-        let codes = crate::codestorage::load(&self.scenario_name);
-        let scenario = oort_simulator::scenario::load(&self.scenario_name);
+        let codes = crate::codestorage::load(&context.props().scenario);
+        let scenario = oort_simulator::scenario::load(&context.props().scenario);
 
         let to_source_code = |code: &Code| match code {
             Code::Builtin(name) => oort_simulator::vm::builtin::load_source(name).unwrap(),
@@ -1075,7 +1072,7 @@ impl Game {
         let mut player_team = Team::new(self.editor_links[0].clone());
         player_team.initial_source_code = to_source_code(&codes[0]);
 
-        if context.props().demo || self.scenario_name == "welcome" {
+        if context.props().demo || context.props().scenario == "welcome" {
             let solution = scenario.solution();
             player_team.initial_source_code = to_source_code(&solution);
             player_team.running_source_code = player_team.initial_source_code.clone();
@@ -1089,7 +1086,7 @@ impl Game {
             }
         }
 
-        if self.scenario_name == "welcome" {
+        if context.props().scenario == "welcome" {
             player_team.initial_source_code = Code::Rust(
                 "\
 // Welcome to Oort.
@@ -1150,18 +1147,23 @@ impl Game {
         !is_encrypted(&self.player_team().running_source_code)
     }
 
-    pub fn save_current_code(&self, context: &Context<Self>, label: Option<String>) {
+    pub fn save_current_code(
+        &self,
+        context: &Context<Self>,
+        scenario_name: &str,
+        label: Option<String>,
+    ) {
         if self.teams.is_empty() {
             return;
         }
-        let scenario_name = self.scenario_name.clone();
         let code = self.player_team().get_editor_code();
         if is_encrypted(&code) {
             return;
         }
 
-        codestorage::save(&scenario_name, &code);
+        codestorage::save(scenario_name, &code);
 
+        let scenario_name = scenario_name.to_string();
         try_send_future(context.link(), async move {
             let code = code_to_string(&code);
             let version_control = oort_version_control::VersionControl::new().await?;
@@ -1175,6 +1177,10 @@ impl Game {
             }
             Ok::<_, oort_version_control::Error>(Msg::RefreshVersions)
         });
+    }
+
+    fn configured_seed(&self, context: &Context<Self>) -> Option<u32> {
+        context.props().seed
     }
 }
 
@@ -1276,17 +1282,6 @@ pub fn str_to_code(s: &str) -> Code {
         Code::None
     } else {
         Code::Rust(s.to_string())
-    }
-}
-
-fn parse_query_params(context: &Context<Game>) -> QueryParams {
-    let location = context.link().location().unwrap();
-    match location.query::<QueryParams>() {
-        Ok(q) => q,
-        Err(e) => {
-            log::info!("Failed to parse query params: {:?}", e);
-            Default::default()
-        }
     }
 }
 
