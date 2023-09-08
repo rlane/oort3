@@ -394,3 +394,15 @@ b.error {
 .display_none {
   display: none;
 }
+
+#seed-window > div {
+  padding: 1rem;
+}
+
+#seed-window input {
+  width: 10em;
+}
+
+#seed-window button {
+  margin-left: 5px;
+}

@@ -5,6 +5,7 @@ use crate::editor_window::EditorWindow;
 use crate::js;
 use crate::leaderboard::Leaderboard;
 use crate::leaderboard_window::LeaderboardWindow;
+use crate::seed_window::SeedWindow;
 use crate::services;
 use crate::simulation_window::SimulationWindow;
 use crate::toolbar::Toolbar;
@@ -46,7 +47,7 @@ pub enum Msg {
     RegisterSimulationWindowLink(Scope<SimulationWindow>),
     Start,
     SelectScenario(String),
-    ChangeSeed(u32),
+    ChangeSeed(Option<u32>),
     SimulationFinished(Snapshot),
     ReceivedBackgroundSimAgentResponse(oort_simulation_worker::Response, u32),
     EditorAction { team: usize, action: String },
@@ -117,7 +118,7 @@ pub struct Team {
     current_compiler_decorations: js_sys::Array,
 }
 
-#[derive(Properties, PartialEq, Eq)]
+#[derive(Properties, PartialEq, Eq, Debug)]
 pub struct Props {
     pub scenario: String,
     #[prop_or_default]
@@ -210,7 +211,7 @@ impl Component for Game {
                 true
             }
             Msg::ChangeSeed(seed) => {
-                self.param_seed = Some(seed);
+                self.param_seed = seed;
                 self.run(context, ExecutionMode::Replay { paused: false });
                 true
             }
@@ -547,6 +548,43 @@ impl Component for Game {
         let load_cb = context.link().callback(Msg::LoadVersion);
         let save_cb = context.link().callback(Msg::SaveVersion);
 
+        // For SeedWindow.
+        let seed_window_host = gloo_utils::document()
+            .get_element_by_id("seed-window")
+            .expect("a #seed-window element");
+        let current_seed = self.param_seed.unwrap_or(self.previous_seed);
+        let change_seed_cb = {
+            let scenario_name = self.scenario_name.clone();
+            let navigator = context.link().navigator().unwrap();
+            context.link().callback(move |seed: Option<u32>| {
+                if let Some(seed) = seed {
+                    let mut query = std::collections::HashMap::<&str, String>::new();
+                    query.insert("seed", seed.to_string());
+                    navigator
+                        .push_with_query(
+                            &crate::Route::Scenario {
+                                scenario: scenario_name.clone(),
+                            },
+                            &query,
+                        )
+                        .unwrap();
+                    Msg::ChangeSeed(Some(seed))
+                } else {
+                    let mut query = std::collections::HashMap::<&str, String>::new();
+                    query.remove("seed");
+                    navigator
+                        .push_with_query(
+                            &crate::Route::Scenario {
+                                scenario: scenario_name.clone(),
+                            },
+                            &query,
+                        )
+                        .unwrap();
+                    Msg::ChangeSeed(None)
+                }
+            })
+        };
+
         html! {
         <>
             <Toolbar scenario_name={self.scenario_name.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
@@ -558,6 +596,7 @@ impl Component for Game {
             <CompilerOutputWindow host={compiler_output_window_host} {compiler_errors} />
             <LeaderboardWindow host={leaderboard_window_host} scenario_name={self.scenario_name.clone()} />
             <VersionsWindow host={versions_window_host} scenario_name={self.scenario_name.clone()} {load_cb} {save_cb} update_timestamp={self.versions_update_timestamp} />
+            <SeedWindow host={seed_window_host} {current_seed} change_cb={change_seed_cb} />
             { self.render_overlay(context) }
         </>
         }
@@ -792,7 +831,7 @@ impl Game {
                         &query,
                     )
                     .unwrap();
-                vec![Msg::DismissOverlay, Msg::ChangeSeed(seed)]
+                vec![Msg::DismissOverlay, Msg::ChangeSeed(Some(seed))]
             })
         };
         let make_seed_link =
