@@ -891,11 +891,15 @@ impl Game {
                 html! {}
             };
             let upload_shortcode_button = {
-                let cb = context.link().callback(move |_| Msg::UploadShortcode);
-                html! {
-                    <>
-                        <button onclick={cb}>{ "Copy shortcode" }</button>
-                    </>
+                if !is_encrypted(&self.player_team().running_source_code) {
+                    let cb = context.link().callback(move |_| Msg::UploadShortcode);
+                    html! {
+                        <>
+                            <button onclick={cb}>{ "Copy shortcode" }</button>
+                        </>
+                    }
+                } else {
+                    html! {}
                 }
             };
             let leaderboard_submission = (leaderboard_eligible && summary.failed_seeds.is_empty())
