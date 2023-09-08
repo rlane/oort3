@@ -179,6 +179,41 @@ impl Class {
     }
 }
 
+/// List of activated abilities for an entity.
+#[repr(transparent)]
+pub struct ActiveAbilities(pub u64);
+
+impl ActiveAbilities {
+    /// Activate an ability.
+    pub fn set_ability(&mut self, ability: Ability) {
+        let mut mask = 0u64;
+        mask ^= (1 as u64) << (ability as u64);
+        self.0 |= mask;
+    }
+    /// Deactivate an ability.
+    pub fn unset_ability(&mut self, ability: Ability) {
+        let mut mask = 1u64;
+        mask ^= (1 as u64) << (ability as u64);
+        self.0 &= mask;
+    }
+    /// Get whether an ability is active.
+    pub fn get_ability(&self, ability: Ability) -> bool {
+        (self.0 & 1 << (ability as u64)) >> (ability as u64) != 0
+    }
+    /// Unset all abilities
+    pub fn clear(&mut self) {
+        self.0 = 0
+    }
+    /// Invert set and unset abilities.
+    pub fn invert(&mut self) {
+        self.0 = !self.0
+    }
+    /// Iterator over active abilities
+    pub fn active_iter(&self) -> impl Iterator<Item = Ability> + core::fmt::Debug + Clone + '_ {
+        ABILITIES.iter().flat_map(|&ability| self.get_ability(ability).then_some(ability))
+    }
+}
+
 /// Special abilities available to different ship classes.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -194,6 +229,16 @@ pub enum Ability {
     /// Cruiser only. Deflects projectiles for 1s. Reloads in 5s.
     Shield,
 }
+/// Number of ability types.
+pub const ABILITY_NUM: usize = 5;
+/// Array of all ability types.
+pub const ABILITIES: [Ability; ABILITY_NUM] = [
+    Ability::None,
+    Ability::Boost,
+    Ability::ShapedCharge,
+    Ability::Decoy,
+    Ability::Shield,
+];
 
 /// Electronic Counter Measures (ECM) modes.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -356,7 +401,7 @@ mod api {
     use super::sys::{read_system_state, write_system_state};
     use super::{Ability, Class, EcmMode, SystemState};
     use crate::sys::{read_system_state_u64, write_system_state_u64};
-    use crate::{vec::*, Message};
+    use crate::{vec::*, Message, ActiveAbilities};
 
     /// The time between each simulation tick.
     pub const TICK_LENGTH: f64 = 1.0 / 60.0;
@@ -773,7 +818,16 @@ mod api {
 
     /// Activates a special ability.
     pub fn activate_ability(ability: Ability) {
-        write_system_state(SystemState::ActivateAbility, ability as u32 as f64);
+        let mut active_abilities = ActiveAbilities(read_system_state_u64(SystemState::ActivateAbility));
+        active_abilities.set_ability(ability);
+        write_system_state_u64(SystemState::ActivateAbility, active_abilities.0);
+    }
+
+    /// Deactivates a special ability.
+    pub fn deactivate_ability(ability: Ability) {
+        let mut active_abilities = ActiveAbilities(read_system_state_u64(SystemState::ActivateAbility));
+        active_abilities.unset_ability(ability);
+        write_system_state_u64(SystemState::ActivateAbility, active_abilities.0);
     }
 
     /// Returns the position of the target set by the scenario.
