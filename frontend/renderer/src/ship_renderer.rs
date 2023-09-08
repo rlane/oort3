@@ -156,9 +156,6 @@ void main() {
                             .clamp(0.0, 1.0)
                             .powi(4)
                             .clamp(0.0, 0.5);
-                        if team_color.w < 0.05 {
-                            continue;
-                        }
                     }
                     let color = if shielded {
                         let frac = (snapshot.time as f32 * 30.0).sin() * 0.2 + 0.5;
