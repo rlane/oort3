@@ -1,3 +1,6 @@
+- Fixed a rendering bug with NLIPS.
+- Removed the FPS display when paused, since the game enters power-save mode.
+
 ### 0.61.0 - 2023-09-07
 
 - Added an NLIPS rendering mode toggled with 'v' that makes ships more visible when zoomed out.
