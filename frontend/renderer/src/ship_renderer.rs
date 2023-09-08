@@ -130,10 +130,11 @@ void main() {
                 .unwrap()
                 .norm();
             let nlips_scale = 2.0 * zoom_factor / radius.log2();
+            let min_nlips_scale = 4.0f32.max(radius / 20.0);
             for nlips_draw in [false, true] {
                 if nlips_draw
                     && (!nlips_enabled
-                        || (radius / nlips_scale > 20.0 || nlips_scale < 4.0)
+                        || nlips_scale < min_nlips_scale
                         || matches!(class, ShipClass::Asteroid { .. }))
                 {
                     continue;
@@ -151,7 +152,7 @@ void main() {
                     let shielded = ship.active_abilities.contains(&oort_api::Ability::Shield);
                     let mut team_color = Self::team_color(ship.team);
                     if nlips_draw {
-                        team_color.w *= 0.5;
+                        team_color.w *= (nlips_scale / min_nlips_scale - 1.0).clamp(0.0, 0.5);
                     }
                     let color = if shielded {
                         let frac = (snapshot.time as f32 * 30.0).sin() * 0.2 + 0.5;
