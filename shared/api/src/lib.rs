@@ -830,6 +830,11 @@ mod api {
         write_system_state_u64(SystemState::ActivateAbility, active_abilities.0);
     }
 
+    /// Get a copy of the active abilities. Useful for querying which abilities are currently active.
+    pub fn active_abilities() -> ActiveAbilities {
+        ActiveAbilities(read_system_state_u64(SystemState::ActivateAbility))
+    }
+
     /// Returns the position of the target set by the scenario.
     /// Only used in tutorials.
     pub fn target() -> Vec2 {
