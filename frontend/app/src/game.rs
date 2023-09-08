@@ -522,6 +522,18 @@ impl Component for Game {
         let leaderboard_window_host = gloo_utils::document()
             .get_element_by_id("leaderboard-window")
             .expect("a #leaderboard-window element");
+        let play_cb = context.link().batch_callback(|encrypted_code: String| {
+            vec![
+                Msg::ReplaceCode {
+                    team: 0,
+                    text: encrypted_code,
+                },
+                Msg::EditorAction {
+                    team: 0,
+                    action: "oort-execute".to_string(),
+                },
+            ]
+        });
 
         // For VersionsWindow.
         let versions_window_host = gloo_utils::document()
@@ -566,7 +578,7 @@ impl Component for Game {
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} canvas_ref={self.simulation_canvas_ref.clone()} />
             <Documentation host={documentation_window_host} {show_feedback_cb} />
             <CompilerOutputWindow host={compiler_output_window_host} {compiler_errors} />
-            <LeaderboardWindow host={leaderboard_window_host} scenario_name={context.props().scenario.clone()} />
+            <LeaderboardWindow host={leaderboard_window_host} scenario_name={context.props().scenario.clone()} {play_cb} />
             <VersionsWindow host={versions_window_host} scenario_name={context.props().scenario.clone()} {load_cb} {save_cb} update_timestamp={self.versions_update_timestamp} />
             <SeedWindow host={seed_window_host} {current_seed} change_cb={change_seed_cb} />
             { self.render_overlay(context) }
@@ -902,6 +914,19 @@ impl Game {
                     html! {}
                 }
             };
+            let play_cb = context.link().batch_callback(|encrypted_code: String| {
+                vec![
+                    Msg::ReplaceCode {
+                        team: 0,
+                        text: encrypted_code,
+                    },
+                    Msg::EditorAction {
+                        team: 0,
+                        action: "oort-execute".to_string(),
+                    },
+                    Msg::DismissOverlay,
+                ]
+            });
             let leaderboard_submission = (leaderboard_eligible && summary.failed_seeds.is_empty())
                 .then(|| LeaderboardSubmission {
                     userid: userid::get_userid(),
@@ -934,7 +959,7 @@ impl Game {
                     { next_scenario_link }
                     <br />
                     {
-                        if leaderboard_eligible { html! { <Leaderboard scenario_name={ context.props().scenario.clone() } submission={leaderboard_submission} /> } }
+                        if leaderboard_eligible { html! { <Leaderboard scenario_name={ context.props().scenario.clone() } submission={leaderboard_submission} {play_cb} /> } }
                         else { html! { <p>{ "Leaderboard skipped due to modified opponent code" }</p> } }
                     }
                 </>

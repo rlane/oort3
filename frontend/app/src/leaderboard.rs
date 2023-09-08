@@ -10,10 +10,11 @@ pub enum Msg {
     ReceiveResponse(Result<LeaderboardData, anyhow::Error>),
 }
 
-#[derive(Properties, Clone, PartialEq, Eq)]
+#[derive(Properties, Clone, PartialEq)]
 pub struct LeaderboardProps {
     pub scenario_name: String,
     pub submission: Option<LeaderboardSubmission>,
+    pub play_cb: Callback<String>,
 }
 
 pub struct Leaderboard {
@@ -67,7 +68,7 @@ impl Component for Leaderboard {
         }
     }
 
-    fn view(&self, _context: &yew::Context<Self>) -> Html {
+    fn view(&self, context: &yew::Context<Self>) -> Html {
         if let Some(ref error) = self.error {
             html! { <p>{ error.clone() }</p> }
         } else if self.fetching {
@@ -82,11 +83,18 @@ impl Component for Leaderboard {
                         crate::js::clipboard::write(&text);
                     }
                 };
+                let play_cb = {
+                    let text = row.encrypted_code.clone();
+                    context.props().play_cb.reform(move |_| text.clone())
+                };
                 html! {
                     <tr class={classes!(class)}>
                         <td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td>
                         <td>{ &row.time }</td>
-                        <td><a class="material-symbols-outlined" onclick={copy_encrypted_code_cb}>{ "content_copy" }</a></td>
+                        <td>
+                            <a class="material-symbols-outlined" onclick={copy_encrypted_code_cb}>{ "content_copy" }</a>
+                            <a class="material-symbols-outlined" onclick={play_cb}>{ "play_arrow" }</a>
+                        </td>
                     </tr>
                 }
             };
