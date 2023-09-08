@@ -62,6 +62,8 @@ impl Component for SeedWindow {
             html! {
                 <div>
                     <h1>{ "Seed" }</h1>
+                    <p>{ "The random number seed determines the initial state of the simulation and all subsequent random number generation." }</p>
+                    <p>{ "Seeds 0 through 9 are used in the \"Mission Complete\" screen to get an average time. Seeds 0 through 99 are used in the tournament." }</p>
                     <form >
                         <input type="text" ref={input_ref} value={context.props().current_seed.to_string()} />
                         <button type="submit" onclick={change_seed_cb}>{ "Submit" }</button>
