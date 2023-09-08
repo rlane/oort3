@@ -108,8 +108,8 @@ impl Renderer {
 
         let pixel_size = (self.unproject(1, 0) - self.unproject(0, 0)).x as f32;
         let zoom_factor = 2e-3 / zoom;
-        self.base_line_width =
-            (zoom_factor - 0.01 * zoom_factor * zoom_factor).clamp(pixel_size, 3.0 * pixel_size);
+        self.base_line_width = (zoom_factor - 0.01 * zoom_factor * zoom_factor)
+            .clamp(pixel_size * 2.0, 3.0 * pixel_size);
     }
 
     pub fn set_debug(&mut self, debug: bool) {
