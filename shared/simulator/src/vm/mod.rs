@@ -535,10 +535,8 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         let requested = active_abilities.get_ability(ability);
         if requested != current {
             if requested {
-                log::info!("activating ability {ability:?}");
                 sim.ship_mut(handle).activate_ability(ability);
             } else {
-                log::info!("deactivating ability {ability:?}");
                 sim.ship_mut(handle).deactivate_ability(ability);
             }
         }
