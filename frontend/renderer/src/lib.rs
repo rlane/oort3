@@ -89,7 +89,7 @@ impl Renderer {
             debug: false,
             picked_ship: None,
             blur_enabled: true,
-            nlips_enabled: true,
+            nlips_enabled: false,
         })
     }
 
