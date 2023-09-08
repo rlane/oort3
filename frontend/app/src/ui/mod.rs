@@ -252,7 +252,9 @@ impl UI {
         }
 
         if self.frame % 10 == 0 || self.paused || self.status != Status::Running {
-            status_msgs.push(format!("{:.0} fps", self.fps.fps()));
+            if self.status == Status::Running {
+                status_msgs.push(format!("{:.0} fps", self.fps.fps()));
+            }
             if self.debug {
                 let (a, b, c) = self.frame_timer.get_latency();
                 status_msgs.push(format!("UI {a:.1}/{b:.1}/{c:.1} ms",));
