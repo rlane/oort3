@@ -1,3 +1,5 @@
+### 0.61.1 - 2023-09-08
+
 - Fixed a rendering bug with NLIPS.
 - Removed the FPS display when paused, since the game enters power-save mode.
 
