@@ -1,10 +1,10 @@
 #!/bin/bash -eux
-cargo check -q --lib --bins --benches --tests
-cargo clippy -q -- -Dwarnings
+nice cargo check -q --lib --bins --benches --tests
+nice cargo clippy -q -- -Dwarnings
 
-cargo check -q --manifest-path frontend/Cargo.toml --target wasm32-unknown-unknown
-cargo clippy -q --manifest-path frontend/Cargo.toml --target wasm32-unknown-unknown -- -Dwarnings
+nice cargo check -q --manifest-path frontend/Cargo.toml --target wasm32-unknown-unknown
+nice cargo clippy -q --manifest-path frontend/Cargo.toml --target wasm32-unknown-unknown -- -Dwarnings
 
 if ! git diff --cached --quiet --diff-filter=ACM -- shared/simulator; then
-  cargo test -q -p oort_simulator
+  nice cargo test -q -p oort_simulator
 fi
