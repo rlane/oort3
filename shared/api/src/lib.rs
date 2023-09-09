@@ -225,7 +225,8 @@ pub enum Ability {
     None,
     /// Fighter and missile only. Applies a 100 m/s² forward acceleration for 2s. Reloads in 10s.
     Boost,
-    /// Missile only. `explode()` will create a jet of shrapnel instead of a circle.
+    /// Deprecated
+    #[doc(hidden)]
     ShapedCharge,
     /// Torpedo only. Mimics the radar signature of a Cruiser for 0.5s. Reloads in 10s.
     Decoy,
@@ -234,12 +235,7 @@ pub enum Ability {
 }
 
 /// Array of all ability types.
-pub const ABILITIES: &[Ability] = &[
-    Ability::Boost,
-    Ability::ShapedCharge,
-    Ability::Decoy,
-    Ability::Shield,
-];
+pub const ABILITIES: &[Ability] = &[Ability::Boost, Ability::Decoy, Ability::Shield];
 
 /// Electronic Counter Measures (ECM) modes.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]

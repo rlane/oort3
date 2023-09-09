@@ -450,24 +450,16 @@ pub fn missile(team: i32) -> ShipData {
         radios: vec![radio()],
         ttl: Some(60 * 60),
         fuel: Some(2000.0),
-        abilities: vec![
-            ShipAbility {
-                ability: Ability::ShapedCharge,
-                active_time: 1e6,
-                reload_time: 0.0,
-                ..Default::default()
-            },
-            ShipAbility {
-                ability: Ability::Boost,
-                active_time: 2.0,
-                reload_time: 10.0,
-                ..Default::default()
-            },
-        ],
+        abilities: vec![ShipAbility {
+            ability: Ability::Boost,
+            active_time: 2.0,
+            reload_time: 10.0,
+            ..Default::default()
+        }],
         warhead: Warhead {
             count: 20,
             mass: 0.25,
-            width: TAU,
+            width: 0.5,
             speed: 1e3,
             ttl: (PHYSICS_TICK_LENGTH * 5.0) as f32,
         },
@@ -833,12 +825,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let mut rng = new_rng(0);
         for _ in 0..warhead.count {
             let color = vector![rng.gen_range(0.7..1.0), 0.5, 0.5, rng.gen_range(0.5..1.0)];
-            let h = if self.readonly().is_ability_active(Ability::ShapedCharge) {
-                0.1
-            } else {
-                warhead.width
-            };
-            let rot = self.body().rotation() * Rotation2::new(rng.gen_range((-h / 2.0)..(h / 2.0)));
+            let rot = self.body().rotation()
+                * Rotation2::new(rng.gen_range((-warhead.width / 2.0)..(warhead.width / 2.0)));
             let speed = warhead.speed * 2.0 * rng.gen_range(0.0..1.0);
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
