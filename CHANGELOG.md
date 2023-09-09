@@ -1,4 +1,5 @@
 - Revamped ability API to allow multiple abilities and deactivation (by @Easyoakland)
+- Added active abilities to picked ship stats.
 - Added a play button to leaderboard rows.
 
 ### 0.62.0 - 2023-09-08
