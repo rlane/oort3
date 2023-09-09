@@ -458,10 +458,10 @@ pub fn missile(team: i32) -> ShipData {
         }],
         warhead: Warhead {
             count: 20,
-            mass: 0.25,
-            width: 0.5,
+            mass: 0.05,
+            width: 0.4,
             speed: 1e3,
-            ttl: (PHYSICS_TICK_LENGTH * 5.0) as f32,
+            ttl: 0.2,
         },
         ..Default::default()
     }
@@ -497,7 +497,7 @@ pub fn torpedo(team: i32) -> ShipData {
             mass: 0.25,
             width: 0.5,
             speed: 1e3,
-            ttl: (PHYSICS_TICK_LENGTH * 5.0) as f32,
+            ttl: 0.2,
         },
         ..Default::default()
     }
@@ -845,7 +845,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 position: p + offset,
                 velocity: v,
                 color,
-                lifetime: warhead.ttl * 4.0,
+                lifetime: warhead.ttl,
             });
         }
     }
