@@ -98,6 +98,15 @@ pub struct ShipAbility {
 }
 
 #[derive(Debug, Clone)]
+pub struct Warhead {
+    pub count: i32,
+    pub mass: f32,
+    pub width: f64,
+    pub speed: f64,
+    pub ttl: f32,
+}
+
+#[derive(Debug, Clone)]
 pub struct ShipData {
     pub class: ShipClass,
     pub team: i32,
@@ -120,6 +129,7 @@ pub struct ShipData {
     pub radios: Vec<Radio>,
     pub abilities: Vec<ShipAbility>,
     pub target: Option<Box<Target>>,
+    pub warhead: Warhead,
 }
 
 #[derive(Debug, Clone)]
@@ -152,6 +162,7 @@ impl Default for ShipData {
             radios: vec![],
             abilities: vec![],
             target: None,
+            warhead: Default::default(),
         }
     }
 }
@@ -186,6 +197,18 @@ impl Default for ShipAbility {
             reload_time: 0.0,
             active_time_remaining: 0.0,
             reload_time_remaining: 0.0,
+        }
+    }
+}
+
+impl Default for Warhead {
+    fn default() -> Self {
+        Self {
+            count: 20,
+            mass: 0.2,
+            width: TAU,
+            speed: 1e3,
+            ttl: (PHYSICS_TICK_LENGTH * 5.0) as f32,
         }
     }
 }
@@ -441,6 +464,13 @@ pub fn missile(team: i32) -> ShipData {
                 ..Default::default()
             },
         ],
+        warhead: Warhead {
+            count: 20,
+            mass: 0.25,
+            width: TAU,
+            speed: 1e3,
+            ttl: (PHYSICS_TICK_LENGTH * 5.0) as f32,
+        },
         ..Default::default()
     }
 }
@@ -470,6 +500,13 @@ pub fn torpedo(team: i32) -> ShipData {
             reload_time: 10.0,
             ..Default::default()
         }],
+        warhead: Warhead {
+            count: 50,
+            mass: 0.25,
+            width: 0.5,
+            speed: 1e3,
+            ttl: (PHYSICS_TICK_LENGTH * 5.0) as f32,
+        },
         ..Default::default()
     }
 }
@@ -789,28 +826,20 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
         self.data_mut().destroyed = true;
 
-        let (mass, num) = match self.data().class {
-            ShipClass::Missile => (0.25, 20),
-            ShipClass::Torpedo => (0.25, 50),
-            _ => (0.2, 20),
-        };
-
+        let warhead = self.data().warhead.clone();
         let team = self.data().team;
         let p =
             self.body().position().translation.vector - self.body().linvel() * PHYSICS_TICK_LENGTH;
-        let ttl = (PHYSICS_TICK_LENGTH * 5.0) as f32;
-        let h = if self.readonly().is_ability_active(Ability::ShapedCharge) {
-            0.1
-        } else if self.data().class == ShipClass::Torpedo {
-            0.5
-        } else {
-            TAU
-        };
         let mut rng = new_rng(0);
-        for _ in 0..num {
+        for _ in 0..warhead.count {
             let color = vector![rng.gen_range(0.7..1.0), 0.5, 0.5, rng.gen_range(0.5..1.0)];
+            let h = if self.readonly().is_ability_active(Ability::ShapedCharge) {
+                0.1
+            } else {
+                warhead.width
+            };
             let rot = self.body().rotation() * Rotation2::new(rng.gen_range((-h / 2.0)..(h / 2.0)));
-            let speed = 2000.0 * rng.gen_range(0.0..1.0);
+            let speed = warhead.speed * 2.0 * rng.gen_range(0.0..1.0);
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
             let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
             bullet::create(
@@ -818,17 +847,17 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 p + offset,
                 v,
                 BulletData {
-                    mass,
+                    mass: warhead.mass,
                     team,
                     color: color::to_u32(color),
-                    ttl,
+                    ttl: warhead.ttl,
                 },
             );
             self.simulation.events.particles.push(Particle {
                 position: p + offset,
                 velocity: v,
                 color,
-                lifetime: ttl * 4.0,
+                lifetime: warhead.ttl * 4.0,
             });
         }
     }
