@@ -518,6 +518,7 @@ impl UI {
                 team,
                 health,
                 fuel,
+                active_abilities,
                 ..
             } = ship;
             let debug_text = self
@@ -532,8 +533,20 @@ impl UI {
                 } else {
                     "".to_string()
                 };
+                let active_abilities_text = if !active_abilities.is_empty() {
+                    format!(
+                        "Active abilities: {}\n",
+                        active_abilities
+                            .iter()
+                            .map(|ability| format!("{:?}", ability))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                } else {
+                    "".to_string()
+                };
                 elem.set_text_content(Some(&format!(
-                    "{class:?}\nTeam: {team:?}\nHealth: {health:.0}\n{fuel_text}{debug_text}"
+                    "{class:?}\nTeam: {team:?}\nHealth: {health:.0}\n{fuel_text}{active_abilities_text}{debug_text}"
                 )));
             }
         } else if let Some(elem) = self.picked_ref.cast::<Element>() {
