@@ -618,9 +618,9 @@ impl ExtendedExitStatus for ExitStatus {
 
 fn cmd_argv(argv: &[&str]) -> Command {
     PROGRESS.suspend(|| log::info!("Executing {:?}", shell_words::join(argv)));
-    let mut cmd = Command::new(argv[0]);
+    let mut cmd = Command::new("nice");
     cmd.kill_on_drop(true);
-    cmd.args(&argv[1..]);
+    cmd.args(argv);
     cmd
 }
 

@@ -104,8 +104,8 @@ fn main() -> Result<()> {
 
 fn cmd(argv: &[&str]) -> Command {
     log::info!("Executing {:?}", shell_words::join(argv));
-    let mut cmd = Command::new(argv[0]);
-    let args: Vec<_> = argv[1..].iter().filter(|x| !x.is_empty()).collect();
+    let mut cmd = Command::new("nice");
+    let args: Vec<_> = argv.iter().filter(|x| !x.is_empty()).collect();
     cmd.args(&args);
     cmd
 }
