@@ -332,7 +332,7 @@ impl Component for Game {
                 self.background_agents.clear();
                 self.background_snapshots.clear();
                 self.background_nonce = 0;
-                self.focus_editor();
+                self.focus_editor(0);
                 true
             }
             Msg::CompileFinished(results, execution_mode) => {
@@ -342,6 +342,7 @@ impl Component for Game {
                 if self.compilation_cache.len() > 10 {
                     self.compilation_cache.clear();
                 }
+                let mut teams_with_errors = vec![];
                 for (team, result) in results.iter().enumerate() {
                     match result {
                         Ok(code) => {
@@ -354,6 +355,7 @@ impl Component for Game {
                             self.team_mut(team)
                                 .display_compiler_errors(&make_editor_errors(error));
                             self.team_mut(team).running_compiled_code = Code::None;
+                            teams_with_errors.push(team);
                         }
                     }
                 }
@@ -371,7 +373,7 @@ impl Component for Game {
                     self.focus_simulation();
                 } else {
                     self.compiler_errors = Some(errors.join("\n"));
-                    self.focus_editor();
+                    self.focus_editor(teams_with_errors[0]);
                     js::golden_layout::select_tab("compiler_output");
                 }
                 true
@@ -386,7 +388,7 @@ impl Component for Game {
             }
             Msg::LoadVersion(id) => {
                 self.save_current_code(context, &context.props().scenario, None);
-                self.focus_editor();
+                self.focus_editor(0);
                 try_send_future(context.link(), async move {
                     let version_control = oort_version_control::VersionControl::new().await?;
                     let version = version_control.get_version(&id).await?;
@@ -590,7 +592,7 @@ impl Component for Game {
         if self.overlay.is_some() {
             self.focus_overlay();
         } else if first_render && context.props().scenario != "welcome" {
-            self.focus_editor();
+            self.focus_editor(0);
         }
     }
 
@@ -713,10 +715,16 @@ impl Game {
         }
     }
 
-    fn focus_editor(&self) {
-        let link = self.editor_links[0].clone();
+    fn focus_editor(&self, team: usize) {
+        assert!(team < 2);
+        let tab = if team == 0 {
+            "editor.player"
+        } else {
+            "editor.opponent"
+        };
+        let link = self.editor_links[team].clone();
         let cb = Closure::once_into_js(move || {
-            js::golden_layout::select_tab("editor.player");
+            js::golden_layout::select_tab(tab);
             link.with_editor(|editor| editor.as_ref().focus());
         });
         gloo_utils::window()
