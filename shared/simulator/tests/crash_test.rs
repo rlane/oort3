@@ -25,7 +25,7 @@ fn test_panic() {
     testing_logger::validate(|captured_logs| {
         assert_eq!(captured_logs.len(), 1);
         assert_eq!(captured_logs[0].level, log::Level::Warn);
-        assert_eq!(captured_logs[0].body, "Ship panicked and was destroyed");
+        assert_eq!(&captured_logs[0].body[0..18], "Ship runtime error");
     });
 }
 

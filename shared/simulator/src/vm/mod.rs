@@ -159,11 +159,6 @@ impl TeamController {
                     }
                 }
             }
-            if e.message().contains("unreachable") {
-                return Err(Error {
-                    msg: "Ship panicked and was destroyed".to_string(),
-                });
-            }
             return translate_runtime_error(Err(e));
         }
 
@@ -608,7 +603,7 @@ fn translate_runtime_error<T>(err: Result<T, wasmer::RuntimeError>) -> Result<T,
     match err {
         Ok(val) => Ok(val),
         Err(err) => Err(Error {
-            msg: format!("Ship runtime error: {err}"),
+            msg: format!("Ship runtime error: {err:?}"),
         }),
     }
 }
