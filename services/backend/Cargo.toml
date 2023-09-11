@@ -9,18 +9,18 @@ oort_envelope = { path = "../../shared/envelope" }
 oort_code_encryption = { path = "../../shared/code_encryption" }
 oort_proto = { path = "../../shared/proto" }
 anyhow = "1.0"
-chrono = "0.4.28"
-firestore = "0.35.1"
+chrono = "0.4.30"
+firestore = "0.35.2"
 gcloud-sdk = "0.20.7"
 log = "0.4.20"
 rand = "0.8.5"
 regex = "1.9.5"
 reqwest = { version = "0.11.20", default-features=false, features = ["json", "rustls-tls"] }
-serde_json = "1.0.105"
+serde_json = "1.0.106"
 stackdriver_logger = "0.8.2"
 tokio = { version = "1.32", features = ["macros", "rt-multi-thread", "process"] }
 axum = "0.6.20"
 tower-http = { version = "0.4.4", features = ["cors", "trace"] }
 http = "0.2.9"
 tracing-subscriber = "0.3.17"
-bytes = "1.4.0"
+bytes = "1.5.0"
