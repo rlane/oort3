@@ -891,7 +891,6 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 if fuel < fuel_consumption {
                     acceleration *= fuel / fuel_consumption;
                     self.data_mut().fuel = Some(0.0);
-                    self.explode();
                 } else {
                     self.data_mut().fuel = Some(fuel - fuel_consumption);
                 }
