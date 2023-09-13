@@ -29,7 +29,7 @@ wasmer = { version = "4.1.0", default-features = false }
 tar = "0.4.40"
 libflate = "2.0.0"
 walrus = { version = "0.19.0", git = "https://github.com/scrtlabs/walrus", rev = "c5777d4" }
-bytes = { version = "1.4.0", features = ["serde"] }
+bytes = { version = "1.5.0", features = ["serde"] }
 static_aabb2d_index = { version = "2.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
 wide = "0.7.11"
@@ -48,7 +48,7 @@ rayon = "1.7.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 test-log = "0.2.12"
 env_logger = "0.10.0"
-serde_json = "1.0.105"
+serde_json = "1.0.106"
 approx = "0.5.1"
 wabt = "0.10.0"
 testing_logger = "0.1.1"

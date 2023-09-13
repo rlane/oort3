@@ -9,4 +9,4 @@ build = "build.rs"
 crate-type = ["cdylib", "rlib"]
 
 [build-dependencies]
-built = { version = "0.6", features = ["git2", "chrono", "semver"] }
+built = { version = "0.7", features = ["git2", "chrono", "semver"] }
