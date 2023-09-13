@@ -25,7 +25,7 @@ rapier2d-f64 = { version = "0.17.2", features = ["wasm-bindgen"] }
 serde = { version = "1.0.188", features = ["derive"] }
 instant = "0.1.12"
 oort_api = { path = "../api", features = ["serde"] }
-wasmer = { version = "4.1.0", default-features = false }
+wasmer = { version = "4.2.0", default-features = false }
 tar = "0.4.40"
 libflate = "2.0.0"
 walrus = { version = "0.19.0", git = "https://github.com/scrtlabs/walrus", rev = "c5777d4" }
@@ -35,7 +35,7 @@ bitvec = "1.0.1"
 wide = "0.7.11"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-wasmer-compiler-singlepass = { version = "4.1.0" }
+wasmer-compiler-singlepass = { version = "4.2.0" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.64"
