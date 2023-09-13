@@ -2142,9 +2142,9 @@ checksum = "67827e6ea8ee8a7c4a72227ef4fc08957040acffdb5f122733b24fa12daff41b"
 
 [[package]]
 name = "maths-rs"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5565d3570e34f3305788e6a50eb255d45972ff5878d9acc8e1bc4f7e5eba63df"
+checksum = "e71d151f69516b0b9f474ae6f6ab526f92dd73d7735090f3c823ab483d518840"
 
 [[package]]
 name = "matrixmultiply"

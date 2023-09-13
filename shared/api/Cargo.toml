@@ -11,4 +11,4 @@ repository = "https://github.com/rlane/oort3"
 oorandom = "11.1.3"
 serde = { version = "1.0", optional = true }
 byteorder = "1.4.3"
-maths-rs = "0.2.4"
+maths-rs = "0.2.5"
