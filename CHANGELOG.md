@@ -1,3 +1,7 @@
+- Changed missiles to not explode when running out of fuel.
+- Deprecated the ShapedCharge ability and effectively made it the default.
+- Increased range of missile and torpedo explosions.
+
 ### 0.63.0 - 2023-09-08
 
 - Revamped ability API to allow multiple abilities and deactivation (by @Easyoakland)
