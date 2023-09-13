@@ -13,16 +13,17 @@ impl Ship {
 
     pub fn tick(&mut self) {
         if class() == Class::Missile {
-            if let Some(contact) = scan() {
+            if let Some(contact) = scan().filter(|x| x.class == Class::Fighter) {
                 seek(contact.position, contact.velocity);
 
                 let dp = contact.position - position();
                 let dv = contact.velocity - velocity();
+
                 if dp.length().min((dp + dv * TICK_LENGTH).length()) < 25.0 {
                     explode();
                 }
 
-                set_radar_heading((contact.position - position()).angle());
+                set_radar_heading((dp + dv * TICK_LENGTH).angle());
                 set_radar_width(TAU / 360.0);
             } else if let Some(msg) = receive() {
                 let target_position = vec2(msg[0], msg[1]);
@@ -35,7 +36,7 @@ impl Ship {
                 set_radar_width(TAU / 4.0);
             }
         } else {
-            if let Some(contact) = scan() {
+            if let Some(contact) = scan().filter(|x| x.class == Class::Fighter) {
                 fire(1);
                 send([
                     contact.position.x,
