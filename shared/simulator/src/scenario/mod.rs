@@ -207,7 +207,6 @@ pub fn list() -> Vec<(String, Vec<String>)> {
         (
             "Tournament",
             vec![
-                "primitive_duel",
                 "fighter_duel",
                 "frigate_duel",
                 "cruiser_duel",
