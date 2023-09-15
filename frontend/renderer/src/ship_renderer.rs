@@ -130,7 +130,7 @@ void main() {
                 .unwrap()
                 .norm();
             let min_nlips_scale = 4.0f32.max(radius / 20.0);
-            let nlips_scale = (2.0 * zoom_factor / radius.log2()).min(30.0);
+            let nlips_scale = (2.0 * zoom_factor / radius.log2()).min(50.0);
             for nlips_draw in [false, true] {
                 if nlips_draw
                     && (!nlips_enabled
