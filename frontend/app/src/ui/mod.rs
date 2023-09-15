@@ -16,7 +16,7 @@ use yew::NodeRef;
 const ZOOM_SPEED: f32 = 0.02;
 const MIN_ZOOM: f32 = 5e-6;
 const MAX_ZOOM: f32 = 5e-3;
-const INITIAL_ZOOM: f32 = 5e-3;
+const INITIAL_ZOOM: f32 = 1e-3;
 const SNAPSHOT_PRELOAD: usize = 5;
 const MAX_SNAPSHOT_REQUESTS_IN_FLIGHT: usize = 10;
 
@@ -332,22 +332,24 @@ impl UI {
 
             if first_snapshot {
                 // Zoom out to show all ships.
-                let maxdist = snapshot
+                let mut points = snapshot
                     .ships
                     .iter()
-                    .map(|ship| nalgebra::distance(&ship.position, &point![0.0, 0.0]))
-                    .fold(0.0, |a, b| if a > b { a } else { b });
-                let maxdist = maxdist.max(
+                    .map(|ship| ship.position)
+                    .collect::<Vec<_>>();
+                points.extend(
                     snapshot
                         .scenario_lines
                         .iter()
-                        .flat_map(|line| [line.a, line.b])
-                        .map(|p| nalgebra::distance(&p, &point![0.0, 0.0]))
-                        .fold(0.0, |a, b| if a > b { a } else { b }),
+                        .flat_map(|line| [line.a, line.b]),
                 );
-                let cornerdist =
-                    nalgebra::distance(&point![0.0, 0.0], &self.renderer.unproject(0, 0));
-                self.zoom = (self.zoom * cornerdist as f32 / (2.0 * maxdist as f32))
+                let max_dim = points
+                    .iter()
+                    .map(|p| p.x.abs().max(p.y.abs()))
+                    .fold(0.0, |a: f64, b| a.max(b));
+                let top_left = self.renderer.unproject(0, 0);
+                let view_dim = top_left.x.abs().max(top_left.y.abs());
+                self.zoom = (0.8 * self.zoom * view_dim as f32 / max_dim as f32)
                     .clamp(MIN_ZOOM, INITIAL_ZOOM);
 
                 // Pick player ship if there's only one.
