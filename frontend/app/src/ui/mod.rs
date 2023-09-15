@@ -1,5 +1,6 @@
 pub mod fps;
 pub mod frame_timer;
+pub mod setting;
 
 use log::{debug, info};
 use nalgebra::{point, vector, Point2};
@@ -85,6 +86,11 @@ impl UI {
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_ignored = std::collections::HashSet::<String>::new();
 
+        let debug = setting::read("debug", false);
+        renderer.set_debug(debug);
+        renderer.set_blur(setting::read("blur", true));
+        renderer.set_nlips(setting::read("nlips", false));
+
         UI {
             version,
             seed,
@@ -106,7 +112,7 @@ impl UI {
             last_render_time: instant::Instant::now(),
             physics_time: std::time::Duration::ZERO,
             fps: fps::FPS::new(),
-            debug: false,
+            debug,
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
             nonce,
@@ -172,6 +178,7 @@ impl UI {
             self.keys_ignored.insert("g".to_string());
             self.debug = !self.debug;
             self.renderer.set_debug(self.debug);
+            setting::write("debug", &self.debug);
         }
         if self.keys_down.contains("q") {
             self.set_status_message("EXITED");
@@ -181,10 +188,12 @@ impl UI {
         if self.keys_down.contains("b") && !self.keys_ignored.contains("b") {
             self.keys_ignored.insert("b".to_string());
             self.renderer.set_blur(!self.renderer.get_blur());
+            setting::write("blur", &self.renderer.get_blur());
         }
         if self.keys_down.contains("v") && !self.keys_ignored.contains("v") {
             self.keys_ignored.insert("v".to_string());
             self.renderer.set_nlips(!self.renderer.get_nlips());
+            setting::write("nlips", &self.renderer.get_nlips());
         }
 
         if !self.paused {
