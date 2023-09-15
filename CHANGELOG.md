@@ -1,3 +1,5 @@
+### 0.64.1 - 2023-09-14
+
 - Panic messages from ships are now logged to the JS console.
 
 ### 0.64.0 - 2023-09-12
