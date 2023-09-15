@@ -1,3 +1,9 @@
+- Made toggles for blur/nlips/debug persistent.
+- Increased max NLIPS ghost size.
+- Improved initial zoom calculation to more precisely fit ships on screen.
+- Removed primitive_duel from the scenario list.
+- Removed the heading debug line.
+
 ### 0.64.1 - 2023-09-14
 
 - Panic messages from ships are now logged to the JS console.
