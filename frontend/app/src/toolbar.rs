@@ -84,6 +84,7 @@ impl Component for Toolbar {
             let input_box: web_sys::HtmlInputElement = event.target().unwrap().dyn_into().unwrap();
             Msg::ChangeUsername(input_box.value())
         });
+        let discord_cb = Callback::from(|_| crate::gtag::discord());
 
         create_portal(
             html! {
@@ -99,7 +100,7 @@ impl Component for Toolbar {
                     <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3/wiki" target="_blank">{ "Wiki" }</a></div>
                     <div class="toolbar-elem right"><a href="http://github.com/rlane/oort3" target="_blank">{ "GitHub" }</a></div>
                     <div class="toolbar-elem right"><a href="https://trello.com/b/PLQYouu8" target="_blank">{ "Trello" }</a></div>
-                    <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" target="_blank">{ "Discord" }</a></div>
+                    <div class="toolbar-elem right"><a href="https://discord.gg/vYyu9EhkKH" onclick={discord_cb} target="_blank">{ "Discord" }</a></div>
                     <div id="username" class="toolbar-elem right" title="Your username">
                         <input type="text"
                             value={username}

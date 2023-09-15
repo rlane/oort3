@@ -7,6 +7,7 @@ pub mod documentation;
 pub mod editor_window;
 pub mod feedback;
 pub mod game;
+pub mod gtag;
 pub mod js;
 pub mod leaderboard;
 pub mod leaderboard_window;

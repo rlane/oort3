@@ -1,4 +1,5 @@
 use crate::codestorage;
+use crate::gtag;
 use crate::compiler_output_window::CompilerOutputWindow;
 use crate::documentation::Documentation;
 use crate::editor_window::EditorWindow;
@@ -664,6 +665,7 @@ impl Game {
                 }
 
                 self.overlay = Some(Overlay::MissionComplete);
+                gtag::mission_complete(&context.props().scenario);
             }
         }
 
