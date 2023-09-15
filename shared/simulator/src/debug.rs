@@ -12,18 +12,13 @@ pub struct Line {
 
 pub fn emit_ship(sim: &mut Simulation, handle: ShipHandle) {
     let mut lines = vec![];
-    lines.reserve(3);
+    lines.reserve(2 + sim.ship(handle).data().guns.len());
     let body = sim.ship(handle).body();
     let p = body.position().translation.vector.into();
     lines.push(Line {
         a: p,
         b: p + body.linvel(),
         color: vector![0.0, 0.81, 1.0, 1.0],
-    });
-    lines.push(Line {
-        a: p,
-        b: p + body.rotation().transform_vector(&vector![50.0, 0.0]),
-        color: vector![1.0, 0.2, 0.0, 1.0],
     });
     lines.push(Line {
         a: p,
