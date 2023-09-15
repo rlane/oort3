@@ -64,6 +64,10 @@ impl Compiler {
             tmp_path.join("api/src/vec.rs"),
             include_bytes!("../../api/src/vec.rs"),
         )?;
+        std::fs::write(
+            tmp_path.join("api/src/panic.rs"),
+            include_bytes!("../../api/src/panic.rs"),
+        )?;
 
         std::fs::create_dir_all(tmp_path.join("ai/src"))?;
         std::fs::write(

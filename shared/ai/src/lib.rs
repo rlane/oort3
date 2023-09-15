@@ -15,6 +15,7 @@ static mut SHIPS: Option<HashMap<i32, ShipWrapper>> = None;
 #[doc(hidden)]
 #[no_mangle]
 unsafe fn export_initialize() {
+    oort_api::panic::install();
     unsafe {
         SHIPS = Some(HashMap::new());
     }
@@ -24,6 +25,7 @@ unsafe fn export_initialize() {
 #[no_mangle]
 pub unsafe fn export_tick_ship(key: i32) {
     oort_api::dbg::reset();
+    oort_api::panic::reset();
     unsafe {
         let ship = SHIPS.as_mut().unwrap().entry(key).or_insert_with(|| {
             let rng = oort_api::rng_state::RngState::new();

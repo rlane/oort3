@@ -159,6 +159,21 @@ impl TeamController {
                     }
                 }
             }
+
+            {
+                let store = vm.store();
+                let memory_view = vm.memory.view(store.deref());
+                if let Some(vec) = WasmVm::read_vec(
+                    &memory_view,
+                    vm.panic_buffer_ptr.offset(),
+                    oort_api::panic::PANIC_BUFFER_SIZE as u32
+                ) {
+                    let null_pos = vec.iter().position(|&x| x == 0).unwrap_or(vec.len());
+                    let msg = String::from_utf8_lossy(&vec[0..null_pos]).to_string();
+                    return Err(Error { msg });
+                }
+            }
+
             return translate_runtime_error(Err(e));
         }
 
@@ -231,6 +246,7 @@ pub struct WasmVm {
     memory: wasmer::Memory,
     system_state_ptr: WasmPtr<u64>,
     environment_ptr: WasmPtr<u8>,
+    panic_buffer_ptr: WasmPtr<u8>,
     tick_ship: wasmer::Function,
     delete_ship: wasmer::Function,
     reset_gas: wasmer::Function,
@@ -269,6 +285,11 @@ impl WasmVm {
             .i32()
             .unwrap();
         let environment_ptr: WasmPtr<u8> = WasmPtr::new(environment_offset as u32);
+        let panic_buffer_offset: i32 = translate_error(instance.exports.get_global("PANIC_BUFFER"))?
+            .get(&mut store)
+            .i32()
+            .unwrap();
+        let panic_buffer_ptr: WasmPtr<u8> = WasmPtr::new(panic_buffer_offset as u32);
 
         let initialize =
             translate_error(instance.exports.get_function("export_initialize"))?.clone();
@@ -286,6 +307,7 @@ impl WasmVm {
             memory,
             system_state_ptr,
             environment_ptr,
+            panic_buffer_ptr,
             tick_ship,
             delete_ship,
             reset_gas,
