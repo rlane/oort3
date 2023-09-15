@@ -1,3 +1,5 @@
+### 0.64.2 - 2023-09-15
+
 - Made toggles for blur/nlips/debug persistent.
 - Increased max NLIPS ghost size.
 - Improved initial zoom calculation to more precisely fit ships on screen.
