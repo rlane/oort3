@@ -1,3 +1,5 @@
+- Panic messages from ships are now logged to the JS console.
+
 ### 0.64.0 - 2023-09-12
 
 - Changed missiles to not explode when running out of fuel.
