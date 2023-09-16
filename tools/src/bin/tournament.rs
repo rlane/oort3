@@ -13,8 +13,8 @@ use skillratings::{
     glicko2::{glicko2, Glicko2Config, Glicko2Rating},
     Outcomes,
 };
-use std::collections::HashMap;
 use std::default::Default;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -47,6 +47,9 @@ enum SubCommand {
 
         #[clap(short, long)]
         dev: bool,
+
+        #[clap(long)]
+        wasm_cache: Option<PathBuf>,
     },
     Fetch {
         scenario: String,
@@ -78,7 +81,8 @@ async fn main() -> anyhow::Result<()> {
             shortcodes,
             rounds,
             dev,
-        } => cmd_run_unofficial(&scenario, &shortcodes, rounds, dev).await,
+            wasm_cache,
+        } => cmd_run_unofficial(&scenario, &shortcodes, rounds, dev, wasm_cache).await,
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
@@ -129,11 +133,13 @@ async fn cmd_run_unofficial(
     shortcodes: &[String],
     rounds: i32,
     dev: bool,
+    wasm_cache: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let http = reqwest::Client::new();
-    let ais = oort_tools::fetch_and_compile_multiple(&http, shortcodes, dev).await?;
+    let ais = oort_tools::fetch_and_compile_multiple(&http, shortcodes, dev, wasm_cache.as_deref())
+        .await?;
 
     log::info!("Running tournament");
     let results = run_tournament(scenario_name, &ais, rounds);

@@ -5,6 +5,7 @@ use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use std::cell::RefCell;
 use std::default::Default;
+use std::path::PathBuf;
 
 thread_local! {
   static COMPILERS: std::cell::RefCell<oort_compiler::Compiler> = RefCell::new(oort_compiler::Compiler::new());
@@ -28,6 +29,9 @@ async fn main() -> anyhow::Result<()> {
         #[clap(short, long)]
         dry_run: bool,
 
+        #[clap(long)]
+        wasm_cache: Option<PathBuf>,
+
         scenario_name: String,
         player_code: String,
         enemy_code: String,
@@ -43,6 +47,7 @@ async fn main() -> anyhow::Result<()> {
         &reqwest::Client::new(),
         &[args.player_code.clone(), args.enemy_code.clone()],
         false,
+        args.wasm_cache.as_deref(),
     )
     .await?;
     let codes = ais

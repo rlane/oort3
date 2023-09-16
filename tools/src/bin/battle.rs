@@ -3,6 +3,7 @@ use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
 use std::default::Default;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -15,6 +16,9 @@ struct Arguments {
 
     #[clap(short, long)]
     dev: bool,
+
+    #[clap(long)]
+    wasm_cache: Option<PathBuf>,
 }
 
 #[tokio::main]
@@ -30,7 +34,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     log::info!("Compiling AIs");
     let http = reqwest::Client::new();
-    let ais = oort_tools::fetch_and_compile_multiple(&http, &args.shortcodes, args.dev).await?;
+    let ais = oort_tools::fetch_and_compile_multiple(
+        &http,
+        &args.shortcodes,
+        args.dev,
+        args.wasm_cache.as_deref(),
+    )
+    .await?;
 
     log::info!("Running simulations");
     let player0 = &ais[0];
