@@ -1,36 +1,68 @@
+use clap::Parser;
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use rayon::prelude::*;
 use std::default::Default;
+
+#[derive(Parser, Debug)]
+#[clap()]
+struct Arguments {
+    scenario: String,
+    shortcodes: Vec<String>,
+
+    #[clap(short, long, default_value = "10")]
+    rounds: u32,
+
+    #[clap(short, long)]
+    dev: bool,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("battle=info"))
         .init();
 
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() != 4 {
-        panic!("Expected arguments: SCENARIO PATH PATH");
+    let args = Arguments::parse();
+    scenario::load_safe(&args.scenario).expect("Unknown scenario");
+    if args.shortcodes.len() < 2 {
+        panic!("Expected at least two shortcodes");
     }
-    let scenario_name = args[1].clone();
-    let srcs = args[2..].to_vec();
 
-    let mut compiler = oort_compiler::Compiler::new();
-    let mut codes = vec![];
-    for src in &srcs {
-        log::info!("Compiling {:?}", src);
-        let src_code = std::fs::read_to_string(src).unwrap();
-        codes.push(Code::Wasm(compiler.compile(&src_code)?));
-    }
+    log::info!("Compiling AIs");
+    let http = reqwest::Client::new();
+    let ais = oort_tools::fetch_and_compile_multiple(&http, &args.shortcodes, args.dev).await?;
 
     log::info!("Running simulations");
-    let results = run_simulations(&scenario_name, codes);
-    log::info!("Results: {:?}", results);
-    match results.team0_wins.len().cmp(&results.team1_wins.len()) {
-        std::cmp::Ordering::Greater => log::info!("Team 0 ({:?}) wins", srcs[0]),
-        std::cmp::Ordering::Less => log::info!("Team 1 ({:?}) wins", srcs[1]),
-        _ => log::info!("Draw"),
+    let player0 = &ais[0];
+    let results_per_opponent = ais[1..]
+        .par_iter()
+        .map(|player1| {
+            let codes = vec![player0.compiled_code.clone(), player1.compiled_code.clone()];
+            let results = run_simulations(&args.scenario, codes, args.rounds);
+            (player1, results)
+        })
+        .collect::<Vec<_>>();
+
+    for (player1, results) in results_per_opponent {
+        let n = 10;
+        println!("{} vs {}:", player0.name, player1.name);
+        println!(
+            "  Wins: {} {:?}",
+            results.team0_wins.len(),
+            &results.team0_wins[..].iter().take(n).collect::<Vec<_>>()
+        );
+        println!(
+            "  Losses: {} {:?}",
+            results.team1_wins.len(),
+            &results.team1_wins[..].iter().take(n).collect::<Vec<_>>()
+        );
+        println!(
+            "  Draws: {} {:?}",
+            results.draws.len(),
+            &results.draws[..].iter().take(n).collect::<Vec<_>>()
+        );
     }
+
     Ok(())
 }
 
@@ -41,8 +73,8 @@ struct Results {
     draws: Vec<u32>,
 }
 
-fn run_simulations(scenario_name: &str, codes: Vec<Code>) -> Results {
-    let seed_statuses: Vec<(u32, scenario::Status)> = (0..10u32)
+fn run_simulations(scenario_name: &str, codes: Vec<Code>, rounds: u32) -> Results {
+    let seed_statuses: Vec<(u32, scenario::Status)> = (0..rounds)
         .into_par_iter()
         .map(|seed| (seed, run_simulation(scenario_name, seed, codes.clone())))
         .collect();
