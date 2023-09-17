@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, path::PathBuf};
 
 use oort_simulator::simulation::Code;
 
@@ -19,58 +19,48 @@ pub async fn fetch_and_compile(
     } else {
         ("https://compiler.oort.rs", "https://shortcode.oort.rs")
     };
-    let wasm_cache = wasm_cache.map(|path| path.join(format!("{shortcode}.wasm")));
-    let local_file_meta = fs::metadata(shortcode).ok();
-    let cache_file_meta = wasm_cache.as_ref().and_then(|p| fs::metadata(p).ok());
 
-    let cache_is_fresh = if let Some(cache) = &cache_file_meta {
-        if let Some(local) = &local_file_meta {
-            cache.modified()? > local.modified()?
-        } else {
-            true
+    let wasm_cache = wasm_cache.map(|path| WasmCache::new(path.to_owned()));
+    if let Some(wasm_cache) = wasm_cache.as_ref() {
+        if let Some(wasm) = wasm_cache.get(shortcode) {
+            return Ok(AI {
+                name: shortcode.to_string(),
+                source_code: format!("// read from cache: {:?}", wasm_cache.path),
+                compiled_code: Code::Wasm(wasm),
+            });
         }
-    } else {
-        false
-    };
+    }
 
-    let (compiled_code, source_code) = if cache_is_fresh {
-        let cache = wasm_cache.as_ref().unwrap();
-        log::info!("Reading cache file {:?}", cache);
-        (fs::read(cache)?, format!("// read from cache: {:?}", cache))
+    let source_code = if std::fs::metadata(shortcode).ok().is_some() {
+        std::fs::read_to_string(shortcode).unwrap()
     } else {
-        let source_code = if local_file_meta.is_some() {
-            std::fs::read_to_string(shortcode).unwrap()
-        } else {
-            log::info!("Fetching {:?}", shortcode);
-            http.get(&format!("{shortcode_url}/shortcode/{shortcode}"))
-                .send()
-                .await?
-                .text()
-                .await?
-        };
-        log::info!("Compiling {:?}", shortcode);
-
-        let response = http
-            .post(&format!("{compiler_url}/compile"))
-            .body(source_code.clone())
+        log::info!("Fetching {:?}", shortcode);
+        http.get(&format!("{shortcode_url}/shortcode/{shortcode}"))
             .send()
-            .await?;
-
-        if !response.status().is_success() {
-            anyhow::bail!(
-                "Failed to compile {:?}: {:?}",
-                shortcode,
-                response.text().await?
-            );
-        }
-
-        (response.bytes().await?.to_vec(), source_code)
+            .await?
+            .text()
+            .await?
     };
+    log::info!("Compiling {:?}", shortcode);
 
-    if let Some(cache_file) = wasm_cache {
-        if !cache_is_fresh {
-            fs::write(cache_file, &compiled_code)?;
-        }
+    let response = http
+        .post(&format!("{compiler_url}/compile"))
+        .body(source_code.clone())
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Failed to compile {:?}: {:?}",
+            shortcode,
+            response.text().await?
+        );
+    }
+
+    let compiled_code = response.bytes().await?.to_vec();
+
+    if let Some(wasm_cache) = wasm_cache {
+        wasm_cache.put(shortcode, &compiled_code);
     }
 
     let compiled_code = oort_simulator::vm::precompile(&compiled_code).unwrap();
@@ -93,4 +83,60 @@ pub async fn fetch_and_compile_multiple(
         .map(|shortcode| fetch_and_compile(http, shortcode, dev, wasm_cache));
     let results = futures::future::join_all(futures).await;
     results.into_iter().collect()
+}
+
+pub struct WasmCache {
+    path: PathBuf,
+}
+
+impl WasmCache {
+    pub fn new(path: PathBuf) -> Self {
+        fs::create_dir_all(&path).expect("creating WASM cache directory");
+        Self { path: path.clone() }
+    }
+
+    fn key(shortcode: &str) -> String {
+        shortcode.replace('/', "_")
+    }
+
+    pub fn get(&self, shortcode: &str) -> Option<Vec<u8>> {
+        let key = Self::key(shortcode);
+        let path = self.path.join(format!("{key}.wasm"));
+        let binary_path = std::env::current_exe().unwrap();
+
+        let local_file_ts = fs::metadata(shortcode).ok().and_then(|x| x.modified().ok());
+        let cache_file_ts = fs::metadata(&path).ok().and_then(|x| x.modified().ok());
+        let binary_ts = fs::metadata(binary_path)
+            .ok()
+            .and_then(|x| x.modified().ok())
+            .unwrap();
+
+        if cache_file_ts.is_none() {
+            log::info!("WASM cache miss for {:?}", shortcode);
+            return None;
+        }
+
+        if binary_ts >= cache_file_ts.unwrap() {
+            log::info!("WASM cache is stale (binary) for {:?}", shortcode);
+            return None;
+        }
+
+        if let Some(local_ts) = local_file_ts {
+            if local_ts >= cache_file_ts.unwrap() {
+                log::info!("WASM cache is stale (source) for {:?}", shortcode);
+                return None;
+            }
+        }
+
+        log::info!("WASM cache hit for {:?}", shortcode);
+        fs::read(&path).ok()
+    }
+
+    pub fn put(&self, shortcode: &str, bytes: &[u8]) {
+        let key = Self::key(shortcode);
+        let path = self.path.join(format!("{key}.wasm"));
+        if let Err(e) = fs::write(path, bytes) {
+            log::warn!("Failed to write to WASM cache: {:?}", e);
+        }
+    }
 }
