@@ -14,6 +14,7 @@ pub async fn fetch_and_compile(
     dev: bool,
     wasm_cache: Option<&Path>,
 ) -> anyhow::Result<AI> {
+    let name = shortcode.rsplit('/').next().unwrap().to_string();
     let (compiler_url, shortcode_url) = if dev {
         ("http://localhost:8081", "http://localhost:8084")
     } else {
@@ -24,7 +25,7 @@ pub async fn fetch_and_compile(
     if let Some(wasm_cache) = wasm_cache.as_ref() {
         if let Some(wasm) = wasm_cache.get(shortcode) {
             return Ok(AI {
-                name: shortcode.to_string(),
+                name,
                 source_code: format!("// read from cache: {:?}", wasm_cache.path),
                 compiled_code: Code::Wasm(wasm),
             });
@@ -66,7 +67,7 @@ pub async fn fetch_and_compile(
     let compiled_code = oort_simulator::vm::precompile(&compiled_code).unwrap();
 
     Ok(AI {
-        name: shortcode.to_string(),
+        name,
         source_code,
         compiled_code,
     })
