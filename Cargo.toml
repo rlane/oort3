@@ -11,6 +11,7 @@ members = [
     "shared/code_encryption",
     "shared/version",
     "shared/compiler",
+    "shared/multifile",
 
     "services/backend",
     "services/compiler",

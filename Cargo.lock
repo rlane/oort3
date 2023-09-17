@@ -2573,6 +2573,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort_multifile"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "regex",
+]
+
+[[package]]
 name = "oort_proto"
 version = "0.64.2"
 dependencies = [
