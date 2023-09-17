@@ -2,7 +2,8 @@ mod wasm_cache;
 
 use oort_compiler::Compiler;
 use oort_simulator::simulation::Code;
-use std::path::Path;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub struct AI {
@@ -36,7 +37,7 @@ pub async fn fetch_and_compile(
     }
 
     let source_code = if std::fs::metadata(shortcode).ok().is_some() {
-        std::fs::read_to_string(shortcode).unwrap()
+        read_filesystem(shortcode)?
     } else {
         log::info!("Fetching {:?}", shortcode);
         http.get(&format!("{shortcode_url}/shortcode/{shortcode}"))
@@ -112,5 +113,43 @@ impl ParallelCompiler {
         let ret = compiler.compile(source_code)?;
         self.sender.lock().unwrap().send(compiler)?;
         Ok(ret)
+    }
+}
+
+pub fn read_filesystem(path: &str) -> anyhow::Result<String> {
+    let mut pathbuf = PathBuf::from(path);
+    let mut metadata = std::fs::metadata(&pathbuf)
+        .map_err(|e| anyhow::anyhow!("Failed to read {:?}: {:?}", pathbuf, e.to_string()))?;
+    if metadata.is_dir() {
+        if let Ok(src_metadata) = std::fs::metadata(&pathbuf.join("src")) {
+            pathbuf.push("src");
+            metadata = src_metadata;
+        }
+    }
+
+    if metadata.is_file() {
+        Ok(std::fs::read_to_string(&pathbuf)?)
+    } else if metadata.is_dir() {
+        let mut files = HashMap::new();
+        for entry in std::fs::read_dir(&pathbuf)? {
+            let entry = entry?;
+            let path = entry.path();
+            let extension = path.extension().unwrap_or_default();
+            let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+            if path.is_file()
+                && extension == "rs"
+                && !stem.starts_with('.')
+                && !stem.ends_with("test")
+            {
+                log::info!("Reading {:?}", path);
+                files.insert(
+                    path.file_name().unwrap().to_string_lossy().to_string(),
+                    std::fs::read_to_string(path)?,
+                );
+            }
+        }
+        oort_multifile::join(files)
+    } else {
+        anyhow::bail!("Not a file or directory: {:?}", path);
     }
 }

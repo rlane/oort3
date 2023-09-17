@@ -2872,6 +2872,7 @@ dependencies = [
  "once_cell",
  "oort_api",
  "oort_compiler",
+ "oort_multifile",
  "oort_proto",
  "oort_simulator",
  "petname",
