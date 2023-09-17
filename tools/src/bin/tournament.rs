@@ -48,7 +48,7 @@ enum SubCommand {
         #[clap(short, long)]
         dev: bool,
 
-        #[clap(long)]
+        #[clap(long, default_value = "/tmp/oort-wasm-cache")]
         wasm_cache: Option<PathBuf>,
     },
     Fetch {

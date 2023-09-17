@@ -20,7 +20,7 @@ pub async fn fetch_and_compile(
         ("https://compiler.oort.rs", "https://shortcode.oort.rs")
     };
 
-    let wasm_cache = wasm_cache.map(|path| WasmCache::new(path.to_owned()));
+    let wasm_cache = wasm_cache.and_then(|path| WasmCache::new(path.to_owned()));
     if let Some(wasm_cache) = wasm_cache.as_ref() {
         if let Some(wasm) = wasm_cache.get(shortcode) {
             return Ok(AI {
@@ -90,9 +90,12 @@ pub struct WasmCache {
 }
 
 impl WasmCache {
-    pub fn new(path: PathBuf) -> Self {
-        fs::create_dir_all(&path).expect("creating WASM cache directory");
-        Self { path: path.clone() }
+    pub fn new(path: PathBuf) -> Option<Self> {
+        if let Err(e) = fs::create_dir_all(&path) {
+            log::warn!("Failed to create WASM cache directory: {:?}", e);
+            return None;
+        }
+        Some(Self { path: path.clone() })
     }
 
     fn key(shortcode: &str) -> String {
