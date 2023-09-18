@@ -26,26 +26,41 @@ pub async fn fetch_and_compile(
     };
 
     let wasm_cache = wasm_cache.and_then(|path| wasm_cache::WasmCache::new(path.to_owned()));
-    if let Some(wasm_cache) = wasm_cache.as_ref() {
-        if let Some(wasm) = wasm_cache.get(shortcode) {
-            return Ok(AI {
-                name,
-                source_code: "// read from cache".to_owned(),
-                compiled_code: Code::Wasm(wasm),
-            });
+    let get_cached = |cache_key: &str| {
+        if let Some(wasm_cache) = wasm_cache.as_ref() {
+            if let Some(wasm) = wasm_cache.get(shortcode, cache_key) {
+                return Some(AI {
+                    name: name.clone(),
+                    source_code: "".to_string(),
+                    compiled_code: Code::Wasm(wasm),
+                });
+            }
         }
-    }
+        None
+    };
 
-    let source_code = if std::fs::metadata(shortcode).ok().is_some() {
-        read_filesystem(shortcode)?
+    let (cache_key, source_code) = if std::fs::metadata(shortcode).ok().is_some() {
+        let source_code = read_filesystem(shortcode)?;
+        let cache_key = source_code.clone();
+        if let Some(ai) = get_cached(&cache_key) {
+            return Ok(ai);
+        }
+        (cache_key, source_code)
     } else {
         log::info!("Fetching {:?}", shortcode);
-        http.get(&format!("{shortcode_url}/shortcode/{shortcode}"))
+        let cache_key = shortcode.to_string();
+        if let Some(ai) = get_cached(&cache_key) {
+            return Ok(ai);
+        }
+        let source_code = http
+            .get(&format!("{shortcode_url}/shortcode/{shortcode}"))
             .send()
             .await?
             .text()
-            .await?
+            .await?;
+        (cache_key, source_code)
     };
+
     log::info!("Compiling {:?}", shortcode);
 
     let response = http
@@ -65,7 +80,7 @@ pub async fn fetch_and_compile(
     let compiled_code = response.bytes().await?.to_vec();
 
     if let Some(wasm_cache) = wasm_cache {
-        wasm_cache.put(shortcode, &compiled_code);
+        wasm_cache.put(&cache_key, &compiled_code);
     }
 
     let compiled_code = oort_simulator::vm::precompile(&compiled_code).unwrap();
