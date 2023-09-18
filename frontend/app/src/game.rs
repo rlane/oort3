@@ -1,8 +1,8 @@
 use crate::codestorage;
-use crate::gtag;
 use crate::compiler_output_window::CompilerOutputWindow;
 use crate::documentation::Documentation;
 use crate::editor_window::EditorWindow;
+use crate::gtag;
 use crate::js;
 use crate::leaderboard::Leaderboard;
 use crate::leaderboard_window::LeaderboardWindow;
@@ -899,6 +899,7 @@ impl Game {
             };
             let submit_button = if scenario::load(&context.props().scenario).is_tournament()
                 && summary.victory_count > 0
+                && !is_encrypted(&self.player_team().running_source_code)
             {
                 let cb = context
                     .link()
