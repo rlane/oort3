@@ -3,7 +3,11 @@ use serde_json::json;
 
 fn gtag(event: &str, params: &serde_json::Value) {
     let params = <wasm_bindgen::JsValue as JsValueSerdeExt>::from_serde(params).unwrap();
-    log::debug!("gtag {:?} {:?}", event, js_sys::JSON::stringify(&params).unwrap());
+    log::debug!(
+        "gtag {:?} {:?}",
+        event,
+        js_sys::JSON::stringify(&params).unwrap()
+    );
     gtag_js_sys::gtag_with_parameters("event", event, &params);
 }
 

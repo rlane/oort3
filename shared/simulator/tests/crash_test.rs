@@ -25,7 +25,10 @@ fn test_panic() {
     testing_logger::validate(|captured_logs| {
         assert_eq!(captured_logs.len(), 1);
         assert_eq!(captured_logs[0].level, log::Level::Warn);
-        assert_eq!(&captured_logs[0].body, "ship panicked at 'Panic!', lib.rs:17:24");
+        assert_eq!(
+            &captured_logs[0].body,
+            "ship panicked at 'Panic!', lib.rs:17:24"
+        );
     });
 }
 

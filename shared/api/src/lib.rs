@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-mod vec;
 #[doc(hidden)]
 pub mod panic;
+mod vec;
 
 #[allow(missing_docs)]
 #[derive(Copy, Clone)]
