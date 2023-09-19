@@ -1,3 +1,5 @@
+- Fixed a nondeterminism issue in the radar code.
+
 ### 0.64.2 - 2023-09-15
 
 - Made toggles for blur/nlips/debug persistent.
