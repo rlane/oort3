@@ -307,6 +307,8 @@ impl Simulation {
             s.write_i64(fixedpoint(ship.velocity().x));
             s.write_i64(fixedpoint(ship.velocity().y));
             s.write_i64(fixedpoint(ship.angular_velocity()));
+            s.write_i64(fixedpoint(ship.data().last_acceleration.x));
+            s.write_i64(fixedpoint(ship.data().last_acceleration.y));
             s.write_i64(fixedpoint(ship.data().health));
         }
         for handle in self.bullets.iter() {
