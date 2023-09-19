@@ -115,6 +115,7 @@ struct RadarEmitter {
     rays: [Vector2<f64>; 2],
 }
 
+#[derive(Clone)]
 struct RadarReflector {
     position: Point2<f64>,
     velocity: Vector2<f64>,
@@ -123,6 +124,7 @@ struct RadarReflector {
     jammer: Option<RadarJammer>,
 }
 
+#[derive(Clone)]
 struct RadarJammer {
     width: f64,
     bearing: f64,
@@ -139,6 +141,7 @@ pub struct ScanResult {
     pub snr: f64,
 }
 
+#[derive(Clone)]
 struct ReflectorTeam {
     xs: Vec<f32x4>,
     ys: Vec<f32x4>,
@@ -154,7 +157,7 @@ fn from_dbm(x: f64) -> f64 {
 }
 
 #[inline(never)]
-fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
+fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
     let mut reflectors_by_team: HashMap<i32, Vec<RadarReflector>> = HashMap::new();
 
     for handle in sim.ships.iter() {
@@ -194,7 +197,15 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
             });
     }
 
-    let mut result: HashMap<i32, ReflectorTeam> = HashMap::new();
+    let mut result: Vec<ReflectorTeam> = Vec::new();
+    result.resize(
+        10,
+        ReflectorTeam {
+            xs: Vec::new(),
+            ys: Vec::new(),
+            reflectors: Vec::new(),
+        },
+    );
     for (team, reflectors) in reflectors_by_team.drain() {
         let positions: Vec<Point2<f32>> = reflectors
             .iter()
@@ -220,7 +231,7 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
                 f32x4::from(ys)
             })
             .collect();
-        result.insert(team, ReflectorTeam { xs, ys, reflectors });
+        result[team as usize] = ReflectorTeam { xs, ys, reflectors };
     }
 
     result
@@ -229,7 +240,7 @@ fn build_reflector_team(sim: &Simulation) -> HashMap<i32, ReflectorTeam> {
 #[inline(never)]
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
-    let reflectors_by_team = build_reflector_team(sim);
+    let reflector_teams = build_reflector_team(sim);
     let mut candidates: Vec<(i32, usize)> = Vec::new();
     let planets = sim
         .ships
@@ -302,10 +313,10 @@ pub fn tick(sim: &mut Simulation) {
                 emitter.square_distance_range.end = planet_distance.powi(2);
             }
 
-            find_candidates(&emitter, &reflectors_by_team, &mut candidates);
+            find_candidates(&emitter, &reflector_teams, &mut candidates);
 
             for (team, reflector_index) in candidates.iter() {
-                let reflector = &reflectors_by_team[team].reflectors[*reflector_index];
+                let reflector = &reflector_teams[*team as usize].reflectors[*reflector_index];
                 if let Some(jammer) = reflector.jammer.as_ref() {
                     match jammer.ecm_mode {
                         EcmMode::None => {}
@@ -399,7 +410,7 @@ pub fn tick(sim: &mut Simulation) {
 #[inline(never)]
 fn find_candidates(
     emitter: &RadarEmitter,
-    reflectors_by_team: &HashMap<i32, ReflectorTeam>,
+    reflector_teams: &[ReflectorTeam],
     candidates: &mut Vec<(i32, usize)>,
 ) {
     let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
@@ -412,8 +423,9 @@ fn find_candidates(
     let wrx1 = f32x4::splat(rays[1].x);
     let wry1 = f32x4::splat(rays[1].y);
 
-    for (&team, reflector_team) in reflectors_by_team.iter() {
-        if emitter.team == team {
+    for (team, reflector_team) in reflector_teams.iter().enumerate() {
+        let team = team as i32;
+        if emitter.team == team || reflector_team.reflectors.is_empty() {
             continue;
         }
 
