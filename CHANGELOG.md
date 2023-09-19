@@ -1,3 +1,5 @@
+### 0.64.3 - 2023-09-18
+
 - Fixed a nondeterminism issue in the radar code.
 
 ### 0.64.2 - 2023-09-15
