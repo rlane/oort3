@@ -8,7 +8,7 @@ const pickerOpts = {
     },
   ],
   excludeAcceptAllOption: true,
-  multiple: false,
+  multiple: true,
 };
 
 export class FileHandle {
@@ -25,12 +25,23 @@ export class FileHandle {
       return await file.text();
     }
   }
+
+  async name() {
+    if ("getFile" in this._handle) {
+      let file = await this._handle.getFile();
+      return file.name;
+    } else {
+      let file = await new Promise((resolve) => this._handle.file(resolve));
+      return file.name;
+    }
+  }
 }
 
 export async function open() {
-  let [handle] = await window.showOpenFilePicker(pickerOpts);
-  if (handle.kind != "file") {
-    throw "Not a file";
+  let handles = await window.showOpenFilePicker(pickerOpts);
+  let results = [];
+  for (let handle of handles) {
+    results.push(new FileHandle(handle));
   }
-  return new FileHandle(handle);
+  return results;
 }

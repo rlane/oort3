@@ -1978,6 +1978,7 @@ dependencies = [
  "nalgebra",
  "no-comment",
  "oort_envelope",
+ "oort_multifile",
  "oort_proto",
  "oort_renderer",
  "oort_simulation_worker",
@@ -2034,6 +2035,14 @@ name = "oort_envelope"
 version = "0.79.3"
 dependencies = [
  "sha2",
+]
+
+[[package]]
+name = "oort_multifile"
+version = "0.79.3"
+dependencies = [
+ "anyhow",
+ "regex",
 ]
 
 [[package]]

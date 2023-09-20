@@ -11,6 +11,9 @@ pub mod filesystem {
         #[wasm_bindgen(constructor)]
         pub fn new(handle: FileSystemFileEntry) -> FileHandle;
 
+        #[wasm_bindgen(method)]
+        pub async fn name(this: &FileHandle) -> JsValue;
+
         #[wasm_bindgen(method, catch)]
         pub async fn read(this: &FileHandle) -> Result<JsValue, JsValue>;
 

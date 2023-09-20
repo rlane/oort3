@@ -11,6 +11,7 @@ use monaco::{
 };
 use oort_simulator::simulation::Code;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -43,9 +44,9 @@ pub enum Msg {
         reject: Function,
     },
     LoadedCodeFromDisk(String),
-    OpenedFile(FileHandle),
-    LinkedFile(FileHandle),
-    UnlinkedFile,
+    OpenedFiles(Vec<FileHandle>),
+    LinkedFiles(Vec<FileHandle>),
+    UnlinkedFiles,
     CheckLinkedFile,
     Drop(DragEvent),
     CancelDrop(MouseEvent),
@@ -74,7 +75,7 @@ pub struct EditorWindow {
     analyzer_interval: Interval,
     current_completion: Option<(Function, Function)>,
     folded: bool,
-    file_handle: Option<FileHandle>,
+    file_handles: Option<Vec<FileHandle>>,
     linked: bool,
     drop_target_ref: NodeRef,
 }
@@ -101,7 +102,7 @@ impl Component for EditorWindow {
             analyzer_interval,
             current_completion: None,
             folded: false,
-            file_handle: None,
+            file_handles: None,
             linked: false,
             drop_target_ref: NodeRef::default(),
         }
@@ -111,19 +112,24 @@ impl Component for EditorWindow {
         match msg {
             Msg::EditorAction(ref action) if action == "oort-load-file" => {
                 let text_cb = context.link().callback(Msg::LoadedCodeFromDisk);
-                let file_handle_cb = context.link().callback(Msg::OpenedFile);
+                let file_handle_cb = context.link().callback(Msg::OpenedFiles);
                 wasm_bindgen_futures::spawn_local(async move {
-                    let text = match js::filesystem::open().await {
-                        Ok(file_handle) => {
-                            let file_handle = file_handle.dyn_into::<FileHandle>().unwrap();
-                            file_handle_cb.emit(file_handle.clone());
-                            file_handle.read().await
+                    match js::filesystem::open().await {
+                        Ok(file_handles) => {
+                            let file_handles = file_handles.dyn_into::<js_sys::Array>().unwrap();
+                            let file_handles = file_handles
+                                .iter()
+                                .map(|file_handle| file_handle.dyn_into::<FileHandle>().unwrap())
+                                .collect::<Vec<_>>();
+                            match read_and_join_files(&file_handles).await {
+                                Ok(text) => {
+                                    file_handle_cb.emit(file_handles);
+                                    text_cb.emit(text)
+                                }
+                                Err(e) => log::error!("read failed: {:?}", e),
+                            }
                         }
-                        Err(e) => Err(e),
-                    };
-                    match text {
-                        Ok(text) => text_cb.emit(text.as_string().unwrap()),
-                        Err(e) => log::error!("load failed: {:?}", e),
+                        Err(e) => log::error!("open failed: {:?}", e),
                     }
                 });
                 self.linked = false;
@@ -131,7 +137,8 @@ impl Component for EditorWindow {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-reload-file" => {
-                if let Some(file_handle) = self.file_handle.clone() {
+                if let Some(file_handles) = self.file_handles.clone() {
+                    let file_handle = file_handles.first().unwrap().clone(); // XXX
                     let cb = context.link().callback(Msg::LoadedCodeFromDisk);
                     wasm_bindgen_futures::spawn_local(async move {
                         match file_handle.read().await {
@@ -148,12 +155,19 @@ impl Component for EditorWindow {
             }
             Msg::EditorAction(ref action) if action == "oort-link-file" => {
                 if has_open_file_picker() {
-                    let cb = context.link().callback(Msg::LinkedFile);
+                    let cb = context.link().callback(Msg::LinkedFiles);
                     wasm_bindgen_futures::spawn_local(async move {
                         match js::filesystem::open().await {
-                            Ok(file_handle) => {
-                                let file_handle = file_handle.dyn_into::<FileHandle>().unwrap();
-                                cb.emit(file_handle);
+                            Ok(file_handles) => {
+                                let file_handles =
+                                    file_handles.dyn_into::<js_sys::Array>().unwrap();
+                                let file_handles = file_handles
+                                    .iter()
+                                    .map(|file_handle| {
+                                        file_handle.dyn_into::<FileHandle>().unwrap()
+                                    })
+                                    .collect::<Vec<_>>();
+                                cb.emit(file_handles);
                             }
                             Err(e) => log::error!("open failed: {:?}", e),
                         };
@@ -167,7 +181,7 @@ impl Component for EditorWindow {
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-unlink-file" => {
-                context.link().send_message(Msg::UnlinkedFile);
+                context.link().send_message(Msg::UnlinkedFiles);
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-toggle-fold" => {
@@ -232,34 +246,38 @@ impl Component for EditorWindow {
                 });
                 false
             }
-            Msg::OpenedFile(file_handle) => {
-                self.file_handle = Some(file_handle);
+            Msg::OpenedFiles(file_handles) => {
+                self.file_handles = Some(file_handles);
                 self.linked = false;
                 false
             }
-            Msg::LinkedFile(file_handle) => {
-                self.file_handle = Some(file_handle);
+            Msg::LinkedFiles(file_handles) => {
+                self.file_handles = Some(file_handles);
                 self.linked = true;
                 context.link().send_message(Msg::CheckLinkedFile);
                 self.set_read_only(true);
                 false
             }
-            Msg::UnlinkedFile => {
+            Msg::UnlinkedFiles => {
                 self.linked = false;
-                self.file_handle = None;
-                self.set_read_only(false);
+                self.file_handles = None;
+                let editor_link = context.props().editor_link.clone();
+                editor_link.with_editor(|editor| {
+                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                    let options = monaco::sys::editor::IEditorOptions::from(empty());
+                    options.set_read_only(Some(false));
+                    ed.update_options(&options);
+                });
                 false
             }
             Msg::CheckLinkedFile => {
-                if self.linked && self.get_read_only() {
-                    if let Some(file_handle) = self.file_handle.clone() {
+                if self.linked {
+                    if let Some(file_handles) = self.file_handles.clone() {
                         let link = context.link().clone();
                         wasm_bindgen_futures::spawn_local(async move {
-                            match file_handle.read().await {
+                            match read_and_join_files(&file_handles).await {
                                 Ok(text) => {
-                                    link.send_message(Msg::LoadedCodeFromDisk(
-                                        text.as_string().unwrap(),
-                                    ));
+                                    link.send_message(Msg::LoadedCodeFromDisk(text));
                                     let timeout = Timeout::new(1_000, move || {
                                         link.send_message(Msg::CheckLinkedFile);
                                     });
@@ -267,7 +285,7 @@ impl Component for EditorWindow {
                                 }
                                 Err(e) => {
                                     log::error!("reload failed: {:?}", e);
-                                    link.send_message(Msg::UnlinkedFile);
+                                    link.send_message(Msg::UnlinkedFiles);
                                 }
                             }
                         });
@@ -284,6 +302,7 @@ impl Component for EditorWindow {
                 false
             }
             Msg::Drop(e) => {
+                // TODO support multiple files
                 self.drop_target_ref
                     .cast::<Element>()
                     .unwrap()
@@ -295,7 +314,7 @@ impl Component for EditorWindow {
                             let file_entry = file_entry.unchecked_into::<FileSystemFileEntry>();
                             context
                                 .link()
-                                .send_message(Msg::LinkedFile(FileHandle::new(file_entry)));
+                                .send_message(Msg::LinkedFiles(vec![FileHandle::new(file_entry)]));
                         }
                     }
                 }
@@ -586,15 +605,6 @@ impl EditorWindow {
             ed.update_options(&options);
         });
     }
-
-    fn get_read_only(&self) -> bool {
-        self.editor_link
-            .with_editor(|editor| {
-                let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                ed.get_raw_options().read_only().unwrap_or(false)
-            })
-            .unwrap_or(false)
-    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -644,4 +654,20 @@ pub fn is_mac() -> bool {
 
 fn has_open_file_picker() -> bool {
     gloo_utils::window().has_own_property(&"showOpenFilePicker".into())
+}
+
+async fn read_and_join_files(file_handles: &[FileHandle]) -> anyhow::Result<String> {
+    let mut files = HashMap::new();
+    for file_handle in file_handles.iter() {
+        let file = match file_handle.read().await {
+            Ok(text) => text.as_string().unwrap(),
+            Err(e) => {
+                log::error!("load failed: {:?}", e);
+                continue;
+            }
+        };
+        files.insert(file_handle.name().await.as_string().unwrap(), file);
+    }
+
+    oort_multifile::join(files)
 }
