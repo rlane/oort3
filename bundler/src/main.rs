@@ -9,6 +9,9 @@ struct Arguments {
     files: Vec<String>,
 
     #[clap(short, long)]
+    main: Option<String>,
+
+    #[clap(short, long)]
     output: String,
 
     #[clap(short, long)]
@@ -20,6 +23,8 @@ fn main() -> Result<()> {
         .init();
 
     let args = Arguments::parse();
+
+    let main = args.main.unwrap_or_else(|| "".to_owned());
 
     let (tx, rx) = std::sync::mpsc::channel();
 
@@ -50,7 +55,7 @@ fn main() -> Result<()> {
 
         let joined = oort_multifile::join(files)?;
 
-        std::fs::write(&args.output, joined)?;
+        std::fs::write(&args.output, joined.finalize(&main))?;
 
         if !args.watch {
             break;

@@ -136,7 +136,7 @@ pub fn read_filesystem(path: &str) -> anyhow::Result<String> {
     let mut metadata = std::fs::metadata(&pathbuf)
         .map_err(|e| anyhow::anyhow!("Failed to read {:?}: {:?}", pathbuf, e.to_string()))?;
     if metadata.is_dir() {
-        if let Ok(src_metadata) = std::fs::metadata(&pathbuf.join("src")) {
+        if let Ok(src_metadata) = std::fs::metadata(pathbuf.join("src")) {
             pathbuf.push("src");
             metadata = src_metadata;
         }
@@ -163,7 +163,7 @@ pub fn read_filesystem(path: &str) -> anyhow::Result<String> {
                 );
             }
         }
-        oort_multifile::join(files)
+        oort_multifile::join(files).map(|x| x.finalize("") /*TODO*/)
     } else {
         anyhow::bail!("Not a file or directory: {:?}", path);
     }

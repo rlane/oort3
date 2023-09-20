@@ -1,28 +1,39 @@
 use anyhow::bail;
 use std::collections::HashMap;
 
-pub fn join(mut files: HashMap<String, String>) -> Result<String, anyhow::Error> {
-    let re = regex::Regex::new(r"pub (struct|enum) Ship").unwrap();
-    let files_with_ship = files
-        .clone()
-        .into_iter()
-        .filter(|(_, v)| re.is_match(v))
-        .collect::<Vec<_>>();
+#[derive(Debug)]
+pub struct Multifile {
+    pub src: String,
+    pub names: Vec<String>,
+}
+
+impl Multifile {
+    pub fn finalize(&self, name: &str) -> String {
+        let mut src = self.src.clone();
+        src.push_str(&format!("\npub use {}::*;\n", name));
+        src
+    }
+}
+
+pub fn join(mut files: HashMap<String, String>) -> Result<Multifile, anyhow::Error> {
+    if files.len() == 1 {
+        let src = files.drain().next().unwrap().1;
+        return Ok(Multifile {
+            src,
+            names: vec!["".to_string()],
+        });
+    }
 
     let lib = if let Some(src) = files.remove("lib.rs") {
         src
-    } else if let Some((k, _)) = files_with_ship.first().to_owned() {
-        if files_with_ship.len() == 1 {
-            files.remove(k.as_str()).unwrap()
-        } else {
-            bail!("Multiple files with Ship struct/enum");
-        }
+    } else if let Some(src) = files.remove("mod.rs") {
+        src
     } else {
-        bail!("No lib.rs found");
+        bail!("Missing lib.rs or mod.rs file");
     };
 
     let re = regex::Regex::new(r"(pub )?mod (\w+);").unwrap();
-    let new_lib = re
+    let src = re
         .replace_all(&lib, |caps: &regex::Captures| {
             let pubk = caps.get(1).map(|m| m.as_str()).unwrap_or("");
             let name = caps.get(2).unwrap().as_str();
@@ -33,11 +44,15 @@ pub fn join(mut files: HashMap<String, String>) -> Result<String, anyhow::Error>
                     pubk, name, src
                 )
             } else {
-                format!("std::compile_error!(\"Missing file: {}\");", filename)
+                caps.get(0).unwrap().as_str().to_string()
             }
         })
         .into_owned();
-    Ok(new_lib)
+
+    Ok(Multifile {
+        src,
+        names: files.keys().cloned().collect(),
+    })
 }
 
 pub fn split(lib: &str) -> HashMap<String, String> {
@@ -67,7 +82,7 @@ mod test {
         files.insert("foo.rs".to_string(), "fn foo() {}".to_string());
         files.insert("bar.rs".to_string(), "fn bar() {}".to_string());
         assert_eq!(
-            super::join(files).unwrap(),
+            super::join(files).unwrap().finalize("foo"),
             "\
 mod foo { // start multifile
 fn foo() {}
@@ -75,12 +90,14 @@ fn foo() {}
 pub mod bar { // start multifile
 fn bar() {}
 } // end multifile
+
+pub use foo::*;
 "
         );
     }
 
     #[test]
-    fn test_join_detect_main() {
+    fn test_join_no_lib() {
         let mut files = std::collections::HashMap::new();
         files.insert(
             "mainfile.rs".to_string(),
@@ -89,16 +106,8 @@ fn bar() {}
         files.insert("foo.rs".to_string(), "fn foo() {}".to_string());
         files.insert("bar.rs".to_string(), "fn bar() {}".to_string());
         assert_eq!(
-            super::join(files).unwrap(),
-            "\
-mod foo { // start multifile
-fn foo() {}
-} // end multifile
-pub mod bar { // start multifile
-fn bar() {}
-} // end multifile
-pub struct Ship {}
-"
+            super::join(files).unwrap_err().to_string(),
+            "Missing lib.rs or mod.rs file"
         );
     }
 
@@ -106,9 +115,10 @@ pub struct Ship {}
     fn test_join_missing_file() {
         let mut files = std::collections::HashMap::new();
         files.insert("lib.rs".to_string(), "mod foo;".to_string());
+        files.insert("bar.rs".to_string(), "".to_string());
         assert_eq!(
-            super::join(files).unwrap(),
-            "std::compile_error!(\"Missing file: foo.rs\");"
+            super::join(files).unwrap().finalize(""),
+            "mod foo;\npub use ::*;\n"
         );
     }
 
@@ -131,11 +141,12 @@ pub struct Ship {}
         files.insert("foo.rs".to_string(), reference.to_string());
         files.insert("bar.rs".to_string(), reference.to_string());
 
-        let multifile = super::join(files.clone()).unwrap();
+        let multifile = super::join(files.clone()).unwrap().finalize("foo");
         eprintln!("---------");
         eprintln!("{}", multifile);
         eprintln!("---------");
-        let splitfiles = super::split(&multifile);
+        let mut splitfiles = super::split(&multifile);
+        splitfiles.insert("lib.rs".to_string(), lib);
         assert_eq!(canonicalize(&splitfiles), canonicalize(&files));
     }
 

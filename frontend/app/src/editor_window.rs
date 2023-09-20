@@ -669,5 +669,5 @@ async fn read_and_join_files(file_handles: &[FileHandle]) -> anyhow::Result<Stri
         files.insert(file_handle.name().await.as_string().unwrap(), file);
     }
 
-    oort_multifile::join(files)
+    oort_multifile::join(files).map(|x| x.finalize("") /*TODO*/)
 }
