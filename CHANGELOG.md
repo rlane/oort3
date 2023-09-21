@@ -1,3 +1,8 @@
+- Added a second radio to fighters.
+- Added a mini_fleet scenario.
+- Changed tournament scenarios to randomly swap starting positions.
+- Made oorandom available to player code.
+
 ### 0.64.3 - 2023-09-18
 
 - Fixed a nondeterminism issue in the radar code.
