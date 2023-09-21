@@ -206,15 +206,14 @@ pub fn list() -> Vec<(String, Vec<String>)> {
             ],
         ),
         ("Challenge", vec!["gunnery", "planetary_defense"]),
+        ("Tournament", vec!["fighter_duel", "mini_fleet"]),
         (
-            "Tournament",
+            "Future Tournaments",
             vec![
-                "fighter_duel",
                 "frigate_duel",
                 "cruiser_duel",
                 "asteroid_duel",
                 "squadrons",
-                "mini_fleet",
                 "fleet",
                 "belt",
                 "orbit",
