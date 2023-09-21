@@ -1,3 +1,5 @@
+### 0.65.0 - 2023-09-20
+
 - Added a second radio to fighters.
 - Added a mini_fleet scenario.
 - Changed tournament scenarios to randomly swap starting positions.
