@@ -30,7 +30,7 @@ mod welcome;
 use crate::ship::{asteroid, fighter, ShipAccessor, ShipClass, ShipData};
 use crate::simulation::{Code, Line, Simulation};
 use nalgebra::{vector, Vector2};
-use rand::{Rng, RngCore};
+use rand::{seq::SliceRandom, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -318,7 +318,7 @@ pub struct Placement {
 pub fn place_teams(rng: &mut dyn RngCore, world_size: f64) -> Vec<Placement> {
     let s = world_size * 0.45;
     let range = -s..s;
-    vec![
+    let mut placements = vec![
         Placement {
             position: vector![-s, rng.gen_range(range.clone())],
             heading: 0.0,
@@ -327,5 +327,7 @@ pub fn place_teams(rng: &mut dyn RngCore, world_size: f64) -> Vec<Placement> {
             position: vector![s, rng.gen_range(range)],
             heading: std::f64::consts::PI,
         },
-    ]
+    ];
+    placements.shuffle(rng);
+    placements
 }
