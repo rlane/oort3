@@ -5,6 +5,7 @@ mod fighter_duel;
 mod fleet;
 mod frigate_duel;
 mod gunnery;
+mod mini_fleet;
 mod orbit;
 mod planetary_defense;
 mod primitive_duel;
@@ -147,6 +148,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "cruiser_duel" => Some(Box::new(cruiser_duel::CruiserDuel::new())),
         "asteroid_duel" => Some(Box::new(asteroid_duel::AsteroidDuel::new())),
         "squadrons" => Some(Box::new(squadrons::Squadrons::new())),
+        "mini_fleet" => Some(Box::new(mini_fleet::MiniFleet::new())),
         "fleet" => Some(Box::new(fleet::Fleet::new())),
         "belt" => Some(Box::new(belt::Belt::new())),
         "orbit" => Some(Box::new(orbit::Orbit::new())),
@@ -212,6 +214,7 @@ pub fn list() -> Vec<(String, Vec<String>)> {
                 "cruiser_duel",
                 "asteroid_duel",
                 "squadrons",
+                "mini_fleet",
                 "fleet",
                 "belt",
                 "orbit",
