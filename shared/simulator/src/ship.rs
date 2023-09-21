@@ -266,7 +266,7 @@ pub fn fighter(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 10.0,
-        radios: vec![radio()],
+        radios: vec![radio(), radio()],
         abilities: vec![ShipAbility {
             ability: Ability::Boost,
             active_time: 2.0,
