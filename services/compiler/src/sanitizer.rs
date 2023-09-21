@@ -18,7 +18,7 @@ pub fn check(text: &str) -> Result<(), anyhow::Error> {
         static ref ATTR_RE: Regex = Regex::new(r#"#!?\[([^\[\] ]*)"#).unwrap();
     }
     for m in ATTR_RE.captures_iter(text) {
-        if m[1].starts_with("derive") {
+        if m[1].starts_with("derive") || &m[1] == "cfg(test)" || &m[1] == "test" {
             continue;
         }
         return Err(anyhow!("Code did not pass sanitizer (found {:?})", &m[0]));
@@ -79,6 +79,16 @@ mod tests {
     fn derive_attr() {
         assert!(check("... #[derive(Clone)] ...").is_ok());
         assert!(check("... #[derive(Debug, Serialize, Deserialize)] ...").is_ok());
+    }
+
+    #[test]
+    fn test_attr() {
+        assert!(check("... #[test] ...").is_ok());
+    }
+
+    #[test]
+    fn cfg_test_attr() {
+        assert!(check("... #[cfg(test)] ...").is_ok());
     }
 
     #[test]
