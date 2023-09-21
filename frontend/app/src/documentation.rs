@@ -190,6 +190,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             <ul>
                 <li><a href="https://docs.rs/byteorder/1.4.3/byteorder/index.html" target="_blank">{ "byteorder" }</a>{ ": Utilities to read and write binary data, useful for radio." }</li>
                 <li><a href="https://docs.rs/maths-rs/0.2.4/maths_rs/index.html" target="_blank">{ "math_rs" }</a>{ ": A linear algebra library." }</li>
+                <li><a href="https://docs.rs/oorandom/11.1.3/oorandom/index.html" target="_blank">{ "oorandom" }</a>{ ": A random number generation library." }</li>
             </ul>
 
             <h2>{ "Ship Classes" }</h2>

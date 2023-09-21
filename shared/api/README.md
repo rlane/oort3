@@ -204,6 +204,7 @@ The following crates are available for use in your code:
 
 - [`byteorder`](prelude::byteorder): Utilities to read and write binary data, useful for radio.
 - [`maths_rs`](prelude::maths_rs): A linear algebra library.
+- [`oorandom`](prelude::oorandom): A random number generation library.
 
 ## Ship Classes
 

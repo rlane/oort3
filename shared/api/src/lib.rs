@@ -1127,4 +1127,5 @@ pub mod prelude {
 
     pub use byteorder;
     pub use maths_rs;
+    pub use oorandom;
 }
