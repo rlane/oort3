@@ -55,7 +55,7 @@ pub fn line_transform(p1: Point2<f32>, p2: Point2<f32>, width: f32) -> Matrix4<f
     let p = p1 + dp * 0.5;
     let angle = dp.y.atan2(dp.x);
     Matrix4::from_axis_angle(&axis, angle)
-        .prepend_nonuniform_scaling(&vector![dp.magnitude(), width, 1.0])
+        .prepend_nonuniform_scaling(&vector![dp.magnitude().max(width), width, 1.0])
         .append_translation(&vector![p.x, p.y, 0.0])
 }
 
