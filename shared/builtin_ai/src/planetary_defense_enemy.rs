@@ -1,28 +1,23 @@
 use oort_api::prelude::*;
 
 pub struct Ship {
-    course_correction_time: f64,
+    target: Vec2,
 }
 
 impl Ship {
     pub fn new() -> Ship {
         Ship {
-            course_correction_time: current_time() + rand(0.0, 10.0),
+            target: vec2(rand(-1.0, 1.0) * 10e3, -25000.0),
         }
     }
 
     pub fn tick(&mut self) {
-        if current_time() < self.course_correction_time {
-            return;
-        }
-        let target = vec2(0.0, -25000.0);
-        let dp = target - position();
+        let dp = self.target - position();
+        draw_line(position(), self.target, 0x880000);
         let err = velocity().normalize() - dp.normalize();
-        let mut acc =
+        let acc =
             dp.normalize() * max_forward_acceleration() - err * 10.0 * max_lateral_acceleration();
-        if velocity().length() > 2000.0 {
-            acc -= velocity();
-        }
+        activate_ability(Ability::Boost);
         turn(angle_diff(heading(), acc.angle()));
         accelerate(acc);
     }

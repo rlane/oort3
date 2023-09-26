@@ -7,7 +7,7 @@ pub struct PlanetaryDefense {
 }
 
 impl PlanetaryDefense {
-    const PLANET_HEALTH: f64 = 1.5e5;
+    const PLANET_HEALTH: f64 = 1.0e5;
     const SPAWN_DURATION: f64 = 60.0;
 
     pub fn new() -> Self {
@@ -85,7 +85,7 @@ impl Scenario for PlanetaryDefense {
             let bound = (sim.world_size() / 2.0) * 0.9;
             if self
                 .rng
-                .gen_bool(PHYSICS_TICK_LENGTH * (sim.time() / Self::SPAWN_DURATION) * 2.0)
+                .gen_bool(PHYSICS_TICK_LENGTH * (sim.time() / Self::SPAWN_DURATION) * 2.5)
             {
                 let mut ship_data = if self.rng.gen_bool(0.1) {
                     torpedo(1)
