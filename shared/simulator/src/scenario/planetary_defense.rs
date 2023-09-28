@@ -108,6 +108,31 @@ impl Scenario for PlanetaryDefense {
                 );
             }
         }
+
+        if let Some(&planet_handle) = sim
+            .ships
+            .iter()
+            .find(|&handle| sim.ship(*handle).data().class == ShipClass::Planet)
+        {
+            let s = format!(
+                "POP {:.1}B",
+                10.0 * sim.ship(planet_handle).data().health / Self::PLANET_HEALTH
+            );
+            let mut buf = [0u8; 11];
+            for (i, b) in s.bytes().enumerate() {
+                buf[i] = b;
+            }
+            sim.emit_drawn_text(
+                planet_handle,
+                &[oort_api::Text {
+                    x: -7e3,
+                    y: -21e3,
+                    color: 0xffffff,
+                    length: s.len() as u8,
+                    text: buf,
+                }],
+            );
+        }
     }
 
     fn status(&self, sim: &Simulation) -> Status {
