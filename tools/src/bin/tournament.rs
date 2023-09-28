@@ -55,6 +55,11 @@ enum SubCommand {
         scenario: String,
         out_dir: String,
     },
+    Write {
+        scenario: String,
+        username: String,
+        path: String,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -86,6 +91,11 @@ async fn main() -> anyhow::Result<()> {
         SubCommand::Fetch { scenario, out_dir } => {
             cmd_fetch(&args.project_id, &scenario, &out_dir).await
         }
+        SubCommand::Write {
+            scenario,
+            username,
+            path,
+        } => cmd_write(&args.project_id, &scenario, &username, &path).await,
     }
 }
 
@@ -389,5 +399,26 @@ async fn cmd_fetch(project_id: &str, scenario_name: &str, out_dir: &str) -> anyh
     }
     println!();
 
+    Ok(())
+}
+
+async fn cmd_write(
+    project_id: &str,
+    scenario_name: &str,
+    username: &str,
+    path: &str,
+) -> anyhow::Result<()> {
+    let db = FirestoreDb::new(project_id).await?;
+    let userid = format!("admin-{}", username);
+    let docid = format!("{}.{}", scenario_name, userid);
+    let code = std::fs::read_to_string(path)?;
+    let msg = TournamentSubmission {
+        userid,
+        username: username.to_owned(),
+        timestamp: Utc::now(),
+        scenario_name: scenario_name.to_owned(),
+        code,
+    };
+    db.create_obj("tournament", Some(docid), &msg, None).await?;
     Ok(())
 }
