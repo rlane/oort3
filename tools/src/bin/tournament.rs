@@ -32,7 +32,7 @@ enum SubCommand {
         scenario: String,
         usernames: Vec<String>,
 
-        #[clap(short, long)]
+        #[clap(short, long, default_value_t = 100)]
         rounds: i32,
 
         #[clap(short, long)]
@@ -42,7 +42,7 @@ enum SubCommand {
         scenario: String,
         shortcodes: Vec<String>,
 
-        #[clap(short, long)]
+        #[clap(short, long, default_value_t = 100)]
         rounds: i32,
 
         #[clap(short, long)]
