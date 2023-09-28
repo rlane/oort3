@@ -225,7 +225,7 @@ impl TeamController {
                 if length <= MAX_DRAWN_TEXT {
                     if let Some(texts) = WasmVm::read_vec::<Text>(&memory_view, offset, length) {
                         if validate_texts(&texts) {
-                            sim.emit_drawn_text(handle, &texts);
+                            sim.emit_drawn_text(Some(handle), &texts);
                         }
                     }
                 }

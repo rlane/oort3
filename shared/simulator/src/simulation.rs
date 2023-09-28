@@ -279,10 +279,10 @@ impl Simulation {
         }
     }
 
-    pub fn emit_drawn_text(&mut self, ship: ShipHandle, texts: &[Text]) {
+    pub fn emit_drawn_text(&mut self, ship: Option<ShipHandle>, texts: &[Text]) {
         self.events
             .drawn_text
-            .entry(ship.into())
+            .entry(ship.map(|x| x.into()))
             .or_default()
             .extend(texts.iter().cloned());
     }
@@ -443,7 +443,7 @@ pub struct SimEvents {
     pub particles: Vec<Particle>,
     pub debug_lines: Vec<(u64, Vec<Line>)>,
     pub debug_text: BTreeMap<u64, String>,
-    pub drawn_text: BTreeMap<u64, Vec<Text>>,
+    pub drawn_text: BTreeMap<Option<u64>, Vec<Text>>,
 }
 
 impl SimEvents {

@@ -21,7 +21,7 @@ pub struct Snapshot {
     pub cheats: bool,
     pub debug_lines: Vec<(u64, Vec<Line>)>,
     pub debug_text: BTreeMap<u64, String>,
-    pub drawn_text: BTreeMap<u64, Vec<Text>>,
+    pub drawn_text: BTreeMap<Option<u64>, Vec<Text>>,
     pub timing: Timing,
     pub world_size: f64,
 }

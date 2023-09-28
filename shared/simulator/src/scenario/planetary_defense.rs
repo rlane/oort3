@@ -123,7 +123,7 @@ impl Scenario for PlanetaryDefense {
                 buf[i] = b;
             }
             sim.emit_drawn_text(
-                planet_handle,
+                None,
                 &[oort_api::Text {
                     x: -7e3,
                     y: -21e3,

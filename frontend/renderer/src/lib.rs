@@ -181,12 +181,15 @@ impl Renderer {
 
         let text_drawset = {
             let mut texts: Vec<Text> = Vec::new();
+            if let Some(drawn_text) = snapshot.drawn_text.get(&None) {
+                texts.extend(drawn_text.iter().cloned());
+            }
             if self.debug {
                 for (_, drawn_text) in snapshot.drawn_text.iter() {
                     texts.extend(drawn_text.iter().cloned());
                 }
             } else if let Some(ship) = self.picked_ship {
-                if let Some(drawn_text) = snapshot.drawn_text.get(&ship) {
+                if let Some(drawn_text) = snapshot.drawn_text.get(&Some(ship)) {
                     texts.extend(drawn_text.iter().cloned());
                 }
             }
