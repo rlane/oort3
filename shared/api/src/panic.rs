@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::io::Cursor;
 use std::io::Write;
 use std::panic::PanicInfo;
@@ -20,7 +21,12 @@ fn panic_hook(info: &PanicInfo) {
         let file = location.file();
         let line = location.line();
         let column = location.column();
-        let payload = info.payload().downcast_ref::<&str>().unwrap();
+        let payload = info.payload();
+        let payload = payload
+            .downcast_ref::<&str>()
+            .map(|x| x as &dyn Display)
+            .or_else(|| payload.downcast_ref::<String>().map(|x| x as &dyn Display))
+            .expect("panic payload of type `&str` or `String`");
 
         const PREFIX: &str = "/tmp/oort-ai/ai/src/";
         let mut file = file.strip_prefix(PREFIX).unwrap_or(file);
