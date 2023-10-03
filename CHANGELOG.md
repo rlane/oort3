@@ -1,3 +1,6 @@
+- Fixed panic handler for String payloads (by @Easyoakland)
+- Added population counter to planetary_defense and increase difficulty.
+
 ### 0.65.0 - 2023-09-20
 
 - Added a second radio to fighters.

@@ -419,6 +419,7 @@ async fn cmd_write(
         scenario_name: scenario_name.to_owned(),
         code,
     };
-    db.create_obj("tournament", Some(docid), &msg, None).await?;
+    db.update_obj("tournament", docid, &msg, None, None, None)
+        .await?;
     Ok(())
 }
