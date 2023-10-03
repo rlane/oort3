@@ -1,3 +1,5 @@
+### 0.65.1 - 2023-10-02
+
 - Fixed panic handler for String payloads (by @Easyoakland)
 - Added population counter to planetary_defense and increase difficulty.
 
