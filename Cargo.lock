@@ -3832,9 +3832,9 @@ dependencies = [
 
 [[package]]
 name = "skillratings"
-version = "0.25.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82a9810ae02fd1f6d86c66fa7eebe1224576251ea9b0b62fa1f2ea29502599aa"
+checksum = "0216316e163efbae956e5f2aa3ff715186119ab8ffc0e4862c46990e23083f6e"
 
 [[package]]
 name = "slab"
