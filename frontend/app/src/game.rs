@@ -955,7 +955,7 @@ impl Game {
                         { "Average time: " }
                         {
                             if let Some(average_time) = summary.average_time {
-                                format!("{average_time:.2} seconds")
+                                format!("{average_time:.3} seconds")
                             } else {
                                 "none".to_string()
                             }
@@ -982,7 +982,7 @@ impl Game {
         html! {
             <div class="centered">
                 <h1>{ "Mission Complete" }</h1>
-                { "Time: " }{ format!("{score_time:.2}") }{ " seconds" }<br/>
+                { "Time: " }{ format!("{score_time:.3}") }{ " seconds" }<br/>
                 { "Code size: " }{ code_size }{ " bytes" }<br/><br/>
                 { background_status }<br/><br/>
                 <br/><br/>

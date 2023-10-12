@@ -91,7 +91,7 @@ async fn cmd_list(
                     ..
                 } => {
                     let time = if *success {
-                        format!("{:.2}s", time.unwrap_or_default())
+                        format!("{:.3}s", time.unwrap_or_default())
                     } else {
                         "failed".to_string()
                     };
@@ -140,7 +140,7 @@ async fn cmd_get(
                 println!("// User: {user}");
                 println!("// Scenario: {scenario_name}");
                 println!(
-                    "// Success: {} Time: {:.2}s Size: {}",
+                    "// Success: {} Time: {:.3}s Size: {}",
                     success,
                     time.unwrap_or_default(),
                     code_size
@@ -254,7 +254,7 @@ async fn cmd_top(
                 table.add_row(vec![
                     format!("{}", i + 1),
                     user.to_owned(),
-                    format!("{:.2}s", time.unwrap_or_default()),
+                    format!("{:.3}s", time.unwrap_or_default()),
                     docid.to_owned(),
                     datetime.format("%Y-%m-%d %H:%M:%S").to_string(),
                 ]);

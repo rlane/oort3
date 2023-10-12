@@ -146,8 +146,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         table.add_row(vec![
             old_msg.scenario_name.clone(),
             old_msg.username.clone(),
-            format!("{:.2}", old_msg.time),
-            format!("{:.2?}", new_msg.as_ref().map(|x| x.time)),
+            format!("{:.3}", old_msg.time),
+            format!("{:.3?}", new_msg.as_ref().map(|x| x.time)),
             docid.clone(),
         ]);
     }

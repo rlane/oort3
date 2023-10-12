@@ -43,7 +43,7 @@ async fn fetch_leaderboard(
             leaderboard.lowest_time.push(TimeLeaderboardRow {
                 userid: msg.userid.clone(),
                 username: Some(msg.username.clone()),
-                time: format!("{:.2}s", msg.time),
+                time: format!("{:.3}s", msg.time),
                 encrypted_code: oort_code_encryption::encrypt(&msg.code)?,
             });
         } else {
@@ -117,7 +117,7 @@ pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
         discord::send_message(
             discord::Channel::Leaderboard,
             format!(
-                "{} achieved leaderboard rank {} on scenario {} with time {:.2}s",
+                "{} achieved leaderboard rank {} on scenario {} with time {:.3}s",
                 obj.username,
                 new_rank.unwrap(),
                 obj.scenario_name,

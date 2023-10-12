@@ -95,7 +95,7 @@ async fn cmd_list(
             table.add_row(vec![
                 format!("{}", i + 1),
                 msg.username.to_owned(),
-                format!("{:.2}s", msg.time),
+                format!("{:.3}s", msg.time),
                 docid.to_owned(),
                 datetime.format("%Y-%m-%d %H:%M:%S").to_string(),
             ]);
@@ -166,7 +166,7 @@ async fn cmd_get(
         println!("// User: {}", msg.username);
         println!("// Scenario: {}", msg.scenario_name);
         println!("// Date: {datetime}");
-        println!("// Time: {:.2}s Size: {}", msg.time, msg.code_size);
+        println!("// Time: {:.3}s Size: {}", msg.time, msg.code_size);
         println!("{}", msg.code.trim());
     } else {
         let doc = db.get_doc("leaderboard", &docid, None).await?;

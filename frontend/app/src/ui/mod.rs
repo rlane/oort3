@@ -235,7 +235,7 @@ impl UI {
         match self.status {
             Status::Victory { team: 0 } => {
                 status_msgs.push(format!(
-                    "VICTORY in {:.2}s",
+                    "VICTORY in {:.3}s",
                     self.snapshot.as_ref().unwrap().time
                 ));
             }
