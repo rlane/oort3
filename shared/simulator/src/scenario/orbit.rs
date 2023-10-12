@@ -4,6 +4,9 @@ use super::prelude::*;
 use crate::ship::{ShipClass, ShipData};
 use crate::simulation::PHYSICS_TICK_LENGTH;
 
+const PLANET_MASS: f64 = 1.5e19;
+const G: f64 = 6.674e-11;
+
 pub struct Orbit {}
 
 impl Orbit {
@@ -21,13 +24,19 @@ impl Scenario for Orbit {
         "Orbit".into()
     }
 
-    fn init(&mut self, sim: &mut Simulation, _seed: u32) {
+    fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        let flip = seed % 2 == 1;
+        let seed = seed / 2;
+        let mut rng = new_rng(seed);
         for team in 0..2 {
             let t = team as f64 * 2.0 - 1.0;
+            let t = if flip { -t } else { t };
+            let r = rng.gen_range(11e3..20e3);
+            let s = (G * PLANET_MASS / r).sqrt();
             ship::create(
                 sim,
-                vector![t * 12000.0, 0.0],
-                vector![0.0, 350.0],
+                vector![t * r, 0.0],
+                vector![0.0, s],
                 0.5 * std::f64::consts::PI,
                 frigate(team),
             );
@@ -42,7 +51,7 @@ impl Scenario for Orbit {
                 class: ShipClass::Planet,
                 team: 2,
                 health: 1e9,
-                mass: 1e9,
+                mass: PLANET_MASS,
                 radar_cross_section: 1e6,
                 ..Default::default()
             },
@@ -50,9 +59,9 @@ impl Scenario for Orbit {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        let g = 10.0;
-
         let apply_gravity = |body: &mut RigidBody| {
+            let r = body.translation().norm();
+            let g = G * PLANET_MASS / (r * r);
             let acc = body.translation().normalize() * -g;
             let impulse = acc * body.mass() * PHYSICS_TICK_LENGTH;
             body.apply_impulse(impulse, true);
@@ -91,6 +100,6 @@ impl Scenario for Orbit {
     }
 
     fn world_size(&self) -> f64 {
-        40e3
+        80e3
     }
 }
