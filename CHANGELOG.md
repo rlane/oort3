@@ -1,3 +1,7 @@
+- Fixed docs for maxium radar width.
+- Increased the world size in the orbit scenario.
+- Randomized starting positions in the orbit scenario.
+
 ### 0.65.1 - 2023-10-02
 
 - Fixed panic handler for String payloads (by @Easyoakland)
