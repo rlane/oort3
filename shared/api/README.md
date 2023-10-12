@@ -73,7 +73,7 @@ Engine limits:
 ## Radar
 
 Radar in Oort is modeled as a beam that can be pointed in any direction and
-which has a beam width between 1/3600 to 1/16 of a circle. Enemy ships
+which has a beam width between 1/3600 to 1/4 of a circle. Enemy ships
 illuminated by this beam reflect an amount of energy proportional to their
 radar cross section (larger for larger ships). The radar can return one
 contact per tick. Any changes to radar heading/width/filtering take effect on
