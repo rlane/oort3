@@ -84,7 +84,7 @@ related to the signal strength.
 
 Basic operation:
 
-- [`set_radar_heading(angle: f64)`](prelude::set_radar_heading): Point the radar at the given heading, relative to the ship heading.
+- [`set_radar_heading(angle: f64)`](prelude::set_radar_heading): Point the radar at the given heading.
 - [`set_radar_width(width: f64)`](prelude::set_radar_width): Adjust the beam width (in radians).
 - [`scan() → Option<ScanResult>`](prelude::scan): Get the radar contact with the highest signal strength.
 - [`struct ScanResult { position: Vec2, velocity: Vec2, class: Class }`](prelude::ScanResult): Structure returned by [`scan`](prelude::scan).
