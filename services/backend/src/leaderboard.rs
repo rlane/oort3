@@ -32,7 +32,7 @@ async fn fetch_leaderboard(
                         FirestoreQueryDirection::Ascending,
                     ),
                 ])
-                .with_limit(10),
+                .with_limit(1000),
         )
         .await?;
 
