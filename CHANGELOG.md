@@ -1,3 +1,5 @@
+### 0.66.0 - 2023-10-12
+
 - Added a new tutorial_lead scenario between rotation and deflection.
 - Changed scenario time display to millisecond precision.
 - Fixed docs for maximum radar width.
