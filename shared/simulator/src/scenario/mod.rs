@@ -19,6 +19,7 @@ mod tutorial_cruiser;
 mod tutorial_deflection;
 mod tutorial_frigate;
 mod tutorial_guns;
+mod tutorial_lead;
 mod tutorial_missiles;
 mod tutorial_radar;
 mod tutorial_radio;
@@ -132,6 +133,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
             tutorial_acceleration2::TutorialAcceleration2::new(),
         )),
         "tutorial_rotation" => Some(Box::new(tutorial_rotation::TutorialRotation::new())),
+        "tutorial_lead" => Some(Box::new(tutorial_lead::TutorialLead::new())),
         "tutorial_deflection" => Some(Box::new(tutorial_deflection::TutorialDeflection::new())),
         "tutorial_radar" => Some(Box::new(tutorial_radar::TutorialRadar::new())),
         "tutorial_search" => Some(Box::new(tutorial_search::TutorialSearch::new())),
@@ -195,6 +197,7 @@ pub fn list() -> Vec<(String, Vec<String>)> {
                 "tutorial_acceleration",
                 "tutorial_acceleration2",
                 "tutorial_rotation",
+                "tutorial_lead",
                 "tutorial_deflection",
                 "tutorial_radar",
                 "tutorial_search",

@@ -52,7 +52,7 @@ impl Scenario for TutorialRotation {
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial_deflection".to_string())
+        Some("tutorial_lead".to_string())
     }
 
     fn previous_names(&self) -> Vec<String> {

@@ -1,11 +1,11 @@
 use super::prelude::*;
 
-pub struct TutorialDeflection {
+pub struct TutorialLead {
     ship_handle: Option<ShipHandle>,
     target_handle: Option<ShipHandle>,
 }
 
-impl TutorialDeflection {
+impl TutorialLead {
     pub fn new() -> Self {
         Self {
             ship_handle: None,
@@ -14,30 +14,34 @@ impl TutorialDeflection {
     }
 }
 
-impl Scenario for TutorialDeflection {
+impl Scenario for TutorialLead {
     fn name(&self) -> String {
-        "tutorial_deflection".into()
+        "tutorial_lead".into()
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 6: Deflection".into()
+        "Tutorial 5: Lead".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
+        let mut data = fighter_without_missiles_or_radar(0);
+        data.fuel = Some(0.0);
         self.ship_handle = Some(ship::create(
             sim,
             vector![0.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            fighter_without_missiles_or_radar(0),
+            data,
         ));
 
+        let d = 2000.0;
+        let l = 2000.0;
         let mut rng = new_rng(seed);
-        let mut target_data = fighter(1);
-        target_data.health *= 2.0;
-        let p = Rotation2::new(rng.gen_range(0.0..TAU)).transform_vector(&vector![1000.0, 0.0]);
-        let h = rng.gen_range(0.0..std::f64::consts::TAU);
-        let v = Rotation2::new(h).transform_vector(&vector![200.0, 0.0]);
+        let target_data = fighter(1);
+        let direction = Rotation2::new(rng.gen_range(0.0..TAU));
+        let p = direction.transform_vector(&vector![d, -l]);
+        let h = direction.angle() + PI / 2.0;
+        let v = Rotation2::new(h).transform_vector(&vector![400.0, 0.0]);
         self.target_handle = Some(ship::create(sim, p, v, h, target_data));
 
         let target_position = sim.ship(self.target_handle.unwrap()).position();
@@ -69,21 +73,14 @@ impl Scenario for TutorialDeflection {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![
-            builtin("tutorial/tutorial_deflection_initial"),
-            builtin("tutorial/tutorial_deflection_enemy"),
-        ]
+        vec![builtin("tutorial/tutorial_lead_initial"), builtin("empty")]
     }
 
     fn solution(&self) -> Code {
-        builtin("tutorial/tutorial_deflection_solution")
+        builtin("tutorial/tutorial_lead_solution")
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial_radar".to_string())
-    }
-
-    fn previous_names(&self) -> Vec<String> {
-        vec!["tutorial05".into()]
+        Some("tutorial_deflection".to_string())
     }
 }

@@ -14,7 +14,7 @@ impl Scenario for TutorialSearch {
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 7: Search".into()
+        "Tutorial 9: Search".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
@@ -59,7 +59,7 @@ impl Scenario for TutorialSearch {
     }
 
     fn next_scenario(&self) -> Option<String> {
-        Some("tutorial_missiles".to_string())
+        Some("tutorial_radio".to_string())
     }
 
     fn previous_names(&self) -> Vec<String> {

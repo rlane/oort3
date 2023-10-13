@@ -14,7 +14,7 @@ impl Scenario for TutorialRadar {
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 6: Radar".into()
+        "Tutorial 7: Radar".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
