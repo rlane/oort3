@@ -105,6 +105,10 @@ async fn main() -> anyhow::Result<()> {
             .map_err(|_| anyhow!("Uncommitted changes, halting release"))?;
     }
 
+    if !dry_run && !args.skip_github && !args.skip_git_checks {
+        sync_cmd_ok(&["git", "fetch"]).await?;
+    }
+
     let mut version = "unknown".to_string();
     let mut changelog = "unknown".to_string();
     let bump_version = !args.skip_version_bump;
