@@ -1,3 +1,7 @@
+- Fixed API docs for set_radar_heading.
+- Fixed loading code from leaderboard when linked to a file.
+- Removed ability to accelerate in the gunnery scenario.
+
 ### 0.66.0 - 2023-10-12
 
 - Added a new tutorial_lead scenario between rotation and deflection.
