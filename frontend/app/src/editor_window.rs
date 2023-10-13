@@ -120,6 +120,8 @@ impl Component for EditorWindow {
                         Err(e) => log::error!("load failed: {:?}", e),
                     }
                 });
+                self.linked = false;
+                self.set_read_only(false);
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-reload-file" => {
@@ -233,29 +235,17 @@ impl Component for EditorWindow {
                 self.file_handle = Some(file_handle);
                 self.linked = true;
                 context.link().send_message(Msg::CheckLinkedFile);
-                let editor_link = context.props().editor_link.clone();
-                editor_link.with_editor(|editor| {
-                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                    let options = monaco::sys::editor::IEditorOptions::from(empty());
-                    options.set_read_only(Some(true));
-                    ed.update_options(&options);
-                });
+                self.set_read_only(true);
                 false
             }
             Msg::UnlinkedFile => {
                 self.linked = false;
                 self.file_handle = None;
-                let editor_link = context.props().editor_link.clone();
-                editor_link.with_editor(|editor| {
-                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                    let options = monaco::sys::editor::IEditorOptions::from(empty());
-                    options.set_read_only(Some(false));
-                    ed.update_options(&options);
-                });
+                self.set_read_only(false);
                 false
             }
             Msg::CheckLinkedFile => {
-                if self.linked {
+                if self.linked && self.get_read_only() {
                     if let Some(file_handle) = self.file_handle.clone() {
                         let link = context.link().clone();
                         wasm_bindgen_futures::spawn_local(async move {
@@ -571,6 +561,24 @@ impl EditorWindow {
             });
         }
         self.folded = !self.folded;
+    }
+
+    fn set_read_only(&mut self, read_only: bool) {
+        self.editor_link.with_editor(|editor| {
+            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+            let options = monaco::sys::editor::IEditorOptions::from(empty());
+            options.set_read_only(Some(read_only));
+            ed.update_options(&options);
+        });
+    }
+
+    fn get_read_only(&self) -> bool {
+        self.editor_link
+            .with_editor(|editor| {
+                let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+                ed.get_raw_options().read_only().unwrap_or(false)
+            })
+            .unwrap_or(false)
     }
 }
 

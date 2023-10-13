@@ -1249,6 +1249,11 @@ impl Team {
     pub fn set_editor_text(&self, text: &str) {
         self.editor_link.with_editor(|editor| {
             editor.get_model().unwrap().set_value(text);
+
+            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+            let options = monaco::sys::editor::IEditorOptions::from(empty());
+            options.set_read_only(Some(false));
+            ed.update_options(&options);
         });
         // TODO trigger analyzer run
     }
@@ -1260,6 +1265,11 @@ impl Team {
             if let Some(view_state) = saved {
                 editor.as_ref().restore_view_state(&view_state);
             }
+
+            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
+            let options = monaco::sys::editor::IEditorOptions::from(empty());
+            options.set_read_only(Some(false));
+            ed.update_options(&options);
         });
         // TODO trigger analyzer run
     }
