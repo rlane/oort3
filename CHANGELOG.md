@@ -1,4 +1,6 @@
-- Fixed docs for maxium radar width.
+- Added a new tutorial_lead scenario between rotation and deflection.
+- Changed scenario time display to millisecond precision.
+- Fixed docs for maximum radar width.
 - Increased the world size in the orbit scenario.
 - Randomized starting positions in the orbit scenario.
 
