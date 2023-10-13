@@ -1,6 +1,6 @@
 [package]
 name = "oort_compiler"
-version = "0.66.0"
+version = "0.66.1"
 publish = false
 edition = "2021"
 

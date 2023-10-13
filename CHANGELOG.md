@@ -1,3 +1,5 @@
+### 0.66.1 - 2023-10-13
+
 - Fixed API docs for set_radar_heading.
 - Fixed loading code from leaderboard when linked to a file.
 - Removed ability to accelerate in the gunnery scenario.
