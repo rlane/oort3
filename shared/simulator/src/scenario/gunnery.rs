@@ -17,6 +17,7 @@ impl Scenario for GunneryScenario {
         ship_data.guns.pop();
         ship_data.missile_launchers.pop();
         ship_data.acceleration = vector![0.0, 0.0];
+        ship_data.fuel = Some(0.0);
         ship::create(
             sim,
             vector![-9000.0, 0.0],
