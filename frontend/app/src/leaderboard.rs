@@ -135,7 +135,7 @@ impl Component for Leaderboard {
             html! {
                 <div class="leaderboard">
                     <table>
-                        <tr><th colspan=3>{ "Leaderboard" }</th></tr>
+                        <tr><th colspan=4>{ "Leaderboard" }</th></tr>
                         <tr><th>{ "Rank" }</th><th>{ "User" }</th><th>{ "Time" }</th><th>{ "Encrypted Code" }</th></tr>
                         <tbody>{ for table_rows }</tbody>
                     </table>
