@@ -19,7 +19,7 @@ bincode = "1.3.3"
 chrono = "0.4.31"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
-flate2 = "1.0.27"
+flate2 = "1.0.28"
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 js-sys = "0.3.64"
 log = "0.4.20"
@@ -29,18 +29,18 @@ petname = "1.1.3"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_seeder = "0.2.3"
-regex = "1.9.5"
+regex = "1.10.0"
 serde_json = "1.0.107"
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "1.0.189", features = ["derive"] }
 wasm-bindgen = { version = "0.2.87", features = ["serde-serialize"] }
-yew = { version = "0.20.0", features = ["csr"] }
-yew-agent = "0.2.0"
+yew = { version = "0.21.0", features = ["csr"] }
+yew-agent = "0.3.0"
 gloo-render = "0.2.0"
 reqwasm = "0.5.0"
 wasm-bindgen-futures = "0.4.37"
 monaco = { version = "0.3.0", features = ["yew-components"] }
-yew-router = "0.17"
-sha2 = "0.10.7"
+yew-router = "0.18"
+sha2 = "0.10.8"
 gloo-utils = { version = "0.2.0", features = ["serde"] }
 gloo-timers = "0.3.0"
 serde-wasm-bindgen = "0.6"
