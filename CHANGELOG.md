@@ -1,3 +1,5 @@
+### 0.67.1 - 2023-10-13
+
 - Fixed leaderboard service sending Discord messages for ranks > 10.
 
 ### 0.67.0 - 2023-10-13
