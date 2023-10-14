@@ -10,7 +10,7 @@ console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 instant = { version = "0.1", features = ["wasm-bindgen"] }
 log = "0.4.20"
-yew-agent = "0.3.0"
+yew-agent = "0.2.0"
 ide = { version = "0.0.166", package = "ra_ap_ide" }
 cfg = { version = "0.0.166", package = "ra_ap_cfg" }
 ide_db = { version = "0.0.166", package = "ra_ap_ide_db" }
