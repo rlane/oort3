@@ -43,17 +43,18 @@ pub enum Telemetry {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct LeaderboardData {
     pub lowest_time: Vec<TimeLeaderboardRow>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct TimeLeaderboardRow {
     pub userid: String,
     pub username: Option<String>,
     pub time: String,
     pub encrypted_code: String,
+    pub timestamp: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

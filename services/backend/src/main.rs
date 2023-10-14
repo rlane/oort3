@@ -28,6 +28,9 @@ async fn main() {
         &oort_envelope::hashed_secret()
     );
 
+    let leaderboard_cache: leaderboard::SharedLeaderboardCache =
+        std::sync::Arc::new(leaderboard::LeaderboardCache::new());
+
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_origin(Any)
@@ -43,6 +46,7 @@ async fn main() {
             .route("/tournament/results/:id", get(tournament::get_results))
             .route("/leaderboard/:scenario_name", get(leaderboard::get))
             .route("/leaderboard", post(leaderboard::post))
+            .with_state(leaderboard_cache)
             .layer(cors)
             .layer(tower_http::trace::TraceLayer::new_for_http())
     };

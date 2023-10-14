@@ -1,5 +1,6 @@
 use crate::{discord, error, project_id, Error};
-use axum::extract::Path;
+use axum::debug_handler;
+use axum::extract::{Path, State};
 use axum::Json;
 use bytes::Bytes;
 use chrono::Utc;
@@ -40,12 +41,7 @@ async fn fetch_leaderboard(
 
     for doc in &docs {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
-            leaderboard.lowest_time.push(TimeLeaderboardRow {
-                userid: msg.userid.clone(),
-                username: Some(msg.username.clone()),
-                time: format!("{:.3}s", msg.time),
-                encrypted_code: oort_code_encryption::encrypt(&msg.code)?,
-            });
+            leaderboard.lowest_time.push(make_row(&msg));
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
         }
@@ -54,13 +50,30 @@ async fn fetch_leaderboard(
     Ok(leaderboard)
 }
 
-pub async fn get(Path(scenario_name): Path<String>) -> Result<Json<LeaderboardData>, Error> {
+pub fn make_row(submission: &LeaderboardSubmission) -> TimeLeaderboardRow {
+    TimeLeaderboardRow {
+        userid: submission.userid.clone(),
+        username: Some(submission.username.clone()),
+        time: format!("{:.3}s", submission.time),
+        encrypted_code: oort_code_encryption::encrypt(&submission.code).unwrap(),
+        timestamp: Some(submission.timestamp),
+    }
+}
+
+pub async fn get(
+    Path(scenario_name): Path<String>,
+    cache: State<SharedLeaderboardCache>,
+) -> Result<Json<LeaderboardData>, Error> {
     let db = FirestoreDb::new(&project_id()).await?;
-    let data: LeaderboardData = fetch_leaderboard(&db, &scenario_name).await?;
+    let data: LeaderboardData = cache.get(&db, &scenario_name).await?;
     Ok(Json(data))
 }
 
-pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
+#[debug_handler]
+pub async fn post(
+    cache: State<SharedLeaderboardCache>,
+    payload: Bytes,
+) -> Result<Json<LeaderboardData>, Error> {
     let db = FirestoreDb::new(&project_id()).await?;
 
     let payload = match oort_envelope::remove(payload.as_ref()) {
@@ -77,7 +90,7 @@ pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
     obj.timestamp = Utc::now();
     let path = format!("{}.{}", obj.scenario_name, obj.userid);
 
-    let old_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
+    let old_leaderboard = cache.get(&db, &obj.scenario_name).await?;
 
     if let Ok(existing_obj) = db
         .get_obj::<LeaderboardSubmission, _>("leaderboard", &path)
@@ -93,7 +106,9 @@ pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
     db.update_obj("leaderboard", &path, &obj, None, None, None)
         .await?;
 
-    let new_leaderboard = fetch_leaderboard(&db, &obj.scenario_name).await?;
+    cache.update(&obj.scenario_name, make_row(&obj)).await?;
+
+    let new_leaderboard = cache.get(&db, &obj.scenario_name).await?;
 
     let get_rank = |leaderboard: &LeaderboardData, userid: &str| -> Option<usize> {
         leaderboard
@@ -126,5 +141,101 @@ pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
         );
     }
 
+    // TODO: remove this
+    if rank_improved {
+        fn summarize_leaderboard(data: &LeaderboardData) -> String {
+            let mut s = String::new();
+            for (i, row) in data.lowest_time.iter().enumerate() {
+                s.push_str(&format!(
+                    "{:>3} {:>10} {:>10} {}\n",
+                    i + 1,
+                    row.userid,
+                    row.time,
+                    row.username.as_deref().unwrap_or(""),
+                ));
+            }
+            s
+        }
+        let expected_leaderboard_summary = summarize_leaderboard(&new_leaderboard);
+        let actual_leaderboard_summary =
+            summarize_leaderboard(&fetch_leaderboard(&db, &obj.scenario_name).await?);
+        if actual_leaderboard_summary != expected_leaderboard_summary {
+            log::warn!(
+                "Leaderboard cache mismatch:\nactual {:#?}\ncached {:#?}",
+                actual_leaderboard_summary,
+                expected_leaderboard_summary
+            );
+        }
+    }
+
     Ok(Json(new_leaderboard))
+}
+
+pub type SharedLeaderboardCache = std::sync::Arc<LeaderboardCache>;
+
+pub struct LeaderboardCache {
+    scenarios: tokio::sync::Mutex<std::collections::HashMap<String, LeaderboardCacheScenario>>,
+}
+
+struct LeaderboardCacheScenario {
+    timestamp: chrono::DateTime<Utc>,
+    leaderboard: LeaderboardData,
+}
+
+impl LeaderboardCache {
+    pub fn new() -> Self {
+        Self {
+            scenarios: tokio::sync::Mutex::new(std::collections::HashMap::new()),
+        }
+    }
+
+    pub async fn get(
+        &self,
+        db: &FirestoreDb,
+        scenario_name: &str,
+    ) -> Result<LeaderboardData, Error> {
+        if let Some(cached) = self.scenarios.lock().await.get(scenario_name) {
+            if cached.timestamp + chrono::Duration::minutes(1) > Utc::now() {
+                log::info!("Leaderboard cache hit for {}", scenario_name);
+                return Ok(cached.leaderboard.clone());
+            }
+        }
+        log::info!("Leaderboard cache miss for {}", scenario_name);
+        let leaderboard = fetch_leaderboard(db, scenario_name).await?;
+        self.scenarios.lock().await.insert(
+            scenario_name.to_owned(),
+            LeaderboardCacheScenario {
+                timestamp: Utc::now(),
+                leaderboard: leaderboard.clone(),
+            },
+        );
+        Ok(leaderboard)
+    }
+
+    pub async fn update(&self, scenario_name: &str, row: TimeLeaderboardRow) -> Result<(), Error> {
+        log::info!("Leaderboard cache update for {}", scenario_name);
+        let mut scenarios = self.scenarios.lock().await;
+        let cached = scenarios
+            .entry(scenario_name.to_owned())
+            .or_insert_with(|| LeaderboardCacheScenario {
+                timestamp: Utc::now(),
+                leaderboard: LeaderboardData::default(),
+            });
+        cached
+            .leaderboard
+            .lowest_time
+            .retain(|x| x.userid != row.userid);
+        cached.leaderboard.lowest_time.push(row);
+        cached
+            .leaderboard
+            .lowest_time
+            .sort_by_key(|x| (x.time.clone(), x.timestamp));
+        Ok(())
+    }
+}
+
+impl Default for LeaderboardCache {
+    fn default() -> Self {
+        Self::new()
+    }
 }
