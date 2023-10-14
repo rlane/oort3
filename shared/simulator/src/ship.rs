@@ -514,7 +514,8 @@ pub fn create(
         .translation(position)
         .linvel(velocity)
         .rotation(heading)
-        .ccd_enabled(true);
+        .ccd_enabled(true)
+        .can_sleep(false);
     if data.class == ShipClass::Planet {
         builder = builder.lock_translations()
     }
