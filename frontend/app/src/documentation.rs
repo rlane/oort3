@@ -176,7 +176,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
 
             <h2>{ "Miscellaneous" }</h2>
             <ul>
-              <li><code>{ "current_tick() → f64" }</code>{ ": Returns the number of ticks elapsed since the simulation started." }</li>
+              <li><code>{ "current_tick() → u32" }</code>{ ": Returns the number of ticks elapsed since the simulation started." }</li>
               <li><code>{ "current_time() → f64" }</code>{ ": Returns the number of seconds elapsed since the simulation started." }</li>
               <li><code>{ "angle_diff(a: f64, b: f64) → f64" }</code>{ ": Returns the shortest (possibly negative) distance between two angles." }</li>
               <li><code>{ "rand(low: f64, high: f64) → f64" }</code>{ ": Get a random number." }</li>
