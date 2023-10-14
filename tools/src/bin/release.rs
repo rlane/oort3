@@ -478,8 +478,8 @@ async fn main() -> anyhow::Result<()> {
                         "--cpu=1",
                         "--memory=1G",
                         "--timeout=20s",
-                        "--concurrency=1",
-                        "--max-instances=3",
+                        "--concurrency=10",
+                        "--max-instances=1",
                         &format!("--service-account=oort-backend-service@{project}.iam.gserviceaccount.com"),
                         &format!("--set-env-vars=PROJECT_ID={project}"),
                     ])
