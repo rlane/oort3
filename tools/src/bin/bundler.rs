@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser as _;
-use std::collections::HashMap;
+use notify::{RecursiveMode, Watcher};
+use std::{collections::HashMap, path::Path};
 
 #[derive(clap::Parser, Debug)]
 struct Arguments {
@@ -8,6 +9,9 @@ struct Arguments {
 
     #[clap(short, long)]
     output: String,
+
+    #[clap(short, long)]
+    watch: bool,
 }
 
 fn main() -> Result<()> {
@@ -16,25 +20,43 @@ fn main() -> Result<()> {
 
     let args = Arguments::parse();
 
-    let files = args
-        .files
-        .iter()
-        .map(|f| {
-            (
-                std::path::Path::new(f)
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_owned(),
-                std::fs::read_to_string(f).unwrap(),
-            )
-        })
-        .collect::<HashMap<_, _>>();
+    let (tx, rx) = std::sync::mpsc::channel();
 
-    let joined = oort_multifile::join(files)?;
+    let mut watcher = notify::recommended_watcher(move |res| match res {
+        Ok(_) => tx.send(()).unwrap(),
+        Err(e) => println!("watch error: {:?}", e),
+    })?;
+    for f in &args.files {
+        watcher.watch(Path::new(f), RecursiveMode::NonRecursive)?;
+    }
 
-    std::fs::write(&args.output, joined)?;
+    loop {
+        let files = args
+            .files
+            .iter()
+            .map(|f| {
+                (
+                    std::path::Path::new(f)
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_owned(),
+                    std::fs::read_to_string(f).unwrap(),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        let joined = oort_multifile::join(files)?;
+
+        std::fs::write(&args.output, joined)?;
+
+        if !args.watch {
+            break;
+        }
+
+        rx.recv().unwrap();
+    }
 
     Ok(())
 }
