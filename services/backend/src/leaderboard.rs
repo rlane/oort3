@@ -57,6 +57,7 @@ pub fn make_row(submission: &LeaderboardSubmission) -> TimeLeaderboardRow {
         time: format!("{:.3}s", submission.time),
         encrypted_code: oort_code_encryption::encrypt(&submission.code).unwrap(),
         timestamp: Some(submission.timestamp),
+        time_float: Some(submission.time),
     }
 }
 
@@ -221,7 +222,7 @@ impl LeaderboardCache {
         cached
             .leaderboard
             .lowest_time
-            .sort_by_key(|x| (x.time.clone(), x.timestamp));
+            .sort_by_key(|x| ((x.time_float.unwrap_or(1e6) * 1e6) as u64, x.timestamp));
         Ok(())
     }
 }
