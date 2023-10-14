@@ -1,3 +1,6 @@
+- Fixed a leaderboard sorting bug.
+- Fixed that usernames couldn't contain capital letters.
+
 ### 0.67.2 - 2023-10-13
 
 - Added caching to leaderboard service.
