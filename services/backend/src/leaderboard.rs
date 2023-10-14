@@ -113,7 +113,7 @@ pub async fn post(payload: Bytes) -> Result<Json<LeaderboardData>, Error> {
         _ => false,
     };
 
-    if rank_improved {
+    if rank_improved && new_rank.map(|x| x <= 10).unwrap_or(false) {
         discord::send_message(
             discord::Channel::Leaderboard,
             format!(
