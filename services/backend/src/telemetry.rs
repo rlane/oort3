@@ -26,13 +26,40 @@ pub async fn post(Json(mut obj): Json<TelemetryMsg>) -> Result<(), Error> {
     let docid = generate_docid();
     db.create_obj("telemetry", Some(&docid), &obj, None).await?;
     match obj.payload {
+        Telemetry::StartScenario { scenario_name, .. } => {
+            log::info!("User {} started scenario {}", obj.username, scenario_name);
+        }
+        Telemetry::FinishScenario {
+            scenario_name,
+            success,
+            time,
+            ..
+        } => {
+            if success {
+                log::info!(
+                    "User {} completed scenario {} in {}s",
+                    obj.username,
+                    scenario_name,
+                    time.unwrap_or_default(),
+                );
+            } else {
+                log::info!("User {} failed scenario {}", obj.username, scenario_name);
+            }
+        }
         Telemetry::Crash { msg } => {
+            log::info!("User {} reported crash {}: {}", obj.username, docid, msg);
             discord::send_message(
                 discord::Channel::Telemetry,
                 format!("User {} reported crash {}: {}", obj.username, docid, msg),
             );
         }
         Telemetry::SubmitToTournament { scenario_name, .. } => {
+            log::info!(
+                "User {} submitted AI {} to tournament scenario {}",
+                obj.username,
+                docid,
+                scenario_name
+            );
             discord::send_message(
                 discord::Channel::Telemetry,
                 format!(
@@ -42,6 +69,12 @@ pub async fn post(Json(mut obj): Json<TelemetryMsg>) -> Result<(), Error> {
             );
         }
         Telemetry::Feedback { text } => {
+            log::info!(
+                "User {} submitted feedback {}: {}",
+                obj.username,
+                docid,
+                text
+            );
             discord::send_message(
                 discord::Channel::Telemetry,
                 format!(
@@ -50,7 +83,6 @@ pub async fn post(Json(mut obj): Json<TelemetryMsg>) -> Result<(), Error> {
                 ),
             );
         }
-        _ => {}
     }
     Ok(())
 }
