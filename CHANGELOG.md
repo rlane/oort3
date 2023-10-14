@@ -1,3 +1,5 @@
+- Fixed leaderboard service sending Discord messages for ranks > 10.
+
 ### 0.67.0 - 2023-10-13
 
 - Fixed ship physics body sleeping.
