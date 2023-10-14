@@ -1,3 +1,5 @@
+### 0.67.4 - 2023-10-14
+
 - Fixed typo of math_rs in docs.
 - Fixed leaderboard header colspan.
 - Fixed docs for current_tick().
