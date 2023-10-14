@@ -170,7 +170,7 @@ impl LeaderboardCache {
         scenario_name: &str,
     ) -> Result<LeaderboardData, Error> {
         if let Some(cached) = self.scenarios.lock().await.get(scenario_name) {
-            if cached.timestamp + chrono::Duration::minutes(1) > Utc::now() {
+            if cached.timestamp + chrono::Duration::minutes(60) > Utc::now() {
                 log::info!("Leaderboard cache hit for {}", scenario_name);
                 return Ok(cached.leaderboard.clone());
             }
