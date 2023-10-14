@@ -1,3 +1,8 @@
+- Fixed typo of math_rs in docs.
+- Fixed leaderboard header colspan.
+- Fixed docs for current_tick().
+- Added more logging to services.
+
 ### 0.67.3 - 2023-10-14
 
 - Fixed a leaderboard sorting bug.
