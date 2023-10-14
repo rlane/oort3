@@ -106,7 +106,9 @@ pub async fn post(
     db.update_obj("leaderboard", &path, &obj, None, None, None)
         .await?;
 
-    cache.update(&obj.scenario_name, make_row(&obj)).await?;
+    cache
+        .update(&db, &obj.scenario_name, make_row(&obj))
+        .await?;
 
     let new_leaderboard = cache.get(&db, &obj.scenario_name).await?;
 
@@ -212,15 +214,32 @@ impl LeaderboardCache {
         Ok(leaderboard)
     }
 
-    pub async fn update(&self, scenario_name: &str, row: TimeLeaderboardRow) -> Result<(), Error> {
+    pub async fn update(
+        &self,
+        db: &FirestoreDb,
+        scenario_name: &str,
+        row: TimeLeaderboardRow,
+    ) -> Result<(), Error> {
         log::info!("Leaderboard cache update for {}", scenario_name);
+        let has_cache_entry = {
+            let scenarios = self.scenarios.lock().await;
+            scenarios.contains_key(scenario_name)
+        };
+
+        if !has_cache_entry {
+            let leaderboard = fetch_leaderboard(db, scenario_name).await?;
+            let mut scenarios = self.scenarios.lock().await;
+            scenarios.insert(
+                scenario_name.to_owned(),
+                LeaderboardCacheScenario {
+                    timestamp: Utc::now(),
+                    leaderboard,
+                },
+            );
+        }
+
         let mut scenarios = self.scenarios.lock().await;
-        let cached = scenarios
-            .entry(scenario_name.to_owned())
-            .or_insert_with(|| LeaderboardCacheScenario {
-                timestamp: Utc::now(),
-                leaderboard: LeaderboardData::default(),
-            });
+        let cached = scenarios.get_mut(scenario_name).unwrap();
         cached
             .leaderboard
             .lowest_time
