@@ -143,33 +143,6 @@ pub async fn post(
         );
     }
 
-    // TODO: remove this
-    if rank_improved {
-        fn summarize_leaderboard(data: &LeaderboardData) -> String {
-            let mut s = String::new();
-            for (i, row) in data.lowest_time.iter().enumerate() {
-                s.push_str(&format!(
-                    "{:>3} {:>10} {:>10} {}\n",
-                    i + 1,
-                    row.userid,
-                    row.time,
-                    row.username.as_deref().unwrap_or(""),
-                ));
-            }
-            s
-        }
-        let expected_leaderboard_summary = summarize_leaderboard(&new_leaderboard);
-        let actual_leaderboard_summary =
-            summarize_leaderboard(&fetch_leaderboard(&db, &obj.scenario_name).await?);
-        if actual_leaderboard_summary != expected_leaderboard_summary {
-            log::warn!(
-                "Leaderboard cache mismatch:\nactual {:#?}\ncached {:#?}",
-                actual_leaderboard_summary,
-                expected_leaderboard_summary
-            );
-        }
-    }
-
     Ok(Json(new_leaderboard))
 }
 
