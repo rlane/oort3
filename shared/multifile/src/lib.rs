@@ -2,8 +2,21 @@ use anyhow::bail;
 use std::collections::HashMap;
 
 pub fn join(mut files: HashMap<String, String>) -> Result<String, anyhow::Error> {
+    let re = regex::Regex::new(r"pub (struct|enum) Ship").unwrap();
+    let files_with_ship = files
+        .clone()
+        .into_iter()
+        .filter(|(_, v)| re.is_match(v))
+        .collect::<Vec<_>>();
+
     let lib = if let Some(src) = files.remove("lib.rs") {
         src
+    } else if let Some((k, _)) = files_with_ship.first().to_owned() {
+        if files_with_ship.len() == 1 {
+            files.remove(k.as_str()).unwrap()
+        } else {
+            bail!("Multiple files with Ship struct/enum");
+        }
     } else {
         bail!("No lib.rs found");
     };
@@ -62,6 +75,29 @@ fn foo() {}
 pub mod bar { // start multifile
 fn bar() {}
 } // end multifile
+"
+        );
+    }
+
+    #[test]
+    fn test_join_detect_main() {
+        let mut files = std::collections::HashMap::new();
+        files.insert(
+            "mainfile.rs".to_string(),
+            "mod foo;\npub mod bar;\npub struct Ship {}\n".to_string(),
+        );
+        files.insert("foo.rs".to_string(), "fn foo() {}".to_string());
+        files.insert("bar.rs".to_string(), "fn bar() {}".to_string());
+        assert_eq!(
+            super::join(files).unwrap(),
+            "\
+mod foo { // start multifile
+fn foo() {}
+} // end multifile
+pub mod bar { // start multifile
+fn bar() {}
+} // end multifile
+pub struct Ship {}
 "
         );
     }
