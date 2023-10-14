@@ -5,7 +5,7 @@ use regex::Regex;
 pub fn check(text: &str) -> Result<(), anyhow::Error> {
     lazy_static! {
         static ref RE: Regex =
-            Regex::new(r#"\b(unsafe|extern|crate)\b|\b(macro_rules|include|include_bytes|include_str)\b|([^']static\b|^static\b)"#).unwrap();
+            Regex::new(r#"\b(unsafe|extern|crate)\b|\b(macro_rules|include|include_bytes|include_str)(\b|!)|([^']static\b|^static\b)"#).unwrap();
     }
     if let Some(m) = RE.find(text) {
         return Err(anyhow!(
