@@ -1,3 +1,5 @@
+### 0.67.2 - 2023-10-13
+
 - Added caching to leaderboard service.
 
 ### 0.67.1 - 2023-10-13
