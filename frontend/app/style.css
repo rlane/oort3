@@ -265,6 +265,11 @@ td {
   color: #47cb47;
 }
 
+.leaderboard td.skip {
+  text-align: center;
+  font-style: italic;
+}
+
 div.welcome {
   margin-left: auto;
   margin-right: auto;

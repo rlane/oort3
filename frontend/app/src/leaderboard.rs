@@ -75,7 +75,7 @@ impl Component for Leaderboard {
             html! { <p>{ "Fetching leaderboard..." }</p> }
         } else if let Some(ref data) = self.data {
             let userid = userid::get_userid();
-            let render_time_row = |row: &TimeLeaderboardRow| -> Html {
+            let render_time_row = |rank: usize, row: &TimeLeaderboardRow| -> Html {
                 let class = (row.userid == userid).then_some("own-leaderboard-entry");
                 let copy_encrypted_code_cb = {
                     let text = row.encrypted_code.clone();
@@ -89,6 +89,7 @@ impl Component for Leaderboard {
                 };
                 html! {
                     <tr class={classes!(class)}>
+                        <td class="centered"><b>{ rank }</b></td>
                         <td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td>
                         <td>{ &row.time }</td>
                         <td>
@@ -99,12 +100,44 @@ impl Component for Leaderboard {
                 }
             };
 
+            let own_row_index = data
+                .lowest_time
+                .iter()
+                .position(|row| row.userid == userid)
+                .unwrap_or(std::usize::MAX - 1);
+
+            let mut table_rows = vec![];
+            let mut last_index = None;
+            for (i, row) in data.lowest_time.iter().enumerate() {
+                let rank = i + 1;
+                let add_entry = i < 10
+                    || i + 1 == own_row_index
+                    || i == own_row_index
+                    || i == own_row_index + 1;
+                if add_entry {
+                    if let Some(last_index) = last_index {
+                        if last_index + 1 != i {
+                            let skipped = i - (last_index + 1);
+                            table_rows.push(html! { <tr><td colspan=4 class="skip">{ "skipped " }{ skipped }{ " rows" }</td></tr> });
+                        }
+                    }
+                    table_rows.push(render_time_row(rank, row));
+                    last_index = Some(i);
+                }
+            }
+            if let Some(last_index) = last_index {
+                if last_index + 1 != data.lowest_time.len() {
+                    let skipped = data.lowest_time.len() - (last_index + 1);
+                    table_rows.push(html! { <tr><td colspan=4 class="skip">{ "skipped " }{ skipped }{ " rows" }</td></tr> });
+                }
+            }
+
             html! {
                 <div class="leaderboard">
                     <table>
                         <tr><th colspan=3>{ "Leaderboard" }</th></tr>
-                        <tr><th>{ "User" }</th><th>{ "Time" }</th><th>{ "Encrypted Code" }</th></tr>
-                        <tbody>{ for data.lowest_time.iter().map(render_time_row) }</tbody>
+                        <tr><th>{ "Rank" }</th><th>{ "User" }</th><th>{ "Time" }</th><th>{ "Encrypted Code" }</th></tr>
+                        <tbody>{ for table_rows }</tbody>
                     </table>
                 </div>
             }
