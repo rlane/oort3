@@ -1,3 +1,5 @@
+### 0.67.3 - 2023-10-14
+
 - Fixed a leaderboard sorting bug.
 - Fixed that usernames couldn't contain capital letters.
 
