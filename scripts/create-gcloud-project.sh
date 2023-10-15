@@ -31,7 +31,9 @@ while ! gcloud --project $PROJECT_ID artifacts repositories create services --re
 done
 
 gcloud --project $PROJECT_ID app create --region=$REGION
-gcloud --project $PROJECT_ID firestore databases update --type=firestore-native
+while ! gcloud --project $PROJECT_ID firestore databases update --type=firestore-native; do
+  sleep 10
+done
 
 (cd firebase && eval "$(fnm env)" && fnm use && npx firebase --project $PROJECT_ID projects:addfirebase $PROJECT_ID)
 
