@@ -462,7 +462,7 @@ async fn main() -> anyhow::Result<()> {
                     progress.set_message("pushing image");
                     sync_cmd_ok(&["docker", "push", &container_image]).await?;
 
-                    progress.set_message("deploying");
+                    progress.set_message("deploying service");
                     sync_cmd_ok(&[
                         "gcloud",
                         "--project",
@@ -484,6 +484,31 @@ async fn main() -> anyhow::Result<()> {
                         &format!("--set-env-vars=PROJECT_ID={project}"),
                     ])
                     .await?;
+
+                    progress.set_message("deploying jobs (rescore)");
+
+                    let _ = sync_cmd(&["gcloud", "--project", &project,
+                        "run", "jobs", "delete", "--quiet", "oort-rescore-job",]).await;
+                    sync_cmd_ok(&["gcloud", "--project", &project,
+                        "run", "jobs", "create", "oort-rescore-job",
+                        "--image", &container_image,
+                        "--args", "oort_backend_service,rescore",
+                        "--region", REGION,
+                        "--cpu=1",
+                        "--memory=1G",
+                        "--task-timeout=30m",
+                        &format!("--service-account=oort-backend-service@{project}.iam.gserviceaccount.com"),
+                        &format!("--set-env-vars=PROJECT_ID={project}"),
+                    ]).await?;
+                    let _ = sync_cmd(&["gcloud", "--project", &project,
+                        "scheduler", "jobs", "delete", "--quiet", "oort-rescore-scheduler",]).await;
+                    sync_cmd_ok(&["gcloud", "--project", &project,
+                        "scheduler", "jobs", "create", "http", "oort-rescore-scheduler",
+                        "--location", REGION,
+                        "--schedule", "5 8 * * *",
+                        "--http-method=POST",
+                        "--uri", &format!("https://{REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/{project}/jobs/oort-rescore-job:run"),
+                        "--oauth-service-account-email", &format!("oort-backend-service@{project}.iam.gserviceaccount.com")]).await?;
                 }
 
                 progress.finish_with_message("done");
