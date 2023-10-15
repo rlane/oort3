@@ -1,6 +1,6 @@
 [package]
 name = "oort_envelope"
-version = "0.68.2"
+version = "0.69.0"
 publish = false
 edition = "2021"
 

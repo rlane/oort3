@@ -1,3 +1,5 @@
+### 0.69.0 - 2023-10-15
+
 - Created a nightly job to rescore the leaderboards.
 
 ### 0.68.2 - 2023-10-15
