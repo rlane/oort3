@@ -1,3 +1,8 @@
+- Fixed numbering of radio and search tutorials.
+- Changed compiler service to return more appropriate HTTP status codes.
+- Allowed repr, inline, and must_use attributes in sanitizer.
+- Removed nonexistent vector cross product from quick reference.
+
 ### 0.68.0 - 2023-10-14
 
 - Added keybinding for slow motion.
