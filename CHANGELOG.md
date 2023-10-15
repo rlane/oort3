@@ -1,3 +1,5 @@
+- Created a nightly job to rescore the leaderboards.
+
 ### 0.68.2 - 2023-10-15
 
 - Allowed default attribute in sanitizer.
