@@ -17,16 +17,11 @@ pub fn check(text: &str) -> Result<(), Error> {
 
     lazy_static! {
         static ref ATTR_RE: Regex = Regex::new(r#"#!?\[([^\[\] ]*)"#).unwrap();
+        static ref ALLOWED_RE: Regex =
+            Regex::new(r#"derive|repr|inline|cfg\(test\)|test|must_use|default\b"#).unwrap();
     }
     for m in ATTR_RE.captures_iter(text) {
-        if m[1].starts_with("derive")
-            || m[1].starts_with("repr")
-            || m[1].starts_with("inline")
-            || &m[1] == "cfg(test)"
-            || &m[1] == "test"
-            || &m[1] == "must_use"
-            || &m[1] == "default"
-        {
+        if ALLOWED_RE.is_match(&m[1]) {
             continue;
         }
         return Err(error(
