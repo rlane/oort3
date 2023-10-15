@@ -1,3 +1,7 @@
+- Allowed default attribute in sanitizer.
+- Fixed building tools on ARM.
+- Fixed tools use of shortcode service.
+
 ### 0.68.1 - 2023-10-15
 
 - Fixed numbering of radio and search tutorials.
