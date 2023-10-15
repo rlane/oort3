@@ -1,3 +1,5 @@
+### 0.68.2 - 2023-10-15
+
 - Allowed default attribute in sanitizer.
 - Fixed building tools on ARM.
 - Fixed tools use of shortcode service.
