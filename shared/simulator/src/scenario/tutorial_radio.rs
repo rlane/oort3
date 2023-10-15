@@ -14,7 +14,7 @@ impl Scenario for TutorialRadio {
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 8: Radio".into()
+        "Tutorial 9: Radio".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {

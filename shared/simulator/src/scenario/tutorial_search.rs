@@ -14,7 +14,7 @@ impl Scenario for TutorialSearch {
     }
 
     fn human_name(&self) -> String {
-        "Tutorial 9: Search".into()
+        "Tutorial 8: Search".into()
     }
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
