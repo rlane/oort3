@@ -185,6 +185,7 @@ impl UI {
             self.quit = true;
         }
         let fast_forward = self.keys_down.contains("f");
+        let slowmo = self.keys_down.contains("m");
         if self.keys_down.contains("b") && !self.keys_ignored.contains("b") {
             self.keys_ignored.insert("b".to_string());
             self.renderer.set_blur(!self.renderer.get_blur());
@@ -196,12 +197,16 @@ impl UI {
             setting::write("nlips", &self.renderer.get_nlips());
         }
 
-        if !self.paused {
+        if !self.paused && !slowmo {
             self.physics_time += elapsed;
         }
 
         if self.status == Status::Running
-            && (!self.paused || self.single_steps > 0 || fast_forward || self.snapshot.is_none())
+            && (!self.paused
+                || self.single_steps > 0
+                || fast_forward
+                || slowmo
+                || self.snapshot.is_none())
         {
             let dt = std::time::Duration::from_secs_f64(simulation::PHYSICS_TICK_LENGTH);
             if fast_forward {
@@ -211,6 +216,9 @@ impl UI {
                 }
             } else if self.single_steps > 0 {
                 self.physics_time += dt;
+                self.update_snapshot();
+            } else if slowmo {
+                self.physics_time += dt / 10;
                 self.update_snapshot();
             } else {
                 self.update_snapshot();
