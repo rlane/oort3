@@ -1,3 +1,5 @@
+### 0.68.1 - 2023-10-15
+
 - Fixed numbering of radio and search tutorials.
 - Changed compiler service to return more appropriate HTTP status codes.
 - Allowed repr, inline, and must_use attributes in sanitizer.
