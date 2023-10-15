@@ -41,7 +41,7 @@ impl Default for Radar {
         Radar {
             heading: 0.0,
             width: TAU / 16.0,
-            min_width: TAU / 360.0,
+            min_width: TAU / 3600.0,
             max_width: TAU / 4.0,
             min_distance: 0.0,
             max_distance: 1e9,
