@@ -1038,4 +1038,74 @@ mod test {
         sim.ship_mut(ship0).fire(1);
         assert_eq!(sim.ships.len(), 3);
     }
+
+    #[test]
+    fn test_center_of_mass() {
+        for ship_data in [
+            super::fighter(0),
+            super::frigate(0),
+            super::cruiser(0),
+            super::missile(0),
+            super::torpedo(0),
+        ] {
+            let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+            let ship = ship::create(
+                &mut sim,
+                vector![0.0, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                ship_data,
+            );
+            let com = sim.ship(ship).body().center_of_mass().coords;
+            assert!(
+                com.magnitude() < 1e-6,
+                "class {:?} center of mass {:?}",
+                sim.ship(ship).data().class,
+                com
+            );
+        }
+    }
+
+    #[test]
+    fn test_rotate_in_place() {
+        for ship_data in [
+            super::fighter(0),
+            super::frigate(0),
+            super::cruiser(0),
+            super::missile(0),
+            super::torpedo(0),
+        ] {
+            let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+            let ship0 = ship::create(
+                &mut sim,
+                vector![0.0, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                ship_data,
+            );
+
+            let dist = sim.ship(ship0).position().vector.magnitude();
+            assert!(
+                dist < 1.0,
+                "class {:?} dist {}",
+                sim.ship(ship0).data().class,
+                dist
+            );
+
+            for _ in 0..10 {
+                sim.ship_mut(ship0).torque(6.28);
+                sim.step();
+                let dist = sim.ship(ship0).position().vector.magnitude();
+                assert!(
+                    dist < 1.0,
+                    "class {:?} dist {} tick {}",
+                    sim.ship(ship0).data().class,
+                    dist,
+                    sim.tick()
+                );
+            }
+        }
+    }
 }
