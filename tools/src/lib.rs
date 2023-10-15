@@ -18,7 +18,7 @@ pub async fn fetch_and_compile(
     let (compiler_url, shortcode_url) = if dev {
         ("http://localhost:8081", "http://localhost:8084")
     } else {
-        ("https://compiler.oort.rs", "https://shortcode.oort.rs")
+        ("https://compiler.oort.rs", "https://backend.oort.rs")
     };
 
     let wasm_cache = wasm_cache.and_then(|path| WasmCache::new(path.to_owned()));
