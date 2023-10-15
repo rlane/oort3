@@ -34,7 +34,7 @@ static_aabb2d_index = { version = "2.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
 wide = "0.7.12"
 
-[target.'cfg(target_arch = "x86_64")'.dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wasmer-compiler-singlepass = { version = "4.2.0" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
