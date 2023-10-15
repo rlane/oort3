@@ -14,7 +14,10 @@ struct Arguments {
 #[derive(Subcommand, Debug)]
 enum SubCommand {
     Serve,
-    Rescore,
+    Rescore {
+        #[clap(short = 'n', long)]
+        dry_run: bool,
+    },
 }
 
 #[tokio::main]
@@ -23,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
     let args = Arguments::parse();
     match args.cmd {
         SubCommand::Serve => serve().await,
-        SubCommand::Rescore => rescore::rescore().await,
+        SubCommand::Rescore { dry_run } => rescore::rescore(dry_run).await,
     }
 }
 
