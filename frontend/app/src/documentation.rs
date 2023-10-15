@@ -160,7 +160,6 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "v.rotate(f64) → Vec2" }</code>{ ": Rotate counter-clockwise." }</li>
               <li><code>{ "v.angle() → f64" }</code>{ ": Angle of a vector." }</li>
               <li><code>{ "v1.dot(v2: Vec2) → f64" }</code>{ ": Dot product." }</li>
-              <li><code>{ "v1.cross(v2: Vec2) → f64" }</code>{ ": Cross product." }</li>
               <li><code>{ "v1.distance(v2: Vec2) → f64" }</code>{ ": Distance between two points." }</li>
             </ul>
 
