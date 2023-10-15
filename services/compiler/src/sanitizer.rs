@@ -19,7 +19,11 @@ pub fn check(text: &str) -> Result<(), Error> {
         static ref ATTR_RE: Regex = Regex::new(r#"#!?\[([^\[\] ]*)"#).unwrap();
     }
     for m in ATTR_RE.captures_iter(text) {
-        if m[1].starts_with("derive") || &m[1] == "cfg(test)" || &m[1] == "test" {
+        if m[1].starts_with("derive")
+            || m[1].starts_with("repr")
+            || &m[1] == "cfg(test)"
+            || &m[1] == "test"
+        {
             continue;
         }
         return Err(error(
@@ -93,6 +97,11 @@ mod tests {
     #[test]
     fn cfg_test_attr() {
         assert!(check("... #[cfg(test)] ...").is_ok());
+    }
+
+    #[test]
+    fn repr_attr() {
+        assert!(check("... #[repr(u32)] ...").is_ok());
     }
 
     #[test]
