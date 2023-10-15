@@ -23,7 +23,10 @@ async fn post_compile(
 ) -> Result<Bytes, Error> {
     let permit = SEMAPHORE.try_acquire();
     if permit.is_err() {
-        Err(anyhow::anyhow!("Service overloaded"))?
+        return Err(error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Service overloaded".to_string(),
+        ));
     }
 
     if oort_code_encryption::is_encrypted(&code) {
