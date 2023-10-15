@@ -1,13 +1,33 @@
-use oort_backend_service::{leaderboard, project_id, shortcode, telemetry, tournament};
-
 use axum::Router;
+use clap::{Parser, Subcommand};
 use http::Method;
+use oort_backend_service::{leaderboard, project_id, rescore, shortcode, telemetry, tournament};
 use tower_http::cors::{Any, CorsLayer};
 
-#[tokio::main]
-async fn main() {
-    stackdriver_logger::init_with_cargo!();
+#[derive(Parser, Debug)]
+#[clap()]
+struct Arguments {
+    #[clap(subcommand)]
+    cmd: SubCommand,
+}
 
+#[derive(Subcommand, Debug)]
+enum SubCommand {
+    Serve,
+    Rescore,
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    stackdriver_logger::init_with_cargo!();
+    let args = Arguments::parse();
+    match args.cmd {
+        SubCommand::Serve => serve().await,
+        SubCommand::Rescore => rescore::rescore().await,
+    }
+}
+
+async fn serve() -> anyhow::Result<()> {
     let mut port: u16 = 8080;
     match std::env::var("PORT") {
         Ok(p) => {
@@ -51,8 +71,9 @@ async fn main() {
             .layer(tower_http::trace::TraceLayer::new_for_http())
     };
 
-    axum::Server::bind(&format!("0.0.0.0:{port}").parse().unwrap())
+    axum::Server::bind(&format!("0.0.0.0:{port}").parse()?)
         .serve(router.into_make_service())
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }

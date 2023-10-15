@@ -2572,6 +2572,7 @@ dependencies = [
  "axum",
  "bytes",
  "chrono",
+ "clap 4.4.6",
  "firestore",
  "gcloud-sdk",
  "http",

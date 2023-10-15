@@ -1,5 +1,6 @@
 pub mod discord;
 pub mod leaderboard;
+pub mod rescore;
 pub mod shortcode;
 pub mod telemetry;
 pub mod tournament;

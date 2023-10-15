@@ -40,8 +40,6 @@ fn main() -> Result<()> {
         log::info!("Missing secrets file");
     }
 
-    let services = [("compiler", 8081), ("backend", 8082)];
-
     std::env::set_var("COMPILER_URL", "http://localhost:8081");
     std::env::set_var("BACKEND_URL", "http://localhost:8082");
 
@@ -67,8 +65,11 @@ fn main() -> Result<()> {
     .wait()?;
 
     let mut children = vec![];
-    for (name, port) in services.iter() {
-        let child = cmd(&["cargo", "run", "-q", "-p", &format!("oort_{name}_service")])
+    let mut start_service = |name: &str, port: u16, extra_args: &[&str]| -> Result<()> {
+        let s = &format!("oort_{name}_service");
+        let mut c = vec!["cargo", "run", "-q", "-p", s];
+        c.extend(extra_args);
+        let child = cmd(&c)
             .env(
                 "RUST_LOG",
                 &format!("none,oort_{name}_service=debug,tower_http=trace"),
@@ -77,7 +78,11 @@ fn main() -> Result<()> {
             .env("PORT", &port.to_string())
             .spawn()?;
         children.push(ChildGuard(child));
-    }
+        Ok(())
+    };
+
+    start_service("compiler", 8081, &[])?;
+    start_service("backend", 8082, &["serve"])?;
 
     std::fs::create_dir_all("frontend/app/dist")?;
 
