@@ -25,7 +25,7 @@ fn find_gun_dps(mut ship_data: ship::ShipData, gun: i64) -> f64 {
     );
     let ship1 = ship::create(
         &mut sim,
-        vector![100.0, 0.0] + offset,
+        vector![200.0, 0.0] + offset,
         vector![0.0, 0.0],
         0.0,
         high_health_target(1),
