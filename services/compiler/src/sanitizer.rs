@@ -21,8 +21,10 @@ pub fn check(text: &str) -> Result<(), Error> {
     for m in ATTR_RE.captures_iter(text) {
         if m[1].starts_with("derive")
             || m[1].starts_with("repr")
+            || m[1].starts_with("inline")
             || &m[1] == "cfg(test)"
             || &m[1] == "test"
+            || &m[1] == "must_use"
         {
             continue;
         }
@@ -105,6 +107,16 @@ mod tests {
     }
 
     #[test]
+    fn inline_attr() {
+        assert!(check("... #[inline(always)] ...").is_ok());
+    }
+
+    #[test]
+    fn must_use_attr() {
+        assert!(check("... #[must_use] ...").is_ok());
+    }
+
+    #[test]
     fn path_attr() {
         assert!(check("... #[path = \"/dev/random\"] ...").is_err());
         assert!(check("... #[\npath = \"/dev/random\"] ...").is_err());
@@ -113,7 +125,7 @@ mod tests {
 
     #[test]
     fn other_attrs() {
-        assert!(check("... #[inline] ...").is_err());
+        assert!(check("... #[link] ...").is_err());
         assert!(check("... #![no_std] ...").is_err());
     }
 }
