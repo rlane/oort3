@@ -140,7 +140,9 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
 }
 
 async fn compile(http: &reqwest::Client, name: &str, source_code: &str) -> anyhow::Result<Code> {
-    let compiler_url = "https://compiler.oort.rs"; // TODO get from environment
+    let compiler_url =
+        std::env::var("COMPILER_URL").unwrap_or_else(|_| "https://compiler.oort.rs".to_string());
+    log::info!("Using compiler at {}", compiler_url);
 
     let response = http
         .post(&format!("{compiler_url}/compile"))

@@ -221,37 +221,37 @@ async fn main() -> anyhow::Result<()> {
         sync_cmd_ok(&["git", "tag", &format!("v{version}")]).await?;
     }
 
+    let backend_url = sync_cmd_ok(&[
+        "gcloud",
+        "--project",
+        &args.project,
+        "run",
+        "services",
+        "describe",
+        "oort-backend-service",
+        "--format=value(status.url)",
+    ])
+    .await?
+    .stdout_string();
+    std::env::set_var("BACKEND_URL", &backend_url);
+
+    let compiler_url = sync_cmd_ok(&[
+        "gcloud",
+        "--project",
+        &args.project,
+        "run",
+        "services",
+        "describe",
+        "oort-compiler-service",
+        "--format=value(status.url)",
+    ])
+    .await?
+    .stdout_string();
+
     let mut tasks = tokio::task::JoinSet::new();
 
     if args.components.contains(&Component::App) {
         let project: String = args.project.to_string();
-
-        let backend_url = sync_cmd_ok(&[
-            "gcloud",
-            "--project",
-            &project,
-            "run",
-            "services",
-            "describe",
-            "oort-backend-service",
-            "--format=value(status.url)",
-        ])
-        .await?
-        .stdout_string();
-        std::env::set_var("BACKEND_URL", &backend_url);
-
-        let compiler_url = sync_cmd_ok(&[
-            "gcloud",
-            "--project",
-            &project,
-            "run",
-            "services",
-            "describe",
-            "oort-compiler-service",
-            "--format=value(status.url)",
-        ])
-        .await?
-        .stdout_string();
         std::env::set_var("COMPILER_URL", &compiler_url);
 
         tasks.spawn(Retry::spawn(retry_strategy(), move || {
@@ -402,9 +402,11 @@ async fn main() -> anyhow::Result<()> {
     if args.components.contains(&Component::Backend) {
         let secrets = secrets.clone();
         let project = args.project.clone();
+        let compiler_url = compiler_url.clone();
         tasks.spawn(Retry::spawn(retry_strategy(), move || {
             let secrets = secrets.clone();
             let project = project.clone();
+            let compiler_url = compiler_url.clone();
             async move {
                 let progress = create_progress_bar("backend");
 
@@ -498,7 +500,7 @@ async fn main() -> anyhow::Result<()> {
                         "--memory=1G",
                         "--task-timeout=30m",
                         &format!("--service-account=oort-backend-service@{project}.iam.gserviceaccount.com"),
-                        &format!("--set-env-vars=PROJECT_ID={project}"),
+                        &format!("--set-env-vars=PROJECT_ID={project},COMPILER_URL={compiler_url}"),
                     ]).await?;
                     let _ = sync_cmd(&["gcloud", "--project", &project,
                         "scheduler", "jobs", "delete", "--quiet", "oort-rescore-scheduler",]).await;
