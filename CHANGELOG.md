@@ -1,3 +1,6 @@
+- Added keybinding for slow motion.
+- Changed fighter minimum radar width to match docs.
+
 ### 0.67.4 - 2023-10-14
 
 - Fixed typo of math_rs in docs.
