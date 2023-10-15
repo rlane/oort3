@@ -25,6 +25,7 @@ pub fn check(text: &str) -> Result<(), Error> {
             || &m[1] == "cfg(test)"
             || &m[1] == "test"
             || &m[1] == "must_use"
+            || &m[1] == "default"
         {
             continue;
         }
@@ -114,6 +115,11 @@ mod tests {
     #[test]
     fn must_use_attr() {
         assert!(check("... #[must_use] ...").is_ok());
+    }
+
+    #[test]
+    fn default_attr() {
+        assert!(check("... #[default] ...").is_ok());
     }
 
     #[test]
