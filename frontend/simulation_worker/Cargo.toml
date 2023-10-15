@@ -1,6 +1,6 @@
 [package]
 name = "oort_simulation_worker"
-version = "0.67.4"
+version = "0.68.0"
 edition = "2021"
 publish = false
 

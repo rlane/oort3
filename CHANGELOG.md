@@ -1,3 +1,5 @@
+### 0.68.0 - 2023-10-14
+
 - Added keybinding for slow motion.
 - Changed fighter minimum radar width to match docs.
 
