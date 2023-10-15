@@ -17,7 +17,9 @@ pub struct Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        log::error!("Internal server error: {:?}", self.err);
+        if self.status_code == StatusCode::INTERNAL_SERVER_ERROR {
+            log::error!("Internal server error: {:?}", self.err);
+        }
         (self.status_code, self.err.to_string()).into_response()
     }
 }
