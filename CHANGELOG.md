@@ -1,3 +1,5 @@
+### 0.70.0 - 2023-10-15
+
 - Enabled enhanced-determinism feature in Rapier.
 
 ### 0.69.0 - 2023-10-15
