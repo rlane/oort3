@@ -1,3 +1,10 @@
+- Optimized polygon drawing (by ByteRanger)
+- Changed ship error handling to leave the ship alive with its AI disabled.
+- Fixed scrolling of tournament results.
+- Fixed log message for out of gas errors.
+- Fixed comments for radar distance filter APIs.
+- Removed tournament button from planetary_defense.
+
 ### 0.70.0 - 2023-10-15
 
 - Enabled enhanced-determinism feature in Rapier.
