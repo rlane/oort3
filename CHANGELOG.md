@@ -1,3 +1,5 @@
+### 0.71.0 - 2023-10-16
+
 - Optimized polygon drawing (by ByteRanger)
 - Changed ship error handling to leave the ship alive with its AI disabled.
 - Fixed scrolling of tournament results.
