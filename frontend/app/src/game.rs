@@ -313,6 +313,15 @@ impl Component for Game {
                                 success: summary.failed_seeds.is_empty(),
                                 time: summary.average_time,
                             });
+                            if summary.failed_seeds.is_empty() {
+                                if let Some(average_time) = summary.average_time {
+                                    self.save_current_code(
+                                        context,
+                                        context.props().scenario.as_str(),
+                                        Some(format!("{:.3} seconds", average_time)),
+                                    );
+                                }
+                            }
                         }
                         true
                     }
