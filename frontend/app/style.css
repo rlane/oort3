@@ -356,6 +356,7 @@ b.error {
   padding: 1em;
   z-index: 100;
   overflow: scroll;
+  box-sizing: border-box;
 }
 
 #tournament_results table {
