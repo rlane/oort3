@@ -5,7 +5,8 @@
 // This is where the game becomes challenging! You'll need to lead the target
 // by firing towards where the target will be by the time the bullet gets there.
 //
-// Hint: target() + target_velocity() * t gives the position of the target after t seconds.
+// Hint1: target() + target_velocity() * t gives the position of the target after t seconds.
+// Hint2: function tick() is called 60 times per second. You can use TICK_LENGTH to get the time duration per tick.
 //
 // You can scale a vector by a number: vec2(a, b) * c == vec2(a * c, b * c)
 //
