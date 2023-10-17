@@ -924,16 +924,19 @@ pub mod dbg {
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
     pub fn draw_polygon(center: Vec2, radius: f64, sides: i32, angle: f64, color: u32) {
-        let mut angle = angle;
         let delta_angle = TAU / sides as f64;
-        let p = vec2(radius, 0.0);
+        let sin = delta_angle.sin();
+        let cos = delta_angle.cos();
+        let rotation: maths_rs::Mat2d = maths_rs::prelude::MatNew2::new(cos, -sin, sin, cos);
+        let mut p = vec2(radius, 0.0).rotate(angle);
         for _ in 0..sides {
+            let p2 = rotation * p;
             draw_line(
-                center + p.rotate(angle),
-                center + p.rotate(angle + delta_angle),
+                center + p,
+                center + p2,
                 color,
             );
-            angle += delta_angle;
+            p = p2;
         }
     }
 
