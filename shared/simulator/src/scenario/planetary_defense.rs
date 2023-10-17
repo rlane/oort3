@@ -161,10 +161,6 @@ impl Scenario for PlanetaryDefense {
         reference_ai()
     }
 
-    fn is_tournament(&self) -> bool {
-        true
-    }
-
     fn score_time(&self, sim: &Simulation) -> f64 {
         if let Some(&planet) = sim
             .ships
