@@ -12,7 +12,7 @@ fn test_panic() {
     let mut env = BTreeMap::new();
     env.insert("TESTCASE".to_string(), "panic".to_string());
     sim.update_environment(0, env);
-    ship::create(
+    let handle = ship::create(
         &mut sim,
         vector![0.0, 0.0],
         vector![0.0, 0.0],
@@ -22,6 +22,12 @@ fn test_panic() {
 
     testing_logger::setup();
     sim.step();
+
+    assert_eq!(
+        sim.events().debug_text.get(&handle.into()).unwrap(),
+        "Crashed: ship panicked at 'Panic!', lib.rs:17:24"
+    );
+
     testing_logger::validate(|captured_logs| {
         assert_eq!(captured_logs.len(), 1);
         assert_eq!(captured_logs[0].level, log::Level::Warn);
@@ -40,7 +46,7 @@ fn test_infinite_loop() {
     let mut env = BTreeMap::new();
     env.insert("TESTCASE".to_string(), "infinite_loop".to_string());
     sim.update_environment(0, env);
-    ship::create(
+    let handle = ship::create(
         &mut sim,
         vector![0.0, 0.0],
         vector![0.0, 0.0],
@@ -50,12 +56,18 @@ fn test_infinite_loop() {
 
     testing_logger::setup();
     sim.step();
+
+    assert_eq!(
+        sim.events().debug_text.get(&handle.into()).unwrap(),
+        "Crashed: Ship exceeded maximum number of instructions"
+    );
+
     testing_logger::validate(|captured_logs| {
         assert_eq!(captured_logs.len(), 1);
         assert_eq!(captured_logs[0].level, log::Level::Warn);
         assert_eq!(
             captured_logs[0].body,
-            "Ship exceeded maximum number of instructions and was destroyed"
+            "Ship exceeded maximum number of instructions"
         );
     });
 }

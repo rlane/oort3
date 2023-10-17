@@ -3,14 +3,17 @@ mod limiter;
 
 use crate::color;
 use crate::debug;
+use crate::rng::new_rng;
 use crate::ship::{ShipClass, ShipHandle};
-use crate::simulation::{Code, Simulation};
-use nalgebra::point;
+use crate::simulation::{Code, Particle, Simulation, PHYSICS_TICK_LENGTH};
+use nalgebra::{point, vector, Rotation2};
 use oort_api::{ActiveAbilities, Class, EcmMode, Line, SystemState, Text};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::f64::consts::TAU;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use wasmer::{imports, Instance, MemoryView, Module, Store, WasmPtr};
@@ -116,12 +119,34 @@ impl TeamController {
         for handle in handles {
             if let Err(e) = self.tick_ship(sim, handle) {
                 log::warn!("{}", e.msg);
-                sim.ship_mut(handle).explode();
+                sim.emit_debug_text(handle, format!("Crashed: {}", e.msg.clone()));
+                sim.ship_mut(handle).data_mut().crash_message = Some(e.msg);
             }
         }
     }
 
     fn tick_ship(&mut self, sim: &mut Simulation, handle: ShipHandle) -> Result<(), Error> {
+        if let Some(msg) = sim.ship(handle).data().crash_message.as_ref() {
+            sim.emit_debug_text(handle, format!("Crashed: {}", msg.clone()));
+            let mut rng = new_rng(sim.tick());
+            if rng.gen_range(0.0..1.0) < 0.2 {
+                let color = vector![0.5, 0.5, 0.9, rng.gen_range(0.5..1.0)];
+                let rot = Rotation2::new(rng.gen_range(0.0..TAU));
+                let speed = 300.0 * rng.gen_range(0.0..1.0);
+                let p = sim.ship(handle).position().vector;
+                let v =
+                    sim.ship(handle).body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
+                let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
+                sim.events.particles.push(Particle {
+                    position: p + offset,
+                    velocity: v,
+                    color,
+                    lifetime: 1.0,
+                });
+            }
+            return Ok(());
+        }
+
         let vm = &mut self.vm;
         let state = self.states.get_mut(&handle).unwrap();
 
@@ -153,8 +178,7 @@ impl TeamController {
                     let gas: i32 = ret[0].i32().unwrap();
                     if gas <= 0 {
                         return Err(Error {
-                            msg: "Ship exceeded maximum number of instructions and was destroyed"
-                                .to_string(),
+                            msg: "Ship exceeded maximum number of instructions".to_string(),
                         });
                     }
                 }
@@ -172,8 +196,7 @@ impl TeamController {
                     let msg = String::from_utf8_lossy(&vec[0..null_pos]).to_string();
                     if msg.is_empty() {
                         return Err(Error {
-                            msg: "Ship exceeded maximum number of instructions and was destroyed"
-                                .to_string(),
+                            msg: "Ship exceeded maximum number of instructions".to_string(),
                         });
                     } else {
                         return Err(Error { msg });
