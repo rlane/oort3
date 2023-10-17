@@ -170,7 +170,14 @@ impl TeamController {
                 ) {
                     let null_pos = vec.iter().position(|&x| x == 0).unwrap_or(vec.len());
                     let msg = String::from_utf8_lossy(&vec[0..null_pos]).to_string();
-                    return Err(Error { msg });
+                    if msg.is_empty() {
+                        return Err(Error {
+                            msg: "Ship exceeded maximum number of instructions and was destroyed"
+                                .to_string(),
+                        });
+                    } else {
+                        return Err(Error { msg });
+                    }
                 }
             }
 
