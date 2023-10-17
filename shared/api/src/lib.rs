@@ -578,26 +578,26 @@ mod api {
         write_system_state(SystemState::RadarWidth, width);
     }
 
-    /// Sets the minimum distance filter of the radar (in meters).
-    ///
-    /// It takes effect next tick.
+    /// Gets the current minimum distance filter of the radar (in meters).
     pub fn radar_min_distance() -> f64 {
         read_system_state(SystemState::RadarMinDistance)
     }
 
-    /// Gets the current minimum distance filter of the radar (in meters).
+    /// Sets the minimum distance filter of the radar (in meters).
+    ///
+    /// It takes effect next tick.
     pub fn set_radar_min_distance(dist: f64) {
         write_system_state(SystemState::RadarMinDistance, dist);
+    }
+
+    /// Gets the current maximum distance filter of the radar (in meters).
+    pub fn radar_max_distance() -> f64 {
+        read_system_state(SystemState::RadarMaxDistance)
     }
 
     /// Sets the maximum distance filter of the radar (in meters).
     ///
     /// It takes effect next tick.
-    pub fn radar_max_distance() -> f64 {
-        read_system_state(SystemState::RadarMaxDistance)
-    }
-
-    /// Gets the current maximum distance filter of the radar (in meters).
     pub fn set_radar_max_distance(dist: f64) {
         write_system_state(SystemState::RadarMaxDistance, dist);
     }
@@ -931,11 +931,7 @@ pub mod dbg {
         let mut p = vec2(radius, 0.0).rotate(angle);
         for _ in 0..sides {
             let p2 = rotation * p;
-            draw_line(
-                center + p,
-                center + p2,
-                color,
-            );
+            draw_line(center + p, center + p2, color);
             p = p2;
         }
     }
