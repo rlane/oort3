@@ -9,6 +9,10 @@ struct Arguments {
     release: bool,
 
     #[clap(long)]
+    /// Just build, don't serve.
+    build_only: bool,
+
+    #[clap(long)]
     /// Listen on all IP addresses.
     listen: bool,
 
@@ -64,45 +68,60 @@ fn main() -> Result<()> {
     .spawn()?
     .wait()?;
 
-    let mut children = vec![];
-    let mut start_service = |name: &str, port: u16, extra_args: &[&str]| -> Result<()> {
-        let s = &format!("oort_{name}_service");
-        let mut c = vec!["cargo", "run", "-q", "-p", s];
-        c.extend(extra_args);
-        let child = cmd(&c)
-            .env(
-                "RUST_LOG",
-                &format!("none,oort_{name}_service=debug,tower_http=trace"),
-            )
-            .env("PROJECT_ID", &args.project)
-            .env("PORT", &port.to_string())
-            .spawn()?;
-        children.push(ChildGuard(child));
-        Ok(())
-    };
-
-    start_service("compiler", 8081, &[])?;
-    start_service("backend", 8082, &["serve"])?;
-
     std::fs::create_dir_all("frontend/app/dist")?;
 
-    cmd(&[
-        "trunk",
-        "-v",
-        "serve",
-        "--dist",
-        "frontend/app/dist-debug",
-        "frontend/app/index.html",
-        "--watch=frontend",
-        "--watch=shared/builtin_ai/builtin-ai.tar.gz",
-        "--watch=shared/api",
-        "--watch=shared/simulator",
-        "--ignore=frontend/app/dist",
-        if args.release { "--release" } else { "" },
-        if args.listen { "--address=0.0.0.0" } else { "" },
-    ])
-    .spawn()?
-    .wait()?;
+    if args.build_only {
+        cmd(&[
+            "trunk",
+            "-v",
+            "build",
+            "--dist",
+            "frontend/app/dist-debug",
+            "frontend/app/index.html",
+            if args.release { "--release" } else { "" },
+        ])
+        .spawn()?
+        .wait()?;
+        return Ok(());
+    } else {
+        let mut children = vec![];
+        let mut start_service = |name: &str, port: u16, extra_args: &[&str]| -> Result<()> {
+            let s = &format!("oort_{name}_service");
+            let mut c = vec!["cargo", "run", "-q", "-p", s];
+            c.extend(extra_args);
+            let child = cmd(&c)
+                .env(
+                    "RUST_LOG",
+                    &format!("none,oort_{name}_service=debug,tower_http=trace"),
+                )
+                .env("PROJECT_ID", &args.project)
+                .env("PORT", &port.to_string())
+                .spawn()?;
+            children.push(ChildGuard(child));
+            Ok(())
+        };
+
+        start_service("compiler", 8081, &[])?;
+        start_service("backend", 8082, &["serve"])?;
+
+        cmd(&[
+            "trunk",
+            "-v",
+            "serve",
+            "--dist",
+            "frontend/app/dist-debug",
+            "frontend/app/index.html",
+            "--watch=frontend",
+            "--watch=shared/builtin_ai/builtin-ai.tar.gz",
+            "--watch=shared/api",
+            "--watch=shared/simulator",
+            "--ignore=frontend/app/dist",
+            if args.release { "--release" } else { "" },
+            if args.listen { "--address=0.0.0.0" } else { "" },
+        ])
+        .spawn()?
+        .wait()?;
+    }
 
     Ok(())
 }
