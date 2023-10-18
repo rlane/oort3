@@ -1,3 +1,5 @@
+### 0.72.0 - 2023-10-17
+
 - Added average time to versions tab (by ByteRanger).
 
 ### 0.71.0 - 2023-10-16
