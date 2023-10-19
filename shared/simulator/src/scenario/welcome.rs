@@ -1,4 +1,4 @@
-use crate::ship::{ShipClass, ShipData};
+use crate::ship::ShipClass;
 
 use super::prelude::*;
 use rand::seq::SliceRandom;
@@ -44,10 +44,7 @@ impl Scenario for Welcome {
             vector![2000.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            ShipData {
-                team: 0,
-                ..asteroid(1)
-            },
+            missile(0),
         );
     }
 
@@ -69,6 +66,15 @@ impl Scenario for Welcome {
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
                 asteroid(*asteroid_variants.choose(rng).unwrap()),
             );
+        }
+
+        // HACK
+        if sim.tick() == 0 {
+            if let Some(handle) = sim.ships.iter().cloned().find(|&x| {
+                sim.ship(x).data().team == 0 && sim.ship(x).data().class == ShipClass::Missile
+            }) {
+                sim.ships.remove(handle);
+            }
         }
     }
 
