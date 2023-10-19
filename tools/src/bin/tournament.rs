@@ -168,19 +168,19 @@ fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentRes
     let pairs: Vec<(i32, Vec<_>)> = (0..rounds)
         .flat_map(|round| (0..(ais.len())).permutations(2).map(move |x| (round, x)))
         .collect();
+    let progress = indicatif::ProgressBar::new(pairs.len() as u64);
     let outcomes: Vec<(i32, Vec<_>, Outcomes)> = pairs
         .par_iter()
         .map(|(round, indices)| {
             let seed = seeds[*round as usize];
             let ai0: &AI = &ais[indices[0]];
             let ai1: &AI = &ais[indices[1]];
-            (
-                *round,
-                indices.clone(),
-                run_simulation(scenario_name, seed, &[ai0, ai1]),
-            )
+            let r = run_simulation(scenario_name, seed, &[ai0, ai1]);
+            progress.inc(1);
+            (*round, indices.clone(), r)
         })
         .collect();
+    progress.finish_and_clear();
 
     for (round, indices, outcome) in outcomes {
         let i0 = indices[0];
