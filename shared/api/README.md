@@ -104,7 +104,7 @@ return contacts while ECM is enabled.
   - [`EcmMode::None`](prelude::EcmMode::None): No ECM, radar will operate normally.
   - [`EcmMode::Noise`](prelude::EcmMode::Noise): Decrease the enemy radar's signal to noise ratio,
     making it more difficult to detect targets and reducing accuracy of returned contacts.
-- [`radar_set_ecm_mode(mode: EcmMode)`](prelude::set_radar_ecm_mode): Set the ECM mode.
+- [`set_radar_ecm_mode(mode: EcmMode)`](prelude::set_radar_ecm_mode): Set the ECM mode.
 
 Retrieving current state:
 
@@ -229,9 +229,9 @@ The following crates are available for use in your code:
   - Weapon 3: Torpedo, Reload: 3s
 - [`Missile`](prelude::Class::Missile): Highly maneuverable but unarmored. Explodes on contact or after an [`explode`](prelude::explode) call.
   - Health: 20
-  - Fuel: 3600 m/s
-  - Acceleration: Forward: 180 m/s², Reverse: 0 m/s², Lateral: 50 m/s², Angular: 4π rad/s²
+  - Fuel: 2000 m/s
+  - Acceleration: Forward: 300 m/s², Reverse: 0 m/s², Lateral: 100 m/s², Angular: 4π rad/s²
 - [`Torpedo`](prelude::Class::Torpedo): Better armor, larger warhead, but less maneuverable than a missile. Explodes on contact or after an [`explode`](prelude::explode) call.
   - Health: 100
-  - Fuel: 4000 m/s
-  - Acceleration: Forward: 70 m/s², Reverse: 0 m/s², Lateral: 20 m/s², Angular: 4π rad/s²
+  - Fuel: 3000 m/s
+  - Acceleration: Forward: 70 m/s², Reverse: 0 m/s², Lateral: 20 m/s², Angular: 2π rad/s²
