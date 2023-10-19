@@ -55,9 +55,13 @@ pub fn make_row(submission: &LeaderboardSubmission) -> TimeLeaderboardRow {
         userid: submission.userid.clone(),
         username: Some(submission.username.clone()),
         time: format!("{:.3}s", submission.time),
-        encrypted_code: oort_code_encryption::encrypt(&submission.code).unwrap(),
+        encrypted_code: "".into(),
         timestamp: Some(submission.timestamp),
         time_float: Some(submission.time),
+        shortcode: Some(format!(
+            "leaderboard:{}:{}",
+            submission.username, submission.scenario_name
+        )),
     }
 }
 

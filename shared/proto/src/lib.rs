@@ -53,9 +53,10 @@ pub struct TimeLeaderboardRow {
     pub userid: String,
     pub username: Option<String>,
     pub time: String,
-    pub encrypted_code: String,
+    pub encrypted_code: String, // deprecated
     pub timestamp: Option<DateTime<Utc>>,
     pub time_float: Option<f64>,
+    pub shortcode: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

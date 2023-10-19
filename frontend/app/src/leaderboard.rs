@@ -77,23 +77,17 @@ impl Component for Leaderboard {
             let userid = userid::get_userid();
             let render_time_row = |rank: usize, row: &TimeLeaderboardRow| -> Html {
                 let class = (row.userid == userid).then_some("own-leaderboard-entry");
-                let copy_encrypted_code_cb = {
-                    let text = row.encrypted_code.clone();
-                    move |_| {
-                        crate::js::clipboard::write(&text);
-                    }
-                };
-                let play_cb = {
-                    let text = row.encrypted_code.clone();
-                    context.props().play_cb.reform(move |_| text.clone())
-                };
+                let shortcode = row
+                    .shortcode
+                    .clone()
+                    .unwrap_or_else(|| "MISSING".to_string());
+                let play_cb = context.props().play_cb.reform(move |_| shortcode.clone());
                 html! {
                     <tr class={classes!(class)}>
                         <td class="centered"><b>{ rank }</b></td>
                         <td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td>
                         <td>{ &row.time }</td>
                         <td>
-                            <a class="material-symbols-outlined" onclick={copy_encrypted_code_cb}>{ "content_copy" }</a>
                             <a class="material-symbols-outlined" onclick={play_cb}>{ "play_arrow" }</a>
                         </td>
                     </tr>

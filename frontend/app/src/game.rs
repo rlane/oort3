@@ -534,18 +534,25 @@ impl Component for Game {
         let leaderboard_window_host = gloo_utils::document()
             .get_element_by_id("leaderboard-window")
             .expect("a #leaderboard-window element");
-        let play_cb = context.link().batch_callback(|encrypted_code: String| {
-            vec![
-                Msg::ReplaceCode {
-                    team: 0,
-                    text: encrypted_code,
-                },
-                Msg::EditorAction {
-                    team: 0,
-                    action: "oort-execute".to_string(),
-                },
-            ]
-        });
+        let play_cb = {
+            let link = context.link().clone();
+            let navigator = context.link().navigator().unwrap();
+            let scenario_name = context.props().scenario.clone();
+            context.link().batch_callback(move |shortcode: String| {
+                let location = link.location().expect("location");
+                let mut query = query_params(&location);
+                query.player0 = Some(shortcode);
+                navigator
+                    .push_with_query(
+                        &crate::Route::Scenario {
+                            scenario: scenario_name.clone(),
+                        },
+                        &query,
+                    )
+                    .unwrap();
+                vec![Msg::Start]
+            })
+        };
 
         // For VersionsWindow.
         let versions_window_host = gloo_utils::document()
@@ -610,6 +617,10 @@ impl Component for Game {
         let props = context.props();
         if props == old_props {
             return false;
+        }
+
+        if props.player0 != old_props.player0 {
+            self.save_current_code(context, &props.scenario, None);
         }
 
         if props.scenario != old_props.scenario {
@@ -934,19 +945,26 @@ impl Game {
                     html! {}
                 }
             };
-            let play_cb = context.link().batch_callback(|encrypted_code: String| {
-                vec![
-                    Msg::ReplaceCode {
-                        team: 0,
-                        text: encrypted_code,
-                    },
-                    Msg::EditorAction {
-                        team: 0,
-                        action: "oort-execute".to_string(),
-                    },
-                    Msg::DismissOverlay,
-                ]
-            });
+
+            let play_cb = {
+                let link = context.link().clone();
+                let navigator = context.link().navigator().unwrap();
+                let scenario_name = context.props().scenario.clone();
+                context.link().batch_callback(move |shortcode: String| {
+                    let location = link.location().expect("location");
+                    let mut query = query_params(&location);
+                    query.player0 = Some(shortcode);
+                    navigator
+                        .push_with_query(
+                            &crate::Route::Scenario {
+                                scenario: scenario_name.clone(),
+                            },
+                            &query,
+                        )
+                        .unwrap();
+                    vec![Msg::Start, Msg::DismissOverlay]
+                })
+            };
             let leaderboard_submission = (leaderboard_eligible && summary.failed_seeds.is_empty())
                 .then(|| LeaderboardSubmission {
                     userid: userid::get_userid(),
