@@ -160,6 +160,7 @@ async fn cmd_run_unofficial(
 }
 
 fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentResults {
+    let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().gen()).collect();
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
@@ -170,7 +171,7 @@ fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentRes
     let outcomes: Vec<(i32, Vec<_>, Outcomes)> = pairs
         .par_iter()
         .map(|(round, indices)| {
-            let seed = *round as u32;
+            let seed = seeds[*round as usize];
             let ai0: &AI = &ais[indices[0]];
             let ai1: &AI = &ais[indices[1]];
             (
