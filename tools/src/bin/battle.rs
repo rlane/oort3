@@ -108,6 +108,7 @@ fn run_simulations(scenario_name: &str, codes: Vec<Code>, rounds: u32) -> Result
             scenario::Status::Victory { team: 0 } => results.team0_wins.push(seed),
             scenario::Status::Victory { team: 1 } => results.team1_wins.push(seed),
             scenario::Status::Draw => results.draws.push(seed),
+            scenario::Status::Failed => results.team1_wins.push(seed),
             _ => unreachable!(),
         }
         results.times.push(time);
