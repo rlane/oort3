@@ -1,3 +1,5 @@
+### 0.73.0 - 2023-10-18
+
 - Set radar minimum width to TAU/720 for fighters, missiles, and torpedos.
 - Randomized seeds for tournaments.
 - Added a progress bar to the tournament binary.
