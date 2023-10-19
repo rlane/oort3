@@ -538,10 +538,15 @@ impl Component for Game {
             let link = context.link().clone();
             let navigator = context.link().navigator().unwrap();
             let scenario_name = context.props().scenario.clone();
-            context.link().batch_callback(move |shortcode: String| {
+            context.link().batch_callback(move |args: (i32, String)| {
+                let (team, shortcode) = args;
                 let location = link.location().expect("location");
                 let mut query = query_params(&location);
-                query.player0 = Some(shortcode);
+                if team == 0 {
+                    query.player0 = Some(shortcode);
+                } else if team == 1 {
+                    query.player1 = Some(shortcode);
+                }
                 navigator
                     .push_with_query(
                         &crate::Route::Scenario {
@@ -550,7 +555,7 @@ impl Component for Game {
                         &query,
                     )
                     .unwrap();
-                vec![Msg::Start]
+                vec![]
             })
         };
 
@@ -626,6 +631,11 @@ impl Component for Game {
         if props.scenario != old_props.scenario {
             self.save_current_code(context, &old_props.scenario, None);
             self.change_scenario(context, &props.scenario, true);
+            return true;
+        }
+
+        if props.player0 != old_props.player0 || props.player1 != old_props.player1 {
+            context.link().send_message(Msg::Start);
             return true;
         }
 
@@ -950,10 +960,15 @@ impl Game {
                 let link = context.link().clone();
                 let navigator = context.link().navigator().unwrap();
                 let scenario_name = context.props().scenario.clone();
-                context.link().batch_callback(move |shortcode: String| {
+                context.link().batch_callback(move |args: (i32, String)| {
+                    let (team, shortcode) = args;
                     let location = link.location().expect("location");
                     let mut query = query_params(&location);
-                    query.player0 = Some(shortcode);
+                    if team == 0 {
+                        query.player0 = Some(shortcode);
+                    } else if team == 1 {
+                        query.player1 = Some(shortcode);
+                    }
                     navigator
                         .push_with_query(
                             &crate::Route::Scenario {
@@ -962,7 +977,7 @@ impl Game {
                             &query,
                         )
                         .unwrap();
-                    vec![Msg::Start, Msg::DismissOverlay]
+                    vec![Msg::DismissOverlay]
                 })
             };
             let leaderboard_submission = (leaderboard_eligible && summary.failed_seeds.is_empty())

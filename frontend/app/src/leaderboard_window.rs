@@ -5,7 +5,7 @@ use yew::{create_portal, function_component, html, Callback, Html, Properties};
 pub struct Props {
     pub host: web_sys::Element,
     pub scenario_name: String,
-    pub play_cb: Callback<String>,
+    pub play_cb: Callback<(i32, String)>,
 }
 
 #[function_component]

@@ -2,6 +2,7 @@ use crate::services;
 use crate::userid;
 use oort_proto::LeaderboardSubmission;
 use oort_proto::{LeaderboardData, TimeLeaderboardRow};
+use oort_simulator::scenario;
 use yew::prelude::*;
 
 #[derive(Debug)]
@@ -14,7 +15,7 @@ pub enum Msg {
 pub struct LeaderboardProps {
     pub scenario_name: String,
     pub submission: Option<LeaderboardSubmission>,
-    pub play_cb: Callback<String>,
+    pub play_cb: Callback<(i32, String)>,
 }
 
 pub struct Leaderboard {
@@ -75,20 +76,35 @@ impl Component for Leaderboard {
             html! { <p>{ "Fetching leaderboard..." }</p> }
         } else if let Some(ref data) = self.data {
             let userid = userid::get_userid();
+            let is_tournament = scenario::load_safe(&context.props().scenario_name)
+                .map(|scenario| scenario.is_tournament())
+                .unwrap_or(false);
             let render_time_row = |rank: usize, row: &TimeLeaderboardRow| -> Html {
                 let class = (row.userid == userid).then_some("own-leaderboard-entry");
                 let shortcode = row
                     .shortcode
                     .clone()
                     .unwrap_or_else(|| "MISSING".to_string());
-                let play_cb = context.props().play_cb.reform(move |_| shortcode.clone());
+                let make_play_cb = |team: i32| {
+                    let shortcode = shortcode.clone();
+                    context
+                        .props()
+                        .play_cb
+                        .reform(move |_| (team, shortcode.clone()))
+                };
                 html! {
                     <tr class={classes!(class)}>
                         <td class="centered"><b>{ rank }</b></td>
                         <td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td>
                         <td>{ &row.time }</td>
                         <td>
-                            <a class="material-symbols-outlined" onclick={play_cb}>{ "play_arrow" }</a>
+                            <a title="Play As" class="material-symbols-outlined" onclick={make_play_cb(0)}>{ "play_arrow" }</a>
+                            { if is_tournament { html! { <>
+                                { "\u{00a0}" }
+                                <a title="Play Against" class="material-symbols-outlined" onclick={make_play_cb(1)}>{ "swords" }</a>
+                            </> } } else {
+                                html! {}
+                            } }
                         </td>
                     </tr>
                 }
@@ -130,7 +146,7 @@ impl Component for Leaderboard {
                 <div class="leaderboard">
                     <table>
                         <tr><th colspan=4>{ "Leaderboard" }</th></tr>
-                        <tr><th>{ "Rank" }</th><th>{ "User" }</th><th>{ "Time" }</th><th>{ "Encrypted Code" }</th></tr>
+                        <tr><th>{ "Rank" }</th><th>{ "User" }</th><th>{ "Time" }</th><th>{ "Play" }</th></tr>
                         <tbody>{ for table_rows }</tbody>
                     </table>
                 </div>
