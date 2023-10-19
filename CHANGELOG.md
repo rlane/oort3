@@ -1,3 +1,11 @@
+- Set radar minimum width to TAU/720 for fighters, missiles, and torpedos.
+- Randomized seeds for tournaments.
+- Added a progress bar to the tournament binary.
+- Switched leaderboard links to use shortcodes for easy URL copying.
+- Replaced the leaderboard's copy button with a link to play against that AI.
+- Removed smoking asteroid from welcome scenario.
+- Fixed incorrect info and typos in the API docs.
+
 ### 0.72.0 - 2023-10-17
 
 - Added average time to versions tab (by ByteRanger).
