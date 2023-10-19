@@ -71,6 +71,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             results.draws.len(),
             &results.draws[..].iter().take(n).collect::<Vec<_>>()
         );
+        println!(
+            "  Times: {} {:?}",
+            results.times.len(),
+            &results.times[..]
+                .iter()
+                .take(n)
+                .map(|t| format!("{:.3}", t))
+                .collect::<Vec<_>>()
+        );
+        println!(
+            "  Average time: {:.3}",
+            results.times.iter().sum::<f64>() / results.times.len() as f64
+        );
     }
 
     Ok(())
@@ -81,29 +94,32 @@ struct Results {
     team0_wins: Vec<u32>,
     team1_wins: Vec<u32>,
     draws: Vec<u32>,
+    times: Vec<f64>,
 }
 
 fn run_simulations(scenario_name: &str, codes: Vec<Code>, rounds: u32) -> Results {
-    let seed_statuses: Vec<(u32, scenario::Status)> = (0..rounds)
+    let seed_statuses: Vec<(u32, (scenario::Status, f64))> = (0..rounds)
         .into_par_iter()
         .map(|seed| (seed, run_simulation(scenario_name, seed, codes.clone())))
         .collect();
     let mut results: Results = Default::default();
-    for (seed, status) in seed_statuses {
+    for (seed, (status, time)) in seed_statuses {
         match status {
             scenario::Status::Victory { team: 0 } => results.team0_wins.push(seed),
             scenario::Status::Victory { team: 1 } => results.team1_wins.push(seed),
             scenario::Status::Draw => results.draws.push(seed),
+            scenario::Status::Failed => results.team1_wins.push(seed),
             _ => unreachable!(),
         }
+        results.times.push(time);
     }
     results
 }
 
-fn run_simulation(scenario_name: &str, seed: u32, codes: Vec<Code>) -> scenario::Status {
+fn run_simulation(scenario_name: &str, seed: u32, codes: Vec<Code>) -> (scenario::Status, f64) {
     let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
     while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
         sim.step();
     }
-    sim.status()
+    (sim.status(), sim.score_time())
 }
