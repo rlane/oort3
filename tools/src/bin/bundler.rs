@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Parser as _;
 use notify::{RecursiveMode, Watcher};
 use std::{collections::HashMap, path::Path};
+use std::time::Duration;
 
 #[derive(clap::Parser, Debug)]
 struct Arguments {
@@ -56,6 +57,7 @@ fn main() -> Result<()> {
         }
 
         rx.recv().unwrap();
+        std::thread::sleep(Duration::from_millis(100));
     }
 
     Ok(())
