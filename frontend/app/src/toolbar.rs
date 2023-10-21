@@ -4,6 +4,8 @@ use wasm_bindgen::JsCast;
 use yew::events::Event;
 use yew::prelude::*;
 
+const CENSOR: bool = false;
+
 #[derive(Debug)]
 pub enum Msg {
     ChangeUsername(String),
@@ -30,7 +32,8 @@ impl Component for Toolbar {
         match msg {
             Msg::ChangeUsername(username) => {
                 let re = Regex::new(r"^[a-zA-Z0-9_-]+").unwrap();
-                if !re.is_match(&username) || censor::Censor::Standard.check(&username) {
+                if !re.is_match(&username) || (CENSOR && censor::Censor::Standard.check(&username))
+                {
                     return true;
                 }
                 let window = web_sys::window().expect("no global `window` exists");
