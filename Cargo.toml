@@ -17,6 +17,7 @@ members = [
     "services/compiler",
 
     "tools",
+    "bundler",
 ]
 
 [patch.crates-io]
