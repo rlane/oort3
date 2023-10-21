@@ -59,22 +59,30 @@ pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
     }
 }
 
-pub struct TeamController {
+pub struct ShipController {
     vm: WasmVm,
-    states: HashMap<ShipHandle, LocalSystemState>,
+    state: LocalSystemState,
+}
+
+pub struct TeamController {
+    code: Code,
+    environment: Environment,
+    ship_controllers: HashMap<ShipHandle, ShipController>,
     next_id: u32,
 }
 
 impl TeamController {
     pub fn create(code: &Code) -> Result<Box<TeamController>, Error> {
         Ok(Box::new(TeamController {
-            vm: WasmVm::create(code)?,
-            states: HashMap::new(),
+            code: code.clone(),
+            environment: Environment::new(),
+            ship_controllers: HashMap::new(),
             next_id: 1,
         }))
     }
 
     pub fn add_ship(&mut self, handle: ShipHandle, sim: &Simulation) -> Result<(), Error> {
+        let vm = WasmVm::create(&self.code)?;
         let mut state = LocalSystemState::new();
 
         state.set(
@@ -90,30 +98,32 @@ impl TeamController {
             state.set(SystemState::RadarMaxDistance, radar.max_distance);
         }
 
-        self.states.insert(handle, state);
+        vm.update_environment(&self.environment)?;
+
+        self.ship_controllers
+            .insert(handle, ShipController { vm, state });
 
         Ok(())
     }
 
     pub fn remove_ship(&mut self, handle: ShipHandle) {
-        self.states.remove(&handle);
-        let (index, _) = handle.0.into_raw_parts();
-        let index = index as i32;
-        self.vm
-            .reset_gas
-            .call(&mut self.vm.store_mut(), &[GAS_PER_TICK.into()])
-            .unwrap();
-        if let Err(e) = translate_runtime_error(
-            self.vm
-                .delete_ship
-                .call(self.vm.store_mut().deref_mut(), &[index.into()]),
-        ) {
-            log::warn!("Failed to delete ship: {:?}", e);
+        if let Some(ShipController { vm, .. }) = self.ship_controllers.remove(&handle) {
+            let (index, _) = handle.0.into_raw_parts();
+            let index = index as i32;
+            vm.reset_gas
+                .call(&mut vm.store_mut(), &[GAS_PER_TICK.into()])
+                .unwrap();
+            if let Err(e) = translate_runtime_error(
+                vm.delete_ship
+                    .call(vm.store_mut().deref_mut(), &[index.into()]),
+            ) {
+                log::warn!("Failed to delete ship: {:?}", e);
+            }
         }
     }
 
     pub fn tick(&mut self, sim: &mut Simulation) {
-        let mut handles: Vec<_> = self.states.keys().cloned().collect();
+        let mut handles: Vec<_> = self.ship_controllers.keys().cloned().collect();
         handles.sort_by_key(|x| x.0);
 
         for handle in handles {
@@ -147,8 +157,9 @@ impl TeamController {
             return Ok(());
         }
 
-        let vm = &mut self.vm;
-        let state = self.states.get_mut(&handle).unwrap();
+        let ship_controller = self.ship_controllers.get_mut(&handle).unwrap();
+        let vm = &mut ship_controller.vm;
+        let state = &mut ship_controller.state;
 
         {
             translate_runtime_error(
@@ -266,7 +277,11 @@ impl TeamController {
     }
 
     pub fn update_environment(&mut self, environment: &Environment) -> Result<(), Error> {
-        self.vm.update_environment(environment)
+        self.environment = environment.clone();
+        for ship_controller in self.ship_controllers.values_mut() {
+            ship_controller.vm.update_environment(environment)?;
+        }
+        Ok(())
     }
 }
 
