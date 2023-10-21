@@ -4,7 +4,7 @@ oort-rebuild-ai = "run --bin build-builtin-ais --"
 oort-serve = "run --bin serve --"
 oort-tournament = "run --bin tournament --"
 oort-compiler-loadtest = "run --bin compiler-loadtest -- --users 20 --run-time 2m --hatch-rate 100 --no-reset-metrics --no-scenario-metrics --no-transaction-metrics"
-oort-bundler = "run --bin bundler --"
+oort-bundler = "run --bin oort-bundler --"
 oort-rescore = "run --bin rescore --"
 
 [registries.crates-io]
