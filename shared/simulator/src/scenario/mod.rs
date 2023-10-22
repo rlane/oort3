@@ -27,6 +27,7 @@ mod tutorial_rotation;
 mod tutorial_search;
 mod tutorial_squadron;
 mod welcome;
+mod race;
 
 use crate::ship::{asteroid, fighter, ShipAccessor, ShipClass, ShipData};
 use crate::simulation::{Code, Line, Simulation};
@@ -157,6 +158,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         // Challenge
         "gunnery" => Some(Box::new(gunnery::GunneryScenario {})),
         "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
+        "race" => Some(Box::new(race::Race::new())),
         // Testing
         "test" => Some(Box::new(test::TestScenario {})),
         "basic" => Some(Box::new(test::BasicScenario {})),
@@ -208,7 +210,7 @@ pub fn list() -> Vec<(String, Vec<String>)> {
                 "tutorial_cruiser",
             ],
         ),
-        ("Challenge", vec!["gunnery", "planetary_defense"]),
+        ("Challenge", vec!["gunnery", "planetary_defense", "race"]),
         ("Tournament", vec!["fighter_duel", "mini_fleet"]),
         (
             "Future Tournaments",
