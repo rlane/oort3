@@ -1,3 +1,6 @@
+// TODO clean up error translation
+// TODO add methods to WasmVm for each exported function
+// TODO shift pointers according to headroom + base
 pub mod builtin;
 mod limiter;
 
@@ -21,6 +24,7 @@ use wasmer::{imports, Instance, MemoryView, Module, Store, WasmPtr};
 pub type Vec2 = nalgebra::Vector2<f64>;
 pub type Environment = BTreeMap<String, String>;
 
+const SUBMEMORY_SIZE: u32 = 1 << 20;
 const GAS_PER_TICK: i32 = 1_000_000;
 const MAX_DEBUG_LINES: u32 = 1024;
 const MAX_DRAWN_TEXT: u32 = 128;
@@ -46,6 +50,15 @@ impl From<wasmer::InstantiationError> for Error {
         }
     }
 }
+
+impl From<anyhow::Error> for Error {
+    fn from(err: anyhow::Error) -> Self {
+        Self {
+            msg: format!("VM error: {err:?}"),
+        }
+    }
+}
+
 pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
     match code {
         Code::Wasm(_) => TeamController::create(code),
@@ -59,23 +72,44 @@ pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
     }
 }
 
+pub struct ShipController {
+    index: u32,
+    state: LocalSystemState,
+    base_address: u32,
+    system_state_ptr: WasmPtr<u64>,
+    environment_ptr: WasmPtr<u8>,
+    panic_buffer_ptr: WasmPtr<u8>,
+}
+
 pub struct TeamController {
     vm: WasmVm,
-    states: HashMap<ShipHandle, LocalSystemState>,
+    ship_controllers: HashMap<ShipHandle, ShipController>,
     next_id: u32,
+    free_submemories: Vec<(u32, u32)>, // (index, base_address)
+    environment: Environment,
 }
 
 impl TeamController {
     pub fn create(code: &Code) -> Result<Box<TeamController>, Error> {
         Ok(Box::new(TeamController {
             vm: WasmVm::create(code)?,
-            states: HashMap::new(),
+            ship_controllers: HashMap::new(),
             next_id: 1,
+            free_submemories: Vec::new(),
+            environment: Environment::new(),
         }))
     }
 
     pub fn add_ship(&mut self, handle: ShipHandle, sim: &Simulation) -> Result<(), Error> {
         let mut state = LocalSystemState::new();
+
+        let (index, base_address) = {
+            if let Some((index, base_address)) = self.free_submemories.pop() {
+                (index, base_address)
+            } else {
+                self.vm.add_submemory()?
+            }
+        };
 
         state.set(
             SystemState::Seed,
@@ -90,19 +124,46 @@ impl TeamController {
             state.set(SystemState::RadarMaxDistance, radar.max_distance);
         }
 
-        self.states.insert(handle, state);
+        self.vm.select_submemory(index)?;
+        translate_runtime_error(
+            self.vm
+                .initialize
+                .call(self.vm.store_mut().deref_mut(), &[]),
+        )?;
+
+        let system_state_ptr: WasmPtr<u64> =
+            WasmPtr::new(base_address + self.vm.system_state_offset);
+        let environment_ptr: WasmPtr<u8> = WasmPtr::new(base_address + self.vm.environment_offset);
+        let panic_buffer_ptr: WasmPtr<u8> =
+            WasmPtr::new(base_address + self.vm.panic_buffer_offset);
+
+        self.vm
+            .update_environment(environment_ptr, &self.environment)?;
+
+        self.ship_controllers.insert(
+            handle,
+            ShipController {
+                index,
+                state,
+                base_address,
+                system_state_ptr,
+                environment_ptr,
+                panic_buffer_ptr,
+            },
+        );
 
         Ok(())
     }
 
     pub fn remove_ship(&mut self, handle: ShipHandle) {
-        self.states.remove(&handle);
+        let ship_controller = self.ship_controllers.remove(&handle).unwrap();
         let (index, _) = handle.0.into_raw_parts();
         let index = index as i32;
         self.vm
             .reset_gas
             .call(&mut self.vm.store_mut(), &[GAS_PER_TICK.into()])
             .unwrap();
+        self.vm.select_submemory(ship_controller.index).unwrap();
         if let Err(e) = translate_runtime_error(
             self.vm
                 .delete_ship
@@ -113,7 +174,7 @@ impl TeamController {
     }
 
     pub fn tick(&mut self, sim: &mut Simulation) {
-        let mut handles: Vec<_> = self.states.keys().cloned().collect();
+        let mut handles: Vec<_> = self.ship_controllers.keys().cloned().collect();
         handles.sort_by_key(|x| x.0);
 
         for handle in handles {
@@ -148,7 +209,8 @@ impl TeamController {
         }
 
         let vm = &mut self.vm;
-        let state = self.states.get_mut(&handle).unwrap();
+        let ship_controller = &mut self.ship_controllers.get_mut(&handle).unwrap();
+        let state = &mut ship_controller.state;
 
         {
             translate_runtime_error(
@@ -156,12 +218,14 @@ impl TeamController {
                     .call(vm.store_mut().deref_mut(), &[GAS_PER_TICK.into()]),
             )?;
 
+            vm.select_submemory(ship_controller.index)?;
+
             generate_system_state(sim, handle, state);
 
             let store = vm.store();
             let memory_view = vm.memory.view(store.deref());
-            let slice = vm
-                .system_state_ptr
+            let ptr = ship_controller.system_state_ptr;
+            let slice = ptr
                 .slice(&memory_view, SystemState::Size as u32)
                 .expect("system state write");
             slice.write_slice(&state.state).expect("system state write");
@@ -189,7 +253,7 @@ impl TeamController {
                 let memory_view = vm.memory.view(store.deref());
                 if let Some(vec) = WasmVm::read_vec(
                     &memory_view,
-                    vm.panic_buffer_ptr.offset(),
+                    ship_controller.panic_buffer_ptr.offset(),
                     oort_api::panic::PANIC_BUFFER_SIZE as u32,
                 ) {
                     let null_pos = vec.iter().position(|&x| x == 0).unwrap_or(vec.len());
@@ -210,8 +274,8 @@ impl TeamController {
         {
             let store = vm.store();
             let memory_view = vm.memory.view(store.deref());
-            let slice = vm
-                .system_state_ptr
+            let ptr = ship_controller.system_state_ptr;
+            let slice = ptr
                 .slice(&memory_view, SystemState::Size as u32)
                 .expect("system state read");
             slice
@@ -220,7 +284,8 @@ impl TeamController {
             apply_system_state(sim, handle, state);
 
             if state.get(SystemState::DebugTextLength) > 0.0 {
-                let offset = state.get(SystemState::DebugTextPointer) as u32;
+                let offset =
+                    state.get(SystemState::DebugTextPointer) as u32 + ship_controller.base_address;
                 let length = state.get(SystemState::DebugTextLength) as u32;
                 if let Some(s) = WasmVm::read_string(&memory_view, offset, length) {
                     sim.emit_debug_text(handle, s);
@@ -228,7 +293,8 @@ impl TeamController {
             }
 
             if state.get(SystemState::DebugLinesLength) > 0.0 {
-                let offset = state.get(SystemState::DebugLinesPointer) as u32;
+                let offset =
+                    state.get(SystemState::DebugLinesPointer) as u32 + ship_controller.base_address;
                 let length = state.get(SystemState::DebugLinesLength) as u32;
                 if length <= MAX_DEBUG_LINES {
                     if let Some(lines) = WasmVm::read_vec::<Line>(&memory_view, offset, length) {
@@ -250,7 +316,8 @@ impl TeamController {
             }
 
             if state.get(SystemState::DrawnTextLength) > 0.0 {
-                let offset = state.get(SystemState::DrawnTextPointer) as u32;
+                let offset =
+                    state.get(SystemState::DrawnTextPointer) as u32 + ship_controller.base_address;
                 let length = state.get(SystemState::DrawnTextLength) as u32;
                 if length <= MAX_DRAWN_TEXT {
                     if let Some(texts) = WasmVm::read_vec::<Text>(&memory_view, offset, length) {
@@ -266,7 +333,12 @@ impl TeamController {
     }
 
     pub fn update_environment(&mut self, environment: &Environment) -> Result<(), Error> {
-        self.vm.update_environment(environment)
+        self.environment = environment.clone();
+        for (_, ship_controller) in self.ship_controllers.iter_mut() {
+            self.vm
+                .update_environment(ship_controller.environment_ptr, environment)?;
+        }
+        Ok(())
     }
 }
 
@@ -274,13 +346,16 @@ impl TeamController {
 pub struct WasmVm {
     store: Rc<RefCell<wasmer::Store>>,
     memory: wasmer::Memory,
-    system_state_ptr: WasmPtr<u64>,
-    environment_ptr: WasmPtr<u8>,
-    panic_buffer_ptr: WasmPtr<u8>,
+    system_state_offset: u32,
+    environment_offset: u32,
+    panic_buffer_offset: u32,
+    initialize: wasmer::Function,
     tick_ship: wasmer::Function,
     delete_ship: wasmer::Function,
     reset_gas: wasmer::Function,
     get_gas: wasmer::Function,
+    add_submemory: wasmer::Function,
+    select_submemory: wasmer::Function,
 }
 
 impl WasmVm {
@@ -291,7 +366,8 @@ impl WasmVm {
         let mut store = Store::new(wasmer_compiler_cranelift::Cranelift::new());
         let module = match code {
             Code::Wasm(wasm) => {
-                let wasm = limiter::rewrite(wasm)?;
+                let wasm = wasm_submemory::rewrite(wasm, SUBMEMORY_SIZE)?;
+                let wasm = limiter::rewrite(&wasm)?;
                 translate_error(Module::new(&store, wasm))?
             }
             #[cfg(feature = "precompile")]
@@ -304,23 +380,18 @@ impl WasmVm {
         let instance = Instance::new(&mut store, &module, &import_object)?;
 
         let memory = translate_error(instance.exports.get_memory("memory"))?.clone();
-        let system_state_offset: i32 =
-            translate_error(instance.exports.get_global("SYSTEM_STATE"))?
-                .get(&mut store)
-                .i32()
-                .unwrap();
-        let system_state_ptr: WasmPtr<u64> = WasmPtr::new(system_state_offset as u32);
-        let environment_offset: i32 = translate_error(instance.exports.get_global("ENVIRONMENT"))?
+        let system_state_offset: u32 = translate_error(instance.exports.get_global("SYSTEM_STATE"))?
             .get(&mut store)
             .i32()
-            .unwrap();
-        let environment_ptr: WasmPtr<u8> = WasmPtr::new(environment_offset as u32);
-        let panic_buffer_offset: i32 =
-            translate_error(instance.exports.get_global("PANIC_BUFFER"))?
-                .get(&mut store)
-                .i32()
-                .unwrap();
-        let panic_buffer_ptr: WasmPtr<u8> = WasmPtr::new(panic_buffer_offset as u32);
+            .unwrap() as u32;
+        let environment_offset: u32 = translate_error(instance.exports.get_global("ENVIRONMENT"))?
+            .get(&mut store)
+            .i32()
+            .unwrap() as u32;
+        let panic_buffer_offset: u32 = translate_error(instance.exports.get_global("PANIC_BUFFER"))?
+            .get(&mut store)
+            .i32()
+            .unwrap() as u32;
 
         let initialize =
             translate_error(instance.exports.get_function("export_initialize"))?.clone();
@@ -329,20 +400,26 @@ impl WasmVm {
             translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
         let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
         let get_gas = translate_error(instance.exports.get_function("get_gas"))?.clone();
+        let add_submemory =
+            translate_error(instance.exports.get_function("add_submemory"))?.clone();
+        let select_submemory =
+            translate_error(instance.exports.get_function("select_submemory"))?.clone();
 
         translate_runtime_error(reset_gas.call(&mut store, &[GAS_PER_TICK.into()]))?;
-        translate_runtime_error(initialize.call(&mut store, &[]))?;
 
         Ok(WasmVm {
             store: Rc::new(RefCell::new(store)),
             memory,
-            system_state_ptr,
-            environment_ptr,
-            panic_buffer_ptr,
+            system_state_offset,
+            environment_offset,
+            panic_buffer_offset,
+            initialize,
             tick_ship,
             delete_ship,
             reset_gas,
             get_gas,
+            add_submemory,
+            select_submemory,
         })
     }
 
@@ -377,7 +454,7 @@ impl WasmVm {
         Some(src_slice.to_vec())
     }
 
-    fn update_environment(&self, environment: &Environment) -> Result<(), Error> {
+    fn update_environment(&self, ptr: WasmPtr<u8>, environment: &Environment) -> Result<(), Error> {
         let environment_string = environment
             .iter()
             .map(|(k, v)| format!("{}={}", k, v))
@@ -390,8 +467,7 @@ impl WasmVm {
         }
         let store = self.store_mut();
         let view = self.memory.view(&store);
-        let slice = self
-            .environment_ptr
+        let slice = ptr
             .slice(&view, environment_string.bytes().len() as u32)
             .ok()
             .unwrap();
@@ -399,6 +475,27 @@ impl WasmVm {
             .write_slice(environment_string.as_bytes())
             .ok()
             .unwrap();
+        Ok(())
+    }
+
+    fn add_submemory(&mut self) -> Result<(u32, u32), Error> {
+        let mut store = self.store_mut();
+        let ret = self.add_submemory.call(store.deref_mut(), &[]).unwrap(); // XXX;
+        match *ret {
+            [wasmer::Value::I32(index), wasmer::Value::I32(base_address)] => {
+                Ok((index as u32, base_address as u32))
+            }
+            _ => Err(Error {
+                msg: "unexpected add_submemory return value".to_string(),
+            }),
+        }
+    }
+
+    fn select_submemory(&mut self, index: u32) -> Result<(), Error> {
+        let mut store = self.store_mut();
+        self.select_submemory
+            .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)])
+            .unwrap(); // XXX;
         Ok(())
     }
 }
@@ -678,10 +775,11 @@ fn validate_texts(texts: &[Text]) -> bool {
 }
 
 #[cfg(feature = "precompile")]
-pub fn precompile(code: &[u8]) -> Result<Code, Error> {
-    let code = limiter::rewrite(code)?;
+pub fn precompile(wasm: &[u8]) -> Result<Code, Error> {
+    let wasm = wasm_submemory::rewrite(wasm, SUBMEMORY_SIZE)?;
+    let wasm = limiter::rewrite(&wasm)?;
     let store = Store::default();
-    let module = translate_error(Module::new(&store, code))?;
+    let module = translate_error(Module::new(&store, wasm))?;
     Ok(Code::Precompiled(translate_error(module.serialize())?))
 }
 

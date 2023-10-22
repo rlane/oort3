@@ -2668,6 +2668,7 @@ dependencies = [
 name = "oort_simulator"
 version = "0.74.1"
 dependencies = [
+ "anyhow",
  "approx",
  "bincode",
  "bitvec",
@@ -2700,6 +2701,7 @@ dependencies = [
  "walrus",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-submemory",
  "wasmer",
  "wasmer-compiler-cranelift",
  "wide",
@@ -4906,6 +4908,16 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "wasm-submemory"
+version = "0.1.0"
+source = "git+https://github.com/rlane/wasm-submemory?rev=3b0ee803d05f6a6ee6d3b904a0d43bb6b2c7ab68#3b0ee803d05f6a6ee6d3b904a0d43bb6b2c7ab68"
+dependencies = [
+ "anyhow",
+ "log",
+ "walrus",
 ]
 
 [[package]]
