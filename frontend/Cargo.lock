@@ -2075,6 +2075,7 @@ dependencies = [
 name = "oort_simulator"
 version = "0.73.0"
 dependencies = [
+ "anyhow",
  "bitvec",
  "bytes",
  "crossbeam",
@@ -2097,6 +2098,7 @@ dependencies = [
  "walrus",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-submemory",
  "wasmer",
  "wasmer-compiler-cranelift",
  "wide",
@@ -3902,6 +3904,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41763f20eafed1399fff1afb466496d3a959f58241436cfdc17e3f5ca954de16"
 dependencies = [
  "leb128",
+]
+
+[[package]]
+name = "wasm-submemory"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "walrus",
 ]
 
 [[package]]

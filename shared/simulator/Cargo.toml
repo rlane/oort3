@@ -33,6 +33,9 @@ bytes = { version = "1.5.0", features = ["serde"] }
 static_aabb2d_index = { version = "2.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
 wide = "0.7.12"
+#wasm-submemory = { version = "0.1.0", git = "https://github.com/rlane/wasm-submemory", rev = "bdc6c62097ca13d2d24a3e78dc0ca67b89e67415" }
+wasm-submemory = { version = "0.1.0", path = "../../../wasm-submemory" }
+anyhow = "1.0.75"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wasmer-compiler-cranelift = { version = "4.2.0" }
