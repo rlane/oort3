@@ -169,6 +169,11 @@ fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentRes
         .flat_map(|round| (0..(ais.len())).permutations(2).map(move |x| (round, x)))
         .collect();
     let progress = indicatif::ProgressBar::new(pairs.len() as u64);
+    progress.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("{wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
+            .unwrap(),
+    );
     let outcomes: Vec<(i32, Vec<_>, Outcomes)> = pairs
         .par_iter()
         .map(|(round, indices)| {
