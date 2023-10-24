@@ -38,13 +38,21 @@ impl Compiler {
     }
 
     pub fn compile(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
+        match detect_language(code) {
+            Language::Rust => self.compile_rust(code),
+            Language::C => self.compile_c(code),
+            Language::Unknown => bail!("Unknown language"),
+        }
+    }
+
+    pub fn compile_rust(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
         let tmp_path = &self.dir;
 
         // TODO return BAD_REQUEST on failure
         sanitizer::check(code)?;
 
         if std::fs::metadata(tmp_path.join("Cargo.toml")).is_ok() {
-            return self.compile_fast(code);
+            return self.compile_rust_fast(code);
         }
 
         std::fs::write(
@@ -108,10 +116,10 @@ impl Compiler {
             bail!("cargo failed: {}", std::str::from_utf8(&output.stderr)?);
         }
 
-        self.compile_fast(code)
+        self.compile_rust_fast(code)
     }
 
-    pub fn compile_fast(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
+    pub fn compile_rust_fast(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
         let tmp_path = &self.dir;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
         let rustc_bin_dir = Path::new(&self.rustc).parent().unwrap();
@@ -173,6 +181,31 @@ impl Compiler {
             "target/wasm32-unknown-unknown/release/oort_ai.wasm",
         ))?)
     }
+
+    pub fn compile_c(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
+        let tmp_path = &self.dir;
+        let src_path = tmp_path.join("user.c");
+        let dst_path = tmp_path.join("user.wasm");
+        std::fs::write(&src_path, code.as_bytes())?;
+
+        let output = std::process::Command::new("clang")
+            .args([
+                "--target=wasm32-unknown-unknown",
+                "-Oz",
+                "-nostdlib",
+                "-Wl,--export-all",
+                "-Wl,--no-entry",
+                src_path.as_os_str().to_str().unwrap(),
+                "-o",
+                dst_path.as_os_str().to_str().unwrap(),
+            ])
+            .output()?;
+        if !output.status.success() {
+            bail!("clang failed: {}", std::str::from_utf8(&output.stderr)?);
+        }
+
+        Ok(std::fs::read(&dst_path)?)
+    }
 }
 
 fn find_rlib(tmp_path: &Path, crate_name: &str) -> PathBuf {
@@ -209,5 +242,23 @@ fn find_rustc() -> String {
             std::str::from_utf8(&output.stderr).unwrap()
         );
         "rustc".to_string()
+    }
+}
+
+enum Language {
+    Rust,
+    C,
+    Unknown,
+}
+
+fn detect_language(code: &str) -> Language {
+    log::info!("Code: {:?}", code);
+    if code.contains("void tick()") {
+        log::info!("Detected C");
+        Language::C
+    } else if code.contains("impl Ship") {
+        Language::Rust
+    } else {
+        Language::Unknown
     }
 }
