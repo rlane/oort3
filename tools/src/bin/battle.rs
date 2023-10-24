@@ -1,6 +1,7 @@
 use clap::Parser;
 use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
+use oort_tools::AI;
 use rayon::prelude::*;
 use std::default::Default;
 use std::path::PathBuf;
@@ -19,6 +20,9 @@ struct Arguments {
 
     #[clap(long, default_value = "/tmp/oort-wasm-cache")]
     wasm_cache: Option<PathBuf>,
+
+    #[clap(long)]
+    local_compiler: bool,
 }
 
 #[tokio::main]
@@ -33,14 +37,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     log::info!("Compiling AIs");
-    let http = reqwest::Client::new();
-    let ais = oort_tools::fetch_and_compile_multiple(
-        &http,
-        &args.shortcodes,
-        args.dev,
-        args.wasm_cache.as_deref(),
-    )
-    .await?;
+    let ais = if args.local_compiler {
+        let mut compiler = oort_compiler::Compiler::new();
+        args.shortcodes
+            .iter()
+            .map(|x| {
+                let src = std::fs::read_to_string(x).unwrap();
+                let wasm = compiler.compile(&src).unwrap();
+                AI {
+                    name: x.clone(),
+                    source_code: src,
+                    compiled_code: Code::Wasm(wasm),
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        let http = reqwest::Client::new();
+        oort_tools::fetch_and_compile_multiple(
+            &http,
+            &args.shortcodes,
+            args.dev,
+            args.wasm_cache.as_deref(),
+        )
+        .await?
+    };
 
     log::info!("Running simulations");
     let player0 = &ais[0];
