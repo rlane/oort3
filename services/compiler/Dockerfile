@@ -22,6 +22,8 @@ RUN \
 
 # service
 FROM rust:1.68.0-slim-buster
+RUN apt-get -y update && apt-get -y install clang-13 lld-13 && rm -rf /var/lib/apt/lists/*
+RUN ln -s /usr/bin/clang-13 /usr/bin/clang
 RUN rustup target add wasm32-unknown-unknown
 RUN rustup component add rustfmt
 RUN useradd -m app
