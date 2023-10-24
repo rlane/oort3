@@ -24,7 +24,7 @@ use wasmer::{imports, Instance, MemoryView, Module, Store, WasmPtr};
 pub type Vec2 = nalgebra::Vector2<f64>;
 pub type Environment = BTreeMap<String, String>;
 
-const SUBMEMORY_SIZE: u64 = 1 << 20;
+const SUBMEMORY_SIZE: u32 = 1 << 20;
 const GAS_PER_TICK: i32 = 1_000_000;
 const MAX_DEBUG_LINES: u32 = 1024;
 const MAX_DRAWN_TEXT: u32 = 128;
