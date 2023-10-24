@@ -57,7 +57,7 @@ serial_test = "2.0.0"
 [features]
 default = ["sys"]
 sys = ["wasmer/sys-default"]
-js = ["wasmer/js", "wasmer/wat", "wasmer/std"]
+js = ["wasmer/js", "wasmer/wat", "wasmer/std", "wasmer/wasm-types-polyfill"]
 precompile = []
 
 [[bench]]
