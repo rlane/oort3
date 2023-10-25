@@ -125,11 +125,6 @@ impl TeamController {
         }
 
         self.vm.select_submemory(index)?;
-        translate_runtime_error(
-            self.vm
-                .initialize
-                .call(self.vm.store_mut().deref_mut(), &[]),
-        )?;
 
         let system_state_ptr: WasmPtr<u64> =
             WasmPtr::new(base_address + self.vm.system_state_offset);
@@ -157,20 +152,11 @@ impl TeamController {
 
     pub fn remove_ship(&mut self, handle: ShipHandle) {
         let ship_controller = self.ship_controllers.remove(&handle).unwrap();
-        let (index, _) = handle.0.into_raw_parts();
-        let index = index as i32;
         self.vm
             .reset_gas
             .call(&mut self.vm.store_mut(), &[GAS_PER_TICK.into()])
             .unwrap();
         self.vm.select_submemory(ship_controller.index).unwrap();
-        if let Err(e) = translate_runtime_error(
-            self.vm
-                .delete_ship
-                .call(self.vm.store_mut().deref_mut(), &[index.into()]),
-        ) {
-            log::warn!("Failed to delete ship: {:?}", e);
-        }
     }
 
     pub fn tick(&mut self, sim: &mut Simulation) {
@@ -231,11 +217,7 @@ impl TeamController {
             slice.write_slice(&state.state).expect("system state write");
         }
 
-        let (index, _) = handle.0.into_raw_parts();
-        let index = index as i32;
-        let result = vm
-            .tick_ship
-            .call(vm.store_mut().deref_mut(), &[index.into()]);
+        let result = vm.tick_ship.call(vm.store_mut().deref_mut(), &[]);
         if let Err(e) = result {
             if let Ok(ret) = vm.get_gas.call(vm.store_mut().deref_mut(), &[]) {
                 if !ret.is_empty() {
@@ -349,9 +331,7 @@ pub struct WasmVm {
     system_state_offset: u32,
     environment_offset: u32,
     panic_buffer_offset: u32,
-    initialize: wasmer::Function,
     tick_ship: wasmer::Function,
-    delete_ship: wasmer::Function,
     reset_gas: wasmer::Function,
     get_gas: wasmer::Function,
     add_submemory: wasmer::Function,
@@ -393,11 +373,7 @@ impl WasmVm {
             .i32()
             .unwrap() as u32;
 
-        let initialize =
-            translate_error(instance.exports.get_function("export_initialize"))?.clone();
-        let tick_ship = translate_error(instance.exports.get_function("export_tick_ship"))?.clone();
-        let delete_ship =
-            translate_error(instance.exports.get_function("export_delete_ship"))?.clone();
+        let tick_ship = translate_error(instance.exports.get_function("tick"))?.clone();
         let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
         let get_gas = translate_error(instance.exports.get_function("get_gas"))?.clone();
         let add_submemory =
@@ -413,9 +389,7 @@ impl WasmVm {
             system_state_offset,
             environment_offset,
             panic_buffer_offset,
-            initialize,
             tick_ship,
-            delete_ship,
             reset_gas,
             get_gas,
             add_submemory,
