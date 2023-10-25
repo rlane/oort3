@@ -3,7 +3,7 @@ pub mod frame_timer;
 pub mod setting;
 
 use log::{debug, info};
-use nalgebra::{point, vector, Point2};
+use nalgebra::{point, vector, Point2, Vector2};
 use oort_renderer::Renderer;
 use oort_simulator::model;
 use oort_simulator::scenario::Status;
@@ -29,7 +29,8 @@ pub struct UI {
     renderer: Renderer,
     canvas: HtmlCanvasElement,
     zoom: f32,
-    camera_target: Point2<f32>,
+    camera_focus: Point2<f32>,
+    camera_offset: Vector2<f32>,
     frame_timer: frame_timer::FrameTimer,
     status: Status,
     quit: bool,
@@ -79,8 +80,9 @@ impl UI {
             .expect("canvas element");
         let mut renderer = Renderer::new(canvas.clone()).expect("Failed to create renderer");
         let zoom = INITIAL_ZOOM;
-        let camera_target = point![0.0, 0.0];
-        renderer.set_view(zoom, point![camera_target.x, camera_target.y]);
+        let camera_focus = point![0.0, 0.0];
+        let camera_offset = vector![0.0, 0.0];
+        renderer.set_view(zoom, camera_focus + camera_offset);
         let frame_timer: frame_timer::FrameTimer = Default::default();
         let single_steps = 0;
 
@@ -100,7 +102,8 @@ impl UI {
             renderer,
             canvas,
             zoom,
-            camera_target,
+            camera_focus,
+            camera_offset,
             frame_timer,
             status: Status::Running,
             quit: false,
@@ -149,16 +152,16 @@ impl UI {
 
         let camera_step = 0.01 / self.zoom;
         if self.keys_down.contains("w") {
-            self.camera_target.y += camera_step;
+            self.camera_offset.y += camera_step;
         }
         if self.keys_down.contains("s") {
-            self.camera_target.y -= camera_step;
+            self.camera_offset.y -= camera_step;
         }
         if self.keys_down.contains("a") {
-            self.camera_target.x -= camera_step;
+            self.camera_offset.x -= camera_step;
         }
         if self.keys_down.contains("d") {
-            self.camera_target.x += camera_step;
+            self.camera_offset.x += camera_step;
         }
         if self.keys_down.contains("z") && self.zoom > MIN_ZOOM {
             self.zoom /= 1.0 + ZOOM_SPEED;
@@ -204,6 +207,9 @@ impl UI {
                 Some(_) => None,
                 None => self.picked_ship_id,
             };
+            if self.chasing_ship_id.is_some() {
+                self.camera_offset = vector![0.0, 0.0];
+            }
         }
 
         if !self.paused && !slowmo {
@@ -249,10 +255,10 @@ impl UI {
                         .find(|s| s.id == id)
                 });
             if let Some(s) = chasing_ship {
-                self.camera_target = s.position.cast();
+                self.camera_focus = s.position.cast();
             }
             self.renderer.render(
-                self.camera_target,
+                self.camera_target(),
                 self.zoom,
                 self.snapshot.as_ref().unwrap(),
             );
@@ -443,10 +449,10 @@ impl UI {
 
         // Move camera target to keep cursor in the same location.
         let zoom_target = self.renderer.unproject(e.offset_x(), e.offset_y());
-        self.renderer.set_view(self.zoom, self.camera_target);
+        self.renderer.set_view(self.zoom, self.camera_target());
         let new_zoom_target = self.renderer.unproject(e.offset_x(), e.offset_y());
         let diff = new_zoom_target - zoom_target;
-        self.camera_target -= vector![diff.x as f32, diff.y as f32];
+        self.camera_offset -= vector![diff.x as f32, diff.y as f32];
 
         self.needs_render = true;
         let _ = self.canvas.focus();
@@ -461,7 +467,11 @@ impl UI {
         let world_position = self
             .renderer
             .unproject(canvas_position.x, canvas_position.y)
-            + vector![self.camera_target.x as f64, self.camera_target.y as f64];
+            + vector![self.camera_target().x as f64, self.camera_target().y as f64];
+        let world_camera_offset = self
+            .renderer
+            .unproject(canvas_position.x, canvas_position.y)
+            + vector![self.camera_offset.x as f64, self.camera_offset.y as f64];
 
         log::debug!(
             "PointerEvent: pointer_id={} pointer_type={} buttons={} canvas={:?} world={:?}",
@@ -519,12 +529,12 @@ impl UI {
         }
 
         if let Some(touch) = self.touches.get_mut(&e.pointer_id()) {
-            let diff = (touch.world_position - world_position).cast();
-            self.camera_target += diff;
-            self.renderer.set_view(self.zoom, self.camera_target);
+            let diff = (touch.world_camera_offset - world_camera_offset).cast();
+            self.camera_offset += diff;
+            self.renderer.set_view(self.zoom, self.camera_target());
         } else {
             self.touches
-                .insert(e.pointer_id(), Touch { world_position });
+                .insert(e.pointer_id(), Touch { world_camera_offset });
         }
 
         if self.drag_start.is_none() {
@@ -611,9 +621,13 @@ impl UI {
             || !(self.paused || self.status != Status::Running)
             || !self.keys_down.is_empty()
     }
+
+    pub fn camera_target(&self) -> Point2<f32> {
+        self.camera_focus + self.camera_offset
+    }
 }
 
 #[derive(Debug)]
 struct Touch {
-    world_position: Point2<f64>,
+    world_camera_offset: Point2<f64>,
 }
