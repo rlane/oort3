@@ -48,6 +48,7 @@ pub struct UI {
     nonce: u32,
     request_snapshot: yew::Callback<()>,
     picked_ship_id: Option<u64>,
+    chasing_ship_id: Option<u64>,
     status_ref: NodeRef,
     picked_ref: NodeRef,
     touches: HashMap<i32, Touch>,
@@ -118,6 +119,7 @@ impl UI {
             nonce,
             request_snapshot,
             picked_ship_id: None,
+            chasing_ship_id: None,
             status_ref,
             picked_ref,
             touches: HashMap::new(),
@@ -196,6 +198,13 @@ impl UI {
             self.renderer.set_nlips(!self.renderer.get_nlips());
             setting::write("nlips", &self.renderer.get_nlips());
         }
+        if self.keys_down.contains("c") && !self.keys_ignored.contains("c") {
+            self.keys_ignored.insert("c".to_string());
+            self.chasing_ship_id = match self.chasing_ship_id {
+                Some(_) => None,
+                None => self.picked_ship_id,
+            };
+        }
 
         if !self.paused && !slowmo {
             self.physics_time += elapsed;
@@ -229,6 +238,19 @@ impl UI {
         }
 
         if self.snapshot.is_some() {
+            let chasing_ship = self
+                .chasing_ship_id
+                .and_then(|id| {
+                    self.snapshot
+                        .as_ref()
+                        .unwrap()
+                        .ships
+                        .iter()
+                        .find(|s| s.id == id)
+                });
+            if let Some(s) = chasing_ship {
+                self.camera_target = s.position.cast();
+            }
             self.renderer.render(
                 self.camera_target,
                 self.zoom,

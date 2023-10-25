@@ -29,6 +29,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
                 <li>{ "F: Fast-forward." }</li>
                 <li>{ "M: Slow motion." }</li>
                 <li>{ "G: Show debug lines for all ships." }</li>
+                <li>{ "C: Chase, or follow the selected ship." }</li>
                 <li>{ "V: Toggle NLIPS, which makes smaller ships more visible when zoomed out." }</li>
                 <li>{ "B: Toggle postprocessing (blur)." }</li>
                 <li>{ "Mouse wheel: Zoom." }</li>
