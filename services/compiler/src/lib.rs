@@ -1,5 +1,3 @@
-pub mod sanitizer;
-
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 

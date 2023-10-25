@@ -34,7 +34,6 @@ async fn post_compile(
         code = oort_code_encryption::decrypt(&code)?;
     }
     log::debug!("Code: {}", code);
-    oort_compiler_service::sanitizer::check(&code)?;
     let start_time = std::time::Instant::now();
     let result = tokio::runtime::Handle::current()
         .spawn_blocking(move || compiler.lock().unwrap().compile(&code))
