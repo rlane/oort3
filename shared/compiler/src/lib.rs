@@ -187,6 +187,10 @@ impl Compiler {
         let src_path = tmp_path.join("user.c");
         let dst_path = tmp_path.join("user.wasm");
         std::fs::write(&src_path, code.as_bytes())?;
+        std::fs::write(
+            tmp_path.join("oort.h"),
+            include_bytes!("../../c-api/oort.h"),
+        )?;
 
         let output = std::process::Command::new("clang")
             .args([
