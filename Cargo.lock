@@ -2615,7 +2615,9 @@ dependencies = [
  "anyhow",
  "criterion",
  "glob 0.3.1",
+ "lazy_static",
  "log",
+ "regex",
  "tempdir",
 ]
 

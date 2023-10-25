@@ -1,3 +1,5 @@
+mod sanitizer;
+
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 
@@ -37,6 +39,9 @@ impl Compiler {
 
     pub fn compile(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
         let tmp_path = &self.dir;
+
+        // TODO return BAD_REQUEST on failure
+        sanitizer::check(code)?;
 
         if std::fs::metadata(tmp_path.join("Cargo.toml")).is_ok() {
             return self.compile_fast(code);
