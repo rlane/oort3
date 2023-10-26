@@ -1,3 +1,5 @@
+### 0.74.0 - 2023-10-25
+
 - Optimized shape drawing functions (by mwlsk).
 - Added times to battle binary output (by ByteRanger).
 - Added chase camera keybinding 'c' (by 0e4ef622)
