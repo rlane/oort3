@@ -256,6 +256,8 @@ impl UI {
                 });
             if let Some(s) = chasing_ship {
                 self.camera_focus = s.position.cast();
+            } else {
+                self.chasing_ship_id = None;
             }
             self.renderer.render(
                 self.camera_target(),
