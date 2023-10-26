@@ -1,3 +1,5 @@
+### 0.74.1 - 2023-10-25
+
 - Fixed chase camera when ship is destroyed (by 0e4ef622)
 
 ### 0.74.0 - 2023-10-25
