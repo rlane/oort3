@@ -1,3 +1,4 @@
+use nalgebra::ComplexField;
 use rapier2d_f64::prelude::RigidBody;
 
 use super::prelude::*;
@@ -32,7 +33,7 @@ impl Scenario for Orbit {
             let t = team as f64 * 2.0 - 1.0;
             let t = if flip { -t } else { t };
             let r = rng.gen_range(11e3..20e3);
-            let s = (G * PLANET_MASS / r).sqrt();
+            let s = ComplexField::sqrt(G * PLANET_MASS / r);
             ship::create(
                 sim,
                 vector![t * r, 0.0],

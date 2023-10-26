@@ -64,8 +64,8 @@ impl Scenario for TutorialAcceleration2 {
             let angle_a = std::f64::consts::TAU * frac;
             let angle_b = std::f64::consts::TAU * (frac + 1.0 / n as f64);
             lines.push(Line {
-                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
+                a: center + Rotation2::new(angle_a).transform_vector(&vector![r, 0.0]),
+                b: center + Rotation2::new(angle_b).transform_vector(&vector![r, 0.0]),
                 color,
             });
         }

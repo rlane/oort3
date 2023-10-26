@@ -1,8 +1,7 @@
 use crate::ship::{self, ShipClass, ShipHandle};
 use crate::simulation::{Line, Simulation};
 use crate::{model, rng, simulation};
-use nalgebra::Rotation2;
-use nalgebra::{vector, Point2, Vector2};
+use nalgebra::{vector, ComplexField, Point2, Rotation2, Vector2};
 use oort_api::{Ability, EcmMode};
 use rand::Rng;
 use rand_distr::StandardNormal;
@@ -149,11 +148,11 @@ struct ReflectorTeam {
 }
 
 fn into_dbm(x: f64) -> f64 {
-    10.0 * x.log10() + 30.0
+    10.0 * ComplexField::log10(x) + 30.0
 }
 
 fn from_dbm(x: f64) -> f64 {
-    10.0_f64.powf((x - 30.0) / 10.0)
+    ComplexField::powf(10.0_f64, (x - 30.0) / 10.0)
 }
 
 #[inline(never)]
@@ -284,7 +283,8 @@ pub fn tick(sim: &mut Simulation) {
                 end_bearing,
                 min_distance: radar.min_distance,
                 max_distance,
-                square_distance_range: radar.min_distance.powi(2)..max_distance.powi(2),
+                square_distance_range: ComplexField::powi(radar.min_distance, 2)
+                    ..ComplexField::powi(max_distance, 2),
                 rays,
             };
 
@@ -303,14 +303,15 @@ pub fn tick(sim: &mut Simulation) {
 
             let mut best_rssi = emitter.min_rssi;
             let mut best_reflector: Option<&RadarReflector> = None;
-            let mut received_noise = BACKGROUND_NOISE * 2.0f64.powf(rng.gen_range(-1.0..1.0));
+            let mut received_noise =
+                BACKGROUND_NOISE * ComplexField::powf(2.0f64, rng.gen_range(-1.0..1.0));
             candidates.clear();
 
             let planet_contact = check_planet_contact(sim, &emitter, &planets);
             if let Some(planet_distance) =
                 planet_contact.map(|c| nalgebra::distance(&c, &emitter.center))
             {
-                emitter.square_distance_range.end = planet_distance.powi(2);
+                emitter.square_distance_range.end = ComplexField::powi(planet_distance, 2);
             }
 
             find_candidates(&emitter, &reflector_teams, &mut candidates);
@@ -346,8 +347,8 @@ pub fn tick(sim: &mut Simulation) {
                         &reflector.position,
                     ))
                 {
-                    let rssi =
-                        compute_rssi(&emitter, reflector) * 1.2f64.powf(rng.gen_range(-1.0..1.0));
+                    let rssi = compute_rssi(&emitter, reflector)
+                        * ComplexField::powf(1.2f64, rng.gen_range(-1.0..1.0));
                     if rssi > best_rssi {
                         best_reflector = Some(reflector);
                         best_rssi = rssi;
@@ -462,7 +463,7 @@ fn make_scan_result(
     rng: &mut impl Rng,
 ) -> ScanResult {
     let signal_db = rssi_dbm - noise_dbm;
-    let error_factor = 10.0f64.powf(-signal_db / 10.0);
+    let error_factor = ComplexField::powf(10.0f64, -signal_db / 10.0);
     let dp = reflector.position - emitter.center;
     let beam_rot = Rotation2::new(emitter.bearing);
     let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
@@ -497,7 +498,7 @@ fn make_scan_result(
 }
 
 fn decide_unreliable_rssi(rng: &mut impl Rng, rssi: f64, reliable_rssi: f64) -> bool {
-    rng.gen_bool(1.0 / (2.0 * reliable_rssi / rssi).log2())
+    rng.gen_bool(1.0 / ComplexField::log2(2.0 * reliable_rssi / rssi))
 }
 
 fn is_clockwise(v0: Vector2<f64>, v1: Vector2<f64>) -> bool {
@@ -528,15 +529,19 @@ fn compute_rssi(emitter: &RadarEmitter, reflector: &RadarReflector) -> f64 {
 }
 
 fn compute_max_detection_range(radar: &Radar, target_cross_section: f64) -> f64 {
-    (radar.power * target_cross_section * radar.rx_cross_section
-        / (TAU * radar.width * radar.min_rssi))
-        .powf(0.25)
+    ComplexField::powf(
+        radar.power * target_cross_section * radar.rx_cross_section
+            / (TAU * radar.width * radar.min_rssi),
+        0.25,
+    )
 }
 
 fn compute_reliable_detection_range(radar: &Radar, target_cross_section: f64) -> f64 {
-    (radar.power * target_cross_section * radar.rx_cross_section
-        / (TAU * radar.width * radar.reliable_rssi))
-        .powf(0.25)
+    ComplexField::powf(
+        radar.power * target_cross_section * radar.rx_cross_section
+            / (TAU * radar.width * radar.reliable_rssi),
+        0.25,
+    )
 }
 
 fn check_planet_contact(
@@ -588,11 +593,9 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter, reliable_distance:
             let frac = (i as f64) / (n as f64);
             let angle_a = emitter.start_bearing + w * frac;
             let angle_b = emitter.start_bearing + w * (frac + 1.0 / n as f64);
-            lines.push(Line {
-                a: center + vector![r * angle_a.cos(), r * angle_a.sin()],
-                b: center + vector![r * angle_b.cos(), r * angle_b.sin()],
-                color,
-            });
+            let a = center + Rotation2::new(angle_a).transform_vector(&vector![r, 0.0]);
+            let b = center + Rotation2::new(angle_b).transform_vector(&vector![r, 0.0]);
+            lines.push(Line { a, b, color });
         }
     };
     draw_arc(emitter.min_distance);
@@ -600,19 +603,15 @@ fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter, reliable_distance:
     lines.push(Line {
         a: center,
         b: center
-            + vector![
-                reliable_distance * emitter.start_bearing.cos(),
-                reliable_distance * emitter.start_bearing.sin()
-            ],
+            + Rotation2::new(emitter.start_bearing)
+                .transform_vector(&vector![reliable_distance, 0.0]),
         color,
     });
     lines.push(Line {
         a: center,
         b: center
-            + vector![
-                reliable_distance * emitter.end_bearing.cos(),
-                reliable_distance * emitter.end_bearing.sin()
-            ],
+            + Rotation2::new(emitter.end_bearing)
+                .transform_vector(&vector![reliable_distance, 0.0]),
         color,
     });
     sim.emit_debug_lines(emitter.handle, lines);

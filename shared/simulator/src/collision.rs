@@ -2,7 +2,7 @@ use crate::bullet::{self, BulletHandle};
 use crate::index_set::HasIndex;
 use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Particle, Simulation, PHYSICS_TICK_LENGTH};
-use nalgebra::{Rotation2, UnitComplex};
+use nalgebra::{ComplexField, Rotation2, UnitComplex};
 use oort_api::Ability;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
@@ -118,8 +118,9 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                         let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..200.0), 0.0]);
                         let p = sim.ship(ship).body().position().translation.vector
                             + v * sim.rng.gen_range(0.0..0.1);
-                        let lifetime = (sim.ship_data.get(ship.index()).unwrap().mass.log2()
-                            * PHYSICS_TICK_LENGTH) as f32;
+                        let lifetime =
+                            (ComplexField::log2(sim.ship_data.get(ship.index()).unwrap().mass)
+                                * PHYSICS_TICK_LENGTH) as f32;
                         sim.events.particles.push(Particle {
                             position: p,
                             velocity: v,
