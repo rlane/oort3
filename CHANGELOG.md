@@ -1,3 +1,8 @@
+- Optimized shape drawing functions (by mwlsk).
+- Added times to battle binary output (by ByteRanger).
+- Added chase camera keybinding 'c' (by 0e4ef622)
+- Replaced std floating point functions with nalgebra versions for determinism.
+
 ### 0.73.0 - 2023-10-18
 
 - Set radar minimum width to TAU/720 for fighters, missiles, and torpedos.
