@@ -947,7 +947,16 @@ pub mod dbg {
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
     pub fn draw_triangle(center: Vec2, radius: f64, color: u32) {
-        draw_polygon(center, radius, 3, TAU / 4.0, color);
+        let x = f64::sqrt(3.0) * radius / 2.0;
+        let y = radius / 2.0;
+        let points = [
+            center + vec2(0.0, radius),
+            center + vec2(-x, -y),
+            center + vec2(x, -y)
+        ];
+        for i in 0..3 {
+            draw_line(points[i], points[(i+1)%3], color);
+        }
     }
 
     #[deprecated]
@@ -956,12 +965,18 @@ pub mod dbg {
         draw_triangle(center, radius, color)
     }
 
-    /// Draws a triangle visible in debug mode.
+    /// Draws a square visible in debug mode.
     ///
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
     pub fn draw_square(center: Vec2, radius: f64, color: u32) {
-        draw_polygon(center, radius, 4, TAU / 8.0, color);
+        let offset = radius / f64::sqrt(2.0);
+        let mut p = vec2(offset, offset);
+        for _ in 0..4 {
+            let p2 = vec2(-p.y, p.x);
+            draw_line(center + p, center + p2, color);
+            p = p2;
+        }
     }
 
     #[deprecated]
@@ -970,12 +985,17 @@ pub mod dbg {
         draw_square(center, radius, color)
     }
 
-    /// Draws a triangle visible in debug mode.
+    /// Draws a diamond visible in debug mode.
     ///
     /// `center` is a position in world coordinates.
     /// `color` is 24-bit RGB.
     pub fn draw_diamond(center: Vec2, radius: f64, color: u32) {
-        draw_polygon(center, radius, 4, 0.0, color);
+        let mut p = vec2(radius, 0.0);
+        for _ in 0..4 {
+            let p2 = vec2(-p.y, p.x);
+            draw_line(center + p, center + p2, color);
+            p = p2;
+        }
     }
 
     #[deprecated]
