@@ -3,8 +3,10 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 use firestore::*;
 use gcloud_sdk::google::firestore::v1::Document;
+use indicatif::{MultiProgress, ProgressBar};
 use oort_proto::LeaderboardSubmission;
 use oort_simulator::{scenario, simulation};
+use oort_tools::ParallelCompiler;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -33,15 +35,18 @@ struct JsonMap {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("rescore=info"))
-        .init();
+    let logger =
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("rescore=info"))
+            .build();
+    let multi = MultiProgress::new();
+    indicatif_log_bridge::LogWrapper::new(multi.clone(), logger)
+        .try_init()
+        .unwrap();
 
     let args = Arguments::parse();
 
     let db = FirestoreDb::new(&args.project_id).await?;
-    let mut compiler = oort_compiler::Compiler::new();
-    let mut updates: Vec<(String, LeaderboardSubmission, Option<LeaderboardSubmission>)> =
-        Vec::new();
+    let compiler = ParallelCompiler::new(4);
 
     let mut scenario_names = vec![];
     if let Some(scenario) = args.scenario.as_ref() {
@@ -53,8 +58,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .collect();
     }
 
+    let mut all_docs = vec![];
     for scenario_name in &scenario_names {
-        log::info!("Processing scenario {}", scenario_name);
+        log::info!("Querying scenario {}", scenario_name);
 
         let docs: Vec<Document> = db
             .query_doc(
@@ -83,14 +89,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     .with_limit(args.limit as u32),
             )
             .await?;
+        all_docs.extend(docs);
+    }
 
-        for doc in docs {
+    let progress = multi.add(indicatif::ProgressBar::new(all_docs.len() as u64 * 10));
+    let updates: Vec<(String, LeaderboardSubmission, Option<LeaderboardSubmission>)> = all_docs
+        .par_iter()
+        .filter_map(|doc| {
             let docid = extract_docid(&doc.name);
-            if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(&doc) {
-                log::info!(
-                    "Running simulations for username={} scenario={} old_time={} docid={}",
-                    msg.username,
+            if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
+                log::debug!(
+                    "{}/{}: Running simulations old_time={:.3} docid={}",
                     msg.scenario_name,
+                    msg.username,
                     msg.time,
                     docid
                 );
@@ -99,43 +110,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     Ok(wasm) => wasm,
                     Err(e) => {
                         log::warn!(
-                            "Compilation failed for userid={} scenario_name={} docid={}: {}",
-                            msg.username,
+                            "{}/{}: Compilation failed for docid={}: {}",
                             msg.scenario_name,
+                            msg.username,
                             docid,
                             e
                         );
-                        updates.push((doc.name.to_string(), msg.clone(), None));
-                        continue;
+                        return Some((doc.name.to_string(), msg.clone(), None));
                     }
                 };
 
-                log::info!("Successfully compiled to WASM");
-                let status = run_simulations(&msg.scenario_name, wasm);
+                log::debug!(
+                    "{}/{}: Successfully compiled",
+                    msg.scenario_name,
+                    msg.username
+                );
+                let status = run_simulations(&msg.scenario_name, wasm, &progress);
                 match status {
                     Some(new_time) => {
                         if (msg.time - new_time).abs() >= 0.001 {
-                            log::info!("Updating time from {} to {}", msg.time, new_time);
+                            log::info!(
+                                "{}/{}: Updating time from {:.3} to {:.3}",
+                                msg.scenario_name,
+                                msg.username,
+                                msg.time,
+                                new_time
+                            );
                             let mut new_msg = msg.clone();
                             new_msg.time = new_time;
-                            updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
+                            Some((doc.name.to_string(), msg.clone(), Some(new_msg)))
                         } else {
-                            log::info!("Time unchanged, {}", new_time);
+                            log::debug!(
+                                "{}/{}: Time unchanged ({:.3})",
+                                msg.scenario_name,
+                                msg.username,
+                                new_time
+                            );
+                            None
                         }
                     }
                     None => {
                         log::warn!(
-                            "Simulation failed for userid={} scenario_name={} docid={}",
+                            "{}/{}: Simulation failed for docid={}",
                             msg.username,
                             msg.scenario_name,
                             docid,
                         );
-                        updates.push((doc.name.to_string(), msg.clone(), None));
+                        Some((doc.name.to_string(), msg.clone(), None))
                     }
                 }
+            } else {
+                None
             }
-        }
-    }
+        })
+        .collect();
 
     log::info!("Applying {} updates:", updates.len());
     let mut table = Table::new();
@@ -171,10 +199,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-fn run_simulations(scenario_name: &str, wasm: Vec<u8>) -> Option<f64> {
+fn run_simulations(scenario_name: &str, wasm: Vec<u8>, progress: &ProgressBar) -> Option<f64> {
     let results: Vec<Option<f64>> = (0..10u32)
         .into_par_iter()
-        .map(|seed| run_simulation(scenario_name, seed, wasm.clone()))
+        .map(|seed| {
+            let ret = run_simulation(scenario_name, seed, wasm.clone());
+            progress.inc(1);
+            ret
+        })
         .collect();
     log::info!("Results: {:?}", results);
     if results.iter().any(|x| x.is_none()) {

@@ -1,3 +1,5 @@
+use oort_compiler::Compiler;
+use std::sync::Mutex;
 use std::{fs, path::Path, path::PathBuf};
 
 use oort_simulator::simulation::Code;
@@ -142,5 +144,31 @@ impl WasmCache {
         if let Err(e) = fs::write(path, bytes) {
             log::warn!("Failed to write to WASM cache: {:?}", e);
         }
+    }
+}
+
+pub struct ParallelCompiler {
+    sender: Mutex<std::sync::mpsc::Sender<Compiler>>,
+    receiver: Mutex<std::sync::mpsc::Receiver<Compiler>>,
+}
+
+impl ParallelCompiler {
+    pub fn new(parallelism: usize) -> Self {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        for _ in 0..parallelism {
+            let compiler = Compiler::new();
+            sender.send(compiler).unwrap();
+        }
+        Self {
+            sender: Mutex::new(sender),
+            receiver: Mutex::new(receiver),
+        }
+    }
+
+    pub fn compile(&self, source_code: &str) -> anyhow::Result<Vec<u8>> {
+        let mut compiler = self.receiver.lock().unwrap().recv().unwrap();
+        let ret = compiler.compile(source_code)?;
+        self.sender.lock().unwrap().send(compiler)?;
+        Ok(ret)
     }
 }
