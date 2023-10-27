@@ -156,7 +156,9 @@ impl TeamController {
             .reset_gas
             .call(&mut self.vm.store_mut(), &[GAS_PER_TICK.into()])
             .unwrap();
-        self.vm.select_submemory(ship_controller.index).unwrap();
+        self.vm.reset_submemory(ship_controller.index).unwrap();
+        self.free_submemories
+            .push((ship_controller.index, ship_controller.base_address));
     }
 
     pub fn tick(&mut self, sim: &mut Simulation) {
@@ -336,6 +338,7 @@ pub struct WasmVm {
     get_gas: wasmer::Function,
     add_submemory: wasmer::Function,
     select_submemory: wasmer::Function,
+    reset_submemory: wasmer::Function,
 }
 
 impl WasmVm {
@@ -380,6 +383,8 @@ impl WasmVm {
             translate_error(instance.exports.get_function("add_submemory"))?.clone();
         let select_submemory =
             translate_error(instance.exports.get_function("select_submemory"))?.clone();
+        let reset_submemory =
+            translate_error(instance.exports.get_function("reset_submemory"))?.clone();
 
         translate_runtime_error(reset_gas.call(&mut store, &[GAS_PER_TICK.into()]))?;
 
@@ -394,6 +399,7 @@ impl WasmVm {
             get_gas,
             add_submemory,
             select_submemory,
+            reset_submemory,
         })
     }
 
@@ -468,6 +474,14 @@ impl WasmVm {
     fn select_submemory(&mut self, index: u32) -> Result<(), Error> {
         let mut store = self.store_mut();
         self.select_submemory
+            .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)])
+            .unwrap(); // XXX;
+        Ok(())
+    }
+
+    fn reset_submemory(&mut self, index: u32) -> Result<(), Error> {
+        let mut store = self.store_mut();
+        self.reset_submemory
             .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)])
             .unwrap(); // XXX;
         Ok(())
