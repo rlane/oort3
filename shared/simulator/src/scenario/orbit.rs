@@ -53,12 +53,11 @@ impl Scenario for Orbit {
                 class: ShipClass::Planet,
                 team: 2,
                 health: 1e9,
-                base_stats: ClassStats {
+                radar_cross_section: 1e6,
+                ..ShipData::from(ClassStats {
                     mass: PLANET_MASS,
                     ..Class::Unknown.default_stats()
-                },
-                radar_cross_section: 1e6,
-                ..Default::default()
+                })
             },
         );
     }

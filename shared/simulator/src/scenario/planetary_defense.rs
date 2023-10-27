@@ -73,12 +73,11 @@ impl Scenario for PlanetaryDefense {
                     class: ShipClass::Planet,
                     team: 2,
                     health: Self::PLANET_HEALTH,
-                    base_stats: ClassStats {
+                    radar_cross_section: 50.0,
+                    ..ShipData::from(ClassStats {
                         mass: 20e6,
                         ..Class::Unknown.default_stats()
-                    },
-                    radar_cross_section: 50.0,
-                    ..Default::default()
+                    })
                 },
             );
         }
