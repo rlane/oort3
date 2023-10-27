@@ -183,6 +183,7 @@ impl Class {
         }
     }
 
+    /// Returns base stats for a class of ship
     pub fn default_stats(&self) -> ClassStats {
         match self {
             Class::Fighter => ClassStats {
@@ -242,8 +243,8 @@ impl Class {
                 max_angular_acceleration: 2.0 * TAU,
             },
             Class::Unknown => ClassStats {
-                max_health: 0.0,
-                mass: 0.0,
+                max_health: 100.0,
+                mass: 1000.0,
                 max_forward_acceleration: 0.0,
                 max_backward_acceleration: 0.0,
                 max_lateral_acceleration: 0.0,
@@ -253,7 +254,9 @@ impl Class {
     }
 }
 
+/// Stats for a class of ship
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct ClassStats {
     pub max_health: f64,
     pub mass: f64,
@@ -1033,10 +1036,10 @@ pub mod dbg {
         let points = [
             center + vec2(0.0, radius),
             center + vec2(-x, -y),
-            center + vec2(x, -y)
+            center + vec2(x, -y),
         ];
         for i in 0..3 {
-            draw_line(points[i], points[(i+1)%3], color);
+            draw_line(points[i], points[(i + 1) % 3], color);
         }
     }
 
