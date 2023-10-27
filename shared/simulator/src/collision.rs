@@ -119,7 +119,7 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                         let p = sim.ship(ship).body().position().translation.vector
                             + v * sim.rng.gen_range(0.0..0.1);
                         let lifetime =
-                            (ComplexField::log2(sim.ship_data.get(ship.index()).unwrap().mass)
+                            (ComplexField::log2(sim.ship_data.get(ship.index()).unwrap().base_stats.mass)
                                 * PHYSICS_TICK_LENGTH) as f32;
                         sim.events.particles.push(Particle {
                             position: p,

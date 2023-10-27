@@ -494,19 +494,19 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
         let data = ship.data();
         state.set(
             SystemState::MaxForwardAcceleration,
-            data.max_forward_acceleration,
+            data.base_stats.max_forward_acceleration,
         );
         state.set(
             SystemState::MaxBackwardAcceleration,
-            data.max_backward_acceleration,
+            data.base_stats.max_backward_acceleration,
         );
         state.set(
             SystemState::MaxLateralAcceleration,
-            data.max_lateral_acceleration,
+            data.base_stats.max_lateral_acceleration,
         );
         state.set(
             SystemState::MaxAngularAcceleration,
-            data.max_angular_acceleration,
+            data.base_stats.max_angular_acceleration,
         );
         state.set(SystemState::Health, data.health);
         state.set(SystemState::Fuel, data.fuel.unwrap_or(f64::INFINITY));

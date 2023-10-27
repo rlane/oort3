@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
+use std::f64::consts::TAU;
+
 #[doc(hidden)]
 pub mod panic;
 mod vec;
@@ -180,6 +182,85 @@ impl Class {
             _ => Class::Unknown,
         }
     }
+
+    pub fn default_stats(&self) -> ClassStats {
+        match self {
+            Class::Fighter => ClassStats {
+                max_health: 100.0,
+                mass: 15000.0,
+                max_forward_acceleration: 60.0,
+                max_backward_acceleration: 30.0,
+                max_lateral_acceleration: 30.0,
+                max_angular_acceleration: TAU,
+            },
+            Class::Frigate => ClassStats {
+                max_health: 10000.0,
+                mass: 4e6,
+                max_forward_acceleration: 10.0,
+                max_backward_acceleration: 5.0,
+                max_lateral_acceleration: 5.0,
+                max_angular_acceleration: TAU / 8.0,
+            },
+            Class::Cruiser => ClassStats {
+                max_health: 20000.0,
+                mass: 9e6,
+                max_forward_acceleration: 5.0,
+                max_backward_acceleration: 2.5,
+                max_lateral_acceleration: 2.5,
+                max_angular_acceleration: TAU / 16.0,
+            },
+            Class::Asteroid => ClassStats {
+                max_health: 200.0,
+                mass: 20e6,
+                max_forward_acceleration: 0.0,
+                max_backward_acceleration: 0.0,
+                max_lateral_acceleration: 0.0,
+                max_angular_acceleration: 0.0,
+            },
+            Class::Target => ClassStats {
+                max_health: 1.0,
+                mass: 10.0,
+                max_forward_acceleration: 0.0,
+                max_backward_acceleration: 0.0,
+                max_lateral_acceleration: 0.0,
+                max_angular_acceleration: 0.0,
+            },
+            Class::Missile => ClassStats {
+                max_health: 20.0,
+                mass: 150.0,
+                max_forward_acceleration: 300.0,
+                max_backward_acceleration: 0.0,
+                max_lateral_acceleration: 100.0,
+                max_angular_acceleration: 4.0 * TAU,
+            },
+            Class::Torpedo => ClassStats {
+                max_health: 100.0,
+                mass: 500.0,
+                max_forward_acceleration: 70.0,
+                max_backward_acceleration: 0.0,
+                max_lateral_acceleration: 20.0,
+                max_angular_acceleration: 2.0 * TAU,
+            },
+            Class::Unknown => ClassStats {
+                max_health: 0.0,
+                mass: 0.0,
+                max_forward_acceleration: 0.0,
+                max_backward_acceleration: 0.0,
+                max_lateral_acceleration: 0.0,
+                max_angular_acceleration: 0.0,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ClassStats {
+    pub max_health: f64,
+    pub mass: f64,
+    pub max_forward_acceleration: f64,
+    pub max_backward_acceleration: f64,
+    pub max_lateral_acceleration: f64,
+    pub max_angular_acceleration: f64,
 }
 
 /// List of active abilities for an entity.

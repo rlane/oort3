@@ -11,6 +11,8 @@ use crate::{bullet, collision};
 use bullet::BulletData;
 use nalgebra::{vector, Rotation2, UnitComplex, Vector2};
 use oort_api::Ability;
+use oort_api::Class;
+use oort_api::ClassStats;
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -110,15 +112,11 @@ pub struct Warhead {
 pub struct ShipData {
     pub class: ShipClass,
     pub team: i32,
+    pub base_stats: ClassStats,
     pub health: f64,
-    pub mass: f64,
     pub acceleration: Vector2<f64>,
     pub last_acceleration: Vector2<f64>,
     pub angular_acceleration: f64,
-    pub max_forward_acceleration: f64,
-    pub max_backward_acceleration: f64,
-    pub max_lateral_acceleration: f64,
-    pub max_angular_acceleration: f64,
     pub destroyed: bool,
     pub crash_message: Option<String>,
     pub ttl: Option<u64>,
@@ -145,14 +143,10 @@ impl Default for ShipData {
             class: ShipClass::Fighter,
             team: 0,
             health: 100.0,
-            mass: 1000.0,
+            base_stats: Class::Unknown.default_stats(),
             acceleration: vector![0.0, 0.0],
             last_acceleration: vector![0.0, 0.0],
             angular_acceleration: 0.0,
-            max_forward_acceleration: 0.0,
-            max_backward_acceleration: 0.0,
-            max_lateral_acceleration: 0.0,
-            max_angular_acceleration: 0.0,
             destroyed: false,
             crash_message: None,
             ttl: None,
@@ -244,11 +238,7 @@ pub fn fighter(team: i32) -> ShipData {
         class: ShipClass::Fighter,
         team,
         health: 100.0,
-        mass: 15000.0,
-        max_forward_acceleration: 60.0,
-        max_backward_acceleration: 30.0,
-        max_lateral_acceleration: 30.0,
-        max_angular_acceleration: TAU,
+        base_stats: Class::Fighter.default_stats(),
         guns: vec![Gun {
             offset: vector![20.0, 0.0],
             ..vulcan_gun()
@@ -284,11 +274,7 @@ pub fn frigate(team: i32) -> ShipData {
         class: ShipClass::Frigate,
         team,
         health: 10000.0,
-        mass: 4e6,
-        max_forward_acceleration: 10.0,
-        max_backward_acceleration: 5.0,
-        max_lateral_acceleration: 5.0,
-        max_angular_acceleration: TAU / 8.0,
+        base_stats: Class::Frigate.default_stats(),
         guns: vec![
             Gun {
                 magazine_size: 1,
@@ -345,11 +331,7 @@ pub fn cruiser(team: i32) -> ShipData {
         class: ShipClass::Cruiser,
         team,
         health: 20000.0,
-        mass: 9e6,
-        max_forward_acceleration: 5.0,
-        max_backward_acceleration: 2.5,
-        max_lateral_acceleration: 2.5,
-        max_angular_acceleration: TAU / 16.0,
+        base_stats: Class::Cruiser.default_stats(),
         guns: vec![Gun {
             magazine_size: 30,
             magazine_reload_ticks: 60,
@@ -415,7 +397,7 @@ pub fn asteroid(variant: i32) -> ShipData {
         class: ShipClass::Asteroid { variant },
         team: 9,
         health: 200.0,
-        mass: 20e6,
+        base_stats: Class::Asteroid.default_stats(),
         radar_cross_section: 50.0,
         ..Default::default()
     }
@@ -426,7 +408,7 @@ pub fn target(team: i32) -> ShipData {
         class: ShipClass::Target,
         team,
         health: 1.0,
-        mass: 10.0,
+        base_stats: Class::Target.default_stats(),
         ..Default::default()
     }
 }
@@ -436,11 +418,7 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 20.0,
-        mass: 150.0,
-        max_forward_acceleration: 300.0,
-        max_backward_acceleration: 0.0,
-        max_lateral_acceleration: 100.0,
-        max_angular_acceleration: 4.0 * TAU,
+        base_stats: Class::Missile.default_stats(),
         radar: Some(Radar {
             power: 1e3,
             rx_cross_section: 3.0,
@@ -473,11 +451,7 @@ pub fn torpedo(team: i32) -> ShipData {
         class: ShipClass::Torpedo,
         team,
         health: 100.0,
-        mass: 500.0,
-        max_forward_acceleration: 70.0,
-        max_backward_acceleration: 0.0,
-        max_lateral_acceleration: 20.0,
-        max_angular_acceleration: 2.0 * TAU,
+        base_stats: Class::Torpedo.default_stats(),
         radar: Some(Radar {
             power: 10e3,
             rx_cross_section: 3.0,
@@ -536,7 +510,7 @@ pub fn create(
         .collect::<Vec<_>>();
     let collider = ColliderBuilder::convex_hull(&vertices)
         .unwrap()
-        .mass(data.mass)
+        .mass(data.base_stats.mass)
         .restitution(restitution)
         .collision_groups(if data.class == ShipClass::Planet {
             collision::planet_interaction_groups()
@@ -680,18 +654,18 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let data = self.data();
         let clamped_acceleration = acceleration
             .inf(&vector![
-                data.max_forward_acceleration,
-                data.max_lateral_acceleration
+                data.base_stats.max_forward_acceleration,
+                data.base_stats.max_lateral_acceleration
             ])
             .sup(&vector![
-                -data.max_backward_acceleration,
-                -data.max_lateral_acceleration
+                -data.base_stats.max_backward_acceleration,
+                -data.base_stats.max_lateral_acceleration
             ]);
         self.data_mut().acceleration = clamped_acceleration;
     }
 
     pub fn torque(&mut self, angular_acceleration: f64) {
-        let max_angular_acceleration = self.data().max_angular_acceleration;
+        let max_angular_acceleration = self.data().base_stats.max_angular_acceleration;
         let clamped_angular_acceleration =
             angular_acceleration.clamp(-max_angular_acceleration, max_angular_acceleration);
         self.data_mut().angular_acceleration = clamped_angular_acceleration;

@@ -96,9 +96,9 @@ impl Scenario for MissileTest {
             missile_data,
         );
         let mut target_data = target(1);
-        target_data.max_forward_acceleration = Self::MAX_ACCELERATION;
-        target_data.max_backward_acceleration = Self::MAX_ACCELERATION;
-        target_data.max_lateral_acceleration = Self::MAX_ACCELERATION;
+        target_data.base_stats.max_forward_acceleration = Self::MAX_ACCELERATION;
+        target_data.base_stats.max_backward_acceleration = Self::MAX_ACCELERATION;
+        target_data.base_stats.max_lateral_acceleration = Self::MAX_ACCELERATION;
         target_data.radar_cross_section = 1e6;
         self.target = Some(ship::create(
             sim,
