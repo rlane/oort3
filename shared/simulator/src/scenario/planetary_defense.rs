@@ -1,6 +1,7 @@
 use super::prelude::*;
 use crate::ship::{ShipClass, ShipData};
 use crate::simulation::PHYSICS_TICK_LENGTH;
+use oort_api::{Class, ClassStats};
 
 pub struct PlanetaryDefense {
     rng: SeededRng,
@@ -72,9 +73,11 @@ impl Scenario for PlanetaryDefense {
                     class: ShipClass::Planet,
                     team: 2,
                     health: Self::PLANET_HEALTH,
-                    mass: 20e6,
                     radar_cross_section: 50.0,
-                    ..Default::default()
+                    ..ShipData::from(ClassStats {
+                        mass: 20e6,
+                        ..Class::Unknown.default_stats()
+                    })
                 },
             );
         }

@@ -10,7 +10,7 @@ use crate::simulation::{Particle, Simulation};
 use crate::{bullet, collision};
 use bullet::BulletData;
 use nalgebra::{vector, Rotation2, UnitComplex, Vector2};
-use oort_api::Ability;
+use oort_api::{Ability, Class, ClassStats};
 use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -111,6 +111,7 @@ pub struct ShipData {
     pub class: ShipClass,
     pub team: i32,
     pub health: f64,
+    pub max_health: f64,
     pub mass: f64,
     pub acceleration: Vector2<f64>,
     pub last_acceleration: Vector2<f64>,
@@ -133,6 +134,20 @@ pub struct ShipData {
     pub warhead: Warhead,
 }
 
+impl From<ClassStats> for ShipData {
+    fn from(stats: ClassStats) -> Self {
+        ShipData {
+            max_health: stats.max_health,
+            mass: stats.mass,
+            max_forward_acceleration: stats.max_forward_acceleration,
+            max_lateral_acceleration: stats.max_lateral_acceleration,
+            max_backward_acceleration: stats.max_backward_acceleration,
+            max_angular_acceleration: stats.max_angular_acceleration,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Target {
     pub position: Vector2<f64>,
@@ -145,6 +160,7 @@ impl Default for ShipData {
             class: ShipClass::Fighter,
             team: 0,
             health: 100.0,
+            max_health: 100.0,
             mass: 1000.0,
             acceleration: vector![0.0, 0.0],
             last_acceleration: vector![0.0, 0.0],
@@ -244,11 +260,6 @@ pub fn fighter(team: i32) -> ShipData {
         class: ShipClass::Fighter,
         team,
         health: 100.0,
-        mass: 15000.0,
-        max_forward_acceleration: 60.0,
-        max_backward_acceleration: 30.0,
-        max_lateral_acceleration: 30.0,
-        max_angular_acceleration: TAU,
         guns: vec![Gun {
             offset: vector![20.0, 0.0],
             ..vulcan_gun()
@@ -275,7 +286,7 @@ pub fn fighter(team: i32) -> ShipData {
             reload_time: 10.0,
             ..Default::default()
         }],
-        ..Default::default()
+        ..ShipData::from(Class::Fighter.default_stats())
     }
 }
 
@@ -284,11 +295,6 @@ pub fn frigate(team: i32) -> ShipData {
         class: ShipClass::Frigate,
         team,
         health: 10000.0,
-        mass: 4e6,
-        max_forward_acceleration: 10.0,
-        max_backward_acceleration: 5.0,
-        max_lateral_acceleration: 5.0,
-        max_angular_acceleration: TAU / 8.0,
         guns: vec![
             Gun {
                 magazine_size: 1,
@@ -326,7 +332,7 @@ pub fn frigate(team: i32) -> ShipData {
         }),
         radar_cross_section: 30.0,
         radios: vec![radio(), radio(), radio(), radio()],
-        ..Default::default()
+        ..ShipData::from(Class::Frigate.default_stats())
     }
 }
 
@@ -345,11 +351,6 @@ pub fn cruiser(team: i32) -> ShipData {
         class: ShipClass::Cruiser,
         team,
         health: 20000.0,
-        mass: 9e6,
-        max_forward_acceleration: 5.0,
-        max_backward_acceleration: 2.5,
-        max_lateral_acceleration: 2.5,
-        max_angular_acceleration: TAU / 16.0,
         guns: vec![Gun {
             magazine_size: 30,
             magazine_reload_ticks: 60,
@@ -406,7 +407,7 @@ pub fn cruiser(team: i32) -> ShipData {
             reload_time: 5.0,
             ..Default::default()
         }],
-        ..Default::default()
+        ..ShipData::from(Class::Cruiser.default_stats())
     }
 }
 
@@ -415,9 +416,8 @@ pub fn asteroid(variant: i32) -> ShipData {
         class: ShipClass::Asteroid { variant },
         team: 9,
         health: 200.0,
-        mass: 20e6,
         radar_cross_section: 50.0,
-        ..Default::default()
+        ..ShipData::from(Class::Asteroid.default_stats())
     }
 }
 
@@ -426,8 +426,7 @@ pub fn target(team: i32) -> ShipData {
         class: ShipClass::Target,
         team,
         health: 1.0,
-        mass: 10.0,
-        ..Default::default()
+        ..ShipData::from(Class::Target.default_stats())
     }
 }
 
@@ -436,11 +435,6 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 20.0,
-        mass: 150.0,
-        max_forward_acceleration: 300.0,
-        max_backward_acceleration: 0.0,
-        max_lateral_acceleration: 100.0,
-        max_angular_acceleration: 4.0 * TAU,
         radar: Some(Radar {
             power: 1e3,
             rx_cross_section: 3.0,
@@ -464,7 +458,7 @@ pub fn missile(team: i32) -> ShipData {
             speed: 1e3,
             ttl: 0.2,
         },
-        ..Default::default()
+        ..ShipData::from(Class::Missile.default_stats())
     }
 }
 
@@ -473,11 +467,6 @@ pub fn torpedo(team: i32) -> ShipData {
         class: ShipClass::Torpedo,
         team,
         health: 100.0,
-        mass: 500.0,
-        max_forward_acceleration: 70.0,
-        max_backward_acceleration: 0.0,
-        max_lateral_acceleration: 20.0,
-        max_angular_acceleration: 2.0 * TAU,
         radar: Some(Radar {
             power: 10e3,
             rx_cross_section: 3.0,
@@ -501,7 +490,7 @@ pub fn torpedo(team: i32) -> ShipData {
             speed: 1e3,
             ttl: 0.2,
         },
-        ..Default::default()
+        ..ShipData::from(Class::Torpedo.default_stats())
     }
 }
 

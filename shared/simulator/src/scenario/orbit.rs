@@ -1,4 +1,5 @@
 use nalgebra::ComplexField;
+use oort_api::{Class, ClassStats};
 use rapier2d_f64::prelude::RigidBody;
 
 use super::prelude::*;
@@ -52,9 +53,11 @@ impl Scenario for Orbit {
                 class: ShipClass::Planet,
                 team: 2,
                 health: 1e9,
-                mass: PLANET_MASS,
                 radar_cross_section: 1e6,
-                ..Default::default()
+                ..ShipData::from(ClassStats {
+                    mass: PLANET_MASS,
+                    ..Class::Unknown.default_stats()
+                })
             },
         );
     }
