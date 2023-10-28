@@ -33,7 +33,7 @@ bytes = { version = "1.5.0", features = ["serde"] }
 static_aabb2d_index = { version = "2.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
 wide = "0.7.13"
-wasm-submemory = { version = "0.1.0", git = "https://github.com/rlane/wasm-submemory", rev = "60a7fe48dd83aed9080d49981d716dde832737e7" }
+wasm-submemory = { version = "0.1.0", git = "https://github.com/rlane/wasm-submemory", rev = "6307aba5ea6a1b47b154074f951c68a5c08df3b8" }
 anyhow = "1.0.75"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
