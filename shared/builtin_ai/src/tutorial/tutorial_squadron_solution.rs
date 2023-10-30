@@ -36,6 +36,7 @@ impl Ship {
                 set_radar_width(TAU / 4.0);
             }
         } else {
+            fire(0);
             if let Some(contact) = scan().filter(|x| x.class == Class::Fighter) {
                 fire(1);
                 send([
@@ -46,13 +47,15 @@ impl Ship {
                 ]);
                 let dp = contact.position - position();
                 set_radar_heading(dp.angle());
-                let acc = if position().y.abs() < 1e3 {
-                    vec2(-position().x, 100.0 * position().y)
-                } else {
-                    vec2(-position().x, -velocity().y)
-                };
-                accelerate(acc);
-                turn_to(acc.angle());
+                if current_time() > 5.0 {
+                    let acc = if position().y.abs() < 1e3 {
+                        vec2(-position().x, 100.0 * position().y)
+                    } else {
+                        vec2(-position().x, -velocity().y)
+                    };
+                    accelerate(acc);
+                    turn_to(acc.angle());
+                }
             } else {
                 set_radar_heading(radar_heading() + radar_width());
                 set_radar_width(TAU / 60.0);
