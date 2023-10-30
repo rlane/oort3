@@ -1,3 +1,7 @@
+- Integrated wasm-submemory to remove reliance on Rust's memory safety.
+- Added very early C language support.
+- Added a check-solution-reliability binary.
+
 ### 0.74.1 - 2023-10-25
 
 - Fixed chase camera when ship is destroyed (by 0e4ef622)
