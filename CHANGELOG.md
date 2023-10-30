@@ -1,3 +1,5 @@
+### 0.75.0 - 2023-10-30
+
 - Integrated wasm-submemory to remove reliance on Rust's memory safety.
 - Added very early C language support.
 - Added a check-solution-reliability binary.
