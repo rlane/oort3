@@ -1,6 +1,25 @@
 pub mod filesystem {
     use wasm_bindgen::prelude::*;
-    use web_sys::FileSystemFileEntry;
+    use web_sys::{FileSystemFileEntry, FileSystemDirectoryEntry};
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    pub struct DirectoryValidateResponseEntry {
+        pub name: String,
+        #[serde(rename = "lastModified")]
+        pub last_modified: u64,
+        pub contents: String,
+    }
+
+    impl std::fmt::Debug for DirectoryValidateResponseEntry {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("DirectoryValidateResponseEntry")
+                .field("name", &self.name)
+                .field("last_modified", &self.last_modified)
+                .field("contents", &format!("<{} bytes>", &self.contents.len()))
+                .finish()
+        }
+    }
 
     #[wasm_bindgen(module = "/js/filesystem.js")]
     extern "C" {
@@ -11,11 +30,21 @@ pub mod filesystem {
         #[wasm_bindgen(constructor)]
         pub fn new(handle: FileSystemFileEntry) -> FileHandle;
 
+        #[wasm_bindgen]
+        #[derive(Debug, Clone)]
+        pub type DirectoryHandle;
+
+        #[wasm_bindgen(method, catch)]
+        pub async fn load_files(this: &DirectoryHandle) -> Result<JsValue, JsValue>;
+
         #[wasm_bindgen(method, catch)]
         pub async fn read(this: &FileHandle) -> Result<JsValue, JsValue>;
 
         #[wasm_bindgen(catch)]
         pub async fn open() -> Result<JsValue, JsValue>;
+
+        #[wasm_bindgen(catch)]
+        pub async fn open_directory() -> Result<JsValue, JsValue>;
     }
 }
 
