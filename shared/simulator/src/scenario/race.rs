@@ -1,5 +1,4 @@
 use super::prelude::*;
-use oort_api::prelude::current_tick;
 
 pub struct Target {
     hit: bool,
@@ -40,6 +39,14 @@ impl Scenario for Race {
                     rng.gen_range(-self.world_size()..self.world_size())
                 ] / 2.0,
             });
+
+            ship::create(
+                sim,
+                self.targets.last().unwrap().position.coords,
+                vector![0.0, 0.0],
+                0.0,
+                fighter(1),
+            );
         }
 
         self.player_ship = Some(ship::create(
@@ -65,26 +72,15 @@ impl Scenario for Race {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        if let Some(&handle) = sim.ships.iter().next() {
-            let ship = sim.ship(handle);
+        let ship = sim.ship(self.player_ship.unwrap());
 
-            for target in &mut self.targets {
-                let dx = target.position.x - ship.position().x;
-                let dy = target.position.y - ship.position().y;
-                if (dx * dx + dy * dy) < 2500.0 {
-                    target.hit = true;
-                }
+        for target in &mut self.targets {
+            let dx = target.position.x - ship.position().x;
+            let dy = target.position.y - ship.position().y;
+            if (dx * dx + dy * dy).sqrt() < 50.0 {
+                target.hit = true;
             }
         }
-
-        // this does not work, since the scenario tick happens last inside the simulation step
-        // radio state is overwritten by the radio tick in the next simulation step.
-        // one way around that would be to spawn ships at the center of all the targets that
-        // broadcast their positions
-        let mut ship = sim.ship_mut(self.player_ship.unwrap());
-        let target = &self.targets[(current_tick() % 3) as usize];
-        ship.radio_mut(0).unwrap().received =
-            Some([target.position.x, target.position.y, 0.0, 0.0]);
     }
 
     fn lines(&self) -> Vec<Line> {
