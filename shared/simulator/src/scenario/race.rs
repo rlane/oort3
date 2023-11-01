@@ -76,7 +76,7 @@ impl Scenario for Race {
             }
         }
 
-        let mut ship = sim.ship_mut(*self.player_ship.unwrap());
+        let mut ship = sim.ship_mut(self.player_ship.unwrap());
         for (i, target) in self.targets.iter().enumerate() {
             ship.radio_mut(i).unwrap().received =
                 Some([target.position.x, target.position.y, 0.0, 0.0]);
