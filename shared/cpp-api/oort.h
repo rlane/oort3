@@ -1,11 +1,15 @@
 #ifndef OORT_H
 #define OORT_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstring>
+#include <cstdlib>
 
-uint64_t SYSTEM_STATE[128];
-uint8_t ENVIRONMENT[1024];
-uint8_t PANIC_BUFFER[1024];
+extern "C" {
+    extern uint64_t SYSTEM_STATE[128];
+    extern uint8_t ENVIRONMENT[1024];
+    extern uint8_t PANIC_BUFFER[1024];
+}
 
 enum SystemState {
     Class,
@@ -149,24 +153,24 @@ enum SystemState {
     MaxSize = 128,
 };
 
-uint64_t read_u64(enum SystemState key) {
+inline uint64_t read_u64(enum SystemState key) {
     return SYSTEM_STATE[key];
 }
 
-double read_f64(enum SystemState key) {
+inline double read_f64(enum SystemState key) {
     uint64_t u64_value = read_u64(key);
     double f64_value;
-    memcpy(&f64_value, &u64_value, sizeof(f64_value));
+    std::memcpy(&f64_value, &u64_value, sizeof(f64_value));
     return f64_value;
 }
 
-void write_u64(enum SystemState key, uint64_t value) {
+inline void write_u64(enum SystemState key, uint64_t value) {
     SYSTEM_STATE[key] = value;
 }
 
-void write_f64(enum SystemState key, double value) {
+inline void write_f64(enum SystemState key, double value) {
     uint64_t u64_value;
-    memcpy(&u64_value, &value, sizeof(u64_value));
+    std::memcpy(&u64_value, &value, sizeof(u64_value));
     write_u64(key, u64_value);
 }
 

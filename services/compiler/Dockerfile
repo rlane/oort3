@@ -22,10 +22,11 @@ RUN \
 
 # service
 FROM rust:1.73.0-slim-bookworm
-RUN apt-get -y update && apt-get -y install clang-13 lld-13 && rm -rf /var/lib/apt/lists/*
-RUN ln -s /usr/bin/clang-13 /usr/bin/clang
+RUN apt-get -y update && apt-get -y install curl xz-utils && rm -rf /var/lib/apt/lists/*
 RUN rustup target add wasm32-unknown-unknown
 RUN rustup component add rustfmt
+RUN mkdir /opt/zig && curl https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz | tar -xJf - -C /opt/zig --strip-components=1
+RUN ln -s /opt/zig/zig /usr/bin/
 RUN useradd -m app
 USER app:1000
 WORKDIR /home/app

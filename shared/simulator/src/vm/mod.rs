@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::f64::consts::TAU;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use wasmer::{imports, Instance, MemoryView, Module, Store, WasmPtr};
+use wasmer::{imports, Function, Instance, MemoryView, Module, Store, WasmPtr};
 
 pub type Vec2 = nalgebra::Vector2<f64>;
 pub type Environment = BTreeMap<String, String>;
@@ -359,7 +359,14 @@ impl WasmVm {
             }
             _ => unreachable!(),
         };
-        let import_object = imports! {};
+        let import_object = imports! {
+            "wasi_snapshot_preview1" => {
+                "fd_write" => Function::new_typed(&mut store, |_a: i32, _b: i32, _c: i32, _d: i32, _e: i32| -> i32 { -1 }),
+                "fd_seek" => Function::new_typed(&mut store, |_a: i32, _b: i64, _c: i32, _d: i32| -> i32 { -1 }),
+                "fd_close" => Function::new_typed(&mut store, |_a: i32| -> i32 { -1 }),
+                "proc_exit" => Function::new_typed(&mut store, |_a: i32| {}),
+            }
+        };
         let instance = Instance::new(&mut store, &module, &import_object)?;
 
         let memory = translate_error(instance.exports.get_memory("memory"))?.clone();
