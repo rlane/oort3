@@ -1,3 +1,4 @@
+use oort_api::prelude::current_tick;
 use super::prelude::*;
 
 pub struct Target {
@@ -77,10 +78,9 @@ impl Scenario for Race {
         }
 
         let mut ship = sim.ship_mut(self.player_ship.unwrap());
-        for (i, target) in self.targets.iter().enumerate() {
-            ship.radio_mut(i).unwrap().received =
-                Some([target.position.x, target.position.y, 0.0, 0.0]);
-        }
+        let target = self.targets[current_tick() % 3];
+        ship.radio_mut(0).unwrap().received =
+            Some([target.position.x, target.position.y, 0.0, 0.0]);
     }
 
     fn lines(&self) -> Vec<Line> {
