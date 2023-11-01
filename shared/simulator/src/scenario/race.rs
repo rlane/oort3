@@ -37,7 +37,7 @@ impl Scenario for Race {
                 position: point![
                     rng.gen_range(-self.world_size()..self.world_size()),
                     rng.gen_range(-self.world_size()..self.world_size())
-                ] / 2.0,
+                ] / 3.0,
             });
 
             ship::create(
@@ -108,6 +108,10 @@ impl Scenario for Race {
         }
 
         lines
+    }
+
+    fn initial_code(&self) -> Vec<Code> {
+        vec![builtin("race_initial"), builtin("race_enemy")]
     }
 
     fn world_size(&self) -> f64 {
