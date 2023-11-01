@@ -1,4 +1,3 @@
-use nalgebra::Translation2;
 use super::prelude::*;
 
 pub struct Target {
@@ -18,12 +17,6 @@ impl Race {
     }
 }
 
-fn random_point_in_world(world_size: f64) -> Point2<f64> {
-    let half_world_size = world_size / 2;
-    point![rng.gen_range(-half_world_size..half_world_size),
-                rng.gen_range(-half_world_size..half_world_size)]
-}
-
 impl Scenario for Race {
     fn name(&self) -> String {
         "race".into()
@@ -36,14 +29,15 @@ impl Scenario for Race {
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
 
-        for i in 0..3 {
+        for _ in 0..3 {
             self.targets.push(Target {
                 hit: false,
-                position: random_point_in_world(self.world_size()),
+                position: point![rng.gen_range(-self.world_size()..self.world_size()),
+                rng.gen_range(-self.world_size()..self.world_size())] / 2.0,
             });
         }
 
-        let handle = ship::create(
+        ship::create(
             sim,
             Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
                 .transform_vector(&vector![rng.gen_range(100.0..200.0), 0.0]),
@@ -53,7 +47,8 @@ impl Scenario for Race {
         );
 
         for _ in 0..200 {
-            let p = random_point_in_world(self.world_size());
+            let p = point![rng.gen_range(-self.world_size()..self.world_size()),
+                rng.gen_range(-self.world_size()..self.world_size())] / 2.0;
             ship::create(
                 sim,
                 vector![p.x, p.y],
@@ -68,8 +63,10 @@ impl Scenario for Race {
         if let Some(&handle) = sim.ships.iter().next() {
             let ship = sim.ship(handle);
 
-            for mut target in self.targets {
-                if (ship.position().vector - target.position).magnitude() < 50.0 {
+            for target in &mut self.targets {
+                let dx = target.position.x - ship.position().x;
+                let dy = target.position.y - ship.position().y;
+                if (dx * dx + dy * dy) < 2500.0 {
                     target.hit = true;
                 }
             }
@@ -81,7 +78,7 @@ impl Scenario for Race {
         let n = 20;
         let r = 50.0;
 
-        for target in self.targets {
+        for target in &self.targets {
             let center = target.position;
             let color = if target.hit {
                 vector![0.0, 1.0, 0.0, 1.0]
