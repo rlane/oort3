@@ -1,5 +1,5 @@
-use oort_api::prelude::current_tick;
 use super::prelude::*;
+use oort_api::prelude::current_tick;
 
 pub struct Target {
     hit: bool,

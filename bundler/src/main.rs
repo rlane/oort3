@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::Parser as _;
 use notify::{RecursiveMode, Watcher};
-use std::{collections::HashMap, path::Path};
 use std::time::Duration;
+use std::{collections::HashMap, path::Path};
 
 #[derive(clap::Parser, Debug)]
 struct Arguments {

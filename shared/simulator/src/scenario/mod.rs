@@ -9,6 +9,7 @@ mod mini_fleet;
 mod orbit;
 mod planetary_defense;
 mod primitive_duel;
+mod race;
 mod radar_duel;
 mod squadrons;
 mod stress;
@@ -27,7 +28,6 @@ mod tutorial_rotation;
 mod tutorial_search;
 mod tutorial_squadron;
 mod welcome;
-mod race;
 
 use crate::ship::{asteroid, fighter, ShipAccessor, ShipClass, ShipData};
 use crate::simulation::{Code, Line, Simulation};
