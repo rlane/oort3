@@ -77,8 +77,12 @@ impl Scenario for Race {
             }
         }
 
+        // this does not work, since the scenario tick happens last inside the simulation step
+        // radio state is overwritten by the radio tick in the next simulation step.
+        // one way around that would be to spawn ships at the center of all the targets that
+        // broadcast their positions
         let mut ship = sim.ship_mut(self.player_ship.unwrap());
-        let target = self.targets[current_tick() % 3];
+        let target = &self.targets[(current_tick() % 3) as usize];
         ship.radio_mut(0).unwrap().received =
             Some([target.position.x, target.position.y, 0.0, 0.0]);
     }
