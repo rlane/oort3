@@ -57,7 +57,7 @@ impl Scenario for Race {
             fighter_without_missiles_or_radar(0),
         ));
 
-        for i in 0..200 {
+        for i in 0..500 {
             ship::create(
                 sim,
                 vector![
