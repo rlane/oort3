@@ -7,12 +7,14 @@ pub struct Target {
 
 pub struct Race {
     targets: Vec<Target>,
+    player_ship: Option<ShipHandle>,
 }
 
 impl Race {
     pub fn new() -> Self {
         Self {
-            targets: Vec::new()
+            targets: Vec::new(),
+            player_ship: None,
         }
     }
 }
@@ -32,29 +34,31 @@ impl Scenario for Race {
         for _ in 0..3 {
             self.targets.push(Target {
                 hit: false,
-                position: point![rng.gen_range(-self.world_size()..self.world_size()),
-                rng.gen_range(-self.world_size()..self.world_size())] / 2.0,
+                position: point![
+                    rng.gen_range(-self.world_size()..self.world_size()),
+                    rng.gen_range(-self.world_size()..self.world_size())
+                ] / 2.0,
             });
         }
 
-        ship::create(
+        self.player_ship = Some(ship::create(
             sim,
-            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(100.0..200.0), 0.0]),
+            vector![0.0, 0.0],
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),
-        );
+        ));
 
-        for _ in 0..200 {
-            let p = point![rng.gen_range(-self.world_size()..self.world_size()),
-                rng.gen_range(-self.world_size()..self.world_size())] / 2.0;
+        for i in 0..200 {
             ship::create(
                 sim,
-                vector![p.x, p.y],
-                vector![rng.gen_range(-10.0..10.0), rng.gen_range(-10.0..10.0)],
+                vector![
+                    rng.gen_range(-self.world_size()..self.world_size()),
+                    rng.gen_range(-self.world_size()..self.world_size())
+                ] / 2.0,
+                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                asteroid(rng.gen_range(0.0..1000.0) as i32),
+                asteroid(i),
             );
         }
     }
@@ -70,6 +74,12 @@ impl Scenario for Race {
                     target.hit = true;
                 }
             }
+        }
+
+        let mut ship = sim.ship_mut(*self.player_ship.unwrap());
+        for (i, target) in self.targets.iter().enumerate() {
+            ship.radio_mut(i).unwrap().received =
+                Some([target.position.x, target.position.y, 0.0, 0.0]);
         }
     }
 
