@@ -54,7 +54,7 @@ impl Scenario for Race {
             vector![0.0, 0.0],
             vector![0.0, 0.0],
             0.0,
-            fighter_without_missiles_or_radar(0),
+            fighter(0),
         ));
 
         for i in 0..500 {
@@ -114,6 +114,9 @@ impl Scenario for Race {
         vec![builtin("race_initial"), builtin("race_enemy")]
     }
 
+    fn solution(&self) -> Code {
+        builtin("race_solution")
+    }
     fn world_size(&self) -> f64 {
         10e3
     }
