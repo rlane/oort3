@@ -413,8 +413,7 @@ impl WasmVm {
 
     fn read_string(memory_view: &MemoryView, offset: u32, length: u32) -> Option<String> {
         let ptr: WasmPtr<u8> = WasmPtr::new(offset);
-        let mut bytes: Vec<u8> = Vec::new();
-        bytes.resize(length as usize, 0);
+        let mut bytes: Vec<u8> = vec![0; length as usize];
         let slice = ptr.slice(memory_view, length).ok()?;
         slice.read_slice(&mut bytes).ok()?;
         String::from_utf8(bytes).ok()

@@ -188,7 +188,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
 }
 
 pub fn list() -> Vec<(String, Vec<String>)> {
-    vec![
+    [
         ("Introduction", vec!["welcome"]),
         (
             "Tutorial",

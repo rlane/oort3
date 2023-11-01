@@ -111,10 +111,9 @@ void main() {
         let mut ships_by_class = std::collections::HashMap::<ShipClass, Vec<ShipSnapshot>>::new();
 
         for ship in snapshot.ships.iter() {
-            ships_by_class.entry(ship.class).or_insert_with(Vec::new);
             ships_by_class
-                .get_mut(&ship.class)
-                .unwrap()
+                .entry(ship.class)
+                .or_default()
                 .push((*ship).clone());
         }
 
