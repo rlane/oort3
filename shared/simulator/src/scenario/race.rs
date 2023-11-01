@@ -7,14 +7,16 @@ pub struct Target {
 
 pub struct Race {
     targets: Vec<Target>,
-    player_ship: Option<ShipHandle>,
+    beacon_ship_handle: Option<ShipHandle>,
+    player_ship_handle: Option<ShipHandle>,
 }
 
 impl Race {
     pub fn new() -> Self {
         Self {
             targets: Vec::new(),
-            player_ship: None,
+            beacon_ship_handle: None,
+            player_ship_handle: None,
         }
     }
 }
@@ -39,17 +41,17 @@ impl Scenario for Race {
                     rng.gen_range(-self.world_size()..self.world_size())
                 ] / 3.0,
             });
-
-            ship::create(
-                sim,
-                self.targets.last().unwrap().position.coords,
-                vector![0.0, 0.0],
-                0.0,
-                fighter(1),
-            );
         }
 
-        self.player_ship = Some(ship::create(
+        self.beacon_ship_handle = Some(ship::create(
+            sim,
+            vector![self.world_size() / 2.2, self.world_size() / 2.2],
+            vector![0.0, 0.0],
+            0.0,
+            cruiser(1),
+        ));
+
+        self.player_ship_handle = Some(ship::create(
             sim,
             vector![0.0, 0.0],
             vector![0.0, 0.0],
@@ -57,7 +59,7 @@ impl Scenario for Race {
             fighter(0),
         ));
 
-        for i in 0..500 {
+        for i in 0..100 {
             ship::create(
                 sim,
                 vector![
@@ -72,14 +74,26 @@ impl Scenario for Race {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        let ship = sim.ship(self.player_ship.unwrap());
+        let player_ship = sim.ship(self.player_ship_handle.unwrap());
 
         for target in &mut self.targets {
-            let dx = target.position.x - ship.position().x;
-            let dy = target.position.y - ship.position().y;
+            let dx = target.position.x - player_ship.position().x;
+            let dy = target.position.y - player_ship.position().y;
             if (dx * dx + dy * dy).sqrt() < 50.0 {
                 target.hit = true;
             }
+        }
+
+        for (i, (radio, target)) in sim
+            .ship_mut(self.beacon_ship_handle.unwrap())
+            .data_mut()
+            .radios
+            .iter_mut()
+            .zip(self.targets.iter())
+            .enumerate()
+        {
+            radio.set_channel(i);
+            radio.set_sent(Some([target.position.x, target.position.y, 0.0, 0.0]));
         }
     }
 
@@ -111,7 +125,7 @@ impl Scenario for Race {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("race_initial"), builtin("race_enemy")]
+        vec![builtin("race_initial"), empty_ai()]
     }
 
     fn solution(&self) -> Code {

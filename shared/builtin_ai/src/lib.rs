@@ -4,7 +4,6 @@ pub mod fuzz;
 pub mod gunnery;
 pub mod missile;
 pub mod planetary_defense_enemy;
-pub mod race_enemy;
 mod race_initial;
 mod race_solution;
 pub mod radar_test;

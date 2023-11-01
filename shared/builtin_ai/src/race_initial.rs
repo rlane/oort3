@@ -1,37 +1,34 @@
-use core::cmp::Ordering;
 use oort_api::prelude::*;
 
 pub struct Ship {
-    targets: Vec<Vec2>,
+    targets: [Vec2; 3],
 }
 
 impl Ship {
     pub fn new() -> Ship {
         Ship {
-            targets: Vec::new(),
+            targets: [
+                vec2(f64::NAN, f64::NAN),
+                vec2(f64::NAN, f64::NAN),
+                vec2(f64::NAN, f64::NAN),
+            ],
         }
     }
 
     pub fn tick(&mut self) {
-        for target in &self.targets {
-            debug!("Target: {}", target);
+        // read target data from beacon cruiser radio for the first few ticks
+        if current_tick() < 4 {
+            if let Some(data) = receive() {
+                self.targets[get_radio_channel()] = vec2(data[0], data[1]);
+            };
+            set_radio_channel((current_tick()) as usize);
+            return; // note this early return during target acquisition!
         }
 
-        set_radio_channel(2);
-        match receive() {
-            None => {
-                debug!("No radio :(");
-            }
-            Some(data) => {
-                let p = vec2(data[0], data[1]);
-                if self
-                    .targets
-                    .iter()
-                    .all(|v| v.x.total_cmp(&p.x) != Ordering::Equal)
-                {
-                    self.targets.push(p);
-                }
-            }
+        // implement pilot to fly through all targets here
+        // access the target locations like so:
+        for target in &self.targets {
+            debug!("Target: {}", target);
         }
     }
 }
