@@ -1,6 +1,6 @@
 pub mod filesystem {
     use wasm_bindgen::prelude::*;
-    use web_sys::{FileSystemFileEntry, FileSystemDirectoryEntry};
+    use web_sys::FileSystemFileEntry;
     use serde::Deserialize;
 
     #[derive(Deserialize)]
@@ -45,6 +45,9 @@ pub mod filesystem {
 
         #[wasm_bindgen(catch)]
         pub async fn open_directory() -> Result<JsValue, JsValue>;
+
+        #[wasm_bindgen(catch)]
+        pub async fn pick(editor: JsValue, items: Vec<JsValue>) -> Result<JsValue, JsValue>;
     }
 }
 

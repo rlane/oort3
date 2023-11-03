@@ -597,8 +597,8 @@ impl Component for Game {
         <>
             <Toolbar scenario_name={context.props().scenario.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
             <Welcome host={welcome_window_host} show_feedback_cb={show_feedback_cb.clone()} select_scenario_cb={select_scenario_cb2} />
-            <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} team=0 />
-            <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} team=1 />
+            <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} team=0 scenario_name={context.props().scenario.clone()} />
+            <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} team=1 scenario_name={context.props().scenario.clone()} />
             <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} canvas_ref={self.simulation_canvas_ref.clone()} />
             <Documentation host={documentation_window_host} {show_feedback_cb} />
             <CompilerOutputWindow host={compiler_output_window_host} {compiler_errors} />
