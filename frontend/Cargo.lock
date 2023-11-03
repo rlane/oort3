@@ -2040,7 +2040,7 @@ dependencies = [
 
 [[package]]
 name = "oort_multifile"
-version = "0.75.0"
+version = "0.77.0"
 dependencies = [
  "anyhow",
  "regex",

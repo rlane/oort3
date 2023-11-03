@@ -101,3 +101,47 @@ export async function open_directory() {
 
   return new DirectoryHandle(entry);
 }
+
+export async function pick(editor, items) {
+  return await new Promise((resolve, reject) => {
+    // TODO Monaco has an API for this but it is not exposed in rust-monaco
+    let widget = {
+      domNode: null,
+      getId: function () {
+        return 'oort.picker'
+      },
+      getDomNode: function () {
+        if (!this.domNode) {
+          this.domNode = document.createElement('ul')
+          this.domNode.classList.add('oort-picker')
+          
+          for (let item of items) {
+            let itemEl = document.createElement('li')
+            itemEl.innerText = item
+            itemEl.addEventListener('click', () => {
+              resolve(item)
+              setTimeout(() => editor.removeOverlayWidget(widget), 0)
+            })
+            itemEl.tabIndex = 0;
+            this.domNode.appendChild(itemEl)
+          }
+
+          this.domNode.addEventListener('focusout', () => {
+            reject('No selection')
+            editor.removeOverlayWidget(widget)
+          })
+
+          this.domNode.focus();
+        }
+        return this.domNode
+      },
+      getPosition: function () {
+        return {
+          preference: [2] // TOP_CENTER
+        }
+      }
+    }
+
+    editor.addOverlayWidget(widget)
+  })
+}
