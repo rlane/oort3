@@ -126,12 +126,15 @@ export async function pick(editor, items) {
             this.domNode.appendChild(itemEl)
           }
 
-          this.domNode.addEventListener('focusout', () => {
-            reject('No selection')
-            editor.removeOverlayWidget(widget)
-          })
+          let removalListener = (evt) => {
+            if (!this.domNode.contains(evt.target)) {
+              reject('No selection')
+              editor.removeOverlayWidget(widget)
+              document.removeEventListener('click', removalListener)
+            }
+          }
 
-          this.domNode.focus();
+          document.addEventListener('click', removalListener)
         }
         return this.domNode
       },
@@ -142,6 +145,7 @@ export async function pick(editor, items) {
       }
     }
 
+    editor.removeOverlayWidget(widget)
     editor.addOverlayWidget(widget)
   })
 }
