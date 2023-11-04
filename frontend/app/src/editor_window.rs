@@ -1,7 +1,7 @@
 #![allow(clippy::drop_non_drop)]
 use crate::analyzer_stub::{self, AnalyzerAgent, CompletionItem};
 use crate::js;
-use crate::js::filesystem::{FileHandle, DirectoryHandle, DirectoryValidateResponseEntry};
+use crate::js::filesystem::{FileHandle, DirectoryHandle, DirectoryValidateResponseEntry, PickEntry};
 use gloo_timers::callback::Interval;
 use gloo_timers::callback::Timeout;
 use js_sys::Function;
@@ -214,16 +214,15 @@ impl Component for EditorWindow {
                 };
 
                 let link = context.link().clone();
-                let mut items = Vec::new();
-                // TODO make nicer displays
-                items.push(JsValue::from("__lib__"));
-                items.push(JsValue::from("__scenario__"));
+                let mut items = Vec::<PickEntry>::new();
+                items.push(PickEntry::new("__lib__", "Use provided lib.rs"));
+                items.push(PickEntry::new("__scenario__", "Use ai_[scenario].rs or ai_default.rs"));
                 
                 items.extend(
                     directory_link.files
                         .iter()
                         .filter(|f| f.starts_with("ai_"))
-                        .map(JsValue::from)       
+                        .map(|v| PickEntry::new(v, v))
                 );
 
                 let editor_link = self.editor_link.clone();
@@ -231,7 +230,8 @@ impl Component for EditorWindow {
                 wasm_bindgen_futures::spawn_local(async move {
                     let js_editor = editor_link.with_editor(|ed| JsValue::from(ed.as_ref())).unwrap();
 
-                    let selection = js::filesystem::pick(js_editor, items).await;
+                    let items = items.iter().map(|e| serde_wasm_bindgen::to_value(e).unwrap()).collect();
+                    let selection = js::filesystem::pick(js_editor, "Select an entry point".into(), items).await;
 
                     match selection {
                         Ok(result) => {

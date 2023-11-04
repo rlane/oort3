@@ -102,7 +102,14 @@ export async function open_directory() {
   return new DirectoryHandle(entry);
 }
 
-export async function pick(editor, items) {
+/**
+ * Displays an editor overlay with a list of items to pick from
+ * @param {IStandaloneCodeEditor} editor 
+ * @param {string} prompt
+ * @param {Record<string, string>} items 
+ * @returns 
+ */
+export async function pick(editor, prompt, items) {
   return await new Promise((resolve, reject) => {
     // TODO Monaco has an API for this but it is not exposed in rust-monaco
     let widget = {
@@ -112,18 +119,25 @@ export async function pick(editor, items) {
       },
       getDomNode: function () {
         if (!this.domNode) {
-          this.domNode = document.createElement('ul')
+          this.domNode = document.createElement('div')
           this.domNode.classList.add('oort-picker')
+
+          let title = document.createElement('h2')
+          title.innerText = prompt
+          this.domNode.appendChild(title)
+
+          let list = document.createElement('ul')
+          this.domNode.appendChild(list)
           
-          for (let item of items) {
+          for (let { value, display } of items) {
             let itemEl = document.createElement('li')
-            itemEl.innerText = item
+            itemEl.innerText = display
             itemEl.addEventListener('click', () => {
-              resolve(item)
+              resolve(value)
               setTimeout(() => editor.removeOverlayWidget(widget), 0)
             })
             itemEl.tabIndex = 0;
-            this.domNode.appendChild(itemEl)
+            list.appendChild(itemEl)
           }
 
           let removalListener = (evt) => {

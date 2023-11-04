@@ -1,7 +1,7 @@
 pub mod filesystem {
     use wasm_bindgen::prelude::*;
     use web_sys::FileSystemFileEntry;
-    use serde::Deserialize;
+    use serde::{Serialize, Deserialize};
 
     #[derive(Deserialize)]
     pub struct DirectoryValidateResponseEntry {
@@ -18,6 +18,26 @@ pub mod filesystem {
                 .field("last_modified", &self.last_modified)
                 .field("contents", &format!("<{} bytes>", &self.contents.len()))
                 .finish()
+        }
+    }
+
+    #[derive(Serialize)]
+    pub struct PickEntry {
+        pub value: String,
+        pub display: String,
+    }
+
+    impl PickEntry {
+        pub fn new(value: &str, display: &str) -> Self {
+            let value = value.into();
+            let display = display.into();
+            Self { value, display }
+        }
+    }
+
+    impl Into<JsValue> for PickEntry {
+        fn into(self) -> JsValue {
+            serde_wasm_bindgen::to_value(&self).unwrap()
         }
     }
 
@@ -47,7 +67,7 @@ pub mod filesystem {
         pub async fn open_directory() -> Result<JsValue, JsValue>;
 
         #[wasm_bindgen(catch)]
-        pub async fn pick(editor: JsValue, items: Vec<JsValue>) -> Result<JsValue, JsValue>;
+        pub async fn pick(editor: JsValue, prompt: JsValue, items: Vec<JsValue>) -> Result<JsValue, JsValue>;
     }
 }
 

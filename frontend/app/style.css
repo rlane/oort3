@@ -414,22 +414,34 @@ b.error {
   margin-left: 5px;
 }
 
-ul.oort-picker {
+.oort-picker {
   --width: 20rem;
   width: var(--width);
   background-color: #111111;
   color: #999999;
-  list-style: none;
+
+  top: 1rem;
   left: calc(50% - var(--width) / 2);
   padding: 0.25rem;
 
-  & li {
-    padding: 0.25rem;
-    cursor: pointer;
+  &>h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
 
-    &:hover {
-      background: #222222;
-      color: #dddddd;
+  &>ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    &>li {
+      padding: 0.25rem;
+      cursor: pointer;
+  
+      &:hover {
+        background: #222222;
+        color: #dddddd;
+      }
     }
   }
 }
