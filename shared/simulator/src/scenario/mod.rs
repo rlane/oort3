@@ -9,6 +9,7 @@ mod mini_fleet;
 mod orbit;
 mod planetary_defense;
 mod primitive_duel;
+mod race;
 mod radar_duel;
 mod squadrons;
 mod stress;
@@ -157,6 +158,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         // Challenge
         "gunnery" => Some(Box::new(gunnery::GunneryScenario {})),
         "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
+        "race" => Some(Box::new(race::Race::new())),
         // Testing
         "test" => Some(Box::new(test::TestScenario {})),
         "basic" => Some(Box::new(test::BasicScenario {})),
@@ -208,7 +210,7 @@ pub fn list() -> Vec<(String, Vec<String>)> {
                 "tutorial_cruiser",
             ],
         ),
-        ("Challenge", vec!["gunnery", "planetary_defense"]),
+        ("Challenge", vec!["gunnery", "planetary_defense", "race"]),
         ("Tournament", vec!["fighter_duel", "mini_fleet"]),
         (
             "Future Tournaments",
