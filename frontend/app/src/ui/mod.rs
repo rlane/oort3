@@ -55,6 +55,7 @@ pub struct UI {
     touches: HashMap<i32, Touch>,
     drag_start: Option<Point2<i32>>,
     needs_render: bool,
+    on_replay_pause: yew::Callback<()>,
 }
 
 unsafe impl Send for UI {}
@@ -63,6 +64,7 @@ impl UI {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         request_snapshot: yew::Callback<()>,
+        on_replay_pause: yew::Callback<()>,
         seed: u32,
         nonce: u32,
         version: String,
@@ -128,6 +130,7 @@ impl UI {
             touches: HashMap::new(),
             drag_start: None,
             needs_render: true,
+            on_replay_pause,
         }
     }
 
@@ -178,6 +181,10 @@ impl UI {
             self.keys_ignored.insert("n".to_string());
             self.paused = true;
             self.single_steps += 1;
+        }
+        if self.keys_down.contains("r") && !self.keys_ignored.contains("r") {}
+        if self.keys_down.contains("p") && !self.keys_ignored.contains("p") {
+            self.on_replay_pause.emit(());
         }
         if self.keys_down.contains("g") && !self.keys_ignored.contains("g") {
             self.keys_ignored.insert("g".to_string());
@@ -244,16 +251,14 @@ impl UI {
         }
 
         if self.snapshot.is_some() {
-            let chasing_ship = self
-                .chasing_ship_id
-                .and_then(|id| {
-                    self.snapshot
-                        .as_ref()
-                        .unwrap()
-                        .ships
-                        .iter()
-                        .find(|s| s.id == id)
-                });
+            let chasing_ship = self.chasing_ship_id.and_then(|id| {
+                self.snapshot
+                    .as_ref()
+                    .unwrap()
+                    .ships
+                    .iter()
+                    .find(|s| s.id == id)
+            });
             if let Some(s) = chasing_ship {
                 self.camera_focus = s.position.cast();
             } else {
@@ -535,8 +540,12 @@ impl UI {
             self.camera_offset += diff;
             self.renderer.set_view(self.zoom, self.camera_target());
         } else {
-            self.touches
-                .insert(e.pointer_id(), Touch { world_camera_offset });
+            self.touches.insert(
+                e.pointer_id(),
+                Touch {
+                    world_camera_offset,
+                },
+            );
         }
 
         if self.drag_start.is_none() {
