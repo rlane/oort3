@@ -1,7 +1,7 @@
 pub mod filesystem {
+    use serde::{Deserialize, Serialize};
     use wasm_bindgen::prelude::*;
     use web_sys::FileSystemFileEntry;
-    use serde::{Serialize, Deserialize};
 
     #[derive(Deserialize)]
     pub struct DirectoryValidateResponseEntry {
@@ -67,7 +67,11 @@ pub mod filesystem {
         pub async fn open_directory() -> Result<JsValue, JsValue>;
 
         #[wasm_bindgen(catch)]
-        pub async fn pick(editor: JsValue, prompt: JsValue, items: Vec<JsValue>) -> Result<JsValue, JsValue>;
+        pub async fn pick(
+            editor: JsValue,
+            prompt: JsValue,
+            items: Vec<JsValue>,
+        ) -> Result<JsValue, JsValue>;
     }
 }
 

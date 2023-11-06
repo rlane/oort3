@@ -244,16 +244,14 @@ impl UI {
         }
 
         if self.snapshot.is_some() {
-            let chasing_ship = self
-                .chasing_ship_id
-                .and_then(|id| {
-                    self.snapshot
-                        .as_ref()
-                        .unwrap()
-                        .ships
-                        .iter()
-                        .find(|s| s.id == id)
-                });
+            let chasing_ship = self.chasing_ship_id.and_then(|id| {
+                self.snapshot
+                    .as_ref()
+                    .unwrap()
+                    .ships
+                    .iter()
+                    .find(|s| s.id == id)
+            });
             if let Some(s) = chasing_ship {
                 self.camera_focus = s.position.cast();
             } else {
@@ -535,8 +533,12 @@ impl UI {
             self.camera_offset += diff;
             self.renderer.set_view(self.zoom, self.camera_target());
         } else {
-            self.touches
-                .insert(e.pointer_id(), Touch { world_camera_offset });
+            self.touches.insert(
+                e.pointer_id(),
+                Touch {
+                    world_camera_offset,
+                },
+            );
         }
 
         if self.drag_start.is_none() {
