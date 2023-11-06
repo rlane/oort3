@@ -7,7 +7,7 @@ use rand::Rng;
 use rand_distr::StandardNormal;
 use rapier2d_f64::parry;
 use rapier2d_f64::prelude::*;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::f64::consts::TAU;
 use std::ops::Range;
 use wide::{f32x4, CmpGt, CmpLt};
@@ -140,8 +140,19 @@ pub struct ScanResult {
     pub snr: f64,
 }
 
-#[derive(Clone)]
-struct ReflectorTeam {
+#[derive(Clone, Default)]
+struct Reflectors {
+    groups: BTreeMap<ReflectorGroupKey, ReflectorGroup>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+struct ReflectorGroupKey {
+    team: i32,
+    class: ShipClass,
+}
+
+#[derive(Clone, Default)]
+struct ReflectorGroup {
     xs: Vec<f32x4>,
     ys: Vec<f32x4>,
     reflectors: Vec<RadarReflector>,
@@ -156,8 +167,8 @@ fn from_dbm(x: f64) -> f64 {
 }
 
 #[inline(never)]
-fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
-    let mut reflectors_by_team: HashMap<i32, Vec<RadarReflector>> = HashMap::new();
+fn build_reflectors(sim: &Simulation) -> Reflectors {
+    let mut reflector_groups: HashMap<ReflectorGroupKey, Vec<RadarReflector>> = HashMap::new();
 
     for handle in sim.ships.iter() {
         let ship = sim.ship(*handle);
@@ -184,8 +195,12 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
                     ecm_mode: radar.ecm_mode,
                 }),
             });
-        reflectors_by_team
-            .entry(ship_data.team)
+        let group_key = ReflectorGroupKey {
+            team: ship_data.team,
+            class,
+        };
+        reflector_groups
+            .entry(group_key)
             .or_default()
             .push(RadarReflector {
                 position: ship.position().vector.into(),
@@ -196,17 +211,8 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
             });
     }
 
-    let mut result: Vec<ReflectorTeam> = Vec::new();
-    result.resize(
-        10,
-        ReflectorTeam {
-            xs: Vec::new(),
-            ys: Vec::new(),
-            reflectors: Vec::new(),
-        },
-    );
-    for (team, mut reflectors) in reflectors_by_team.drain() {
-        reflectors.sort_by_key(|r| r.class);
+    let mut result: Reflectors = Default::default();
+    for (group_key, reflectors) in reflector_groups.drain() {
         let positions: Vec<Point2<f32>> = reflectors
             .iter()
             .map(|r| r.position.cast::<f32>())
@@ -231,7 +237,9 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
                 f32x4::from(ys)
             })
             .collect();
-        result[team as usize] = ReflectorTeam { xs, ys, reflectors };
+        result
+            .groups
+            .insert(group_key, ReflectorGroup { xs, ys, reflectors });
     }
 
     result
@@ -240,8 +248,8 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
 #[inline(never)]
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
-    let reflector_teams = build_reflector_team(sim);
-    let mut candidates: Vec<(i32, usize)> = Vec::new();
+    let reflectors = build_reflectors(sim);
+    let mut candidates: Vec<&RadarReflector> = Vec::new();
     let planets = sim
         .ships
         .iter()
@@ -315,10 +323,9 @@ pub fn tick(sim: &mut Simulation) {
                 emitter.square_distance_range.end = ComplexField::powi(planet_distance, 2);
             }
 
-            find_candidates(&emitter, &reflector_teams, &mut candidates);
+            find_candidates(&emitter, &reflectors, &mut candidates);
 
-            for (team, reflector_index) in candidates.iter() {
-                let reflector = &reflector_teams[*team as usize].reflectors[*reflector_index];
+            for reflector in candidates.iter() {
                 if let Some(jammer) = reflector.jammer.as_ref() {
                     match jammer.ecm_mode {
                         EcmMode::None => {}
@@ -410,10 +417,10 @@ pub fn tick(sim: &mut Simulation) {
 }
 
 #[inline(never)]
-fn find_candidates(
+fn find_candidates<'a>(
     emitter: &RadarEmitter,
-    reflector_teams: &[ReflectorTeam],
-    candidates: &mut Vec<(i32, usize)>,
+    reflectors: &'a Reflectors,
+    candidates: &mut Vec<&'a RadarReflector>,
 ) {
     let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
     let emitter_position = emitter.center.cast::<f32>();
@@ -425,14 +432,13 @@ fn find_candidates(
     let wrx1 = f32x4::splat(rays[1].x);
     let wry1 = f32x4::splat(rays[1].y);
 
-    for (team, reflector_team) in reflector_teams.iter().enumerate() {
-        let team = team as i32;
-        if emitter.team == team || reflector_team.reflectors.is_empty() {
+    for (group_key, group) in reflectors.groups.iter() {
+        if emitter.team == group_key.team || group.reflectors.is_empty() {
             continue;
         }
 
-        let n = reflector_team.reflectors.len();
-        for (i, (&wx, &wy)) in reflector_team.xs.iter().zip(&reflector_team.ys).enumerate() {
+        let n = group.reflectors.len();
+        for (i, (&wx, &wy)) in group.xs.iter().zip(&group.ys).enumerate() {
             let wdx = wx - wex;
             let wdy = wy - wey;
 
@@ -447,7 +453,7 @@ fn find_candidates(
                 for (j, &v) in mask.to_array().iter().enumerate() {
                     let reflector_index = i * 4 + j;
                     if v != 0.0 && reflector_index < n {
-                        candidates.push((team, reflector_index));
+                        candidates.push(&group.reflectors[reflector_index]);
                     }
                 }
             }
