@@ -1,7 +1,9 @@
 #![allow(clippy::drop_non_drop)]
 use crate::analyzer_stub::{self, AnalyzerAgent, CompletionItem};
 use crate::js;
-use crate::js::filesystem::{FileHandle, DirectoryHandle, DirectoryValidateResponseEntry, PickEntry};
+use crate::js::filesystem::{
+    DirectoryHandle, DirectoryValidateResponseEntry, FileHandle, PickEntry,
+};
 use gloo_timers::callback::Interval;
 use gloo_timers::callback::Timeout;
 use js_sys::Function;
@@ -124,7 +126,7 @@ impl Component for EditorWindow {
             current_completion: None,
             folded: false,
             file_handle: None,
-            directory_link: None,            
+            directory_link: None,
             linked: false,
             drop_target_ref: NodeRef::default(),
         }
@@ -195,7 +197,8 @@ impl Component for EditorWindow {
                     wasm_bindgen_futures::spawn_local(async move {
                         match js::filesystem::open_directory().await {
                             Ok(directory_handle) => {
-                                let directory_handle = directory_handle.dyn_into::<DirectoryHandle>().unwrap();
+                                let directory_handle =
+                                    directory_handle.dyn_into::<DirectoryHandle>().unwrap();
                                 cb.emit(directory_handle);
                             }
                             Err(e) => log::error!("open directory failed: {:?}", e),
@@ -216,22 +219,33 @@ impl Component for EditorWindow {
                 let link = context.link().clone();
                 let mut items = Vec::<PickEntry>::new();
                 items.push(PickEntry::new("__lib__", "Use provided lib.rs"));
-                items.push(PickEntry::new("__scenario__", "Use ai_[scenario].rs or ai_default.rs"));
-                
+                items.push(PickEntry::new(
+                    "__scenario__",
+                    "Use ai_[scenario].rs or ai_default.rs",
+                ));
+
                 items.extend(
-                    directory_link.files
+                    directory_link
+                        .files
                         .iter()
                         .filter(|f| f.starts_with("ai_"))
-                        .map(|v| PickEntry::new(v, v))
+                        .map(|v| PickEntry::new(v, v)),
                 );
 
                 let editor_link = self.editor_link.clone();
 
                 wasm_bindgen_futures::spawn_local(async move {
-                    let js_editor = editor_link.with_editor(|ed| JsValue::from(ed.as_ref())).unwrap();
+                    let js_editor = editor_link
+                        .with_editor(|ed| JsValue::from(ed.as_ref()))
+                        .unwrap();
 
-                    let items = items.iter().map(|e| serde_wasm_bindgen::to_value(e).unwrap()).collect();
-                    let selection = js::filesystem::pick(js_editor, "Select an entry point".into(), items).await;
+                    let items = items
+                        .iter()
+                        .map(|e| serde_wasm_bindgen::to_value(e).unwrap())
+                        .collect();
+                    let selection =
+                        js::filesystem::pick(js_editor, "Select an entry point".into(), items)
+                            .await;
 
                     match selection {
                         Ok(result) => {
@@ -240,15 +254,19 @@ impl Component for EditorWindow {
                             let entry_point = match file_name.as_str() {
                                 "__lib__" => DirectoryLinkEntryPoint::LibRs,
                                 "__scenario__" => DirectoryLinkEntryPoint::ScenarioOrDefault,
-                                f if f.starts_with("ai_") => DirectoryLinkEntryPoint::SelectedFile(String::from(f)),
+                                f if f.starts_with("ai_") => {
+                                    DirectoryLinkEntryPoint::SelectedFile(String::from(f))
+                                }
                                 _ => {
                                     panic!("Invalid file selected: {:?}", file_name);
                                 }
                             };
 
                             link.send_message(Msg::LinkedDirectorySetEntryPoint(entry_point));
-                        },
-                        Err(e) => log::error!("Failed selecting directory link entry point: {:?}", e),
+                        }
+                        Err(e) => {
+                            log::error!("Failed selecting directory link entry point: {:?}", e)
+                        }
                     }
                 });
 
@@ -336,7 +354,12 @@ impl Component for EditorWindow {
             }
             Msg::LinkedDirectory(handle) => {
                 self.file_handle = None;
-                self.directory_link = Some(DirectoryLink { handle, last_modified: 0, files: Vec::new(), entry_point: DirectoryLinkEntryPoint::None });
+                self.directory_link = Some(DirectoryLink {
+                    handle,
+                    last_modified: 0,
+                    files: Vec::new(),
+                    entry_point: DirectoryLinkEntryPoint::None,
+                });
                 self.linked = true;
                 context.link().send_message(Msg::CheckLinkedDirectory);
                 self.set_read_only(true);
@@ -384,7 +407,7 @@ impl Component for EditorWindow {
                 let link = context.link().clone();
 
                 let had_files_before = !directory_link.files.is_empty();
-                
+
                 directory_link.last_modified = last_modified;
                 directory_link.files = files.iter().map(|f| f.name.clone()).collect();
                 let entry_point = directory_link.entry_point.clone();
@@ -394,9 +417,10 @@ impl Component for EditorWindow {
                     link.send_message(Msg::EditorAction("oort-link-directory-select".to_string()));
                 }
 
-                let mut files = files.into_iter().map(|f| {
-                    (f.name, f.contents)
-                }).collect::<std::collections::HashMap<_, _>>();
+                let mut files = files
+                    .into_iter()
+                    .map(|f| (f.name, f.contents))
+                    .collect::<std::collections::HashMap<_, _>>();
 
                 // Generate our lib.rs
                 let mut lib_rs = Vec::new();
@@ -427,12 +451,12 @@ impl Component for EditorWindow {
                 match &entry_point {
                     DirectoryLinkEntryPoint::None => {
                         lib_rs.push(String::from("// No entry point selected"));
-                    },
+                    }
                     DirectoryLinkEntryPoint::LibRs => {
                         if !files.contains_key("lib.rs") {
                             files.insert("lib.rs".into(), String::from("// No lib.rs found"));
                         }
-                    },
+                    }
                     DirectoryLinkEntryPoint::ScenarioOrDefault => {
                         let scenario_file_name = format!("ai_{}.rs", scenario_name);
                         if files.contains_key(&scenario_file_name) {
@@ -440,18 +464,21 @@ impl Component for EditorWindow {
                         } else if files.contains_key("ai_default.rs") {
                             load_file_entry(&"ai_default.rs".into());
                         } else {
-                            lib_rs.push(format!("// No {}.rs or ai_default.rs found", scenario_name));
+                            lib_rs
+                                .push(format!("// No {}.rs or ai_default.rs found", scenario_name));
                         }
-                    },
+                    }
                     DirectoryLinkEntryPoint::SelectedFile(file_name) => {
                         load_file_entry(&file_name);
-                    },
+                    }
                 }
 
                 // Overwrite existing lib.rs unless we are using an existing one
                 match &entry_point {
                     DirectoryLinkEntryPoint::LibRs => {}
-                    _ => { files.insert("lib.rs".into(), lib_rs.join("\n")); }
+                    _ => {
+                        files.insert("lib.rs".into(), lib_rs.join("\n"));
+                    }
                 };
 
                 match oort_multifile::join(files) {
@@ -460,10 +487,8 @@ impl Component for EditorWindow {
 
                         lines.push(bundled);
 
-                        link.send_message(Msg::LoadedCodeFromDisk(
-                            lines.join("\n")
-                        ));
-                    },
+                        link.send_message(Msg::LoadedCodeFromDisk(lines.join("\n")));
+                    }
                     Err(e) => {
                         log::error!("Failed to join files: {:?}", e);
                         link.send_message(Msg::UnlinkedFile);
@@ -483,19 +508,23 @@ impl Component for EditorWindow {
                         wasm_bindgen_futures::spawn_local(async move {
                             match directory_handle.load_files().await {
                                 Ok(directory_result) => {
-                                    let files = serde_wasm_bindgen::from_value::<Vec<DirectoryValidateResponseEntry>>(directory_result)
+                                    let files =
+                                        serde_wasm_bindgen::from_value::<
+                                            Vec<DirectoryValidateResponseEntry>,
+                                        >(directory_result)
                                         .expect("Invalid data from directory handle");
 
-                                    let last_modified = files.iter()
-                                        .map(|f| f.last_modified)
-                                        .max()
-                                        .unwrap_or(0);
+                                    let last_modified =
+                                        files.iter().map(|f| f.last_modified).max().unwrap_or(0);
 
                                     // Avoid re-bundling if nothing changed
                                     if last_modified > old_last_modified {
-                                        link.send_message(Msg::LinkedDirectoryUpdate(last_modified, files));
+                                        link.send_message(Msg::LinkedDirectoryUpdate(
+                                            last_modified,
+                                            files,
+                                        ));
                                     }
-                                        
+
                                     let timeout = Timeout::new(1_000, move || {
                                         link.send_message(Msg::CheckLinkedDirectory);
                                     });
@@ -519,7 +548,7 @@ impl Component for EditorWindow {
                 } else {
                     log::warn!("No directory linked");
                 }
-                
+
                 false
             }
             Msg::CancelDrop(e) => {
@@ -702,7 +731,10 @@ impl Component for EditorWindow {
                 add_action("oort-link-file", "Link to file on disk", None);
                 if has_directory_picker() {
                     add_action("oort-link-directory", "Link to directory on disk", None);
-                    add_action_without_context_menu("oort-link-directory-select", "Select linked directory entry point");
+                    add_action_without_context_menu(
+                        "oort-link-directory-select",
+                        "Select linked directory entry point",
+                    );
                 }
                 add_action("oort-unlink-file", "Unlink from a file on disk", None);
 
