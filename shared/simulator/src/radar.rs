@@ -205,7 +205,8 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
             reflectors: Vec::new(),
         },
     );
-    for (team, reflectors) in reflectors_by_team.drain() {
+    for (team, mut reflectors) in reflectors_by_team.drain() {
+        reflectors.sort_by_key(|r| r.class);
         let positions: Vec<Point2<f32>> = reflectors
             .iter()
             .map(|r| r.position.cast::<f32>())

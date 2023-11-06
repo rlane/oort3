@@ -32,7 +32,7 @@ impl From<ShipHandle> for u64 {
     }
 }
 
-#[derive(Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize, Debug)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Serialize, Deserialize, Debug, PartialOrd, Ord)]
 pub enum ShipClass {
     Fighter,
     Frigate,
