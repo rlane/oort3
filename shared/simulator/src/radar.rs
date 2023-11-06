@@ -148,7 +148,7 @@ struct Reflectors {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 struct ReflectorGroupKey {
     team: i32,
-    class: ShipClass,
+    radius: i32,
 }
 
 #[derive(Clone, Default)]
@@ -197,7 +197,7 @@ fn build_reflectors(sim: &Simulation) -> Reflectors {
             });
         let group_key = ReflectorGroupKey {
             team: ship_data.team,
-            class,
+            radius: ship_data.radar_radius,
         };
         reflector_groups
             .entry(group_key)

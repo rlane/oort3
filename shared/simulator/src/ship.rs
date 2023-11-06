@@ -128,6 +128,7 @@ pub struct ShipData {
     pub missile_launchers: Vec<MissileLauncher>,
     pub radar: Option<Radar>,
     pub radar_cross_section: f64,
+    pub radar_radius: i32,
     pub radios: Vec<Radio>,
     pub abilities: Vec<ShipAbility>,
     pub target: Option<Box<Target>>,
@@ -177,6 +178,7 @@ impl Default for ShipData {
             missile_launchers: vec![],
             radar: None,
             radar_cross_section: 10.0,
+            radar_radius: 1,
             radios: vec![],
             abilities: vec![],
             target: None,
@@ -279,6 +281,7 @@ pub fn fighter(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 10.0,
+        radar_radius: 10,
         radios: vec![radio(), radio()],
         abilities: vec![ShipAbility {
             ability: Ability::Boost,
@@ -331,6 +334,7 @@ pub fn frigate(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 30.0,
+        radar_radius: 60,
         radios: vec![radio(), radio(), radio(), radio()],
         ..ShipData::from(Class::Frigate.default_stats())
     }
@@ -391,6 +395,7 @@ pub fn cruiser(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
+        radar_radius: 120,
         radios: vec![
             radio(),
             radio(),
@@ -417,6 +422,7 @@ pub fn asteroid(variant: i32) -> ShipData {
         team: 9,
         health: 200.0,
         radar_cross_section: 50.0,
+        radar_radius: 50,
         ..ShipData::from(Class::Asteroid.default_stats())
     }
 }
@@ -426,6 +432,7 @@ pub fn target(team: i32) -> ShipData {
         class: ShipClass::Target,
         team,
         health: 1.0,
+        radar_radius: 10,
         ..ShipData::from(Class::Target.default_stats())
     }
 }
@@ -442,6 +449,7 @@ pub fn missile(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 0.1,
+        radar_radius: 3,
         radios: vec![radio()],
         ttl: Some(60 * 60),
         fuel: Some(2000.0),
@@ -474,6 +482,7 @@ pub fn torpedo(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 0.3,
+        radar_radius: 8,
         radios: vec![radio()],
         ttl: Some(60 * 60),
         fuel: Some(3000.0),
