@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
 oort_api = { path = "../../shared/api" }
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
-js-sys = "0.3.64"
+js-sys = "0.3.65"
 log = "0.4.20"
 memoffset = "0.9.0"
 nalgebra = { version = "0.32.3", features = ["serde-serialize"] }

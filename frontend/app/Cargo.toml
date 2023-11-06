@@ -21,7 +21,7 @@ console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 flate2 = "1.0.28"
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
-js-sys = "0.3.64"
+js-sys = "0.3.65"
 log = "0.4.20"
 nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 no-comment = "0.0.3"
