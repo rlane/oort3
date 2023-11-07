@@ -1,3 +1,9 @@
+- Added an Asteroid Race scenario (by twof).
+- Moved ship models so that the center of mass is close to the ship's position.
+- Changed radar to return a contact when the beam intersects a bounding circle.
+- Changed the C support to C++ including the standard library.
+- Increased the memory limit per ship to 2 MB.
+
 ### 0.75.0 - 2023-10-30
 
 - Integrated wasm-submemory to remove reliance on Rust's memory safety.
