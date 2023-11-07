@@ -51,6 +51,12 @@ pub enum Msg {
     CancelDrop(MouseEvent),
 }
 
+pub enum EditorAction {
+    Execute,
+    Replay,
+    ReplayPaused,
+}
+
 #[derive(Properties, Clone, PartialEq)]
 pub struct EditorWindowProps {
     pub host: web_sys::Element,

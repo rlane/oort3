@@ -1,4 +1,4 @@
-use crate::ui::UI;
+use crate::{editor_window::EditorAction, ui::UI};
 use gloo_render::{request_animation_frame, AnimationFrame};
 use oort_simulation_worker::SimAgent;
 use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
@@ -30,7 +30,7 @@ pub struct SimulationWindowProps {
     pub host: web_sys::Element,
     pub on_simulation_finished: Callback<Snapshot>,
     pub register_link: Callback<Scope<SimulationWindow>>,
-    pub on_replay_pause: Callback<()>,
+    pub on_editor_action: Callback<EditorAction>,
     pub version: String,
     pub canvas_ref: NodeRef,
 }
@@ -86,7 +86,7 @@ impl Component for SimulationWindow {
                 self.nonce = rand::thread_rng().gen();
                 self.ui = Some(Box::new(UI::new(
                     context.link().callback(|_| Msg::RequestSnapshot),
-                    context.props().on_replay_pause.clone(),
+                    context.props().on_editor_action.clone(),
                     seed,
                     self.nonce,
                     context.props().version.clone(),

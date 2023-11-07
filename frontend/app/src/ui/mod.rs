@@ -14,6 +14,8 @@ use std::time::Duration;
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
+use crate::editor_window::EditorAction;
+
 const ZOOM_SPEED: f32 = 0.02;
 const MIN_ZOOM: f32 = 5e-6;
 const MAX_ZOOM: f32 = 5e-3;
@@ -55,7 +57,7 @@ pub struct UI {
     touches: HashMap<i32, Touch>,
     drag_start: Option<Point2<i32>>,
     needs_render: bool,
-    on_replay_pause: yew::Callback<()>,
+    on_editor_action: yew::Callback<EditorAction>,
 }
 
 unsafe impl Send for UI {}
@@ -64,7 +66,7 @@ impl UI {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         request_snapshot: yew::Callback<()>,
-        on_replay_pause: yew::Callback<()>,
+        on_editor_action: yew::Callback<EditorAction>,
         seed: u32,
         nonce: u32,
         version: String,
@@ -130,7 +132,7 @@ impl UI {
             touches: HashMap::new(),
             drag_start: None,
             needs_render: true,
-            on_replay_pause,
+            on_editor_action,
         }
     }
 
@@ -182,10 +184,25 @@ impl UI {
             self.paused = true;
             self.single_steps += 1;
         }
-        if self.keys_down.contains("r") && !self.keys_ignored.contains("r") {}
-        if self.keys_down.contains("p") && !self.keys_ignored.contains("p") {
-            self.on_replay_pause.emit(());
+        // Docs for key strings: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
+        let cmd_or_ctrl = self.keys_down.contains("Meta") || self.keys_down.contains("Control");
+        let is_execute = cmd_or_ctrl && self.keys_down.contains("Enter");
+        if is_execute {
+            self.on_editor_action.emit(EditorAction::Execute);
         }
+
+        let is_replay =
+            cmd_or_ctrl && self.keys_down.contains("Shift") && self.keys_down.contains("Enter");
+        if is_replay {
+            self.on_editor_action.emit(EditorAction::Replay);
+        }
+
+        let is_replay_paused =
+            cmd_or_ctrl && self.keys_down.contains("Alt") && self.keys_down.contains("Enter");
+        if is_replay_paused {
+            self.on_editor_action.emit(EditorAction::ReplayPaused);
+        }
+
         if self.keys_down.contains("g") && !self.keys_ignored.contains("g") {
             self.keys_ignored.insert("g".to_string());
             self.debug = !self.debug;
