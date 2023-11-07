@@ -94,7 +94,7 @@ pub fn big_asteroid(variant: i32) -> Vec<Vector2<f32>> {
     let mut rng = Rand32::new(variant as u64 ^ 4983247321098);
     let mut vertices = vec![];
     for i in 0..n {
-        let r = rng.rand_float() * 0.5 + 0.5;
+        let r = rng.rand_float() * 0.2 + 0.8;
         let rotation = Rotation2::new(i as f32 * 2.0 * std::f32::consts::PI / n as f32);
         vertices.push(rotation.transform_vector(&vector![r, 0.0]));
     }
