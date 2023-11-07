@@ -495,12 +495,7 @@ fn find_candidates<'a>(
                     let reflector_index = i * 4 + j;
                     if v != 0.0 && reflector_index < n {
                         let reflector = &group.reflectors[reflector_index];
-                        let dp = reflector.position - emitter.center;
-                        if dp.norm_squared() < (group_key.radius * group_key.radius) as f64
-                            || dp.dot(&emitter.bearing_vector) > 0.0
-                        {
-                            candidates.push(reflector);
-                        }
+                        candidates.push(reflector);
                     }
                 }
             }
