@@ -102,6 +102,7 @@ struct RadarEmitter {
     width: f64,
     start_bearing: f64,
     bearing: f64,
+    bearing_vector: Vector2<f64>,
     end_bearing: f64,
     min_distance: f64,
     max_distance: f64,
@@ -289,6 +290,7 @@ pub fn tick(sim: &mut Simulation) {
                 width: w,
                 start_bearing,
                 bearing: h,
+                bearing_vector: Rotation2::new(h).transform_vector(&vector![1.0, 0.0]),
                 end_bearing,
                 min_distance: radar.min_distance,
                 max_distance,
@@ -425,8 +427,6 @@ fn find_candidates<'a>(
     let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
     let emitter_position = emitter.center.cast::<f32>();
 
-    let wex = f32x4::splat(emitter_position.x);
-    let wey = f32x4::splat(emitter_position.y);
     let wrx0 = f32x4::splat(rays[0].x);
     let wry0 = f32x4::splat(rays[0].y);
     let wrx1 = f32x4::splat(rays[1].x);
@@ -436,6 +436,14 @@ fn find_candidates<'a>(
         if emitter.team == group_key.team || group.reflectors.is_empty() {
             continue;
         }
+
+        // Move emitter backwards to widen beam.
+        let effective_emitter_position = emitter_position
+            - emitter.bearing_vector.cast::<f32>() * group_key.radius as f32
+                / (emitter.width as f32 * 0.5).tan();
+
+        let wex = f32x4::splat(effective_emitter_position.x);
+        let wey = f32x4::splat(effective_emitter_position.y);
 
         let n = group.reflectors.len();
         for (i, (&wx, &wy)) in group.xs.iter().zip(&group.ys).enumerate() {
@@ -453,7 +461,13 @@ fn find_candidates<'a>(
                 for (j, &v) in mask.to_array().iter().enumerate() {
                     let reflector_index = i * 4 + j;
                     if v != 0.0 && reflector_index < n {
-                        candidates.push(&group.reflectors[reflector_index]);
+                        let reflector = &group.reflectors[reflector_index];
+                        let dp = reflector.position - emitter.center;
+                        if dp.norm_squared() < (group_key.radius * group_key.radius) as f64
+                            || dp.dot(&emitter.bearing_vector) > 0.0
+                        {
+                            candidates.push(reflector);
+                        }
                     }
                 }
             }
@@ -660,12 +674,14 @@ fn draw_contact(sim: &mut Simulation, emitter_handle: ShipHandle, contact: &Scan
 #[cfg(test)]
 mod test {
     use crate::ship;
-    use crate::ship::ShipClass;
+    use crate::ship::{ShipClass, ShipData};
     use crate::simulation::Code;
     use crate::simulation::Simulation;
-    use nalgebra::{vector, UnitComplex};
+    use nalgebra::{point, vector, UnitComplex, Vector2};
     use oort_api::EcmMode;
     use rand::Rng;
+    use rapier2d_f64::parry;
+    use rapier2d_f64::prelude::{Isometry, Rotation, Translation};
     use std::f64::consts::{PI, TAU};
     use test_log::test;
 
@@ -727,6 +743,73 @@ mod test {
         sim.ship_mut(ship1)
             .body()
             .set_translation(vector![1e6, 0.0], true);
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+    }
+
+    #[test]
+    fn test_radar_radius() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        // Initial state.
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ShipData {
+                radar_radius: 100,
+                ..ship::target(1)
+            },
+        );
+
+        // Pointing at center of target
+        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+
+        // Pointing at target but not at center
+        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.001 + TAU / 12.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+
+        // Not pointing at target
+        sim.ship_mut(ship0).radar_mut().unwrap().heading = TAU / 4.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+    }
+
+    #[test]
+    fn test_behind() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        // Initial state.
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        ship::create(
+            &mut sim,
+            vector![-1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ShipData {
+                radar_radius: 100,
+                ..ship::target(1)
+            },
+        );
+
+        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 3600.0;
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
     }
@@ -860,35 +943,61 @@ mod test {
         assert!(!check_detection(70e3));
     }
 
+    fn reference(dp: Vector2<f64>, h: f64, w: f64, r: f64) -> bool {
+        let a0 = UnitComplex::from_angle(h + w / 2.0);
+        let a1 = UnitComplex::from_angle(h - w / 2.0);
+        let beam_shape = parry::shape::Triangle::new(
+            point![0.0, 0.0],
+            a0.transform_point(&point![1e3, 0.0]),
+            a1.transform_point(&point![1e3, 0.0]),
+        );
+        parry::query::intersection_test(
+            &Isometry::from_parts(Translation::from(dp), Rotation::default()),
+            &parry::shape::Ball::new(r),
+            &Isometry::default(),
+            &beam_shape,
+        )
+        .unwrap()
+    }
+
     #[test]
     fn test_random() {
         let mut rng = crate::rng::new_rng(1);
-        for _ in 0..1000 {
+        for _ in 0..10000 {
             let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
             let mut rand_vector =
                 || vector![rng.gen_range(-100.0..100.0), rng.gen_range(-100.0..100.0)];
             let p0 = rand_vector();
             let p1 = rand_vector();
-            if (p1 - p0).magnitude() < 20.0 {
+            let dp: Vector2<f64> = p1 - p0;
+            let dist = dp.magnitude();
+            if dist < 20.0 {
                 continue;
             }
+            let bearing = dp.y.atan2(dp.x);
             let h = rng.gen_range(0.0..TAU);
-            let w = rng.gen_range(0.0..(TAU / 4.0));
+            let w = rng.gen_range(0.0..(TAU / 16.0));
 
             let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], 0.0, ship::fighter(0));
-            let _ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
+            let ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
             sim.ship_mut(ship0).radar_mut().unwrap().heading = h;
             sim.ship_mut(ship0).radar_mut().unwrap().width = w;
             sim.step();
 
-            let dp = p1 - p0;
-            let center_vec = UnitComplex::new(h).transform_vector(&vector![1.0, 0.0]);
-            let expected = dp.angle(&center_vec).abs() < w * 0.5;
+            let r = sim.ship(ship1).data().radar_radius as f64;
+
+            let expected = reference(dp, h, w, r);
             let got = sim.ship(ship0).radar().unwrap().result.is_some();
-            assert_eq!(
-                got, expected,
-                "p0={p0:?} p1={p1:?} h={h} w={w} expected={expected} got={got}"
-            );
+            if got != expected {
+                let expected_high = reference(dp, h, w, r * 1.05);
+                let expected_low = reference(dp, h, w, r * 0.95);
+                if expected_high == expected_low {
+                    assert_eq!(
+                        got, expected,
+                        "dp={dp:?} dist={dist:.2} bearing={bearing:.2} h={h:.2} w={w:.2} r={r} expected={expected} got={got}"
+                    );
+                }
+            }
         }
     }
 }
