@@ -18,7 +18,7 @@ struct FlarePosition {
 fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
     match class {
         ShipClass::Fighter => {
-            let x = 4.0;
+            let x = 4.0 + 1.33;
             vec![
                 FlarePosition {
                     offset: vector![-7.0, 0.0],
@@ -43,7 +43,7 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
             ]
         }
         ShipClass::Frigate => {
-            let x = -48.0;
+            let x = -48.0 + 0.76;
             vec![
                 FlarePosition {
                     offset: vector![x, 0.0],
@@ -68,7 +68,7 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
             ]
         }
         ShipClass::Cruiser => {
-            let x = -96.0;
+            let x = -96.0 - 12.35;
             let y = 48.0;
             vec![
                 FlarePosition {
@@ -96,22 +96,22 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
         ShipClass::Missile => {
             vec![
                 FlarePosition {
-                    offset: vector![-2.1, 0.0],
+                    offset: vector![-1.5, 0.0],
                     angle: TAU / 2.0,
                     scale: vector![10.0, 6.0],
                 },
                 FlarePosition {
-                    offset: vector![-2.1, 0.0],
+                    offset: vector![-1.5, 0.0],
                     angle: 0.0,
                     scale: vector![10.0, 6.0],
                 },
                 FlarePosition {
-                    offset: vector![0.0, 0.0],
+                    offset: vector![0.4, 0.0],
                     angle: TAU / 4.0,
                     scale: vector![5.0, 3.0],
                 },
                 FlarePosition {
-                    offset: vector![0.0, 0.0],
+                    offset: vector![0.4, 0.0],
                     angle: -TAU / 4.0,
                     scale: vector![5.0, 3.0],
                 },
@@ -120,22 +120,22 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
         ShipClass::Torpedo => {
             vec![
                 FlarePosition {
-                    offset: vector![-6.4, 0.0],
+                    offset: vector![-7.0, 0.0],
                     angle: TAU / 2.0,
                     scale: vector![10.0, 8.0],
                 },
                 FlarePosition {
-                    offset: vector![-6.4, 0.0],
+                    offset: vector![-7.0, 0.0],
                     angle: 0.0,
                     scale: vector![10.0, 8.0],
                 },
                 FlarePosition {
-                    offset: vector![0.0, 1.6],
+                    offset: vector![-0.62, 1.6],
                     angle: TAU / 4.0,
                     scale: vector![5.0, 3.0],
                 },
                 FlarePosition {
-                    offset: vector![0.0, -1.6],
+                    offset: vector![-0.62, -1.6],
                     angle: -TAU / 4.0,
                     scale: vector![5.0, 3.0],
                 },
