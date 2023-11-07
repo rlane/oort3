@@ -119,6 +119,7 @@ struct RadarEmitter {
 struct RadarReflector {
     position: Point2<f64>,
     velocity: Vector2<f64>,
+    heading: f64,
     radar_cross_section: f64,
     class: ShipClass,
     jammer: Option<RadarJammer>,
@@ -206,6 +207,7 @@ fn build_reflectors(sim: &Simulation) -> Reflectors {
             .push(RadarReflector {
                 position: ship.position().vector.into(),
                 velocity: ship.velocity(),
+                heading: ship.heading(),
                 radar_cross_section,
                 class,
                 jammer,
@@ -257,6 +259,7 @@ pub fn tick(sim: &mut Simulation) {
         .filter(|handle| sim.ship(**handle).data().class == ShipClass::Planet)
         .cloned()
         .collect::<Vec<_>>();
+    let mut reflector_shapes = HashMap::new();
 
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
@@ -327,6 +330,10 @@ pub fn tick(sim: &mut Simulation) {
 
             find_candidates(&emitter, &reflectors, &mut candidates);
 
+            let v = Rotation2::new(emitter.width / 2.0).transform_point(&point![1e6, 0.0]);
+            let emitter_shape = parry::shape::Triangle::new(point![0.0, 0.0], v, point![v.x, -v.y]);
+            let emitter_isometry = Isometry::new(emitter.center.coords, emitter.bearing);
+
             for reflector in candidates.iter() {
                 if let Some(jammer) = reflector.jammer.as_ref() {
                     match jammer.ecm_mode {
@@ -350,19 +357,45 @@ pub fn tick(sim: &mut Simulation) {
                     }
                 }
 
-                if emitter
+                if !emitter
                     .square_distance_range
                     .contains(&nalgebra::distance_squared(
                         &emitter.center,
                         &reflector.position,
                     ))
                 {
-                    let rssi = compute_rssi(&emitter, reflector)
-                        * ComplexField::powf(1.2f64, rng.gen_range(-1.0..1.0));
-                    if rssi > best_rssi {
-                        best_reflector = Some(reflector);
-                        best_rssi = rssi;
-                    }
+                    continue;
+                }
+
+                let reflector_isometry =
+                    Isometry::new(reflector.position.coords, reflector.heading);
+                let reflector_shape =
+                    reflector_shapes
+                        .entry(reflector.class)
+                        .or_insert_with_key(|&class| {
+                            let model = model::load(class);
+                            let vertices = model
+                                .iter()
+                                .map(|&v| point![v.x as f64, v.y as f64])
+                                .collect::<Vec<_>>();
+                            parry::shape::ConvexPolygon::from_convex_hull(&vertices).unwrap()
+                        });
+                let intersecting = parry::query::intersection_test(
+                    &emitter_isometry,
+                    &emitter_shape,
+                    &reflector_isometry,
+                    reflector_shape,
+                )
+                .unwrap();
+                if !intersecting {
+                    continue;
+                }
+
+                let rssi = compute_rssi(&emitter, reflector)
+                    * ComplexField::powf(1.2f64, rng.gen_range(-1.0..1.0));
+                if rssi > best_rssi {
+                    best_reflector = Some(reflector);
+                    best_rssi = rssi;
                 }
             }
 
