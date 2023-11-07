@@ -340,7 +340,7 @@ impl Component for EditorWindow {
                     <div class="replay_button_paused"><span
                         onclick={replay_paused_cb}
                         class="material-symbols-outlined"
-                        title={"Replay paused"}
+                        title={format!("Replay paused ({cmd_or_ctrl}-Shift-Enter)")}
                     >{ "autopause" }</span></div>
                     <form>
                         <div class="drop_target display_none" ref={self.drop_target_ref.clone()}>
@@ -427,7 +427,15 @@ impl Component for EditorWindow {
                     ),
                 );
 
-                add_action("oort-replay-paused", "Replay paused", None);
+                add_action(
+                    "oort-replay-paused",
+                    "Replay paused",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32
+                            | monaco::sys::KeyMod::alt() as u32
+                            | monaco::sys::KeyCode::Enter as u32,
+                    ),
+                );
 
                 add_action("oort-restore-initial-code", "Restore initial code", None);
 
