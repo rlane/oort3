@@ -89,6 +89,18 @@ pub fn asteroid(variant: i32) -> Vec<Vector2<f32>> {
     scale(50.0, &vertices)
 }
 
+pub fn big_asteroid(variant: i32) -> Vec<Vector2<f32>> {
+    let n = 17;
+    let mut rng = Rand32::new(variant as u64 ^ 4983247321098);
+    let mut vertices = vec![];
+    for i in 0..n {
+        let r = rng.rand_float() * 0.5 + 0.5;
+        let rotation = Rotation2::new(i as f32 * 2.0 * std::f32::consts::PI / n as f32);
+        vertices.push(rotation.transform_vector(&vector![r, 0.0]));
+    }
+    scale(500.0, &vertices)
+}
+
 pub fn target() -> Vec<Vector2<f32>> {
     let n = 20;
     let mut vertices = vec![];
@@ -163,6 +175,7 @@ pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
         ShipClass::Frigate => frigate(),
         ShipClass::Cruiser => cruiser(),
         ShipClass::Asteroid { variant } => asteroid(variant),
+        ShipClass::BigAsteroid { variant } => big_asteroid(variant),
         ShipClass::Target => target(),
         ShipClass::Missile => missile(),
         ShipClass::Torpedo => torpedo(),

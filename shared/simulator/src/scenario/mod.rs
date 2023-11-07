@@ -48,7 +48,8 @@ pub mod prelude {
     pub use super::{DEFAULT_TUTORIAL_MAX_TICKS, TOURNAMENT_MAX_TICKS};
     pub use crate::rng::{new_rng, SeededRng};
     pub use crate::ship::{
-        self, asteroid, cruiser, fighter, frigate, missile, target, torpedo, ShipHandle,
+        self, asteroid, big_asteroid, cruiser, fighter, frigate, missile, target, torpedo,
+        ShipHandle,
     };
     pub use crate::simulation::{Code, Line, Simulation};
     pub use nalgebra::{point, vector, Point2, Rotation2, Vector2};

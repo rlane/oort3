@@ -59,13 +59,43 @@ impl Scenario for Race {
             fighter(0),
         ));
 
-        for i in 0..100 {
+        let mut big_asteroid_positions: Vec<Vector2<f64>> = vec![];
+        for i in 0..10 {
+            let p = vector![
+                rng.gen_range(-self.world_size()..self.world_size()),
+                rng.gen_range(-self.world_size()..self.world_size())
+            ] / 2.0;
+            if big_asteroid_positions
+                .iter()
+                .any(|&p2| (p - p2).norm() < 1200.0)
+                || p.norm() < 2000.0
+            {
+                continue;
+            }
+            big_asteroid_positions.push(p);
             ship::create(
                 sim,
-                vector![
-                    rng.gen_range(-self.world_size()..self.world_size()),
-                    rng.gen_range(-self.world_size()..self.world_size())
-                ] / 2.0,
+                p,
+                vector![rng.gen_range(-3.0..3.0), rng.gen_range(-3.0..3.0)],
+                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                big_asteroid(i),
+            );
+        }
+
+        for i in 0..100 {
+            let p = vector![
+                rng.gen_range(-self.world_size()..self.world_size()),
+                rng.gen_range(-self.world_size()..self.world_size())
+            ] / 2.0;
+            if big_asteroid_positions
+                .iter()
+                .any(|&p2| (p - p2).norm() < 700.0)
+            {
+                continue;
+            }
+            ship::create(
+                sim,
+                p,
                 vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
                 rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
                 asteroid(i),
@@ -84,16 +114,18 @@ impl Scenario for Race {
             }
         }
 
-        for (i, (radio, target)) in sim
-            .ship_mut(self.beacon_ship_handle.unwrap())
-            .data_mut()
-            .radios
-            .iter_mut()
-            .zip(self.targets.iter())
-            .enumerate()
-        {
-            radio.set_channel(i);
-            radio.set_sent(Some([target.position.x, target.position.y, 0.0, 0.0]));
+        if sim.ships.contains(self.beacon_ship_handle.unwrap()) {
+            for (i, (radio, target)) in sim
+                .ship_mut(self.beacon_ship_handle.unwrap())
+                .data_mut()
+                .radios
+                .iter_mut()
+                .zip(self.targets.iter())
+                .enumerate()
+            {
+                radio.set_channel(i);
+                radio.set_sent(Some([target.position.x, target.position.y, 0.0, 0.0]));
+            }
         }
     }
 

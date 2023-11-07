@@ -713,6 +713,7 @@ fn translate_class(class: ShipClass) -> Class {
         ShipClass::Frigate => Class::Frigate,
         ShipClass::Cruiser => Class::Cruiser,
         ShipClass::Asteroid { .. } => Class::Asteroid,
+        ShipClass::BigAsteroid { .. } => Class::Asteroid,
         ShipClass::Target => Class::Target,
         ShipClass::Missile => Class::Missile,
         ShipClass::Torpedo => Class::Torpedo,

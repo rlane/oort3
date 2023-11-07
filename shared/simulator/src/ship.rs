@@ -38,6 +38,7 @@ pub enum ShipClass {
     Frigate,
     Cruiser,
     Asteroid { variant: i32 },
+    BigAsteroid { variant: i32 },
     Target,
     Missile,
     Torpedo,
@@ -51,6 +52,7 @@ impl ShipClass {
             ShipClass::Frigate => "frigate",
             ShipClass::Cruiser => "cruiser",
             ShipClass::Asteroid { .. } => "asteroid",
+            ShipClass::BigAsteroid { .. } => "asteroid",
             ShipClass::Target => "target",
             ShipClass::Missile => "missile",
             ShipClass::Torpedo => "torpedo",
@@ -423,6 +425,17 @@ pub fn asteroid(variant: i32) -> ShipData {
         health: 200.0,
         radar_cross_section: 50.0,
         radar_radius: 50,
+        ..ShipData::from(Class::Asteroid.default_stats())
+    }
+}
+
+pub fn big_asteroid(variant: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::BigAsteroid { variant },
+        team: 9,
+        health: 2000.0,
+        radar_cross_section: 500.0,
+        radar_radius: 500,
         ..ShipData::from(Class::Asteroid.default_stats())
     }
 }
