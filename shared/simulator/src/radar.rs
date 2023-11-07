@@ -6,6 +6,7 @@ use oort_api::{Ability, EcmMode};
 use rand::Rng;
 use rand_distr::StandardNormal;
 use rapier2d_f64::parry;
+use rapier2d_f64::parry::query::Ray;
 use rapier2d_f64::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 use std::f64::consts::TAU;
@@ -426,9 +427,15 @@ pub fn tick(sim: &mut Simulation) {
                 None
             } else {
                 best_reflector.map(|reflector| {
+                    let reflector_shape = reflector_shapes.get(&reflector.class).unwrap();
+                    let contact_position =
+                        find_contact_position(&emitter, reflector, reflector_shape)
+                            .unwrap_or(reflector.position);
+
                     make_scan_result(
                         &emitter,
                         reflector,
+                        contact_position,
                         best_rssi_dbm,
                         received_noise_dbm,
                         &mut rng,
@@ -507,13 +514,14 @@ fn find_candidates<'a>(
 fn make_scan_result(
     emitter: &RadarEmitter,
     reflector: &RadarReflector,
+    contact_position: Point2<f64>,
     rssi_dbm: f64,
     noise_dbm: f64,
     rng: &mut impl Rng,
 ) -> ScanResult {
     let signal_db = rssi_dbm - noise_dbm;
     let error_factor = ComplexField::powf(10.0f64, -signal_db / 10.0);
-    let dp = reflector.position - emitter.center;
+    let dp = contact_position - emitter.center;
     let beam_rot = Rotation2::new(emitter.bearing);
     let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
     let mut noisy_bearing: f64 = reflector_rot.angle()
@@ -527,7 +535,7 @@ fn make_scan_result(
         }
     }
 
-    let mut distance = (reflector.position - emitter.center).magnitude();
+    let mut distance = (contact_position - emitter.center).magnitude();
     distance += rng.sample::<f64, _>(StandardNormal) * (DISTANCE_NOISE_FACTOR * error_factor);
     distance = distance.clamp(emitter.min_distance, emitter.max_distance);
 
@@ -544,6 +552,27 @@ fn make_scan_result(
         rssi: rssi_dbm,
         snr: signal_db,
     }
+}
+
+fn find_contact_position(
+    emitter: &RadarEmitter,
+    reflector: &RadarReflector,
+    reflector_shape: &dyn Shape,
+) -> Option<Point2<f64>> {
+    let reflector_isometry = Isometry::new(reflector.position.coords, reflector.heading);
+    let rays = [
+        Ray::new(emitter.center, emitter.bearing_vector),
+        Ray::new(emitter.center, emitter.rays[0]),
+        Ray::new(emitter.center, emitter.rays[1]),
+    ];
+
+    for ray in rays {
+        if let Some(t) = reflector_shape.cast_ray(&reflector_isometry, &ray, 1e6, true) {
+            return Some(ray.point_at(t));
+        }
+    }
+
+    None
 }
 
 fn decide_unreliable_rssi(rng: &mut impl Rng, rssi: f64, reliable_rssi: f64) -> bool {
