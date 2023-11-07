@@ -185,23 +185,27 @@ impl UI {
             self.single_steps += 1;
         }
         // Docs for key strings: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
-        let cmd_or_ctrl = self.keys_down.contains("Meta") || self.keys_down.contains("Control");
-        let is_execute = cmd_or_ctrl && self.keys_down.contains("Enter");
-        if is_execute {
-            self.on_editor_action.emit(EditorAction::Execute);
+        fn check_both_keysets(set: Vec<String>, callback: Fn() -> ()) {
+            let cmd_and_ctrl_keysets = vec![vec!["Meta"] + set, vec!["Control"] + set];
+            for combo_set in cmd_and_ctrl_keysets {
+                self.on_key_set_match(combo_set, callback);
+            }
         }
 
-        let is_replay =
-            cmd_or_ctrl && self.keys_down.contains("Shift") && self.keys_down.contains("Enter");
-        if is_replay {
-            self.on_editor_action.emit(EditorAction::Replay);
-        }
+        let execute_set = vec!["Enter"];
+        check_both_keysets(execute_set, |_| {
+            self.on_editor_action.emit(EditorAction::Execute)
+        });
 
-        let is_replay_paused =
-            cmd_or_ctrl && self.keys_down.contains("Alt") && self.keys_down.contains("Enter");
-        if is_replay_paused {
-            self.on_editor_action.emit(EditorAction::ReplayPaused);
-        }
+        let replay_set = vec!["Shift", "Enter"];
+        check_both_keysets(replay_set, |_| {
+            self.on_editor_action.emit(EditorAction::Replay)
+        });
+
+        let replay_paused_set = vec!["Alt", "Enter"];
+        check_both_keysets(replay_paused_set, |_| {
+            self.on_editor_action.emit(EditorAction::ReplayPaused)
+        });
 
         if self.keys_down.contains("g") && !self.keys_ignored.contains("g") {
             self.keys_ignored.insert("g".to_string());
@@ -359,6 +363,24 @@ impl UI {
 
         self.frame_timer
             .end((instant::Instant::now() - self.start_time).as_millis() as f64);
+    }
+
+    fn on_key_set_match(&mut self, set: Vec<String>, callback: Fn() -> ()) {
+        let does_match = set
+            .iter()
+            .fold(true, |current, key| current && self.keys_down.contains(key));
+        let not_ignored = set.iter().fold(true, |current, key| {
+            current && !self.keys_ignored.contains(key)
+        });
+        if does_match && not_ignored {
+            callback();
+
+            // Avoid retriggering hotkey over multiple frames
+            // Keys will be removed from keys_ignored when they are released
+            for key in set {
+                self.keys_ignored.insert(key);
+            }
+        }
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
