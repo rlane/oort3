@@ -26,7 +26,7 @@ pub fn emit_ship(sim: &mut Simulation, handle: ShipHandle) {
         a: p,
         b: p + body
             .rotation()
-            .transform_vector(&sim.ship(handle).data().acceleration),
+            .transform_vector(&sim.ship(handle).data().last_acceleration),
         color: vector![0.0, 1.0, 0.2, 1.0],
     });
     for gun in sim.ship(handle).data().guns.iter() {
