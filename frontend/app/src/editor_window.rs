@@ -319,7 +319,6 @@ impl Component for EditorWindow {
             .props()
             .on_editor_action
             .reform(|_| "oort-replay-paused".to_string());
-        let cmd_or_ctrl = if is_mac() { "Cmd" } else { "Ctrl" };
 
         create_portal(
             html! {
@@ -330,17 +329,17 @@ impl Component for EditorWindow {
                     <div class="run_button"><span
                         onclick={run_cb}
                         class="material-symbols-outlined"
-                        title={format!("Execute ({cmd_or_ctrl}-Enter)")}
+                        title={format!("Execute ({CMD_OR_CTRL}-Enter)")}
                     >{ "play_circle" }</span></div>
                     <div class="replay_button"><span
                         onclick={replay_cb}
                         class="material-symbols-outlined"
-                        title={format!("Replay ({cmd_or_ctrl}-Shift-Enter)")}
+                        title={format!("Replay ({CMD_OR_CTRL}-Shift-Enter)")}
                     >{ "replay" }</span></div>
                     <div class="replay_button_paused"><span
                         onclick={replay_paused_cb}
                         class="material-symbols-outlined"
-                        title={format!("Replay paused ({cmd_or_ctrl}-Shift-Enter)")}
+                        title={format!("Replay paused ({CMD_OR_CTRL}-Alt-Enter)")}
                     >{ "autopause" }</span></div>
                     <form>
                         <div class="drop_target display_none" ref={self.drop_target_ref.clone()}>
@@ -625,7 +624,9 @@ impl Completer {
     }
 }
 
-fn is_mac() -> bool {
+pub static CMD_OR_CTRL: &str = if is_mac() { "Cmd" } else { "Ctrl" };
+
+pub fn is_mac() -> bool {
     gloo_utils::window()
         .navigator()
         .app_version()

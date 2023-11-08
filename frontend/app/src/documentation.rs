@@ -1,3 +1,4 @@
+use crate::editor_window::CMD_OR_CTRL;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -28,14 +29,15 @@ pub fn documentation(props: &DocumentationProps) -> Html {
                 <li>{ "N: Single-step (advance time by one tick and then pause)." }</li>
                 <li>{ "F: Fast-forward." }</li>
                 <li>{ "M: Slow motion." }</li>
-                <li>{ "R: Restart." }</li>
-                <li>{ "P: Restart and pause." }</li>
                 <li>{ "G: Show debug lines for all ships." }</li>
                 <li>{ "C: Chase, or follow the selected ship." }</li>
                 <li>{ "V: Toggle NLIPS, which makes smaller ships more visible when zoomed out." }</li>
                 <li>{ "B: Toggle postprocessing (blur)." }</li>
                 <li>{ "Mouse wheel: Zoom." }</li>
                 <li>{ "Mouse click: Select a ship to show debugging info." }</li>
+                <li>{ format!("{CMD_OR_CTRL}-Enter: Execute") }</li>
+                <li>{ format!("{CMD_OR_CTRL}-Shift-Enter: Replay") }</li>
+                <li>{ format!("{CMD_OR_CTRL}-Alt-Enter: Replay and Pause") }</li>
             </ul>
 
             <h2>{ "Language" }</h2>
