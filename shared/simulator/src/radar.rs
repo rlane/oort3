@@ -6,7 +6,6 @@ use oort_api::{Ability, EcmMode};
 use rand::Rng;
 use rand_distr::StandardNormal;
 use rapier2d_f64::parry;
-use rapier2d_f64::parry::query::Ray;
 use rapier2d_f64::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 use std::f64::consts::TAU;
@@ -122,6 +121,7 @@ struct RadarReflector {
     velocity: Vector2<f64>,
     heading: f64,
     radar_cross_section: f64,
+    radius: f64,
     class: ShipClass,
     jammer: Option<RadarJammer>,
 }
@@ -210,6 +210,7 @@ fn build_reflectors(sim: &Simulation) -> Reflectors {
                 velocity: ship.velocity(),
                 heading: ship.heading(),
                 radar_cross_section,
+                radius: ship_data.radar_radius as f64,
                 class,
                 jammer,
             });
@@ -560,15 +561,22 @@ fn find_contact_position(
     reflector_shape: &dyn Shape,
 ) -> Option<Point2<f64>> {
     let reflector_isometry = Isometry::new(reflector.position.coords, reflector.heading);
-    let rays = [
-        Ray::new(emitter.center, emitter.bearing_vector),
-        Ray::new(emitter.center, emitter.rays[0]),
-        Ray::new(emitter.center, emitter.rays[1]),
-    ];
-
-    for ray in rays {
-        if let Some(t) = reflector_shape.cast_ray(&reflector_isometry, &ray, 1e6, true) {
-            return Some(ray.point_at(t));
+    let dp = reflector.position - emitter.center;
+    let dist = dp.magnitude();
+    let radius = dist * ComplexField::tan(emitter.width * 0.5);
+    for size in [radius, reflector.radius] {
+        let ball = parry::shape::Ball::new(size);
+        if let Ok(Some(toi)) = parry::query::time_of_impact(
+            &Isometry::new(emitter.center.coords, 0.0),
+            &emitter.bearing_vector,
+            &ball,
+            &reflector_isometry,
+            &Vector2::zeros(),
+            reflector_shape,
+            1e6,
+            true,
+        ) {
+            return Some(emitter.center + emitter.bearing_vector * toi.toi + toi.witness1.coords);
         }
     }
 
