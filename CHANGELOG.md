@@ -1,3 +1,5 @@
+- Fixed radar with 90 degree beamwidth.
+
 ### 0.76.0 - 2023-11-07
 
 - Added an Asteroid Race scenario (by t-fi).
