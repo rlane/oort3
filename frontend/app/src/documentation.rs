@@ -1,4 +1,4 @@
-use crate::editor_window::CMD_OR_CTRL;
+use crate::editor_window::cmd_or_ctrl;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -9,6 +9,7 @@ pub struct DocumentationProps {
 
 #[function_component(Documentation)]
 pub fn documentation(props: &DocumentationProps) -> Html {
+    let cmd_or_ctrl = cmd_or_ctrl();
     let htm = html! {
         <div class="documentation">
             <h1>{ "Quick Reference" }</h1>
@@ -35,9 +36,9 @@ pub fn documentation(props: &DocumentationProps) -> Html {
                 <li>{ "B: Toggle postprocessing (blur)." }</li>
                 <li>{ "Mouse wheel: Zoom." }</li>
                 <li>{ "Mouse click: Select a ship to show debugging info." }</li>
-                <li>{ format!("{CMD_OR_CTRL}-Enter: Execute") }</li>
-                <li>{ format!("{CMD_OR_CTRL}-Shift-Enter: Replay") }</li>
-                <li>{ format!("{CMD_OR_CTRL}-Alt-Enter: Replay and Pause") }</li>
+                <li>{ format!("{cmd_or_ctrl}-Enter: Execute") }</li>
+                <li>{ format!("{cmd_or_ctrl}-Shift-Enter: Replay") }</li>
+                <li>{ format!("{cmd_or_ctrl}-Alt-Enter: Replay and Pause") }</li>
             </ul>
 
             <h2>{ "Language" }</h2>

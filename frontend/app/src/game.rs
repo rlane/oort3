@@ -1,8 +1,7 @@
 use crate::codestorage;
 use crate::compiler_output_window::CompilerOutputWindow;
 use crate::documentation::Documentation;
-use crate::editor_window::EditorAction;
-use crate::editor_window::EditorWindow;
+use crate::editor_window::{EditorAction, EditorWindow};
 use crate::gtag;
 use crate::js;
 use crate::leaderboard::Leaderboard;

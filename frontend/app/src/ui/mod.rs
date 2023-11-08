@@ -14,7 +14,7 @@ use std::time::Duration;
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
-use crate::editor_window::EditorAction;
+use crate::editor_window::{is_mac, EditorAction};
 
 const ZOOM_SPEED: f32 = 0.02;
 const MIN_ZOOM: f32 = 5e-6;
@@ -184,20 +184,21 @@ impl UI {
             self.paused = true;
             self.single_steps += 1;
         }
-        // Docs for key strings: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
 
-        let execute_set = vec!["Enter"];
-        self.check_both_keysets(execute_set, |ui| {
+        // Docs for key strings: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
+        let ctrl_cmd = if is_mac() { "Meta" } else { "Control" };
+        let execute_set = vec![ctrl_cmd, "Enter"];
+        self.on_key_set_match(execute_set, |ui| {
             ui.on_editor_action.emit(EditorAction::Execute)
         });
 
-        let replay_set = vec!["Shift", "Enter"];
-        self.check_both_keysets(replay_set, |ui| {
+        let replay_set = vec![ctrl_cmd, "Shift", "Enter"];
+        self.on_key_set_match(replay_set, |ui| {
             ui.on_editor_action.emit(EditorAction::Replay)
         });
 
-        let replay_paused_set = vec!["Alt", "Enter"];
-        self.check_both_keysets(replay_paused_set, |ui| {
+        let replay_paused_set = vec![ctrl_cmd, "Alt", "Enter"];
+        self.on_key_set_match(replay_paused_set, |ui| {
             ui.on_editor_action.emit(EditorAction::ReplayPaused)
         });
 
@@ -377,19 +378,6 @@ impl UI {
             for key in set {
                 self.keys_ignored.insert(key.to_string());
             }
-        }
-    }
-
-    fn check_both_keysets<F>(&mut self, set: Vec<&str>, callback: F)
-    where
-        F: Fn(&mut Self) -> () + std::marker::Copy,
-    {
-        let cmd_and_ctrl_keysets = vec![
-            [vec!["Meta"], set.clone()].concat(),
-            [vec!["Control"], set.clone()].concat(),
-        ];
-        for combo_set in cmd_and_ctrl_keysets {
-            self.on_key_set_match(combo_set, callback);
         }
     }
 
