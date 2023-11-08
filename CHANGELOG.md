@@ -1,3 +1,5 @@
+### 0.76.1 - 2023-11-07
+
 - Fixed radar with 90 degree beamwidth.
 
 ### 0.76.0 - 2023-11-07
