@@ -1,6 +1,6 @@
 ### 0.76.0 - 2023-11-07
 
-- Added an Asteroid Race scenario (by twof).
+- Added an Asteroid Race scenario (by t-fi).
 - Moved ship models so that the center of mass is close to the ship's position.
 - Changed radar to return a contact when the beam intersects a bounding circle.
 - Changed the C support to C++ including the standard library.
