@@ -3,6 +3,8 @@
 - Changed radar to return a contact when the beam intersects a bounding circle.
 - Changed the C support to C++ including the standard library.
 - Increased the memory limit per ship to 2 MB.
+- Fixed acceleration debug line when boost is active.
+- Fixed fighter lateral flare rendering.
 
 ### 0.75.0 - 2023-10-30
 
