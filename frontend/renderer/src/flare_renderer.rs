@@ -18,7 +18,7 @@ struct FlarePosition {
 fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
     match class {
         ShipClass::Fighter => {
-            let x = 4.0 + 1.33;
+            let x = 5.1;
             vec![
                 FlarePosition {
                     offset: vector![-7.0 + 1.33, 0.0],
@@ -32,12 +32,12 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
                 },
                 FlarePosition {
                     offset: vector![0.0, x],
-                    angle: 1.17517,
+                    angle: TAU / 4.0,
                     scale: vector![10.0, 8.0],
                 },
                 FlarePosition {
                     offset: vector![0.0, -x],
-                    angle: -1.17517,
+                    angle: -TAU / 4.0,
                     scale: vector![10.0, 8.0],
                 },
             ]
