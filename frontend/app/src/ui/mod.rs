@@ -188,19 +188,21 @@ impl UI {
         // Docs for key strings: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
         let ctrl_cmd = if is_mac() { "Meta" } else { "Control" };
         let execute_set = vec![ctrl_cmd, "Enter"];
-        self.on_key_set_match(execute_set, |ui| {
-            ui.on_editor_action.emit(EditorAction::Execute)
-        });
-
         let replay_set = vec![ctrl_cmd, "Shift", "Enter"];
-        self.on_key_set_match(replay_set, |ui| {
-            ui.on_editor_action.emit(EditorAction::Replay)
-        });
-
         let replay_paused_set = vec![ctrl_cmd, "Alt", "Enter"];
-        self.on_key_set_match(replay_paused_set, |ui| {
-            ui.on_editor_action.emit(EditorAction::ReplayPaused)
-        });
+        if self.match_key_set(&replay_paused_set) {
+            self.on_key_set_match(replay_paused_set, |ui| {
+                ui.on_editor_action.emit(EditorAction::ReplayPaused)
+            });
+        } else if self.match_key_set(&replay_set) {
+            self.on_key_set_match(replay_set, |ui| {
+                ui.on_editor_action.emit(EditorAction::Replay)
+            });
+        } else if self.match_key_set(&execute_set) {
+            self.on_key_set_match(execute_set, |ui| {
+                ui.on_editor_action.emit(EditorAction::Execute)
+            });
+        }
 
         if self.keys_down.contains("g") && !self.keys_ignored.contains("g") {
             self.keys_ignored.insert("g".to_string());
@@ -360,17 +362,22 @@ impl UI {
             .end((instant::Instant::now() - self.start_time).as_millis() as f64);
     }
 
-    fn on_key_set_match<F>(&mut self, set: Vec<&str>, callback: F)
-    where
-        F: Fn(&mut Self) -> (),
-    {
+    fn match_key_set(&mut self, set: &Vec<&str>) -> bool {
         let does_match = set.iter().fold(true, |current, key| {
             current && self.keys_down.contains(*key)
         });
         let not_ignored = set.iter().fold(true, |current, key| {
             current && !self.keys_ignored.contains(*key)
         });
-        if does_match && not_ignored {
+
+        does_match && not_ignored
+    }
+
+    fn on_key_set_match<F>(&mut self, set: Vec<&str>, callback: F)
+    where
+        F: Fn(&mut Self) -> (),
+    {
+        if self.match_key_set(&set) {
             callback(self);
 
             // Avoid retriggering hotkey over multiple frames
