@@ -564,10 +564,11 @@ fn find_contact_position(
     let dp = reflector.position - emitter.center;
     let dist = dp.magnitude();
     let radius = dist * ComplexField::tan(emitter.width * 0.5);
+    let start_position = emitter.center - emitter.bearing_vector * radius;
     for size in [radius, reflector.radius] {
         let ball = parry::shape::Ball::new(size);
         if let Ok(Some(toi)) = parry::query::time_of_impact(
-            &Isometry::new(emitter.center.coords, 0.0),
+            &Isometry::new(start_position.coords, 0.0),
             &emitter.bearing_vector,
             &ball,
             &reflector_isometry,
@@ -576,7 +577,7 @@ fn find_contact_position(
             1e6,
             true,
         ) {
-            return Some(emitter.center + emitter.bearing_vector * toi.toi + toi.witness1.coords);
+            return Some(start_position + emitter.bearing_vector * toi.toi + toi.witness1.coords);
         }
     }
 
