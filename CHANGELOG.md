@@ -1,3 +1,5 @@
+- Fixed acceleration debug line rotation.
+
 ### 0.76.1 - 2023-11-07
 
 - Fixed radar with 90 degree beamwidth.
