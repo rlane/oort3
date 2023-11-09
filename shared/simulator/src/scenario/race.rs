@@ -169,9 +169,11 @@ impl Scenario for Race {
         10e3
     }
 
-    fn status(&self, _: &Simulation) -> Status {
+    fn status(&self, sim: &Simulation) -> Status {
         if self.targets.iter().all(|t| t.hit) {
             Status::Victory { team: 0 }
+        } else if !sim.ships.contains(self.player_ship_handle.unwrap()) {
+            Status::Failed
         } else {
             Status::Running
         }
