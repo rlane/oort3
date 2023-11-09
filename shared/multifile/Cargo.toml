@@ -1,6 +1,6 @@
 [package]
 name = "oort_multifile"
-version = "0.76.2"
+version = "0.76.3"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

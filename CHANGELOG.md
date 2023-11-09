@@ -1,3 +1,5 @@
+### 0.76.3 - 2023-11-09
+
 - Fixed a couple of bugs in the race scenario.
 
 ### 0.76.2 - 2023-11-08
