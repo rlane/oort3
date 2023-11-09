@@ -1,3 +1,5 @@
+- Fixed a couple of bugs in the race scenario.
+
 ### 0.76.2 - 2023-11-08
 
 - Fixed acceleration debug line rotation.
