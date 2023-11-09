@@ -48,7 +48,7 @@ impl Scenario for Race {
             vector![self.world_size() / 2.2, self.world_size() / 2.2],
             vector![0.0, 0.0],
             0.0,
-            cruiser(1),
+            beacon(1),
         ));
 
         self.player_ship_handle = Some(ship::create(

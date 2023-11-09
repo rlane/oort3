@@ -43,6 +43,7 @@ pub enum ShipClass {
     Missile,
     Torpedo,
     Planet,
+    Beacon,
 }
 
 impl ShipClass {
@@ -57,6 +58,7 @@ impl ShipClass {
             ShipClass::Missile => "missile",
             ShipClass::Torpedo => "torpedo",
             ShipClass::Planet => "planet",
+            ShipClass::Beacon => "beacon",
         }
     }
 }
@@ -516,6 +518,15 @@ pub fn torpedo(team: i32) -> ShipData {
     }
 }
 
+pub fn beacon(team: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::Beacon,
+        team,
+        radios: (0..8).map(|_| radio()).collect(),
+        ..ShipData::default()
+    }
+}
+
 pub fn create(
     sim: &mut Simulation,
     position: Vector2<f64>,
@@ -551,6 +562,8 @@ pub fn create(
         .restitution(restitution)
         .collision_groups(if data.class == ShipClass::Planet {
             collision::planet_interaction_groups()
+        } else if data.class == ShipClass::Beacon {
+            collision::beacon_interaction_groups()
         } else {
             collision::ship_interaction_groups(team)
         })

@@ -180,6 +180,7 @@ pub fn load(class: ShipClass) -> Vec<Vector2<f32>> {
         ShipClass::Missile => missile(),
         ShipClass::Torpedo => torpedo(),
         ShipClass::Planet => big_planet(),
+        ShipClass::Beacon => target(),
     }
 }
 
