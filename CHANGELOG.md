@@ -1,3 +1,5 @@
+### 0.76.2 - 2023-11-08
+
 - Fixed acceleration debug line rotation.
 
 ### 0.76.1 - 2023-11-07
