@@ -104,13 +104,15 @@ impl Scenario for Race {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        let player_ship = sim.ship(self.player_ship_handle.unwrap());
+        if sim.ships.contains(self.player_ship_handle.unwrap()) {
+            let player_ship = sim.ship(self.player_ship_handle.unwrap());
 
-        for target in &mut self.targets {
-            let dx = target.position.x - player_ship.position().x;
-            let dy = target.position.y - player_ship.position().y;
-            if (dx * dx + dy * dy).sqrt() < 50.0 {
-                target.hit = true;
+            for target in &mut self.targets {
+                let dx = target.position.x - player_ship.position().x;
+                let dy = target.position.y - player_ship.position().y;
+                if (dx * dx + dy * dy).sqrt() < 50.0 {
+                    target.hit = true;
+                }
             }
         }
 
