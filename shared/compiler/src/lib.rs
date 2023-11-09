@@ -40,7 +40,7 @@ impl Compiler {
     pub fn compile(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
         match detect_language(code) {
             Language::Rust => self.compile_rust(code),
-            Language::C => self.compile_c(code),
+            Language::Cpp => self.compile_cpp(code),
             Language::Unknown => bail!("Unknown language"),
         }
     }
@@ -182,30 +182,53 @@ impl Compiler {
         ))?)
     }
 
-    pub fn compile_c(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
+    pub fn compile_cpp(&mut self, code: &str) -> Result<Vec<u8> /* wasm */> {
         let tmp_path = &self.dir;
-        let src_path = tmp_path.join("user.c");
+        let src_path = tmp_path.join("user.cpp");
         let dst_path = tmp_path.join("user.wasm");
         std::fs::write(&src_path, code.as_bytes())?;
         std::fs::write(
             tmp_path.join("oort.h"),
-            include_bytes!("../../c-api/oort.h"),
+            include_bytes!("../../cpp-api/oort.h"),
+        )?;
+        std::fs::write(
+            tmp_path.join("oort.cpp"),
+            include_bytes!("../../cpp-api/oort.cpp"),
         )?;
 
-        let output = std::process::Command::new("clang")
+        let output = std::process::Command::new("zig")
             .args([
-                "--target=wasm32-unknown-unknown",
+                "c++",
+                "-shared",
+                "-target",
+                "wasm32-wasi",
+                "-fno-exceptions",
+                "-fno-stack-protector",
                 "-Oz",
-                "-nostdlib",
-                "-Wl,--export-all",
-                "-Wl,--no-entry",
+                "-Wl,--export=SYSTEM_STATE",
+                "-Wl,--export=ENVIRONMENT",
+                "-Wl,--export=PANIC_BUFFER",
+                tmp_path.join("oort.cpp").as_os_str().to_str().unwrap(),
                 src_path.as_os_str().to_str().unwrap(),
                 "-o",
                 dst_path.as_os_str().to_str().unwrap(),
             ])
             .output()?;
         if !output.status.success() {
-            bail!("clang failed: {}", std::str::from_utf8(&output.stderr)?);
+            bail!(
+                "compilation failed: {}",
+                std::str::from_utf8(&output.stderr)?
+            );
+        }
+
+        let output = std::process::Command::new("wasm-strip")
+            .args([dst_path.as_os_str().to_str().unwrap()])
+            .output()?;
+        if !output.status.success() {
+            bail!(
+                "wasm-strip failed: {}",
+                std::str::from_utf8(&output.stderr)?
+            );
         }
 
         Ok(std::fs::read(&dst_path)?)
@@ -251,15 +274,15 @@ fn find_rustc() -> String {
 
 enum Language {
     Rust,
-    C,
+    Cpp,
     Unknown,
 }
 
 fn detect_language(code: &str) -> Language {
-    log::info!("Code: {:?}", code);
-    if code.contains("void tick()") {
-        log::info!("Detected C");
-        Language::C
+    log::debug!("Code: {:?}", code);
+    if code.contains("#include") {
+        log::info!("Detected C++");
+        Language::Cpp
     } else if code.contains("impl Ship") {
         Language::Rust
     } else {

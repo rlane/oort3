@@ -9,6 +9,7 @@ mod mini_fleet;
 mod orbit;
 mod planetary_defense;
 mod primitive_duel;
+mod race;
 mod radar_duel;
 mod squadrons;
 mod stress;
@@ -47,7 +48,8 @@ pub mod prelude {
     pub use super::{DEFAULT_TUTORIAL_MAX_TICKS, TOURNAMENT_MAX_TICKS};
     pub use crate::rng::{new_rng, SeededRng};
     pub use crate::ship::{
-        self, asteroid, cruiser, fighter, frigate, missile, target, torpedo, ShipHandle,
+        self, asteroid, big_asteroid, cruiser, fighter, frigate, missile, target, torpedo,
+        ShipHandle,
     };
     pub use crate::simulation::{Code, Line, Simulation};
     pub use nalgebra::{point, vector, Point2, Rotation2, Vector2};
@@ -157,6 +159,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         // Challenge
         "gunnery" => Some(Box::new(gunnery::GunneryScenario {})),
         "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
+        "race" => Some(Box::new(race::Race::new())),
         // Testing
         "test" => Some(Box::new(test::TestScenario {})),
         "basic" => Some(Box::new(test::BasicScenario {})),
@@ -188,7 +191,7 @@ pub fn load(name: &str) -> Box<dyn Scenario> {
 }
 
 pub fn list() -> Vec<(String, Vec<String>)> {
-    vec![
+    [
         ("Introduction", vec!["welcome"]),
         (
             "Tutorial",
@@ -208,7 +211,7 @@ pub fn list() -> Vec<(String, Vec<String>)> {
                 "tutorial_cruiser",
             ],
         ),
-        ("Challenge", vec!["gunnery", "planetary_defense"]),
+        ("Challenge", vec!["gunnery", "planetary_defense", "race"]),
         ("Tournament", vec!["fighter_duel", "mini_fleet"]),
         (
             "Future Tournaments",

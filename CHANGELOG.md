@@ -1,3 +1,17 @@
+### 0.76.1 - 2023-11-07
+
+- Fixed radar with 90 degree beamwidth.
+
+### 0.76.0 - 2023-11-07
+
+- Added an Asteroid Race scenario (by t-fi).
+- Moved ship models so that the center of mass is close to the ship's position.
+- Changed radar to return a contact when the beam intersects a bounding circle.
+- Changed the C support to C++ including the standard library.
+- Increased the memory limit per ship to 2 MB.
+- Fixed acceleration debug line when boost is active.
+- Fixed fighter lateral flare rendering.
+
 ### 0.75.0 - 2023-10-30
 
 - Integrated wasm-submemory to remove reliance on Rust's memory safety.

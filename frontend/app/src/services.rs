@@ -15,12 +15,14 @@ pub fn is_local() -> bool {
         == "localhost"
 }
 
+#[allow(clippy::option_env_unwrap)]
 pub fn compiler_url() -> String {
     option_env!("COMPILER_URL")
         .expect("missing COMPILER_URL build-time environment variable")
         .to_string()
 }
 
+#[allow(clippy::option_env_unwrap)]
 pub fn backend_url() -> String {
     option_env!("BACKEND_URL")
         .expect("missing BACKEND_URL build-time environment variable")

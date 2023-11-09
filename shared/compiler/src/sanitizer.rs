@@ -5,14 +5,14 @@ use regex::Regex;
 pub fn check(text: &str) -> Result<()> {
     lazy_static! {
         static ref RE: Regex =
-            Regex::new(r#"\b(macro_rules|include|include_bytes|include_str)(\b|!)"#).unwrap();
+            Regex::new(r"\b(macro_rules|include|include_bytes|include_str)(\b|!)").unwrap();
     }
     if let Some(m) = RE.find(text) {
         anyhow::bail!("Code did not pass sanitizer (found {:?})", m.as_str());
     }
 
     lazy_static! {
-        static ref RE2: Regex = Regex::new(r#"#\[[^]]*path"#).unwrap();
+        static ref RE2: Regex = Regex::new(r"#\[[^]]*path").unwrap();
     }
     if let Some(m) = RE2.find(text) {
         anyhow::bail!("Code did not pass sanitizer (found {:?})", m.as_str());

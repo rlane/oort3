@@ -224,8 +224,10 @@ impl Simulation {
         let ship_timer = Timer::new();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
         for handle in handle_snapshot {
-            debug::emit_ship(self, handle);
             self.ship_mut(handle).tick();
+            if self.ships.contains(handle) {
+                debug::emit_ship(self, handle);
+            }
         }
         self.timing.ship += ship_timer.elapsed();
 

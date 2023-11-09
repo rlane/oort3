@@ -7,7 +7,7 @@ use rand::Rng;
 use rand_distr::StandardNormal;
 use rapier2d_f64::parry;
 use rapier2d_f64::prelude::*;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::f64::consts::TAU;
 use std::ops::Range;
 use wide::{f32x4, CmpGt, CmpLt};
@@ -102,6 +102,7 @@ struct RadarEmitter {
     width: f64,
     start_bearing: f64,
     bearing: f64,
+    bearing_vector: Vector2<f64>,
     end_bearing: f64,
     min_distance: f64,
     max_distance: f64,
@@ -118,7 +119,9 @@ struct RadarEmitter {
 struct RadarReflector {
     position: Point2<f64>,
     velocity: Vector2<f64>,
+    heading: f64,
     radar_cross_section: f64,
+    radius: f64,
     class: ShipClass,
     jammer: Option<RadarJammer>,
 }
@@ -140,8 +143,19 @@ pub struct ScanResult {
     pub snr: f64,
 }
 
-#[derive(Clone)]
-struct ReflectorTeam {
+#[derive(Clone, Default)]
+struct Reflectors {
+    groups: BTreeMap<ReflectorGroupKey, ReflectorGroup>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+struct ReflectorGroupKey {
+    team: i32,
+    radius: i32,
+}
+
+#[derive(Clone, Default)]
+struct ReflectorGroup {
     xs: Vec<f32x4>,
     ys: Vec<f32x4>,
     reflectors: Vec<RadarReflector>,
@@ -156,8 +170,8 @@ fn from_dbm(x: f64) -> f64 {
 }
 
 #[inline(never)]
-fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
-    let mut reflectors_by_team: HashMap<i32, Vec<RadarReflector>> = HashMap::new();
+fn build_reflectors(sim: &Simulation) -> Reflectors {
+    let mut reflector_groups: HashMap<ReflectorGroupKey, Vec<RadarReflector>> = HashMap::new();
 
     for handle in sim.ships.iter() {
         let ship = sim.ship(*handle);
@@ -184,28 +198,26 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
                     ecm_mode: radar.ecm_mode,
                 }),
             });
-        reflectors_by_team
-            .entry(ship_data.team)
+        let group_key = ReflectorGroupKey {
+            team: ship_data.team,
+            radius: ship_data.radar_radius,
+        };
+        reflector_groups
+            .entry(group_key)
             .or_default()
             .push(RadarReflector {
                 position: ship.position().vector.into(),
                 velocity: ship.velocity(),
+                heading: ship.heading(),
                 radar_cross_section,
+                radius: ship_data.radar_radius as f64,
                 class,
                 jammer,
             });
     }
 
-    let mut result: Vec<ReflectorTeam> = Vec::new();
-    result.resize(
-        10,
-        ReflectorTeam {
-            xs: Vec::new(),
-            ys: Vec::new(),
-            reflectors: Vec::new(),
-        },
-    );
-    for (team, reflectors) in reflectors_by_team.drain() {
+    let mut result: Reflectors = Default::default();
+    for (group_key, reflectors) in reflector_groups.drain() {
         let positions: Vec<Point2<f32>> = reflectors
             .iter()
             .map(|r| r.position.cast::<f32>())
@@ -230,7 +242,9 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
                 f32x4::from(ys)
             })
             .collect();
-        result[team as usize] = ReflectorTeam { xs, ys, reflectors };
+        result
+            .groups
+            .insert(group_key, ReflectorGroup { xs, ys, reflectors });
     }
 
     result
@@ -239,14 +253,15 @@ fn build_reflector_team(sim: &Simulation) -> Vec<ReflectorTeam> {
 #[inline(never)]
 pub fn tick(sim: &mut Simulation) {
     let handle_snapshot: Vec<ShipHandle> = sim.ships.iter().cloned().collect();
-    let reflector_teams = build_reflector_team(sim);
-    let mut candidates: Vec<(i32, usize)> = Vec::new();
+    let reflectors = build_reflectors(sim);
+    let mut candidates: Vec<&RadarReflector> = Vec::new();
     let planets = sim
         .ships
         .iter()
         .filter(|handle| sim.ship(**handle).data().class == ShipClass::Planet)
         .cloned()
         .collect::<Vec<_>>();
+    let mut reflector_shapes = HashMap::new();
 
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
@@ -280,6 +295,7 @@ pub fn tick(sim: &mut Simulation) {
                 width: w,
                 start_bearing,
                 bearing: h,
+                bearing_vector: Rotation2::new(h).transform_vector(&vector![1.0, 0.0]),
                 end_bearing,
                 min_distance: radar.min_distance,
                 max_distance,
@@ -314,10 +330,13 @@ pub fn tick(sim: &mut Simulation) {
                 emitter.square_distance_range.end = ComplexField::powi(planet_distance, 2);
             }
 
-            find_candidates(&emitter, &reflector_teams, &mut candidates);
+            find_candidates(&emitter, &reflectors, &mut candidates);
 
-            for (team, reflector_index) in candidates.iter() {
-                let reflector = &reflector_teams[*team as usize].reflectors[*reflector_index];
+            let v = Rotation2::new(emitter.width / 2.0).transform_point(&point![1e6, 0.0]);
+            let emitter_shape = parry::shape::Triangle::new(point![0.0, 0.0], v, point![v.x, -v.y]);
+            let emitter_isometry = Isometry::new(emitter.center.coords, emitter.bearing);
+
+            for reflector in candidates.iter() {
                 if let Some(jammer) = reflector.jammer.as_ref() {
                     match jammer.ecm_mode {
                         EcmMode::None => {}
@@ -340,19 +359,45 @@ pub fn tick(sim: &mut Simulation) {
                     }
                 }
 
-                if emitter
+                if !emitter
                     .square_distance_range
                     .contains(&nalgebra::distance_squared(
                         &emitter.center,
                         &reflector.position,
                     ))
                 {
-                    let rssi = compute_rssi(&emitter, reflector)
-                        * ComplexField::powf(1.2f64, rng.gen_range(-1.0..1.0));
-                    if rssi > best_rssi {
-                        best_reflector = Some(reflector);
-                        best_rssi = rssi;
-                    }
+                    continue;
+                }
+
+                let reflector_isometry =
+                    Isometry::new(reflector.position.coords, reflector.heading);
+                let reflector_shape =
+                    reflector_shapes
+                        .entry(reflector.class)
+                        .or_insert_with_key(|&class| {
+                            let model = model::load(class);
+                            let vertices = model
+                                .iter()
+                                .map(|&v| point![v.x as f64, v.y as f64])
+                                .collect::<Vec<_>>();
+                            parry::shape::ConvexPolygon::from_convex_hull(&vertices).unwrap()
+                        });
+                let intersecting = parry::query::intersection_test(
+                    &emitter_isometry,
+                    &emitter_shape,
+                    &reflector_isometry,
+                    reflector_shape,
+                )
+                .unwrap();
+                if !intersecting {
+                    continue;
+                }
+
+                let rssi = compute_rssi(&emitter, reflector)
+                    * ComplexField::powf(1.2f64, rng.gen_range(-1.0..1.0));
+                if rssi > best_rssi {
+                    best_reflector = Some(reflector);
+                    best_rssi = rssi;
                 }
             }
 
@@ -383,9 +428,15 @@ pub fn tick(sim: &mut Simulation) {
                 None
             } else {
                 best_reflector.map(|reflector| {
+                    let reflector_shape = reflector_shapes.get(&reflector.class).unwrap();
+                    let contact_position =
+                        find_contact_position(&emitter, reflector, reflector_shape)
+                            .unwrap_or(reflector.position);
+
                     make_scan_result(
                         &emitter,
                         reflector,
+                        contact_position,
                         best_rssi_dbm,
                         received_noise_dbm,
                         &mut rng,
@@ -409,29 +460,34 @@ pub fn tick(sim: &mut Simulation) {
 }
 
 #[inline(never)]
-fn find_candidates(
+fn find_candidates<'a>(
     emitter: &RadarEmitter,
-    reflector_teams: &[ReflectorTeam],
-    candidates: &mut Vec<(i32, usize)>,
+    reflectors: &'a Reflectors,
+    candidates: &mut Vec<&'a RadarReflector>,
 ) {
     let rays = [emitter.rays[0].cast::<f32>(), emitter.rays[1].cast::<f32>()];
     let emitter_position = emitter.center.cast::<f32>();
 
-    let wex = f32x4::splat(emitter_position.x);
-    let wey = f32x4::splat(emitter_position.y);
     let wrx0 = f32x4::splat(rays[0].x);
     let wry0 = f32x4::splat(rays[0].y);
     let wrx1 = f32x4::splat(rays[1].x);
     let wry1 = f32x4::splat(rays[1].y);
 
-    for (team, reflector_team) in reflector_teams.iter().enumerate() {
-        let team = team as i32;
-        if emitter.team == team || reflector_team.reflectors.is_empty() {
+    for (group_key, group) in reflectors.groups.iter() {
+        if emitter.team == group_key.team || group.reflectors.is_empty() {
             continue;
         }
 
-        let n = reflector_team.reflectors.len();
-        for (i, (&wx, &wy)) in reflector_team.xs.iter().zip(&reflector_team.ys).enumerate() {
+        // Move emitter backwards to widen beam.
+        let effective_emitter_position = emitter_position
+            - emitter.bearing_vector.cast::<f32>() * group_key.radius as f32
+                / (emitter.width as f32 * 0.5).tan();
+
+        let wex = f32x4::splat(effective_emitter_position.x);
+        let wey = f32x4::splat(effective_emitter_position.y);
+
+        let n = group.reflectors.len();
+        for (i, (&wx, &wy)) in group.xs.iter().zip(&group.ys).enumerate() {
             let wdx = wx - wex;
             let wdy = wy - wey;
 
@@ -446,7 +502,8 @@ fn find_candidates(
                 for (j, &v) in mask.to_array().iter().enumerate() {
                     let reflector_index = i * 4 + j;
                     if v != 0.0 && reflector_index < n {
-                        candidates.push((team, reflector_index));
+                        let reflector = &group.reflectors[reflector_index];
+                        candidates.push(reflector);
                     }
                 }
             }
@@ -458,13 +515,14 @@ fn find_candidates(
 fn make_scan_result(
     emitter: &RadarEmitter,
     reflector: &RadarReflector,
+    contact_position: Point2<f64>,
     rssi_dbm: f64,
     noise_dbm: f64,
     rng: &mut impl Rng,
 ) -> ScanResult {
     let signal_db = rssi_dbm - noise_dbm;
     let error_factor = ComplexField::powf(10.0f64, -signal_db / 10.0);
-    let dp = reflector.position - emitter.center;
+    let dp = contact_position - emitter.center;
     let beam_rot = Rotation2::new(emitter.bearing);
     let reflector_rot = Rotation2::rotation_between(&Vector2::x(), &dp);
     let mut noisy_bearing: f64 = reflector_rot.angle()
@@ -478,7 +536,7 @@ fn make_scan_result(
         }
     }
 
-    let mut distance = (reflector.position - emitter.center).magnitude();
+    let mut distance = (contact_position - emitter.center).magnitude();
     distance += rng.sample::<f64, _>(StandardNormal) * (DISTANCE_NOISE_FACTOR * error_factor);
     distance = distance.clamp(emitter.min_distance, emitter.max_distance);
 
@@ -495,6 +553,35 @@ fn make_scan_result(
         rssi: rssi_dbm,
         snr: signal_db,
     }
+}
+
+fn find_contact_position(
+    emitter: &RadarEmitter,
+    reflector: &RadarReflector,
+    reflector_shape: &dyn Shape,
+) -> Option<Point2<f64>> {
+    let reflector_isometry = Isometry::new(reflector.position.coords, reflector.heading);
+    let dp = reflector.position - emitter.center;
+    let dist = dp.magnitude();
+    let radius = dist * ComplexField::tan(emitter.width * 0.5);
+    let start_position = emitter.center - emitter.bearing_vector * radius;
+    for size in [radius, reflector.radius] {
+        let ball = parry::shape::Ball::new(size);
+        if let Ok(Some(toi)) = parry::query::time_of_impact(
+            &Isometry::new(start_position.coords, 0.0),
+            &emitter.bearing_vector,
+            &ball,
+            &reflector_isometry,
+            &Vector2::zeros(),
+            reflector_shape,
+            1e6,
+            true,
+        ) {
+            return Some(start_position + emitter.bearing_vector * toi.toi + toi.witness1.coords);
+        }
+    }
+
+    None
 }
 
 fn decide_unreliable_rssi(rng: &mut impl Rng, rssi: f64, reliable_rssi: f64) -> bool {
@@ -653,12 +740,14 @@ fn draw_contact(sim: &mut Simulation, emitter_handle: ShipHandle, contact: &Scan
 #[cfg(test)]
 mod test {
     use crate::ship;
-    use crate::ship::ShipClass;
+    use crate::ship::{ShipClass, ShipData};
     use crate::simulation::Code;
     use crate::simulation::Simulation;
-    use nalgebra::{vector, UnitComplex};
+    use nalgebra::{point, vector, UnitComplex, Vector2};
     use oort_api::EcmMode;
     use rand::Rng;
+    use rapier2d_f64::parry;
+    use rapier2d_f64::prelude::{Isometry, Rotation, Translation};
     use std::f64::consts::{PI, TAU};
     use test_log::test;
 
@@ -720,6 +809,73 @@ mod test {
         sim.ship_mut(ship1)
             .body()
             .set_translation(vector![1e6, 0.0], true);
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+    }
+
+    #[test]
+    fn test_radar_radius() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        // Initial state.
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ShipData {
+                radar_radius: 100,
+                ..ship::target(1)
+            },
+        );
+
+        // Pointing at center of target
+        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+
+        // Pointing at target but not at center
+        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.001 + TAU / 12.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+
+        // Not pointing at target
+        sim.ship_mut(ship0).radar_mut().unwrap().heading = TAU / 4.0;
+        sim.step();
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+    }
+
+    #[test]
+    fn test_behind() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        // Initial state.
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        ship::create(
+            &mut sim,
+            vector![-1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ShipData {
+                radar_radius: 100,
+                ..ship::target(1)
+            },
+        );
+
+        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 3600.0;
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
     }
@@ -853,35 +1009,61 @@ mod test {
         assert!(!check_detection(70e3));
     }
 
+    fn reference(dp: Vector2<f64>, h: f64, w: f64, r: f64) -> bool {
+        let a0 = UnitComplex::from_angle(h + w / 2.0);
+        let a1 = UnitComplex::from_angle(h - w / 2.0);
+        let beam_shape = parry::shape::Triangle::new(
+            point![0.0, 0.0],
+            a0.transform_point(&point![1e3, 0.0]),
+            a1.transform_point(&point![1e3, 0.0]),
+        );
+        parry::query::intersection_test(
+            &Isometry::from_parts(Translation::from(dp), Rotation::default()),
+            &parry::shape::Ball::new(r),
+            &Isometry::default(),
+            &beam_shape,
+        )
+        .unwrap()
+    }
+
     #[test]
     fn test_random() {
         let mut rng = crate::rng::new_rng(1);
-        for _ in 0..1000 {
+        for _ in 0..10000 {
             let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
             let mut rand_vector =
                 || vector![rng.gen_range(-100.0..100.0), rng.gen_range(-100.0..100.0)];
             let p0 = rand_vector();
             let p1 = rand_vector();
-            if (p1 - p0).magnitude() < 20.0 {
+            let dp: Vector2<f64> = p1 - p0;
+            let dist = dp.magnitude();
+            if dist < 20.0 {
                 continue;
             }
+            let bearing = dp.y.atan2(dp.x);
             let h = rng.gen_range(0.0..TAU);
-            let w = rng.gen_range(0.0..(TAU / 4.0));
+            let w = rng.gen_range(0.0..(TAU / 16.0));
 
             let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], 0.0, ship::fighter(0));
-            let _ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
+            let ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
             sim.ship_mut(ship0).radar_mut().unwrap().heading = h;
             sim.ship_mut(ship0).radar_mut().unwrap().width = w;
             sim.step();
 
-            let dp = p1 - p0;
-            let center_vec = UnitComplex::new(h).transform_vector(&vector![1.0, 0.0]);
-            let expected = dp.angle(&center_vec).abs() < w * 0.5;
+            let r = sim.ship(ship1).data().radar_radius as f64;
+
+            let expected = reference(dp, h, w, r);
             let got = sim.ship(ship0).radar().unwrap().result.is_some();
-            assert_eq!(
-                got, expected,
-                "p0={p0:?} p1={p1:?} h={h} w={w} expected={expected} got={got}"
-            );
+            if got != expected {
+                let expected_high = reference(dp, h, w, r * 1.05);
+                let expected_low = reference(dp, h, w, r * 0.95);
+                if expected_high == expected_low {
+                    assert_eq!(
+                        got, expected,
+                        "dp={dp:?} dist={dist:.2} bearing={bearing:.2} h={h:.2} w={w:.2} r={r} expected={expected} got={got}"
+                    );
+                }
+            }
         }
     }
 }
