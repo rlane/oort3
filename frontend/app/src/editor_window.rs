@@ -51,6 +51,12 @@ pub enum Msg {
     CancelDrop(MouseEvent),
 }
 
+pub enum EditorAction {
+    Execute,
+    Replay,
+    ReplayPaused,
+}
+
 #[derive(Properties, Clone, PartialEq)]
 pub struct EditorWindowProps {
     pub host: web_sys::Element,
@@ -313,7 +319,8 @@ impl Component for EditorWindow {
             .props()
             .on_editor_action
             .reform(|_| "oort-replay-paused".to_string());
-        let cmd_or_ctrl = if is_mac() { "Cmd" } else { "Ctrl" };
+
+        let cmd_or_ctrl = cmd_or_ctrl();
 
         create_portal(
             html! {
@@ -334,7 +341,7 @@ impl Component for EditorWindow {
                     <div class="replay_button_paused"><span
                         onclick={replay_paused_cb}
                         class="material-symbols-outlined"
-                        title={"Replay paused"}
+                        title={format!("Replay paused ({cmd_or_ctrl}-Alt-Enter)")}
                     >{ "autopause" }</span></div>
                     <form>
                         <div class="drop_target display_none" ref={self.drop_target_ref.clone()}>
@@ -421,7 +428,15 @@ impl Component for EditorWindow {
                     ),
                 );
 
-                add_action("oort-replay-paused", "Replay paused", None);
+                add_action(
+                    "oort-replay-paused",
+                    "Replay paused",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32
+                            | monaco::sys::KeyMod::alt() as u32
+                            | monaco::sys::KeyCode::Enter as u32,
+                    ),
+                );
 
                 add_action("oort-restore-initial-code", "Restore initial code", None);
 
@@ -611,7 +626,15 @@ impl Completer {
     }
 }
 
-fn is_mac() -> bool {
+pub fn cmd_or_ctrl() -> String {
+    if is_mac() {
+        "Cmd".to_string()
+    } else {
+        "Ctrl".to_string()
+    }
+}
+
+pub fn is_mac() -> bool {
     gloo_utils::window()
         .navigator()
         .app_version()
