@@ -91,6 +91,10 @@ impl Compiler {
             tmp_path.join("ai/src/lib.rs"),
             include_bytes!("../../ai/src/lib.rs"),
         )?;
+        std::fs::write(
+            tmp_path.join("ai/src/tick.rs"),
+            include_bytes!("../../ai/src/tick.rs"),
+        )?;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
 
         let output = std::process::Command::new("cargo")
