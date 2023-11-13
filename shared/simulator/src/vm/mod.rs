@@ -466,7 +466,7 @@ impl WasmVm {
 
     fn add_submemory(&mut self) -> Result<(u32, u32), Error> {
         let mut store = self.store_mut();
-        let ret = self.add_submemory.call(store.deref_mut(), &[]).unwrap(); // XXX;
+        let ret = translate_error(self.add_submemory.call(store.deref_mut(), &[]))?;
         match *ret {
             [wasmer::Value::I32(index), wasmer::Value::I32(base_address)] => {
                 Ok((index as u32, base_address as u32))
@@ -479,17 +479,19 @@ impl WasmVm {
 
     fn select_submemory(&mut self, index: u32) -> Result<(), Error> {
         let mut store = self.store_mut();
-        self.select_submemory
-            .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)])
-            .unwrap(); // XXX;
+        translate_error(
+            self.select_submemory
+                .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)]),
+        )?;
         Ok(())
     }
 
     fn reset_submemory(&mut self, index: u32) -> Result<(), Error> {
         let mut store = self.store_mut();
-        self.reset_submemory
-            .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)])
-            .unwrap(); // XXX;
+        translate_error(
+            self.reset_submemory
+                .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)]),
+        )?;
         Ok(())
     }
 }
