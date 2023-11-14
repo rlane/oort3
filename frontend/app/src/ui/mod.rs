@@ -362,20 +362,16 @@ impl UI {
             .end((instant::Instant::now() - self.start_time).as_millis() as f64);
     }
 
-    fn match_key_set(&mut self, set: &Vec<&str>) -> bool {
-        let does_match = set.iter().fold(true, |current, key| {
-            current && self.keys_down.contains(*key)
-        });
-        let not_ignored = set.iter().fold(true, |current, key| {
-            current && !self.keys_ignored.contains(*key)
-        });
+    fn match_key_set(&mut self, set: &[&str]) -> bool {
+        let does_match = set.iter().all(|key| self.keys_down.contains(*key));
+        let not_ignored = set.iter().all(|key| !self.keys_ignored.contains(*key));
 
         does_match && not_ignored
     }
 
     fn on_key_set_match<F>(&mut self, set: Vec<&str>, callback: F)
     where
-        F: Fn(&mut Self) -> (),
+        F: Fn(&mut Self),
     {
         if self.match_key_set(&set) {
             callback(self);
