@@ -1,3 +1,7 @@
+- Added hotkeys for restarting simulation to canvas (by twof).
+- Moved user code to the root of the crate so that the `crate` keyword works as expected.
+- Added CPU usage to the debug text.
+
 ### 0.76.3 - 2023-11-09
 
 - Fixed a couple of bugs in the race scenario.
