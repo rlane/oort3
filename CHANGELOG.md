@@ -1,3 +1,5 @@
+### 0.77.0 - 2023-11-13
+
 - Added hotkeys for restarting simulation to canvas (by twof).
 - Moved user code to the root of the crate so that the `crate` keyword works as expected.
 - Added CPU usage to the debug text.
