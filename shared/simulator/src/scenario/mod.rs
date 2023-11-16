@@ -11,6 +11,7 @@ mod planetary_defense;
 mod primitive_duel;
 mod race;
 mod radar_duel;
+mod sandbox;
 mod squadrons;
 mod stress;
 mod test;
@@ -175,6 +176,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "missile-stress" => Some(Box::new(stress::MissileStressScenario {})),
         // Miscellaneous
         "welcome" => Some(Box::new(welcome::Welcome::new())),
+        "sandbox" => Some(Box::new(sandbox::Sandbox::new())),
         _ => None,
     };
     if let Some(scenario) = scenario.as_ref() {

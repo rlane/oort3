@@ -15,6 +15,7 @@ use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::TAU;
+use std::str::FromStr;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug, Ord, PartialOrd)]
 pub struct ShipHandle(pub Index);
@@ -53,12 +54,32 @@ impl ShipClass {
             ShipClass::Frigate => "frigate",
             ShipClass::Cruiser => "cruiser",
             ShipClass::Asteroid { .. } => "asteroid",
-            ShipClass::BigAsteroid { .. } => "asteroid",
+            ShipClass::BigAsteroid { .. } => "big_asteroid",
             ShipClass::Target => "target",
             ShipClass::Missile => "missile",
             ShipClass::Torpedo => "torpedo",
             ShipClass::Planet => "planet",
             ShipClass::Beacon => "beacon",
+        }
+    }
+}
+
+impl FromStr for ShipClass {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "fighter" => Ok(ShipClass::Fighter),
+            "frigate" => Ok(ShipClass::Frigate),
+            "cruiser" => Ok(ShipClass::Cruiser),
+            "asteroid" => Ok(ShipClass::Asteroid { variant: 0 }),
+            "big_asteroid" => Ok(ShipClass::BigAsteroid { variant: 0 }),
+            "target" => Ok(ShipClass::Target),
+            "missile" => Ok(ShipClass::Missile),
+            "torpedo" => Ok(ShipClass::Torpedo),
+            "planet" => Ok(ShipClass::Planet),
+            "beacon" => Ok(ShipClass::Beacon),
+            _ => Err(anyhow::anyhow!("Unknown ship class {:?}", s)),
         }
     }
 }
