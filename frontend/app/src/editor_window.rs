@@ -69,7 +69,6 @@ pub struct EditorWindowProps {
     pub editor_link: CodeEditorLink,
     pub on_editor_action: Callback<String>,
     pub team: usize,
-    pub scenario_name: String,
 }
 
 pub struct EditorWindow {
@@ -405,20 +404,29 @@ impl Component for EditorWindow {
                     lib_rs.push(format!("// Entry point: {}", entry_point));
 
                     // Add in our entry point
-                    let mod_name = entry_point.trim_end_matches(".rs");
-                    lib_rs.push(format!("pub use {}::Ship;", mod_name));
-                    lib_rs.push(format!("pub mod {};", mod_name));
-                    lib_rs.push("".into());
-                    lib_rs.push("// Modules".into());
+                    if entry_point == "lib.rs" && files.contains_key(entry_point) {
+                        // Use an existing lib.rs directly
+                        // User is responsible for including modules and exposing Ship properly
+                        lib_rs.push(files.remove(entry_point).unwrap());
+                    } else {
+                        let mod_name = entry_point.trim_end_matches(".rs");
+                        lib_rs.push(format!("pub use {}::Ship;", mod_name));
+                        lib_rs.push(format!("pub mod {};", mod_name));
+                        lib_rs.push("".into());
+                        lib_rs.push("// Modules".into());
 
-                    // Add in our other files
-                    // TODO trim down to the modules we actually use
-                    for (name, _contents) in &files {
-                        if name != "lib.rs" && name != entry_point {
-                            let mod_name = name.trim_end_matches(".rs");
-                            lib_rs.push(format!("pub mod {};", mod_name));
+                        // Add in our other files
+                        // TODO trim down to the modules we actually use
+                        for (name, _contents) in &files {
+                            if name != "lib.rs" && name != entry_point {
+                                let mod_name = name.trim_end_matches(".rs");
+                                lib_rs.push(format!("pub mod {};", mod_name));
+                            }
                         }
                     }
+                    
+
+                    
                 } else {
                     lib_rs.push("// No entry point selected".into());
                 }
