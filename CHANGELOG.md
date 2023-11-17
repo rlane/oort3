@@ -1,3 +1,10 @@
+- Added a favicon (by hipparcos).
+- Converted the cruiser flak gun into a long-range heavy cannon.
+- Increased size of frigate and cruiser.
+- Added an early sandbox scenario.
+- Fixed interaction of radar distance filter with edge returns.
+- Disabled edge returns for small ships as an optimization.
+
 ### 0.77.0 - 2023-11-13
 
 - Added hotkeys for restarting simulation to canvas (by twof).
