@@ -61,5 +61,5 @@ fn test_dps() {
     approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 0), 560.0, epsilon = 1.0);
     approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 1), 73.5, epsilon = 1.0);
     approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 2), 73.5, epsilon = 1.0);
-    approx::assert_abs_diff_eq!(find_gun_dps(cruiser(0), 0), 75.7, epsilon = 1.0);
+    approx::assert_abs_diff_eq!(find_gun_dps(cruiser(0), 0), 673.0, epsilon = 1.0);
 }

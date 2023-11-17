@@ -196,14 +196,12 @@ pub struct Cruiser {
     pub radar_state: CruiserRadarState,
     pub torpedo_radar: RadarRegs,
     pub missile_radar: RadarRegs,
-    pub point_defense_radar: RadarRegs,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum CruiserRadarState {
     Torpedo,
     Missile,
-    PointDefense,
 }
 
 impl Cruiser {
@@ -213,7 +211,6 @@ impl Cruiser {
             radar_state: CruiserRadarState::Torpedo,
             torpedo_radar: RadarRegs::new(),
             missile_radar: RadarRegs::new(),
-            point_defense_radar: RadarRegs::new(),
         }
     }
 
@@ -231,6 +228,11 @@ impl Cruiser {
                 if reload_ticks(3) == 0 {
                     send(make_orders(contact.position, contact.velocity));
                     fire(3);
+                }
+
+                if let Some(angle) = lead_target(contact.position, contact.velocity, 2e3, 120.0) {
+                    aim(0, angle);
+                    fire(0);
                 }
             } else {
                 set_radar_heading(radar_heading() + radar_width());
@@ -273,24 +275,6 @@ impl Cruiser {
             }
 
             self.missile_radar.save();
-            self.point_defense_radar.restore();
-            self.radar_state = CruiserRadarState::PointDefense;
-        } else if self.radar_state == CruiserRadarState::PointDefense {
-            set_radar_width(TAU / 4.0);
-            set_radar_max_distance(1e3);
-
-            if let Some(contact) =
-                scan().filter(|c| [Class::Missile, Class::Torpedo].contains(&c.class))
-            {
-                let dp = contact.position - position();
-                aim(0, dp.angle());
-                fire(0);
-                set_radar_heading(dp.angle());
-            } else {
-                set_radar_heading(radar_heading() + radar_width());
-            }
-
-            self.point_defense_radar.save();
             self.torpedo_radar.restore();
             self.radar_state = CruiserRadarState::Torpedo;
         }

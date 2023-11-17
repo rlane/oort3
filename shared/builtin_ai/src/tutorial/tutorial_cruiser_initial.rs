@@ -21,7 +21,7 @@ impl Ship {
                 }
             }
         } else {
-            // Flak gun
+            // Main gun
             aim(0, 0.0);
             fire(0);
             // Missile launcher
