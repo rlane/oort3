@@ -18,15 +18,14 @@ impl Sandbox {
     fn handle_command(sim: &mut Simulation, cmd: &str) -> anyhow::Result<()> {
         lazy_static! {
             static ref SPAWN_RE: Regex =
-                Regex::new(r"spawn (\w+) team (\d+) position (\(.+?\)) heading ([\-\d.+])")
+                Regex::new(r"^spawn (\w+) team (\d+) position (\(.+?\)) heading ([\-\d.]+)$")
                     .unwrap();
         }
         if let Some(cap) = SPAWN_RE.captures(cmd) {
             let class: ShipClass = cap.get(1).unwrap().as_str().parse()?;
             let team: i32 = cap.get(2).unwrap().as_str().parse()?;
             let position: Vector2<f64> = parse_vec2(cap.get(3).unwrap().as_str())?;
-            let heading: f64 = cap.get(4).unwrap().as_str().parse()?;
-            let heading = heading.to_radians();
+            let heading: f64 = cap.get(4).unwrap().as_str().parse::<f64>()?.to_radians();
             let data = match class {
                 ShipClass::Fighter => fighter(team),
                 ShipClass::Frigate => frigate(team),
