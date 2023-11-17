@@ -65,6 +65,10 @@ pub fn planet_interaction_groups() -> InteractionGroups {
     )
 }
 
+pub fn beacon_interaction_groups() -> InteractionGroups {
+    InteractionGroups::new(Group::GROUP_14, Group::empty())
+}
+
 pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
     for event in events {
         if let CollisionEvent::Started(h1, h2, _flags) = event {

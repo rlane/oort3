@@ -34,7 +34,7 @@ impl Ship {
                 fire(1);
                 fire(2);
 
-                aim(0, lead_target(contact.position, contact.velocity));
+                aim(0, lead_target(contact.position, contact.velocity, 2000.0));
                 fire(0);
 
                 let dp = contact.position - position();
@@ -67,9 +67,9 @@ fn turn_to(target_heading: f64) {
     turn(10.0 * heading_error);
 }
 
-fn lead_target(target_position: Vec2, target_velocity: Vec2) -> f64 {
+fn lead_target(target_position: Vec2, target_velocity: Vec2, bullet_speed: f64) -> f64 {
     let dp = target_position - position();
     let dv = target_velocity - velocity();
-    let predicted_dp = dp + dv * dp.length() / 1000.0;
+    let predicted_dp = dp + dv * dp.length() / bullet_speed;
     predicted_dp.angle()
 }

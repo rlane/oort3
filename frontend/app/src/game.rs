@@ -1,7 +1,7 @@
 use crate::codestorage;
 use crate::compiler_output_window::CompilerOutputWindow;
 use crate::documentation::Documentation;
-use crate::editor_window::EditorWindow;
+use crate::editor_window::{EditorAction, EditorWindow};
 use crate::gtag;
 use crate::js;
 use crate::leaderboard::Leaderboard;
@@ -593,13 +593,22 @@ impl Component for Game {
             })
         };
 
+        let on_simulation_editor_action_cb = context.link().callback(|action| Msg::EditorAction {
+            team: 0,
+            action: match action {
+                EditorAction::Execute => "oort-execute".to_string(),
+                EditorAction::Replay => "oort-replay".to_string(),
+                EditorAction::ReplayPaused => "oort-replay-paused".to_string(),
+            },
+        });
+
         html! {
         <>
             <Toolbar scenario_name={context.props().scenario.clone()} {select_scenario_cb} show_feedback_cb={show_feedback_cb.clone()} />
             <Welcome host={welcome_window_host} show_feedback_cb={show_feedback_cb.clone()} select_scenario_cb={select_scenario_cb2} />
-            <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} team=0 scenario_name={context.props().scenario.clone()} />
-            <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} team=1 scenario_name={context.props().scenario.clone()} />
-            <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} {version} canvas_ref={self.simulation_canvas_ref.clone()} />
+            <EditorWindow host={editor_window0_host} editor_link={editor0_link} on_editor_action={on_editor0_action} team=0 />
+            <EditorWindow host={editor_window1_host} editor_link={editor1_link} on_editor_action={on_editor1_action} team=1 />
+            <SimulationWindow host={simulation_window_host} {on_simulation_finished} {register_link} on_editor_action={on_simulation_editor_action_cb} {version} canvas_ref={self.simulation_canvas_ref.clone()} />
             <Documentation host={documentation_window_host} {show_feedback_cb} />
             <CompilerOutputWindow host={compiler_output_window_host} {compiler_errors} />
             <LeaderboardWindow host={leaderboard_window_host} scenario_name={context.props().scenario.clone()} {play_cb} />

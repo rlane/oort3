@@ -15,6 +15,7 @@ use rand::Rng;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::TAU;
+use std::str::FromStr;
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug, Ord, PartialOrd)]
 pub struct ShipHandle(pub Index);
@@ -43,6 +44,7 @@ pub enum ShipClass {
     Missile,
     Torpedo,
     Planet,
+    Beacon,
 }
 
 impl ShipClass {
@@ -52,11 +54,32 @@ impl ShipClass {
             ShipClass::Frigate => "frigate",
             ShipClass::Cruiser => "cruiser",
             ShipClass::Asteroid { .. } => "asteroid",
-            ShipClass::BigAsteroid { .. } => "asteroid",
+            ShipClass::BigAsteroid { .. } => "big_asteroid",
             ShipClass::Target => "target",
             ShipClass::Missile => "missile",
             ShipClass::Torpedo => "torpedo",
             ShipClass::Planet => "planet",
+            ShipClass::Beacon => "beacon",
+        }
+    }
+}
+
+impl FromStr for ShipClass {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "fighter" => Ok(ShipClass::Fighter),
+            "frigate" => Ok(ShipClass::Frigate),
+            "cruiser" => Ok(ShipClass::Cruiser),
+            "asteroid" => Ok(ShipClass::Asteroid { variant: 0 }),
+            "big_asteroid" => Ok(ShipClass::BigAsteroid { variant: 0 }),
+            "target" => Ok(ShipClass::Target),
+            "missile" => Ok(ShipClass::Missile),
+            "torpedo" => Ok(ShipClass::Torpedo),
+            "planet" => Ok(ShipClass::Planet),
+            "beacon" => Ok(ShipClass::Beacon),
+            _ => Err(anyhow::anyhow!("Unknown ship class {:?}", s)),
         }
     }
 }
@@ -312,12 +335,12 @@ pub fn frigate(team: i32) -> ShipData {
                 ..Default::default()
             },
             Gun {
-                offset: vector![0.0, 15.0],
+                offset: vector![0.0, 30.0],
                 max_angle: TAU,
                 ..vulcan_gun()
             },
             Gun {
-                offset: vector![0.0, -15.0],
+                offset: vector![0.0, -30.0],
                 max_angle: TAU,
                 ..vulcan_gun()
             },
@@ -327,7 +350,7 @@ pub fn frigate(team: i32) -> ShipData {
             reload_ticks: 2 * 60,
             reload_ticks_remaining: 0,
             initial_speed: 100.0,
-            offset: vector![60.0, 0.0],
+            offset: vector![120.0, 0.0],
             angle: 0.0,
         }],
         radar: Some(Radar {
@@ -336,7 +359,7 @@ pub fn frigate(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 30.0,
-        radar_radius: 60,
+        radar_radius: 120,
         radios: vec![radio(), radio(), radio(), radio()],
         ..ShipData::from(Class::Frigate.default_stats())
     }
@@ -358,27 +381,27 @@ pub fn cruiser(team: i32) -> ShipData {
         team,
         health: 20000.0,
         guns: vec![Gun {
-            magazine_size: 30,
-            magazine_reload_ticks: 60,
+            magazine_size: 6,
+            magazine_reload_ticks: 300,
             reload_ticks: 24,
-            speed: 1000.0,
-            speed_error: 50.0,
+            speed: 2000.0,
+            speed_error: 10.0,
             offset: vector![0.0, 0.0],
             max_angle: TAU,
-            inaccuracy: 0.02,
+            inaccuracy: 0.005,
             burst_size: 6,
-            ttl: 1.0,
-            bullet_mass: 0.1,
+            ttl: 120.0,
+            bullet_mass: 2.0,
             ..Default::default()
         }],
         missile_launchers: vec![
             MissileLauncher {
-                offset: vector![0.0, 50.0],
+                offset: vector![0.0, 80.0],
                 angle: TAU / 4.0,
                 ..missile_launcher
             },
             MissileLauncher {
-                offset: vector![0.0, -50.0],
+                offset: vector![0.0, -80.0],
                 angle: -TAU / 4.0,
                 ..missile_launcher
             },
@@ -387,7 +410,7 @@ pub fn cruiser(team: i32) -> ShipData {
                 reload_ticks: 180,
                 reload_ticks_remaining: 0,
                 initial_speed: 100.0,
-                offset: vector![140.0, 0.0],
+                offset: vector![260.0, 0.0],
                 angle: 0.0,
             },
         ],
@@ -397,7 +420,7 @@ pub fn cruiser(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
-        radar_radius: 120,
+        radar_radius: 240,
         radios: vec![
             radio(),
             radio(),
@@ -516,6 +539,15 @@ pub fn torpedo(team: i32) -> ShipData {
     }
 }
 
+pub fn beacon(team: i32) -> ShipData {
+    ShipData {
+        class: ShipClass::Beacon,
+        team,
+        radios: (0..8).map(|_| radio()).collect(),
+        ..ShipData::default()
+    }
+}
+
 pub fn create(
     sim: &mut Simulation,
     position: Vector2<f64>,
@@ -551,6 +583,8 @@ pub fn create(
         .restitution(restitution)
         .collision_groups(if data.class == ShipClass::Planet {
             collision::planet_interaction_groups()
+        } else if data.class == ShipClass::Beacon {
+            collision::beacon_interaction_groups()
         } else {
             collision::ship_interaction_groups(team)
         })

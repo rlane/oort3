@@ -1,8 +1,8 @@
-#![allow(clippy::empty_loop)]
 use oort_api::prelude::*;
 
 pub struct Ship {}
 
+#[allow(clippy::empty_loop)]
 impl Ship {
     pub fn new() -> Ship {
         Ship {}

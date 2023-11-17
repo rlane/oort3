@@ -359,13 +359,16 @@ pub fn tick(sim: &mut Simulation) {
                     }
                 }
 
-                if !emitter
-                    .square_distance_range
-                    .contains(&nalgebra::distance_squared(
-                        &emitter.center,
-                        &reflector.position,
-                    ))
-                {
+                let range_filter = {
+                    let min = emitter.min_distance - reflector.radius;
+                    let max = emitter.max_distance + reflector.radius;
+                    (min * min)..(max * max)
+                };
+
+                if !range_filter.contains(&nalgebra::distance_squared(
+                    &emitter.center,
+                    &reflector.position,
+                )) {
                     continue;
                 }
 
@@ -429,9 +432,12 @@ pub fn tick(sim: &mut Simulation) {
             } else {
                 best_reflector.map(|reflector| {
                     let reflector_shape = reflector_shapes.get(&reflector.class).unwrap();
-                    let contact_position =
+                    let contact_position = if reflector.radius <= 10.0 {
+                        reflector.position
+                    } else {
                         find_contact_position(&emitter, reflector, reflector_shape)
-                            .unwrap_or(reflector.position);
+                            .unwrap_or(reflector.position)
+                    };
 
                     make_scan_result(
                         &emitter,
@@ -555,6 +561,7 @@ fn make_scan_result(
     }
 }
 
+#[inline(never)]
 fn find_contact_position(
     emitter: &RadarEmitter,
     reflector: &RadarReflector,
@@ -912,10 +919,10 @@ mod test {
         sim.step();
         assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
 
-        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 900.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 950.0;
+        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 985.0;
+        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 995.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
     }
 
     #[test]

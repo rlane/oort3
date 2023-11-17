@@ -14,6 +14,8 @@ use std::time::Duration;
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
 
+use crate::editor_window::{is_mac, EditorAction};
+
 const ZOOM_SPEED: f32 = 0.02;
 const MIN_ZOOM: f32 = 5e-6;
 const MAX_ZOOM: f32 = 5e-3;
@@ -55,6 +57,7 @@ pub struct UI {
     touches: HashMap<i32, Touch>,
     drag_start: Option<Point2<i32>>,
     needs_render: bool,
+    on_editor_action: yew::Callback<EditorAction>,
 }
 
 unsafe impl Send for UI {}
@@ -63,6 +66,7 @@ impl UI {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         request_snapshot: yew::Callback<()>,
+        on_editor_action: yew::Callback<EditorAction>,
         seed: u32,
         nonce: u32,
         version: String,
@@ -128,6 +132,7 @@ impl UI {
             touches: HashMap::new(),
             drag_start: None,
             needs_render: true,
+            on_editor_action,
         }
     }
 
@@ -179,6 +184,26 @@ impl UI {
             self.paused = true;
             self.single_steps += 1;
         }
+
+        // Docs for key strings: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
+        let ctrl_cmd = if is_mac() { "Meta" } else { "Control" };
+        let execute_set = vec![ctrl_cmd, "Enter"];
+        let replay_set = vec![ctrl_cmd, "Shift", "Enter"];
+        let replay_paused_set = vec![ctrl_cmd, "Alt", "Enter"];
+        if self.match_key_set(&replay_paused_set) {
+            self.on_key_set_match(replay_paused_set, |ui| {
+                ui.on_editor_action.emit(EditorAction::ReplayPaused)
+            });
+        } else if self.match_key_set(&replay_set) {
+            self.on_key_set_match(replay_set, |ui| {
+                ui.on_editor_action.emit(EditorAction::Replay)
+            });
+        } else if self.match_key_set(&execute_set) {
+            self.on_key_set_match(execute_set, |ui| {
+                ui.on_editor_action.emit(EditorAction::Execute)
+            });
+        }
+
         if self.keys_down.contains("g") && !self.keys_ignored.contains("g") {
             self.keys_ignored.insert("g".to_string());
             self.debug = !self.debug;
@@ -335,6 +360,28 @@ impl UI {
 
         self.frame_timer
             .end((instant::Instant::now() - self.start_time).as_millis() as f64);
+    }
+
+    fn match_key_set(&mut self, set: &[&str]) -> bool {
+        let does_match = set.iter().all(|key| self.keys_down.contains(*key));
+        let not_ignored = set.iter().all(|key| !self.keys_ignored.contains(*key));
+
+        does_match && not_ignored
+    }
+
+    fn on_key_set_match<F>(&mut self, set: Vec<&str>, callback: F)
+    where
+        F: Fn(&mut Self),
+    {
+        if self.match_key_set(&set) {
+            callback(self);
+
+            // Avoid retriggering hotkey over multiple frames
+            // Keys will be removed from keys_ignored when they are released
+            for key in set {
+                self.keys_ignored.insert(key.to_string());
+            }
+        }
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {

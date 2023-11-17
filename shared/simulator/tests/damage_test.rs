@@ -25,7 +25,7 @@ fn find_gun_dps(mut ship_data: ship::ShipData, gun: i64) -> f64 {
     );
     let ship1 = ship::create(
         &mut sim,
-        vector![200.0, 0.0] + offset,
+        vector![400.0, 0.0] + offset,
         vector![0.0, 0.0],
         0.0,
         high_health_target(1),
@@ -61,5 +61,5 @@ fn test_dps() {
     approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 0), 560.0, epsilon = 1.0);
     approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 1), 73.5, epsilon = 1.0);
     approx::assert_abs_diff_eq!(find_gun_dps(frigate(0), 2), 73.5, epsilon = 1.0);
-    approx::assert_abs_diff_eq!(find_gun_dps(cruiser(0), 0), 75.7, epsilon = 1.0);
+    approx::assert_abs_diff_eq!(find_gun_dps(cruiser(0), 0), 673.0, epsilon = 1.0);
 }

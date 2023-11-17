@@ -51,6 +51,14 @@ impl From<wasmer::InstantiationError> for Error {
     }
 }
 
+impl From<wasmer::RuntimeError> for Error {
+    fn from(err: wasmer::RuntimeError) -> Self {
+        Self {
+            msg: format!("Wasmer runtime error: {err:?}"),
+        }
+    }
+}
+
 impl From<anyhow::Error> for Error {
     fn from(err: anyhow::Error) -> Self {
         Self {
@@ -221,14 +229,11 @@ impl TeamController {
 
         let result = vm.tick_ship.call(vm.store_mut().deref_mut(), &[]);
         if let Err(e) = result {
-            if let Ok(ret) = vm.get_gas.call(vm.store_mut().deref_mut(), &[]) {
-                if !ret.is_empty() {
-                    let gas: i32 = ret[0].i32().unwrap();
-                    if gas <= 0 {
-                        return Err(Error {
-                            msg: "Ship exceeded maximum number of instructions".to_string(),
-                        });
-                    }
+            if let Ok(gas) = vm.get_gas.call(vm.store_mut().deref_mut()) {
+                if gas <= 0 {
+                    return Err(Error {
+                        msg: "Ship exceeded maximum number of instructions".to_string(),
+                    });
                 }
             }
 
@@ -253,6 +258,13 @@ impl TeamController {
             }
 
             return translate_runtime_error(Err(e));
+        }
+
+        if let Ok(gas) = vm.get_gas.call(vm.store_mut().deref_mut()) {
+            sim.emit_debug_text(
+                handle,
+                format!("CPU: {}%\n", (GAS_PER_TICK - gas) * 100 / GAS_PER_TICK),
+            );
         }
 
         {
@@ -335,7 +347,7 @@ pub struct WasmVm {
     panic_buffer_offset: u32,
     tick_ship: wasmer::Function,
     reset_gas: wasmer::Function,
-    get_gas: wasmer::Function,
+    get_gas: wasmer::TypedFunction<(), i32>,
     add_submemory: wasmer::Function,
     select_submemory: wasmer::Function,
     reset_submemory: wasmer::Function,
@@ -385,7 +397,7 @@ impl WasmVm {
 
         let tick_ship = translate_error(instance.exports.get_function("tick"))?.clone();
         let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
-        let get_gas = translate_error(instance.exports.get_function("get_gas"))?.clone();
+        let get_gas = translate_error(instance.exports.get_function("get_gas"))?.typed(&store)?;
         let add_submemory =
             translate_error(instance.exports.get_function("add_submemory"))?.clone();
         let select_submemory =
@@ -466,7 +478,7 @@ impl WasmVm {
 
     fn add_submemory(&mut self) -> Result<(u32, u32), Error> {
         let mut store = self.store_mut();
-        let ret = self.add_submemory.call(store.deref_mut(), &[]).unwrap(); // XXX;
+        let ret = translate_error(self.add_submemory.call(store.deref_mut(), &[]))?;
         match *ret {
             [wasmer::Value::I32(index), wasmer::Value::I32(base_address)] => {
                 Ok((index as u32, base_address as u32))
@@ -479,17 +491,19 @@ impl WasmVm {
 
     fn select_submemory(&mut self, index: u32) -> Result<(), Error> {
         let mut store = self.store_mut();
-        self.select_submemory
-            .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)])
-            .unwrap(); // XXX;
+        translate_error(
+            self.select_submemory
+                .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)]),
+        )?;
         Ok(())
     }
 
     fn reset_submemory(&mut self, index: u32) -> Result<(), Error> {
         let mut store = self.store_mut();
-        self.reset_submemory
-            .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)])
-            .unwrap(); // XXX;
+        translate_error(
+            self.reset_submemory
+                .call(store.deref_mut(), &[wasmer::Value::I32(index as i32)]),
+        )?;
         Ok(())
     }
 }

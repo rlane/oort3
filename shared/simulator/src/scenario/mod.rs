@@ -11,6 +11,7 @@ mod planetary_defense;
 mod primitive_duel;
 mod race;
 mod radar_duel;
+mod sandbox;
 mod squadrons;
 mod stress;
 mod test;
@@ -48,7 +49,7 @@ pub mod prelude {
     pub use super::{DEFAULT_TUTORIAL_MAX_TICKS, TOURNAMENT_MAX_TICKS};
     pub use crate::rng::{new_rng, SeededRng};
     pub use crate::ship::{
-        self, asteroid, big_asteroid, cruiser, fighter, frigate, missile, target, torpedo,
+        self, asteroid, beacon, big_asteroid, cruiser, fighter, frigate, missile, target, torpedo,
         ShipHandle,
     };
     pub use crate::simulation::{Code, Line, Simulation};
@@ -175,6 +176,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "missile-stress" => Some(Box::new(stress::MissileStressScenario {})),
         // Miscellaneous
         "welcome" => Some(Box::new(welcome::Welcome::new())),
+        "sandbox" => Some(Box::new(sandbox::Sandbox::new())),
         _ => None,
     };
     if let Some(scenario) = scenario.as_ref() {

@@ -43,43 +43,44 @@ fn flare_positions(class: ShipClass) -> Vec<FlarePosition> {
             ]
         }
         ShipClass::Frigate => {
-            let x = -48.0 + 0.76;
+            let x = -96.0 + 1.52;
+            let y = 36.0;
             vec![
                 FlarePosition {
                     offset: vector![x, 0.0],
                     angle: TAU / 2.0,
-                    scale: vector![200.0, 50.0],
+                    scale: vector![200.0, 100.0],
                 },
                 FlarePosition {
                     offset: vector![x, 0.0],
                     angle: 0.0,
-                    scale: vector![100.0, 40.0],
+                    scale: vector![100.0, 80.0],
                 },
                 FlarePosition {
-                    offset: vector![-24.0, 18.0],
+                    offset: vector![-24.0, y],
                     angle: TAU / 4.0,
                     scale: vector![10.0, 10.0],
                 },
                 FlarePosition {
-                    offset: vector![-24.0, -18.0],
+                    offset: vector![-24.0, -y],
                     angle: -TAU / 4.0,
                     scale: vector![10.0, 10.0],
                 },
             ]
         }
         ShipClass::Cruiser => {
-            let x = -96.0 - 12.35;
-            let y = 48.0;
+            let x = -192.0 - 24.7;
+            let y = 76.8;
             vec![
                 FlarePosition {
                     offset: vector![x, 0.0],
                     angle: TAU / 2.0,
-                    scale: vector![150.0, 80.0],
+                    scale: vector![200.0, 120.0],
                 },
                 FlarePosition {
                     offset: vector![x, 0.0],
                     angle: 0.0,
-                    scale: vector![100.0, 80.0],
+                    scale: vector![100.0, 120.0],
                 },
                 FlarePosition {
                     offset: vector![0.0, y],

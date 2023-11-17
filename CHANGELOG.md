@@ -1,3 +1,26 @@
+### 0.78.0 - 2023-11-16
+
+- Added a favicon (by hipparcos).
+- Converted the cruiser flak gun into a long-range heavy cannon.
+- Increased size of frigate and cruiser.
+- Added an early sandbox scenario.
+- Fixed interaction of radar distance filter with edge returns.
+- Disabled edge returns for small ships as an optimization.
+
+### 0.77.0 - 2023-11-13
+
+- Added hotkeys for restarting simulation to canvas (by twof).
+- Moved user code to the root of the crate so that the `crate` keyword works as expected.
+- Added CPU usage to the debug text.
+
+### 0.76.3 - 2023-11-09
+
+- Fixed a couple of bugs in the race scenario.
+
+### 0.76.2 - 2023-11-08
+
+- Fixed acceleration debug line rotation.
+
 ### 0.76.1 - 2023-11-07
 
 - Fixed radar with 90 degree beamwidth.

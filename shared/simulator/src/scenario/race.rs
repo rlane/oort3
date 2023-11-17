@@ -48,7 +48,7 @@ impl Scenario for Race {
             vector![self.world_size() / 2.2, self.world_size() / 2.2],
             vector![0.0, 0.0],
             0.0,
-            cruiser(1),
+            beacon(1),
         ));
 
         self.player_ship_handle = Some(ship::create(
@@ -104,13 +104,15 @@ impl Scenario for Race {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        let player_ship = sim.ship(self.player_ship_handle.unwrap());
+        if sim.ships.contains(self.player_ship_handle.unwrap()) {
+            let player_ship = sim.ship(self.player_ship_handle.unwrap());
 
-        for target in &mut self.targets {
-            let dx = target.position.x - player_ship.position().x;
-            let dy = target.position.y - player_ship.position().y;
-            if (dx * dx + dy * dy).sqrt() < 50.0 {
-                target.hit = true;
+            for target in &mut self.targets {
+                let dx = target.position.x - player_ship.position().x;
+                let dy = target.position.y - player_ship.position().y;
+                if (dx * dx + dy * dy).sqrt() < 50.0 {
+                    target.hit = true;
+                }
             }
         }
 
@@ -167,9 +169,11 @@ impl Scenario for Race {
         10e3
     }
 
-    fn status(&self, _: &Simulation) -> Status {
+    fn status(&self, sim: &Simulation) -> Status {
         if self.targets.iter().all(|t| t.hit) {
             Status::Victory { team: 0 }
+        } else if !sim.ships.contains(self.player_ship_handle.unwrap()) {
+            Status::Failed
         } else {
             Status::Running
         }
