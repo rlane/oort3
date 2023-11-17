@@ -432,9 +432,12 @@ pub fn tick(sim: &mut Simulation) {
             } else {
                 best_reflector.map(|reflector| {
                     let reflector_shape = reflector_shapes.get(&reflector.class).unwrap();
-                    let contact_position =
+                    let contact_position = if reflector.radius <= 10.0 {
+                        reflector.position
+                    } else {
                         find_contact_position(&emitter, reflector, reflector_shape)
-                            .unwrap_or(reflector.position);
+                            .unwrap_or(reflector.position)
+                    };
 
                     make_scan_result(
                         &emitter,
@@ -558,6 +561,7 @@ fn make_scan_result(
     }
 }
 
+#[inline(never)]
 fn find_contact_position(
     emitter: &RadarEmitter,
     reflector: &RadarReflector,
