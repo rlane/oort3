@@ -1,3 +1,5 @@
+### 0.78.0 - 2023-11-16
+
 - Added a favicon (by hipparcos).
 - Converted the cruiser flak gun into a long-range heavy cannon.
 - Increased size of frigate and cruiser.

@@ -1,6 +1,6 @@
 [package]
 name = "oort_simulator"
-version = "0.77.0"
+version = "0.78.0"
 edition = "2021"
 authors = ["Rich Lane"]
 description = "A space fleet programming game."
