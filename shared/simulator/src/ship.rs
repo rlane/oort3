@@ -335,12 +335,12 @@ pub fn frigate(team: i32) -> ShipData {
                 ..Default::default()
             },
             Gun {
-                offset: vector![0.0, 15.0],
+                offset: vector![0.0, 30.0],
                 max_angle: TAU,
                 ..vulcan_gun()
             },
             Gun {
-                offset: vector![0.0, -15.0],
+                offset: vector![0.0, -30.0],
                 max_angle: TAU,
                 ..vulcan_gun()
             },
@@ -350,7 +350,7 @@ pub fn frigate(team: i32) -> ShipData {
             reload_ticks: 2 * 60,
             reload_ticks_remaining: 0,
             initial_speed: 100.0,
-            offset: vector![60.0, 0.0],
+            offset: vector![120.0, 0.0],
             angle: 0.0,
         }],
         radar: Some(Radar {
@@ -359,7 +359,7 @@ pub fn frigate(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: 30.0,
-        radar_radius: 60,
+        radar_radius: 120,
         radios: vec![radio(), radio(), radio(), radio()],
         ..ShipData::from(Class::Frigate.default_stats())
     }
@@ -396,12 +396,12 @@ pub fn cruiser(team: i32) -> ShipData {
         }],
         missile_launchers: vec![
             MissileLauncher {
-                offset: vector![0.0, 50.0],
+                offset: vector![0.0, 80.0],
                 angle: TAU / 4.0,
                 ..missile_launcher
             },
             MissileLauncher {
-                offset: vector![0.0, -50.0],
+                offset: vector![0.0, -80.0],
                 angle: -TAU / 4.0,
                 ..missile_launcher
             },
@@ -410,7 +410,7 @@ pub fn cruiser(team: i32) -> ShipData {
                 reload_ticks: 180,
                 reload_ticks_remaining: 0,
                 initial_speed: 100.0,
-                offset: vector![140.0, 0.0],
+                offset: vector![260.0, 0.0],
                 angle: 0.0,
             },
         ],
@@ -420,7 +420,7 @@ pub fn cruiser(team: i32) -> ShipData {
             ..Default::default()
         }),
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
-        radar_radius: 120,
+        radar_radius: 240,
         radios: vec![
             radio(),
             radio(),

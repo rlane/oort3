@@ -266,9 +266,9 @@ void main() {
 
 fn trail_offset(class: ShipClass) -> Vector2<f32> {
     match class {
-        ShipClass::Fighter => vector![-7.0, 0.0],
-        ShipClass::Frigate => vector![-48.0, 0.0],
-        ShipClass::Cruiser => vector![-96.0, 0.0],
+        ShipClass::Fighter => vector![-7.0 + 1.33, 0.0],
+        ShipClass::Frigate => vector![-96.0 + 1.52, 0.0],
+        ShipClass::Cruiser => vector![-192.0 - 24.7, 0.0],
         ShipClass::Missile => vector![-2.1, 0.0],
         ShipClass::Torpedo => vector![-6.4, 0.0],
         _ => vector![0.0, 0.0],
