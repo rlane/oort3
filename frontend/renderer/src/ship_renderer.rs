@@ -128,8 +128,8 @@ void main() {
                 .max_by_key(|v| v.norm_squared() as i32)
                 .unwrap()
                 .norm();
-            let min_nlips_scale = 4.0f32.max(radius / 20.0);
-            let nlips_scale = (2.0 * zoom_factor / radius.log2()).min(50.0);
+            let min_nlips_scale = 4.0f32.max(radius / 40.0);
+            let nlips_scale = (2.0 * zoom_factor / radius.log2()).min(30.0);
             for nlips_draw in [false, true] {
                 if nlips_draw
                     && (!nlips_enabled
