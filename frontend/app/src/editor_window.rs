@@ -52,7 +52,7 @@ pub enum Msg {
     CheckLinkedFile,
     CheckLinkedDirectory,
     LinkedDirectoryUpdate(u64, Vec<DirectoryValidateResponseEntry>),
-    LinkedDirectorySetEntryPoint(DirectoryLinkEntryPoint),
+    LinkedDirectorySetEntryPoint(Option<String>),
     Drop(DragEvent),
     CancelDrop(MouseEvent),
 }
@@ -92,15 +92,7 @@ struct DirectoryLink {
     handle: DirectoryHandle,
     last_modified: u64,
     files: Vec<String>,
-    entry_point: DirectoryLinkEntryPoint,
-}
-
-#[derive(Debug, Clone)]
-pub enum DirectoryLinkEntryPoint {
-    None,
-    LibRs,
-    ScenarioOrDefault,
-    SelectedFile(String),
+    entry_point: Option<String>,
 }
 
 impl Component for EditorWindow {
@@ -218,17 +210,11 @@ impl Component for EditorWindow {
 
                 let link = context.link().clone();
                 let mut items = Vec::<PickEntry>::new();
-                items.push(PickEntry::new("__lib__", "Use provided lib.rs"));
-                items.push(PickEntry::new(
-                    "__scenario__",
-                    "Use ai_[scenario].rs or ai_default.rs",
-                ));
 
                 items.extend(
                     directory_link
                         .files
                         .iter()
-                        .filter(|f| f.starts_with("ai_"))
                         .map(|v| PickEntry::new(v, v)),
                 );
 
@@ -251,18 +237,7 @@ impl Component for EditorWindow {
                         Ok(result) => {
                             let file_name = result.as_string().unwrap();
 
-                            let entry_point = match file_name.as_str() {
-                                "__lib__" => DirectoryLinkEntryPoint::LibRs,
-                                "__scenario__" => DirectoryLinkEntryPoint::ScenarioOrDefault,
-                                f if f.starts_with("ai_") => {
-                                    DirectoryLinkEntryPoint::SelectedFile(String::from(f))
-                                }
-                                _ => {
-                                    panic!("Invalid file selected: {:?}", file_name);
-                                }
-                            };
-
-                            link.send_message(Msg::LinkedDirectorySetEntryPoint(entry_point));
+                            link.send_message(Msg::LinkedDirectorySetEntryPoint(Some(file_name)));
                         }
                         Err(e) => {
                             log::error!("Failed selecting directory link entry point: {:?}", e)
@@ -358,7 +333,7 @@ impl Component for EditorWindow {
                     handle,
                     last_modified: 0,
                     files: Vec::new(),
-                    entry_point: DirectoryLinkEntryPoint::None,
+                    entry_point: None,
                 });
                 self.linked = true;
                 context.link().send_message(Msg::CheckLinkedDirectory);
@@ -426,60 +401,30 @@ impl Component for EditorWindow {
                 let mut lib_rs = Vec::new();
                 lib_rs.push(String::from("// Linked to directory"));
 
-                let scenario_name = context.props().scenario_name.clone();
-
-                let mut load_file_entry = |file_name: &String| {
-                    lib_rs.push(format!("// Entry point: {}", file_name));
+                if let Some(entry_point) = &entry_point {
+                    lib_rs.push(format!("// Entry point: {}", entry_point));
 
                     // Add in our entry point
-                    let mod_name = file_name.trim_end_matches(".rs");
+                    let mod_name = entry_point.trim_end_matches(".rs");
                     lib_rs.push(format!("pub use {}::Ship;", mod_name));
                     lib_rs.push(format!("pub mod {};", mod_name));
                     lib_rs.push("".into());
                     lib_rs.push("// Modules".into());
 
-                    // Add in our non-ai and non-lib.rs files
+                    // Add in our other files
                     // TODO trim down to the modules we actually use
                     for (name, _contents) in &files {
-                        if !name.starts_with("ai_") && name != "lib.rs" {
+                        if name != "lib.rs" && name != entry_point {
                             let mod_name = name.trim_end_matches(".rs");
                             lib_rs.push(format!("pub mod {};", mod_name));
                         }
                     }
-                };
-
-                match &entry_point {
-                    DirectoryLinkEntryPoint::None => {
-                        lib_rs.push(String::from("// No entry point selected"));
-                    }
-                    DirectoryLinkEntryPoint::LibRs => {
-                        if !files.contains_key("lib.rs") {
-                            files.insert("lib.rs".into(), String::from("// No lib.rs found"));
-                        }
-                    }
-                    DirectoryLinkEntryPoint::ScenarioOrDefault => {
-                        let scenario_file_name = format!("ai_{}.rs", scenario_name);
-                        if files.contains_key(&scenario_file_name) {
-                            load_file_entry(&scenario_file_name);
-                        } else if files.contains_key("ai_default.rs") {
-                            load_file_entry(&"ai_default.rs".into());
-                        } else {
-                            lib_rs
-                                .push(format!("// No {}.rs or ai_default.rs found", scenario_name));
-                        }
-                    }
-                    DirectoryLinkEntryPoint::SelectedFile(file_name) => {
-                        load_file_entry(&file_name);
-                    }
+                } else {
+                    lib_rs.push("// No entry point selected".into());
                 }
 
                 // Overwrite existing lib.rs unless we are using an existing one
-                match &entry_point {
-                    DirectoryLinkEntryPoint::LibRs => {}
-                    _ => {
-                        files.insert("lib.rs".into(), lib_rs.join("\n"));
-                    }
-                };
+                files.insert("lib.rs".into(), lib_rs.join("\n"));
 
                 match oort_multifile::join(files) {
                     Ok(bundled) => {
