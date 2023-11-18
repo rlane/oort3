@@ -223,7 +223,7 @@ The following crates are available for use in your code:
 - [`Cruiser`](prelude::Class::Cruiser): Large, slow, and heavily armored. Rapid fire missile launchers and devastating torpedos.
   - Health: 20000
   - Acceleration: Forward: 5 m/s², Lateral: 2.5 m/s², Reverse: 2.5 m/s², Angular: π/8 rad/s²
-  - Weapon 0: Gun, Speed: 1000 m/s, Burst size: 6, Reload: 0.4s, Turreted
+  - Weapon 0: Gun, Speed: 2000 m/s, Burst size: 6, Reload: 5s, Turreted
   - Weapon 1: Missile, Reload: 1.2s
   - Weapon 2: Missile, Reload: 1.2s
   - Weapon 3: Torpedo, Reload: 3s

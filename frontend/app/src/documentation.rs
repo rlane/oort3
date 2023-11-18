@@ -203,7 +203,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
             <ul>
               <li>{ "Fighter: Small, fast, and lightly armored. One forward-facing gun and one missile launcher. "}</li>
               <li>{ "Frigate: Medium size with heavy armor. One forward-facing high-velocity gun, two turreted guns, and one missile launcher. "}</li>
-              <li>{ "Cruiser: Large, slow, and heavily armored. One turreted flak gun, two missile launchers, and one torpedo launcher. "}</li>
+              <li>{ "Cruiser: Large, slow, and heavily armored. One turreted heavy cannon, two missile launchers, and one torpedo launcher. "}</li>
               <li>{ "Missile: Highly maneuverable but unarmored. Explodes on contact or after an " }<code>{ "explode()" }</code>{ " call." }</li>
               <li>{ "Torpedo: Better armor, larger warhead, but less maneuverable than a missile. Explodes on contact or after an " }<code>{ "explode()" }</code>{ " call." }</li>
             </ul>
