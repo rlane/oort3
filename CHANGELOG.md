@@ -1,3 +1,6 @@
+- Fixed parsing of heading command in the sandbox scenario.
+- Updated documentation for cruiser main gun.
+
 ### 0.78.0 - 2023-11-16
 
 - Added a favicon (by hipparcos).
