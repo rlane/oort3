@@ -1,3 +1,5 @@
+### 0.78.1 - 2023-11-17
+
 - Fixed parsing of heading command in the sandbox scenario.
 - Updated documentation for cruiser main gun.
 
