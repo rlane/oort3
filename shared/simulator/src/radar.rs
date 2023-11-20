@@ -274,6 +274,7 @@ pub fn tick(sim: &mut Simulation) {
             let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
                 .min(radar.max_distance)
                 .min(simulation::MAX_WORLD_SIZE);
+            let min_distance = radar.min_distance.min(max_distance);
             let reliable_distance = compute_reliable_detection_range(radar, 10.0 /*fighter*/)
                 .min(radar.max_distance)
                 .min(simulation::MAX_WORLD_SIZE);
@@ -297,7 +298,7 @@ pub fn tick(sim: &mut Simulation) {
                 bearing: h,
                 bearing_vector: Rotation2::new(h).transform_vector(&vector![1.0, 0.0]),
                 end_bearing,
-                min_distance: radar.min_distance,
+                min_distance,
                 max_distance,
                 square_distance_range: ComplexField::powi(radar.min_distance, 2)
                     ..ComplexField::powi(max_distance, 2),
