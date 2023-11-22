@@ -1,3 +1,5 @@
+### 0.78.2 - 2023-11-21
+
 - Fixed using multiple radios with send_bytes/receive_bytes.
 
 ### 0.78.1 - 2023-11-17
