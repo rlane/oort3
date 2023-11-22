@@ -1,3 +1,5 @@
+- Fixed using multiple radios with send_bytes/receive_bytes.
+
 ### 0.78.1 - 2023-11-17
 
 - Fixed parsing of heading command in the sandbox scenario.
