@@ -834,9 +834,8 @@ mod api {
             .zip(msg)
             .for_each(|(b, m)| *b = *m);
 
-        let idxs = radio_internal::radio_indices(
-            read_system_state_u64(SystemState::SelectedRadio) as usize
-        );
+        let idxs =
+            radio_internal::radio_indices(read_system_state(SystemState::SelectedRadio) as usize);
         write_system_state(idxs.send, 1.0);
         write_system_state_u64(idxs.data[0], u64::from_ne_bytes(bytes[0]));
         write_system_state_u64(idxs.data[1], u64::from_ne_bytes(bytes[1]));
@@ -846,9 +845,8 @@ mod api {
 
     /// Returns the received radio message.
     pub fn receive_bytes() -> Option<[u8; 32]> {
-        let idxs = radio_internal::radio_indices(
-            read_system_state_u64(SystemState::SelectedRadio) as usize
-        );
+        let idxs =
+            radio_internal::radio_indices(read_system_state(SystemState::SelectedRadio) as usize);
         if read_system_state(idxs.receive) != 0.0 {
             let mut bytes = [0; 32];
             bytes[0..8].copy_from_slice(&read_system_state_u64(idxs.data[0]).to_ne_bytes());
