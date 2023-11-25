@@ -91,15 +91,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             results.draws.len(),
             &results.draws[..].iter().take(n).collect::<Vec<_>>()
         );
-        println!(
-            "  Times: {} {:?}",
-            results.times.len(),
-            &results.times[..]
-                .iter()
-                .take(n)
-                .map(|t| format!("{:.3}", t))
-                .collect::<Vec<_>>()
-        );
+        print!("  Times: [");
+        for (i, time) in results.times.iter().enumerate().take(n) {
+            if i > 0 {
+                print!(", ");
+            }
+            print!("{}: {:.3}", i, time);
+        }
+        println!("]");
         println!(
             "  Average time: {:.3}",
             results.times.iter().sum::<f64>() / results.times.len() as f64
