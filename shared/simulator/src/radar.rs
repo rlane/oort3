@@ -752,6 +752,7 @@ mod test {
     use crate::simulation::Code;
     use crate::simulation::Simulation;
     use nalgebra::{point, vector, UnitComplex, Vector2};
+    use oort_api::prelude::TICK_LENGTH;
     use oort_api::EcmMode;
     use rand::Rng;
     use rapier2d_f64::parry;
@@ -1015,6 +1016,60 @@ mod test {
 
         assert!(check_detection(50e3));
         assert!(!check_detection(70e3));
+    }
+
+    #[test]
+    fn test_ship_get_current_ship_position() {
+        // At the time of writing, scan() was returning scan results from the previous tick
+        // which meant that target position could be innaccurate if the scanned object was moving
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        // Initial state.
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+        let ship1_pos = vector![1000.0, 0.0];
+        let ship1 = ship::create(
+            &mut sim,
+            ship1_pos,
+            vector![10.0, 0.0],
+            0.0,
+            ship::target(1),
+        );
+
+        // Explicit heading and width.
+        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
+        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+
+        // Ship starts with a velocity, so we expect it to be TICK_LENGTH * velocity * 1 away from
+        // its origin after the first step
+        sim.step();
+
+        let scan_result = sim.ship(ship0).radar().unwrap().result;
+        let ship1_radar_scan_pos_first = scan_result.unwrap().position;
+        let num_ticks = 1.0;
+        let predicted_distance_given_velocity = TICK_LENGTH * 10.0 * num_ticks;
+        assert!(
+            (ship1_radar_scan_pos_first.x - ship1_pos.x - predicted_distance_given_velocity).abs()
+                < EPSILON
+        );
+
+        // One more step
+        sim.step();
+
+        // We expect scan to get us the new position of ship1
+        let scan_result = sim.ship(ship0).radar().unwrap().result;
+        let ship1_radar_scan_pos_second = scan_result.unwrap().position;
+        let num_ticks = 2.0;
+        let predicted_distance_given_velocity = TICK_LENGTH * 10.0 * num_ticks;
+        assert!(
+            (ship1_radar_scan_pos_second.x - ship1_pos.x - predicted_distance_given_velocity).abs()
+                < EPSILON
+        );
     }
 
     fn reference(dp: Vector2<f64>, h: f64, w: f64, r: f64) -> bool {

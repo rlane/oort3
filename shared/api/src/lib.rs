@@ -712,6 +712,7 @@ mod api {
     }
 
     /// Returns the radar contact with the highest signal strength.
+    /// Position and velocity are from the previous tick
     pub fn scan() -> Option<ScanResult> {
         if read_system_state(SystemState::RadarContactFound) == 0.0 {
             return None;
