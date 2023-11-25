@@ -208,6 +208,7 @@ impl TeamController {
         let ship_controller = &mut self.ship_controllers.get_mut(&handle).unwrap();
         let state = &mut ship_controller.state;
 
+        // Take the state of the sim and the ship, update the ship's memory
         {
             translate_runtime_error(
                 vm.reset_gas
@@ -227,8 +228,10 @@ impl TeamController {
             slice.write_slice(&state.state).expect("system state write");
         }
 
+        // Run user's ship tick
         let result = vm.tick_ship.call(vm.store_mut().deref_mut(), &[]);
         if let Err(e) = result {
+            // If gas has run out, throw an error
             if let Ok(gas) = vm.get_gas.call(vm.store_mut().deref_mut()) {
                 if gas <= 0 {
                     return Err(Error {
@@ -237,6 +240,7 @@ impl TeamController {
                 }
             }
 
+            // Otherwise pull the panic message from memory and throw it
             {
                 let store = vm.store();
                 let memory_view = vm.memory.view(store.deref());
@@ -260,6 +264,7 @@ impl TeamController {
             return translate_runtime_error(Err(e));
         }
 
+        // Display gas usage as debug text
         if let Ok(gas) = vm.get_gas.call(vm.store_mut().deref_mut()) {
             sim.emit_debug_text(
                 handle,
@@ -279,6 +284,7 @@ impl TeamController {
                 .expect("system state read");
             apply_system_state(sim, handle, state);
 
+            // Emit debug text
             if state.get(SystemState::DebugTextLength) > 0.0 {
                 let offset =
                     state.get(SystemState::DebugTextPointer) as u32 + ship_controller.base_address;
@@ -288,6 +294,7 @@ impl TeamController {
                 }
             }
 
+            // Emit debug lines
             if state.get(SystemState::DebugLinesLength) > 0.0 {
                 let offset =
                     state.get(SystemState::DebugLinesPointer) as u32 + ship_controller.base_address;
@@ -311,6 +318,7 @@ impl TeamController {
                 }
             }
 
+            // Emit drawn text
             if state.get(SystemState::DrawnTextLength) > 0.0 {
                 let offset =
                     state.get(SystemState::DrawnTextPointer) as u32 + ship_controller.base_address;
