@@ -1020,7 +1020,7 @@ mod test {
 
     #[test]
     fn test_ship_get_current_ship_position() {
-        // At the time of writing, scan() was returning scan results from the previous tick
+        // At the time of writing, we thought scan() was returning scan results from the previous tick
         // which meant that target position could be innaccurate if the scanned object was moving
         let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
 
