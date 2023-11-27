@@ -10,7 +10,7 @@ oort_proto = { path = "../shared/proto" }
 oort_simulator = { path = "../shared/simulator", features = ["precompile"] }
 oort_compiler = { path = "../shared/compiler" }
 oort_api = { path = "../shared/api" }
-firestore = "0.37.2"
+firestore = "0.37.3"
 gcloud-sdk = "0.21.2"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.34", features = ["full"] }

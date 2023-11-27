@@ -11,7 +11,7 @@ oort_proto = { path = "../../shared/proto" }
 oort_simulator = { path = "../../shared/simulator", features = ["precompile"] }
 anyhow = "1.0"
 chrono = "0.4.31"
-firestore = "0.37.2"
+firestore = "0.37.3"
 gcloud-sdk = "0.21.2"
 log = "0.4.20"
 rand = "0.8.5"
