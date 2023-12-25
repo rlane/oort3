@@ -1,3 +1,5 @@
+### 0.79.0 - 2023-12-24
+
 - Added cruiser_defense scenario.
 
 ### 0.78.2 - 2023-11-21
