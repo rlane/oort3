@@ -1,3 +1,5 @@
+- Added cruiser_defense scenario.
+
 ### 0.78.2 - 2023-11-21
 
 - Fixed using multiple radios with send_bytes/receive_bytes.
