@@ -27,6 +27,7 @@ pub struct UI {
     version: String,
     seed: u32,
     snapshot: Option<Snapshot>,
+    uninterpolated_snapshot: Option<Snapshot>,
     pending_snapshots: VecDeque<Snapshot>,
     renderer: Renderer,
     canvas: HtmlCanvasElement,
@@ -38,6 +39,7 @@ pub struct UI {
     quit: bool,
     single_steps: i32,
     paused: bool,
+    slowmo: bool,
     keys_down: std::collections::HashSet<String>,
     keys_ignored: std::collections::HashSet<String>,
     frame: u64,
@@ -102,6 +104,7 @@ impl UI {
             version,
             seed,
             snapshot: None,
+            uninterpolated_snapshot: None,
             pending_snapshots: VecDeque::new(),
             renderer,
             canvas,
@@ -113,6 +116,7 @@ impl UI {
             quit: false,
             single_steps,
             paused,
+            slowmo: false,
             keys_down,
             keys_ignored,
             frame: 0,
@@ -154,6 +158,8 @@ impl UI {
             .start((now - self.start_time).as_millis() as f64);
 
         let mut status_msgs: Vec<String> = Vec::new();
+        let was_paused = self.paused;
+        let was_slowmo = self.slowmo;
 
         let camera_step = 0.01 / self.zoom;
         if self.keys_down.contains("w") {
@@ -215,7 +221,7 @@ impl UI {
             self.quit = true;
         }
         let fast_forward = self.keys_down.contains("f");
-        let slowmo = self.keys_down.contains("m");
+        self.slowmo = self.keys_down.contains("m");
         if self.keys_down.contains("b") && !self.keys_ignored.contains("b") {
             self.keys_ignored.insert("b".to_string());
             self.renderer.set_blur(!self.renderer.get_blur());
@@ -237,7 +243,7 @@ impl UI {
             }
         }
 
-        if !self.paused && !slowmo {
+        if !self.paused && !self.slowmo {
             self.physics_time += elapsed;
         }
 
@@ -245,27 +251,29 @@ impl UI {
             && (!self.paused
                 || self.single_steps > 0
                 || fast_forward
-                || slowmo
+                || self.slowmo
                 || self.snapshot.is_none())
         {
             let dt = std::time::Duration::from_secs_f64(simulation::PHYSICS_TICK_LENGTH);
             if fast_forward {
                 for _ in 0..10 {
                     self.physics_time += dt;
-                    self.update_snapshot();
+                    self.update_snapshot(true);
                 }
             } else if self.single_steps > 0 {
                 self.physics_time += dt;
-                self.update_snapshot();
-            } else if slowmo {
+                self.update_snapshot(false);
+            } else if self.slowmo {
                 self.physics_time += dt / 10;
-                self.update_snapshot();
+                self.update_snapshot(true);
             } else {
-                self.update_snapshot();
+                self.update_snapshot(true);
             }
             if self.single_steps > 0 {
                 self.single_steps -= 1;
             }
+        } else if self.paused != was_paused || self.slowmo != was_slowmo {
+            self.update_snapshot(false);
         }
 
         if self.snapshot.is_some() {
@@ -397,7 +405,7 @@ impl UI {
         self.needs_render = true;
     }
 
-    pub fn update_snapshot(&mut self) {
+    pub fn update_snapshot(&mut self, interpolate: bool) {
         while self.pending_snapshots.len() > SNAPSHOT_PRELOAD / 2
             && std::time::Duration::from_secs_f64(self.pending_snapshots[1].time)
                 <= self.physics_time
@@ -420,6 +428,7 @@ impl UI {
             let first_snapshot = self.snapshot.is_none();
 
             self.snapshot = self.pending_snapshots.pop_front();
+            self.uninterpolated_snapshot = self.snapshot.clone();
             let snapshot = self.snapshot.as_mut().unwrap();
 
             if first_snapshot {
@@ -471,7 +480,11 @@ impl UI {
             }
             self.physics_time = t + delta;
 
-            snapshot::interpolate(snapshot, delta.as_secs_f64());
+            if interpolate {
+                snapshot::interpolate(snapshot, delta.as_secs_f64());
+            } else if snapshot.time != self.uninterpolated_snapshot.as_ref().unwrap().time {
+                *snapshot = self.uninterpolated_snapshot.as_ref().unwrap().clone();
+            }
 
             self.renderer.update(snapshot);
 
