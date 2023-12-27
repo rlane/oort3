@@ -1033,7 +1033,7 @@ mod test {
             ship::fighter(0),
         );
         let ship1_pos = vector![1000.0, 0.0];
-        let ship1 = ship::create(
+        let _ship1 = ship::create(
             &mut sim,
             ship1_pos,
             vector![10.0, 0.0],
