@@ -14,4 +14,4 @@ yew-agent = "0.2.0"
 ide = { version = "0.0.166", package = "ra_ap_ide" }
 cfg = { version = "0.0.166", package = "ra_ap_cfg" }
 ide_db = { version = "0.0.166", package = "ra_ap_ide_db" }
-triomphe = "0.1.9"
+triomphe = "0.1.11"
