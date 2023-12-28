@@ -1,3 +1,5 @@
+### 0.79.1 - 2023-12-27
+
 - Changed rendering to "snap back" to a snapshot without any interpolation when the game is paused.
 
 ### 0.79.0 - 2023-12-24
