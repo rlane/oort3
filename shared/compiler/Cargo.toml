@@ -5,7 +5,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.75"
+anyhow = "1.0.77"
 tempdir = "0.3.7"
 glob = "0.3.1"
 log = "0.4.20"
