@@ -74,9 +74,12 @@ async fn serve() -> anyhow::Result<()> {
             .layer(tower_http::trace::TraceLayer::new_for_http())
     };
 
-    axum::Server::bind(&format!("0.0.0.0:{port}").parse()?)
-        .serve(router.into_make_service())
-        .await?;
+    let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{port}"))
+        .await
+        .unwrap();
+    axum::serve(listener, router.into_make_service())
+        .await
+        .unwrap();
 
     Ok(())
 }

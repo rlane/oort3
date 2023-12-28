@@ -127,8 +127,10 @@ async fn main() {
             .with_state(Arc::new(Mutex::new(compiler)))
     };
 
-    axum::Server::bind(&format!("0.0.0.0:{port}").parse().unwrap())
-        .serve(router.into_make_service())
+    let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{port}"))
+        .await
+        .unwrap();
+    axum::serve(listener, router.into_make_service())
         .await
         .unwrap();
 }
