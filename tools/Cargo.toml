@@ -20,7 +20,7 @@ reqwest = { version = "0.11.23", default-features = false, features = ["json", "
 rayon = "1.8.0"
 serde_json = "1.0"
 chrono = "0.4.31"
-clap = { version = "4.4.11", features = ["derive"] }
+clap = { version = "4.4.12", features = ["derive"] }
 skillratings = "0.26.0"
 itertools = "0.12.0"
 comfy-table = "7.1.0"
@@ -28,7 +28,7 @@ petname = "1.1.3"
 rand_chacha = "0.3.1"
 rand_seeder = "0.2.3"
 rusqlite = { version = "0.30.0", features = ["bundled"] }
-anyhow = "1.0.77"
+anyhow = "1.0.78"
 shell-words = "1.1.0"
 toml = "0.8.8"
 indicatif = { version = "0.17.7", features = ["tokio"] }
