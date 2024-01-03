@@ -1,6 +1,45 @@
 pub mod filesystem {
+    use serde::{Deserialize, Serialize};
     use wasm_bindgen::prelude::*;
     use web_sys::FileSystemFileEntry;
+
+    #[derive(Deserialize)]
+    pub struct DirectoryValidateResponseEntry {
+        pub name: String,
+        #[serde(rename = "lastModified")]
+        pub last_modified: u64,
+        pub contents: String,
+    }
+
+    impl std::fmt::Debug for DirectoryValidateResponseEntry {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("DirectoryValidateResponseEntry")
+                .field("name", &self.name)
+                .field("last_modified", &self.last_modified)
+                .field("contents", &format!("<{} bytes>", &self.contents.len()))
+                .finish()
+        }
+    }
+
+    #[derive(Serialize)]
+    pub struct PickEntry {
+        pub value: String,
+        pub display: String,
+    }
+
+    impl PickEntry {
+        pub fn new(value: &str, display: &str) -> Self {
+            let value = value.into();
+            let display = display.into();
+            Self { value, display }
+        }
+    }
+
+    impl Into<JsValue> for PickEntry {
+        fn into(self) -> JsValue {
+            serde_wasm_bindgen::to_value(&self).unwrap()
+        }
+    }
 
     #[wasm_bindgen(module = "/js/filesystem.js")]
     extern "C" {
@@ -11,11 +50,28 @@ pub mod filesystem {
         #[wasm_bindgen(constructor)]
         pub fn new(handle: FileSystemFileEntry) -> FileHandle;
 
+        #[wasm_bindgen]
+        #[derive(Debug, Clone)]
+        pub type DirectoryHandle;
+
+        #[wasm_bindgen(method, catch)]
+        pub async fn load_files(this: &DirectoryHandle) -> Result<JsValue, JsValue>;
+
         #[wasm_bindgen(method, catch)]
         pub async fn read(this: &FileHandle) -> Result<JsValue, JsValue>;
 
         #[wasm_bindgen(catch)]
         pub async fn open() -> Result<JsValue, JsValue>;
+
+        #[wasm_bindgen(catch)]
+        pub async fn open_directory() -> Result<JsValue, JsValue>;
+
+        #[wasm_bindgen(catch)]
+        pub async fn pick(
+            editor: JsValue,
+            prompt: JsValue,
+            items: Vec<JsValue>,
+        ) -> Result<JsValue, JsValue>;
     }
 }
 
