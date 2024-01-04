@@ -31,7 +31,7 @@ impl Component for Toolbar {
     fn update(&mut self, _context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::ChangeUsername(username) => {
-                let re = Regex::new(r"^[a-zA-Z0-9_-]+").unwrap();
+                let re = Regex::new(r"^[a-zA-Z0-9_-]+$").unwrap();
                 if !re.is_match(&username) || (CENSOR && censor::Censor::Standard.check(&username))
                 {
                     return true;
