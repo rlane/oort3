@@ -5,6 +5,7 @@ use oort_proto::{LeaderboardData, LeaderboardSubmission, TournamentResults};
 use oort_proto::{ShortcodeUpload, TournamentSubmission};
 use oort_proto::{Telemetry, TelemetryMsg};
 use reqwasm::http::{Request, Response};
+use urlencoding::encode;
 
 pub fn is_local() -> bool {
     gloo_utils::document()
@@ -46,7 +47,7 @@ pub fn get_leaderboard(
     scenario_name: &str,
     callback: yew::Callback<anyhow::Result<LeaderboardData>>,
 ) {
-    let url = format!("{}/leaderboard/{}", backend_url(), scenario_name);
+    let url = format!("{}/leaderboard/{}", backend_url(), encode(scenario_name));
     wasm_bindgen_futures::spawn_local(async move {
         match send_request(Request::get(&url)).await {
             Err(e) => {
@@ -129,7 +130,7 @@ pub async fn get_shortcode(shortcode: &str) -> anyhow::Result<String> {
     let response = send_request(Request::get(&format!(
         "{}/shortcode/{}",
         backend_url(),
-        shortcode
+        encode(shortcode)
     )))
     .await?;
     response.text().await.map_err(|e| e.into())
@@ -178,7 +179,7 @@ pub async fn get_tournament_results(id: &str) -> anyhow::Result<TournamentResult
     let response = send_request(Request::get(&format!(
         "{}/tournament/results/{}",
         backend_url(),
-        id
+        encode(id)
     )))
     .await?;
     response.json().await.map_err(|e| e.into())
