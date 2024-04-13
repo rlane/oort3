@@ -92,6 +92,13 @@ pub async fn post(
     };
     let mut obj: LeaderboardSubmission = serde_json::from_slice(&payload)?;
 
+    if obj.code.is_empty() || obj.code.starts_with("ENCRYPTED") {
+        return Err(error(
+            axum::http::StatusCode::BAD_REQUEST,
+            "invalid code".into(),
+        ));
+    }
+
     obj.timestamp = Utc::now();
     let path = format!("{}.{}", obj.scenario_name, obj.userid);
 
