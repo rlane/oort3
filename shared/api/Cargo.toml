@@ -1,6 +1,6 @@
 [package]
 name = "oort_api"
-version = "0.79.1"
+version = "0.79.2"
 edition = "2021"
 authors = ["Rich Lane"]
 description = "APIs for Oort, a space fleet programming game."
