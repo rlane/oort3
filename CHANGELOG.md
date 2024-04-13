@@ -1,4 +1,5 @@
 - Fixed leaderboard bug for usernames containing invalid characters.
+- Fixed leaderboard entries with empty code.
 
 ### 0.79.1 - 2023-12-27
 
