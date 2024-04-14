@@ -93,7 +93,7 @@ async fn main() -> anyhow::Result<()> {
         secrets = toml::from_str(&std::fs::read_to_string(".secrets/secrets.toml")?)?;
         std::env::set_var(
             "OORT_ENVELOPE_SECRET",
-            &secrets.oort_envelope_secret.clone().unwrap_or_default(),
+            secrets.oort_envelope_secret.clone().unwrap_or_default(),
         );
     }
 
@@ -205,7 +205,7 @@ async fn main() -> anyhow::Result<()> {
         let date = chrono::Local::now().format("%Y-%m-%d").to_string();
         std::fs::write(
             "CHANGELOG.md",
-            &format!("### {version} - {date}\n\n{previous_changelog_contents}"),
+            format!("### {version} - {date}\n\n{previous_changelog_contents}"),
         )?;
 
         sync_cmd_ok(&[

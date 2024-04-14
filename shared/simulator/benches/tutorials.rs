@@ -24,7 +24,7 @@ fn tutorials() {
         .1;
     assert!(!scenario_names.is_empty());
     for scenario_name in scenario_names {
-        check_solution(&scenario_name);
+        check_solution(scenario_name);
     }
 }
 

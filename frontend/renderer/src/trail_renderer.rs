@@ -96,8 +96,7 @@ void main() {
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
-        let mut data = vec![];
-        data.reserve(snapshot.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
+        let mut data = Vec::with_capacity(snapshot.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
         let mut n = 0;
         let creation_time = snapshot.time as f32;
         for ship in snapshot.ships.iter() {

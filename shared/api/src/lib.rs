@@ -372,9 +372,9 @@ pub type Message = [f64; 4];
 // Public for fuzzer.
 #[doc(hidden)]
 pub mod sys {
-    use crate::MAX_ENVIRONMENT_SIZE;
-
     use super::SystemState;
+    use crate::MAX_ENVIRONMENT_SIZE;
+    use std::ptr;
 
     // TODO crashes rust-analyzer
     #[no_mangle]
@@ -382,13 +382,13 @@ pub mod sys {
         [0; SystemState::MaxSize as usize];
 
     pub fn read_system_state_u64(index: SystemState) -> u64 {
-        let system_state = unsafe { &SYSTEM_STATE };
-        system_state[index as usize]
+        let system_state = unsafe { ptr::addr_of!(SYSTEM_STATE) };
+        unsafe { (*system_state)[index as usize] }
     }
 
     pub fn write_system_state_u64(index: SystemState, value: u64) {
-        let system_state = unsafe { &mut SYSTEM_STATE };
-        system_state[index as usize] = value;
+        let system_state = unsafe { ptr::addr_of_mut!(SYSTEM_STATE) };
+        unsafe { (*system_state)[index as usize] = value };
     }
 
     pub fn read_system_state(index: SystemState) -> f64 {
@@ -404,12 +404,15 @@ pub mod sys {
 
     pub fn read_environment() -> &'static str {
         // Format is key=value\nkey=value\n... ending with a null byte.
-        let environment = unsafe { &ENVIRONMENT };
-        let n = environment
-            .iter()
-            .position(|&c| c == 0)
-            .unwrap_or(environment.len());
-        std::str::from_utf8(&environment[..n]).expect("Failed to convert environment to string")
+        unsafe {
+            let environment = ptr::addr_of!(ENVIRONMENT);
+            let n = (*environment)
+                .iter()
+                .position(|&c| c == 0)
+                .unwrap_or((*environment).len());
+            std::str::from_utf8(&(*environment)[..n])
+                .expect("Failed to convert environment to string")
+        }
     }
 
     pub fn getenv(key: &str) -> Option<&'static str> {
@@ -945,6 +948,7 @@ pub mod dbg {
     use crate::sys::write_system_state;
     use crate::vec::*;
     use std::f64::consts::TAU;
+    use std::ptr;
 
     static mut TEXT_BUFFER: String = String::new();
     static mut LINE_BUFFER: Vec<Line> = Vec::new();
@@ -964,9 +968,11 @@ pub mod dbg {
     #[doc(hidden)]
     pub fn write(args: std::fmt::Arguments) {
         use std::fmt::Write;
-        let buf = unsafe { &mut TEXT_BUFFER };
-        let _ = std::fmt::write(buf, args);
-        buf.push('\n');
+        unsafe {
+            let buf = ptr::addr_of_mut!(TEXT_BUFFER);
+            let _ = std::fmt::write(&mut *buf, args);
+            (*buf).push('\n');
+        }
     }
 
     /// Creates a 24-bit RGB color from the arguments.
@@ -985,14 +991,16 @@ pub mod dbg {
     /// Up to 1024 lines can be drawn per ship, per tick. This quota is also consumed
     /// by the various shape drawing functions.
     pub fn draw_line(a: Vec2, b: Vec2, color: u32) {
-        let buf = unsafe { &mut LINE_BUFFER };
-        buf.push(Line {
-            x0: a.x,
-            y0: a.y,
-            x1: b.x,
-            y1: b.y,
-            color,
-        });
+        unsafe {
+            let buf = ptr::addr_of_mut!(LINE_BUFFER);
+            (*buf).push(Line {
+                x0: a.x,
+                y0: a.y,
+                x1: b.x,
+                y1: b.y,
+                color,
+            });
+        }
     }
 
     #[deprecated]
@@ -1102,7 +1110,7 @@ pub mod dbg {
         use std::fmt::Write;
         let mut text = String::new();
         let _ = std::fmt::write(&mut text, args);
-        let buf = unsafe { &mut DRAWN_TEXT_BUFFER };
+        let buf = unsafe { &mut *ptr::addr_of_mut!(DRAWN_TEXT_BUFFER) };
         // TODO handle longer text
         let mut text_buf = [0u8; 11];
         text_buf
@@ -1121,7 +1129,7 @@ pub mod dbg {
     #[doc(hidden)]
     pub fn update() {
         {
-            let slice = unsafe { &mut TEXT_BUFFER }.as_bytes();
+            let slice = unsafe { &mut *ptr::addr_of_mut!(TEXT_BUFFER) }.as_bytes();
             write_system_state(
                 super::SystemState::DebugTextPointer,
                 slice.as_ptr() as u32 as f64,
@@ -1132,7 +1140,7 @@ pub mod dbg {
             );
         }
         {
-            let slice = unsafe { &mut LINE_BUFFER }.as_slice();
+            let slice = unsafe { &mut *ptr::addr_of_mut!(LINE_BUFFER) }.as_slice();
             write_system_state(
                 super::SystemState::DebugLinesPointer,
                 slice.as_ptr() as u32 as f64,
@@ -1143,7 +1151,7 @@ pub mod dbg {
             );
         }
         {
-            let slice = unsafe { &mut DRAWN_TEXT_BUFFER }.as_slice();
+            let slice = unsafe { &mut *ptr::addr_of_mut!(DRAWN_TEXT_BUFFER) }.as_slice();
             write_system_state(
                 super::SystemState::DrawnTextPointer,
                 slice.as_ptr() as u32 as f64,

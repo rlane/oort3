@@ -144,8 +144,7 @@ void main() {
                 let vertices_token = self.buffer_arena.write(&vertices);
                 let num_vertices = vertices.len();
 
-                let mut attribs: Vec<Attribs> = vec![];
-                attribs.reserve(ships.len());
+                let mut attribs: Vec<Attribs> = Vec::with_capacity(ships.len());
                 for ship in ships.iter() {
                     let p = ship.position.coords.cast::<f32>();
                     let shielded = ship.active_abilities.contains(&oort_api::Ability::Shield);

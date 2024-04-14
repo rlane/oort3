@@ -297,8 +297,7 @@ void main() {
         let vertices = geometry::quad();
         let vertices_token = self.buffer_arena.write(vertices.as_slice());
 
-        let mut attribs: Vec<Attribs> = vec![];
-        attribs.reserve(snapshot.ships.len() * 4);
+        let mut attribs: Vec<Attribs> = Vec::with_capacity(snapshot.ships.len() * 4);
         for ship in snapshot.ships.iter() {
             let flare_positions = flare_positions(ship.class);
             if flare_positions.is_empty() {

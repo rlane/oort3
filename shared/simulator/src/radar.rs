@@ -675,8 +675,7 @@ fn check_planet_contact(
 
 fn draw_emitter(sim: &mut Simulation, emitter: &RadarEmitter, reliable_distance: f64) {
     let color = vector![0.2, 0.66, 0.97, 1.0];
-    let mut lines = vec![];
-    lines.reserve(48);
+    let mut lines = Vec::with_capacity(48);
     let w = emitter.end_bearing - emitter.start_bearing;
     let center = emitter.center;
     let mut draw_arc = |r| {
@@ -782,35 +781,35 @@ mod test {
             ship::target(1),
         );
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         // Explicit heading and width.
         sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
         sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         // Just outside of sector (clockwise).
         sim.ship_mut(ship0).radar_mut().unwrap().heading = TAU / 12.0 + EPSILON;
         sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
 
         // Just inside of sector (clockwise).
         sim.ship_mut(ship0).radar_mut().unwrap().heading -= 2.0 * EPSILON;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         // Just outside of sector (counter-clockwise).
         sim.ship_mut(ship0).radar_mut().unwrap().heading = -TAU / 12.0 - EPSILON;
         sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
 
         // Just inside of sector (counter-clockwise).
         sim.ship_mut(ship0).radar_mut().unwrap().heading += 2.0 * EPSILON;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         // Out of range.
         sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
@@ -819,7 +818,7 @@ mod test {
             .body()
             .set_translation(vector![1e6, 0.0], true);
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
     }
 
     #[test]
@@ -848,17 +847,17 @@ mod test {
         // Pointing at center of target
         sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         // Pointing at target but not at center
         sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.001 + TAU / 12.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         // Not pointing at target
         sim.ship_mut(ship0).radar_mut().unwrap().heading = TAU / 4.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
     }
 
     #[test]
@@ -886,7 +885,7 @@ mod test {
 
         sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 3600.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
     }
 
     #[test]
@@ -909,22 +908,22 @@ mod test {
             ship::target(1),
         );
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 900.0;
         sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 1100.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
 
         sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 1050.0;
         sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 1100.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), false);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
 
         sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 985.0;
         sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 995.0;
         sim.step();
-        assert_eq!(sim.ship(ship0).radar().unwrap().result.is_some(), true);
+        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
     }
 
     #[test]

@@ -86,8 +86,7 @@ void main() {
     pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, lines: &[Line]) -> DrawSet {
         let mut draws = vec![];
         for lines in lines.chunks(1000) {
-            let mut attribs = vec![];
-            attribs.reserve(2 * lines.len());
+            let mut attribs = Vec::with_capacity(2 * lines.len());
             for line in lines {
                 for position in [line.a, line.b] {
                     let p = position.coords.cast();

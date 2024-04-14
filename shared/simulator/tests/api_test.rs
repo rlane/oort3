@@ -77,7 +77,7 @@ fn test_id() {
                 vector![0.0, 0.0],
                 vector![0.0, 0.0],
                 0.0,
-                fighter(team as i32),
+                fighter(team),
             )
         })
         .collect::<Vec<_>>();

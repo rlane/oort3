@@ -182,8 +182,7 @@ void main() {
         let font_pixel_width = 1.0 / (FONT_COLS * FONT_GLYPH_SIZE) as f32;
         let font_pixel_height = 1.0 / (FONT_ROWS * FONT_GLYPH_SIZE) as f32;
 
-        let mut attribs = vec![];
-        attribs.reserve(num_glyphs);
+        let mut attribs = Vec::with_capacity(num_glyphs);
         for text in texts {
             let worldpos = vector![text.x as f32, text.y as f32];
             let projected =

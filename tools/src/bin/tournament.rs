@@ -247,7 +247,7 @@ fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentRes
 }
 
 fn run_simulation(scenario_name: &str, seed: u32, ais: &[&AI]) -> Outcomes {
-    match ::std::panic::catch_unwind(move || {
+    let f = move || {
         let codes: Vec<_> = ais.iter().map(|x| x.compiled_code.clone()).collect();
         let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
         while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
@@ -259,7 +259,8 @@ fn run_simulation(scenario_name: &str, seed: u32, ais: &[&AI]) -> Outcomes {
             scenario::Status::Draw => Outcomes::DRAW,
             _ => unreachable!(),
         }
-    }) {
+    };
+    match ::std::panic::catch_unwind(f) {
         Ok(x) => x,
         Err(e) => {
             log::error!("Simulation panicked: {:?}", e);

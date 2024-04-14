@@ -126,7 +126,7 @@ pub struct Ship {}
         let mut files = std::collections::HashMap::new();
         let reference = include_str!("../../builtin_ai/src/reference.rs");
         //let reference = "fn baz() {}\nfn boo() {}\n";
-        let lib = format!("mod foo;\nmod bar;\n");
+        let lib = "mod foo;\nmod bar;\n".to_string();
         files.insert("lib.rs".to_string(), lib.clone());
         files.insert("foo.rs".to_string(), reference.to_string());
         files.insert("bar.rs".to_string(), reference.to_string());

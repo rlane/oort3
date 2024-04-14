@@ -13,8 +13,7 @@ pub struct Line {
 }
 
 pub fn emit_ship(sim: &mut Simulation, handle: ShipHandle) {
-    let mut lines = vec![];
-    lines.reserve(2 + sim.ship(handle).data().guns.len());
+    let mut lines = Vec::with_capacity(2 + sim.ship(handle).data().guns.len());
     let body = sim.ship(handle).body();
     let p = body.position().translation.vector.into();
     lines.push(Line {

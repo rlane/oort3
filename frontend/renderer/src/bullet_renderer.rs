@@ -100,8 +100,7 @@ void main() {
 
         let mut draws = vec![];
         for bullets in snapshot.bullets.chunks(1000) {
-            let mut attribs = vec![];
-            attribs.reserve(bullets.len());
+            let mut attribs = Vec::with_capacity(bullets.len());
             for bullet in bullets.iter() {
                 let p: Point2<f32> = bullet.position.cast();
                 let v: Vector2<f32> = bullet.velocity.cast();

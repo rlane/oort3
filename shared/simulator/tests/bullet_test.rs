@@ -100,8 +100,8 @@ fn test_penetration() {
 
     sim.ship_mut(ship0).fire_gun(0);
     let bullet = *sim.bullets.iter().next().unwrap();
-    let initial_bullet_mass = bullet::data(&mut sim, bullet).mass;
-    let initial_velocity = *bullet::body(&mut sim, bullet).linvel();
+    let initial_bullet_mass = bullet::data(&sim, bullet).mass;
+    let initial_velocity = *bullet::body(&sim, bullet).linvel();
 
     for _ in 0..100 {
         sim.step();

@@ -164,10 +164,8 @@ impl Component for Game {
                 false
             }
             Msg::Start => {
-                let shortcodes = vec![
-                    context.props().player0.clone(),
-                    context.props().player1.clone(),
-                ];
+                let shortcodes = [context.props().player0.clone(),
+                    context.props().player1.clone()];
                 let has_shortcodes = !shortcodes.iter().all(Option::is_none);
                 self.change_scenario(context, &context.props().scenario, !has_shortcodes);
                 if has_shortcodes {

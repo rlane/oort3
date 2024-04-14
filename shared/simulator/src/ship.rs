@@ -1151,7 +1151,7 @@ mod test {
             );
 
             for _ in 0..10 {
-                sim.ship_mut(ship0).torque(6.28);
+                sim.ship_mut(ship0).torque(std::f64::consts::TAU);
                 sim.step();
                 let dist = sim.ship(ship0).position().vector.magnitude();
                 assert!(

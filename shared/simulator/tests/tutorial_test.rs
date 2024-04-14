@@ -54,7 +54,7 @@ fn test_tutorials() {
     assert!(!scenario_names.is_empty());
     scenario_names
         .into_par_iter()
-        .for_each(|x| check_solution(&x));
+        .for_each(|x| check_solution(x));
 }
 
 #[test]
