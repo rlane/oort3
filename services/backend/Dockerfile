@@ -1,4 +1,4 @@
-FROM rust:1.73.0-slim-bookworm as builder
+FROM rust:1.77.2-slim-bookworm as builder
 WORKDIR /usr/src/app
 RUN apt-get update
 COPY . .
@@ -12,7 +12,7 @@ RUN \
   --mount=type=cache,target=/usr/src/app/target,id=services_target,sharing=locked \
   cd services/backend && cargo install --profile service --locked --path .
 
-FROM rust:1.73.0-slim-bookworm
+FROM rust:1.77.2-slim-bookworm
 RUN useradd -m app
 USER app:1000
 WORKDIR /home/app

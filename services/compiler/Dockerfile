@@ -1,5 +1,5 @@
 # fetcher
-FROM rust:1.73.0-slim-bookworm as fetcher
+FROM rust:1.77.2-slim-bookworm as fetcher
 WORKDIR /usr/src/app
 RUN cargo init --bin dummy
 COPY Cargo.lock.user Cargo.lock
@@ -10,7 +10,7 @@ RUN \
   cd dummy && cargo fetch && cp -a /usr/local/cargo/registry /registry
 
 # builder
-FROM rust:1.73.0-slim-bookworm as builder
+FROM rust:1.77.2-slim-bookworm as builder
 WORKDIR /usr/src/app
 COPY . .
 ARG OORT_CODE_ENCRYPTION_SECRET
@@ -21,7 +21,7 @@ RUN \
   cd services/compiler && cargo install --profile service --locked --path .
 
 # service
-FROM rust:1.73.0-slim-bookworm
+FROM rust:1.77.2-slim-bookworm
 RUN apt-get -y update && apt-get -y install curl xz-utils && rm -rf /var/lib/apt/lists/*
 RUN rustup target add wasm32-unknown-unknown
 RUN rustup component add rustfmt
