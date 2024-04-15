@@ -12,51 +12,51 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-crossbeam = "0.8.3"
-getrandom = { version = "0.2.11", features = ["js"] }
-log = "0.4.20"
-nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
+crossbeam = "0.8.4"
+getrandom = { version = "0.2.14", features = ["js"] }
+log = "0.4.21"
+nalgebra = { version = "0.32.5", features = ["serde-serialize"] }
 oorandom = "11.1.3"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_distr = "0.4.3"
 rand_seeder = "0.2.3"
-rapier2d-f64 = { version = "0.17.2", features = ["wasm-bindgen", "enhanced-determinism"] }
-serde = { version = "1.0.193", features = ["derive"] }
+rapier2d-f64 = { version = "0.18.0", features = ["wasm-bindgen", "enhanced-determinism"] }
+serde = { version = "1.0.197", features = ["derive"] }
 instant = "0.1.12"
 oort_api = { path = "../api", features = ["serde"] }
-wasmer = { version = "4.2.5", default-features = false }
+wasmer = { version = "4.2.8", default-features = false }
 tar = "0.4.40"
 libflate = "2.0.0"
 walrus = { version = "0.19.0", git = "https://github.com/scrtlabs/walrus", rev = "c5777d4" }
-bytes = { version = "1.5.0", features = ["serde"] }
+bytes = { version = "1.6.0", features = ["serde"] }
 static_aabb2d_index = { version = "2.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
-wide = "0.7.13"
+wide = "0.7.15"
 wasm-submemory = { version = "0.1.0", git = "https://github.com/rlane/wasm-submemory", rev = "4b906bf8c654685ae1d886d8a4d8a39a6495cea3" }
-anyhow = "1.0.77"
+anyhow = "1.0.82"
 lazy_static = "1.4.0"
-regex = "1.10.2"
+regex = "1.10.4"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wasmer-compiler-cranelift = { version = "4.2.0" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-js-sys = "0.3.66"
+js-sys = "0.3.69"
 wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4.39"
+wasm-bindgen-futures = "0.4.42"
 
 [dev-dependencies]
 bincode = "1.3.3"
-rayon = "1.8.0"
+rayon = "1.10.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
-test-log = "0.2.14"
+test-log = "0.2.15"
 env_logger = "0.10.1"
-serde_json = "1.0.108"
+serde_json = "1.0.115"
 approx = "0.5.1"
 wabt = "0.10.0"
 testing_logger = "0.1.1"
-serial_test = "2.0.0"
+serial_test = "3.0.0"
 
 [features]
 default = ["sys"]
