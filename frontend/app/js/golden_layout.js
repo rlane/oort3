@@ -1,5 +1,5 @@
 var goldenLayout;
-let configVersion = 6;
+let configVersion = 7;
 
 function make_config() {
   let editor_width_pct = 100.0 - 61.8;
@@ -122,9 +122,10 @@ export function init() {
     "Welcome",
     function (container, componentState) {
       container.getElement()[0].style.overflow = "auto";
-      container
-        .getElement()[0]
-        .appendChild(document.getElementById("welcome-window"));
+      let node = document.getElementById("welcome-window");
+      if (node) {
+        container.getElement()[0].appendChild(node);
+      }
     }
   );
   goldenLayout.registerComponent(
@@ -199,23 +200,28 @@ function welcome_component() {
     title: "Welcome",
     componentName: "Welcome",
     componentState: {},
-    isClosable: true,
+    isClosable: false,
     id: "welcome",
   };
 }
 
 export function show_welcome(visible) {
-  let tabs = goldenLayout.root.contentItems[0].contentItems[0];
-  let existing = tabs.getItemsById("welcome");
+  let existing = goldenLayout.root.getItemsById("welcome");
   let currently_visible = existing.length != 0;
   if (visible != currently_visible) {
     if (visible) {
-      tabs.addChild(welcome_component(), 0);
+      let editor_window = goldenLayout.root.getItemsById("editor.player")[0];
+      let parent = editor_window.parent;
+      parent.addChild(welcome_component(), 0);
     } else {
-      document
-        .getElementById("welcome-hidden")
-        .appendChild(document.getElementById("welcome-window"));
-      tabs.removeChild(existing[0], false);
+      let node = document.getElementById("welcome-window");
+      if (node) {
+        document.getElementById("welcome-hidden").appendChild(node);
+      }
+      if (existing) {
+        let parent = existing[0].parent;
+        parent.removeChild(existing[0], false);
+      }
     }
   }
 }
