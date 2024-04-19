@@ -1,3 +1,5 @@
+- Fixed crashes related to the welcome window.
+
 ### 0.79.2 - 2024-04-13
 
 - Fixed leaderboard bug for usernames containing invalid characters.
