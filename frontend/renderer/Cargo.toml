@@ -1,6 +1,6 @@
 [package]
 name = "oort_renderer"
-version = "0.79.2"
+version = "0.79.3"
 edition = "2021"
 publish = false
 

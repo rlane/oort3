@@ -1,3 +1,5 @@
+### 0.79.3 - 2024-04-18
+
 - Fixed crashes related to the welcome window.
 
 ### 0.79.2 - 2024-04-13
