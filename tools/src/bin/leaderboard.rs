@@ -24,7 +24,10 @@ enum SubCommand {
         limit: usize,
     },
     Download {
-        scenario: String,
+        #[clap(short, long)]
+        scenario: Option<String>,
+        #[clap(short, long)]
+        user: Option<String>,
         #[clap(short = 'n', long, value_parser, default_value_t = 10)]
         limit: usize,
         #[clap(short, long, value_parser)]
@@ -44,10 +47,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match args.cmd {
         SubCommand::List { scenario, limit } => cmd_list(&args.project_id, &scenario, limit).await,
         SubCommand::Download {
+            user,
             scenario,
             limit,
             out_dir,
-        } => cmd_download(&args.project_id, &scenario, limit, &out_dir).await,
+        } => cmd_download(&args.project_id, &user, &scenario, limit, &out_dir).await,
         SubCommand::Get { docid } => cmd_get(&args.project_id, docid).await,
     }
 }
@@ -110,10 +114,23 @@ async fn cmd_list(
 
 async fn cmd_download(
     project_id: &str,
-    scenario_name: &str,
+    username: &Option<String>,
+    scenario_name: &Option<String>,
     limit: usize,
     out_dir: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut filters = vec![];
+    if let Some(username) = username {
+        filters.push(FirestoreQueryFilter::Compare(Some(
+            FirestoreQueryFilterCompare::Equal("username".into(), username.into()),
+        )));
+    }
+    if let Some(scenario_name) = scenario_name {
+        filters.push(FirestoreQueryFilter::Compare(Some(
+            FirestoreQueryFilterCompare::Equal("scenario_name".into(), scenario_name.into()),
+        )));
+    }
+
     let db = FirestoreDb::new(project_id).await?;
 
     let docs: Vec<Document> = db
@@ -121,12 +138,7 @@ async fn cmd_download(
             FirestoreQueryParams::new("leaderboard".into())
                 .with_filter(FirestoreQueryFilter::Composite(
                     FirestoreQueryFilterComposite::new(
-                        vec![FirestoreQueryFilter::Compare(Some(
-                            FirestoreQueryFilterCompare::Equal(
-                                "scenario_name".into(),
-                                scenario_name.into(),
-                            ),
-                        ))],
+                        filters,
                         FirestoreQueryFilterCompositeOperator::And,
                     ),
                 ))
@@ -144,7 +156,7 @@ async fn cmd_download(
     std::fs::create_dir_all(out_dir).unwrap();
     for doc in docs.iter() {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
-            let filename = format!("{}/{}.rs", &out_dir, msg.username);
+            let filename = format!("{}/{}.{}.rs", &out_dir, msg.scenario_name, msg.username);
             std::fs::write(&filename, &msg.code).unwrap();
             println!("Wrote {filename}");
         }
