@@ -5,12 +5,12 @@ publish = false
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.77"
+anyhow = "1.0.86"
 tempdir = "0.3.7"
 glob = "0.3.1"
-log = "0.4.20"
+log = "0.4.21"
 lazy_static = "1.4.0"
-regex = "1.10.2"
+regex = "1.10.5"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
