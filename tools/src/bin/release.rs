@@ -521,6 +521,7 @@ async fn main() -> anyhow::Result<()> {
 
     if args.components.contains(&Component::Tools) {
         tasks.spawn(async move {
+            #[cfg(target_family = "unix")]
             use std::os::unix::fs::MetadataExt;
             use std::path::PathBuf;
 
@@ -533,7 +534,11 @@ async fn main() -> anyhow::Result<()> {
 
             for entry in std::fs::read_dir("target/debug")? {
                 let entry = entry?;
-                if entry.metadata()?.is_file() && entry.metadata()?.mode() & 1 != 0 {
+                if entry.metadata()?.is_file() {
+                    #[cfg(target_family = "unix")]
+                    if entry.metadata()?.mode() & 1 == 0 {
+                        continue;
+                    }
                     let dst: PathBuf = [
                         std::ffi::OsStr::new("scratch/tools"),
                         entry.path().file_name().unwrap(),
