@@ -116,48 +116,6 @@ impl Component for EditorWindow {
 
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::EditorAction(ref action) if action == "oort-load-file" => {
-                let multifile_cb = context.link().callback(Msg::LoadedCodeFromDisk);
-                let file_handle_cb = context.link().callback(Msg::OpenedFiles);
-                wasm_bindgen_futures::spawn_local(async move {
-                    match js::filesystem::open().await {
-                        Ok(file_handles) => {
-                            let file_handles = file_handles.dyn_into::<js_sys::Array>().unwrap();
-                            let file_handles = file_handles
-                                .iter()
-                                .map(|file_handle| file_handle.dyn_into::<FileHandle>().unwrap())
-                                .collect::<Vec<_>>();
-                            match read_multifile(&file_handles).await {
-                                Ok(multifile) => {
-                                    file_handle_cb.emit(file_handles);
-                                    multifile_cb.emit(multifile)
-                                }
-                                Err(e) => log::error!("read failed: {:?}", e),
-                            }
-                        }
-                        Err(e) => log::error!("open failed: {:?}", e),
-                    }
-                });
-                self.linked = false;
-                self.set_read_only(false);
-                false
-            }
-            Msg::EditorAction(ref action) if action == "oort-reload-file" => {
-                if let Some(file_handles) = self.file_handles.clone() {
-                    let cb = context.link().callback(Msg::LoadedCodeFromDisk);
-                    wasm_bindgen_futures::spawn_local(async move {
-                        match read_multifile(&file_handles).await {
-                            Ok(multifile) => cb.emit(multifile),
-                            Err(e) => log::error!("reload failed: {:?}", e),
-                        }
-                    });
-                } else {
-                    context
-                        .link()
-                        .send_message(Msg::EditorAction("oort-load-file".to_string()));
-                }
-                false
-            }
             Msg::EditorAction(ref action) if action == "oort-link-file" => {
                 if has_open_file_picker() {
                     let cb = context.link().callback(Msg::LinkedFiles);
@@ -183,10 +141,6 @@ impl Component for EditorWindow {
                         .unwrap()
                         .set_class_name("drop_target");
                 }
-                false
-            }
-            Msg::EditorAction(ref action) if action == "oort-unlink-file" => {
-                context.link().send_message(Msg::UnlinkedFiles);
                 false
             }
             Msg::EditorAction(ref action) if action == "oort-toggle-fold" => {
@@ -521,18 +475,13 @@ impl Component for EditorWindow {
 
                 add_action("oort-load-solution", "Load solution", None);
 
-                add_action("oort-load-file", "Load from a file", None);
-
                 add_action(
-                    "oort-reload-file",
-                    "Reload from file",
+                    "oort-link-file",
+                    "Link to file on disk",
                     Some(
-                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyY as u32,
+                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyI as u32,
                     ),
                 );
-
-                add_action("oort-link-file", "Link to file on disk", None);
-                add_action("oort-unlink-file", "Unlink from a file on disk", None);
 
                 add_action(
                     "oort-format",
