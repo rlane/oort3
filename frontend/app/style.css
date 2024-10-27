@@ -413,3 +413,8 @@ b.error {
 #seed-window button {
   margin-left: 5px;
 }
+
+div.multifile_select {
+  padding: 1rem;
+  width: calc(min(100% - 2rem, 80em));
+}

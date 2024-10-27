@@ -9,6 +9,7 @@ use monaco::sys::Position;
 use monaco::{
     api::CodeEditorOptions, sys::editor::BuiltinTheme, yew::CodeEditor, yew::CodeEditorLink,
 };
+use oort_multifile::Multifile;
 use oort_simulator::simulation::Code;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -16,7 +17,7 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use web_sys::{DragEvent, Element, FileSystemFileEntry};
+use web_sys::{DragEvent, Element, EventTarget, FileSystemFileEntry, HtmlInputElement};
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -43,7 +44,8 @@ pub enum Msg {
         resolve: Function,
         reject: Function,
     },
-    LoadedCodeFromDisk(String),
+    LoadedCodeFromDisk(Multifile),
+    SelectedMain(String),
     OpenedFiles(Vec<FileHandle>),
     LinkedFiles(Vec<FileHandle>),
     UnlinkedFiles,
@@ -76,6 +78,8 @@ pub struct EditorWindow {
     current_completion: Option<(Function, Function)>,
     folded: bool,
     file_handles: Option<Vec<FileHandle>>,
+    multifile: Option<Multifile>,
+    main: Option<String>,
     linked: bool,
     drop_target_ref: NodeRef,
 }
@@ -103,6 +107,8 @@ impl Component for EditorWindow {
             current_completion: None,
             folded: false,
             file_handles: None,
+            multifile: None,
+            main: None,
             linked: false,
             drop_target_ref: NodeRef::default(),
         }
@@ -111,7 +117,7 @@ impl Component for EditorWindow {
     fn update(&mut self, context: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::EditorAction(ref action) if action == "oort-load-file" => {
-                let text_cb = context.link().callback(Msg::LoadedCodeFromDisk);
+                let multifile_cb = context.link().callback(Msg::LoadedCodeFromDisk);
                 let file_handle_cb = context.link().callback(Msg::OpenedFiles);
                 wasm_bindgen_futures::spawn_local(async move {
                     match js::filesystem::open().await {
@@ -121,10 +127,10 @@ impl Component for EditorWindow {
                                 .iter()
                                 .map(|file_handle| file_handle.dyn_into::<FileHandle>().unwrap())
                                 .collect::<Vec<_>>();
-                            match read_and_join_files(&file_handles).await {
-                                Ok(text) => {
+                            match read_multifile(&file_handles).await {
+                                Ok(multifile) => {
                                     file_handle_cb.emit(file_handles);
-                                    text_cb.emit(text)
+                                    multifile_cb.emit(multifile)
                                 }
                                 Err(e) => log::error!("read failed: {:?}", e),
                             }
@@ -138,11 +144,10 @@ impl Component for EditorWindow {
             }
             Msg::EditorAction(ref action) if action == "oort-reload-file" => {
                 if let Some(file_handles) = self.file_handles.clone() {
-                    let file_handle = file_handles.first().unwrap().clone(); // XXX
                     let cb = context.link().callback(Msg::LoadedCodeFromDisk);
                     wasm_bindgen_futures::spawn_local(async move {
-                        match file_handle.read().await {
-                            Ok(text) => cb.emit(text.as_string().unwrap()),
+                        match read_multifile(&file_handles).await {
+                            Ok(multifile) => cb.emit(multifile),
                             Err(e) => log::error!("reload failed: {:?}", e),
                         }
                     });
@@ -236,7 +241,16 @@ impl Component for EditorWindow {
                 }
                 false
             }
-            Msg::LoadedCodeFromDisk(text) => {
+            Msg::LoadedCodeFromDisk(multifile) => {
+                // TODO handle invalid main selection
+                let main = self
+                    .main
+                    .as_ref()
+                    .or_else(|| multifile.names.first())
+                    .unwrap()
+                    .clone();
+                let text = multifile.finalize(&main);
+                self.multifile = Some(multifile);
                 let editor_link = context.props().editor_link.clone();
                 editor_link.with_editor(|editor| {
                     if editor.get_model().unwrap().get_value() != text {
@@ -244,7 +258,22 @@ impl Component for EditorWindow {
                         // TODO trigger analyzer run
                     }
                 });
-                false
+                true
+            }
+            Msg::SelectedMain(main) => {
+                if let Some(multifile) = self.multifile.as_ref() {
+                    // TODO handle invalid main selection
+                    let text = multifile.finalize(&main);
+                    self.main = Some(main);
+                    let editor_link = context.props().editor_link.clone();
+                    editor_link.with_editor(|editor| {
+                        if editor.get_model().unwrap().get_value() != text {
+                            editor.get_model().unwrap().set_value(&text);
+                            // TODO trigger analyzer run
+                        }
+                    });
+                }
+                true
             }
             Msg::OpenedFiles(file_handles) => {
                 self.file_handles = Some(file_handles);
@@ -261,6 +290,7 @@ impl Component for EditorWindow {
             Msg::UnlinkedFiles => {
                 self.linked = false;
                 self.file_handles = None;
+                self.multifile = None;
                 let editor_link = context.props().editor_link.clone();
                 editor_link.with_editor(|editor| {
                     let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
@@ -268,16 +298,16 @@ impl Component for EditorWindow {
                     options.set_read_only(Some(false));
                     ed.update_options(&options);
                 });
-                false
+                true
             }
             Msg::CheckLinkedFile => {
                 if self.linked {
                     if let Some(file_handles) = self.file_handles.clone() {
                         let link = context.link().clone();
                         wasm_bindgen_futures::spawn_local(async move {
-                            match read_and_join_files(&file_handles).await {
-                                Ok(text) => {
-                                    link.send_message(Msg::LoadedCodeFromDisk(text));
+                            match read_multifile(&file_handles).await {
+                                Ok(multifile) => {
+                                    link.send_message(Msg::LoadedCodeFromDisk(multifile));
                                     let timeout = Timeout::new(1_000, move || {
                                         link.send_message(Msg::CheckLinkedFile);
                                     });
@@ -341,10 +371,40 @@ impl Component for EditorWindow {
 
         let cmd_or_ctrl = cmd_or_ctrl();
 
+        let select_main_cb = context.link().callback(|e: Event| {
+            let target: EventTarget = e
+                .target()
+                .expect("Event should have a target when dispatched");
+            let data = target.unchecked_into::<HtmlInputElement>().value();
+            Msg::SelectedMain(data)
+        });
+        let render_main_option = |name: &str| {
+            let selected = self.main.as_ref().map(|x| x == name).unwrap_or_default();
+            html! { <option value={name.to_string()} selected={selected}>{name.to_string()}</option> }
+        };
+        let multifile_select = if let Some(multifile) = self.multifile.as_ref() {
+            html! {
+                <select onchange={select_main_cb}>
+                    { for multifile.names.iter().map(|x| render_main_option(x)) }
+                </select>
+            }
+        } else {
+            html! {}
+        };
+        let show_multifile_selector = self.multifile.is_some();
+        let unlink_cb = context.link().callback(|_| Msg::UnlinkedFiles);
+
         create_portal(
             html! {
                 <>
-                    <div class="editor">
+                    <div class="multifile_select" hidden={!show_multifile_selector}>
+                        <p>
+                            { "This editor is linked to files on disk. Select the Ship implementation below, or " }
+                            <a href="#" onclick={unlink_cb}>{ "unlink" }</a>{ "." }
+                        </p>
+                        {multifile_select}
+                    </div>
+                    <div class="editor" hidden={show_multifile_selector}>
                         <CodeEditor options={monaco_options} link={editor_link} />
                     </div>
                     <div class="run_button"><span
@@ -656,7 +716,7 @@ fn has_open_file_picker() -> bool {
     gloo_utils::window().has_own_property(&"showOpenFilePicker".into())
 }
 
-async fn read_and_join_files(file_handles: &[FileHandle]) -> anyhow::Result<String> {
+async fn read_multifile(file_handles: &[FileHandle]) -> anyhow::Result<Multifile> {
     let mut files = HashMap::new();
     for file_handle in file_handles.iter() {
         let file = match file_handle.read().await {
@@ -669,5 +729,5 @@ async fn read_and_join_files(file_handles: &[FileHandle]) -> anyhow::Result<Stri
         files.insert(file_handle.name().await.as_string().unwrap(), file);
     }
 
-    oort_multifile::join(files).map(|x| x.finalize("") /*TODO*/)
+    oort_multifile::join(files)
 }

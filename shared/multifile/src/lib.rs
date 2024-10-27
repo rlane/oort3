@@ -10,7 +10,9 @@ pub struct Multifile {
 impl Multifile {
     pub fn finalize(&self, name: &str) -> String {
         let mut src = self.src.clone();
-        src.push_str(&format!("\npub use {}::*;\n", name));
+        if !name.is_empty() {
+            src.push_str(&format!("\npub use {}::*;\n", name));
+        }
         src
     }
 }
@@ -49,10 +51,12 @@ pub fn join(mut files: HashMap<String, String>) -> Result<Multifile, anyhow::Err
         })
         .into_owned();
 
-    Ok(Multifile {
-        src,
-        names: files.keys().cloned().collect(),
-    })
+    let mut names: Vec<String> = files
+        .keys()
+        .map(|x| x.strip_suffix(".rs").unwrap_or(x).to_owned())
+        .collect();
+    names.sort();
+    Ok(Multifile { src, names })
 }
 
 pub fn split(lib: &str) -> HashMap<String, String> {
