@@ -46,7 +46,6 @@ pub enum Msg {
     },
     LoadedCodeFromDisk(Multifile),
     SelectedMain(String),
-    OpenedFiles(Vec<FileHandle>),
     LinkedFiles(Vec<FileHandle>),
     UnlinkedFiles,
     CheckLinkedFile,
@@ -228,11 +227,6 @@ impl Component for EditorWindow {
                     });
                 }
                 true
-            }
-            Msg::OpenedFiles(file_handles) => {
-                self.file_handles = Some(file_handles);
-                self.linked = false;
-                false
             }
             Msg::LinkedFiles(file_handles) => {
                 self.file_handles = Some(file_handles);
