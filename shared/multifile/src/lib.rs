@@ -20,7 +20,7 @@ impl Multifile {
             bail!("Main file {} not found in multifile", main_filename);
         }
         let mut src = self.src.clone();
-        if main_filename != "lib.rs" {
+        if main_filename != "lib.rs" && self.filenames.len() > 1 {
             src.push_str(&format!(
                 "\npub use {}::*;\n",
                 main_filename.strip_suffix(".rs").unwrap()
@@ -92,12 +92,23 @@ mod test {
     use std::collections::HashMap;
 
     #[test]
-    fn test_join() {
+    fn test_join_single_files() {
+        let mut files = std::collections::HashMap::new();
+        files.insert("foo.rs".to_string(), "fn foo() {}".to_string());
+        let multifile = super::join(files).unwrap();
+        assert_eq!(multifile.filenames, vec!["foo.rs"]);
+        assert_eq!(multifile.finalize("foo.rs").unwrap(), "fn foo() {}");
+    }
+
+    #[test]
+    fn test_join_multiple_files() {
         let mut files = std::collections::HashMap::new();
         files.insert("lib.rs".to_string(), "mod foo;\npub mod bar;\n".to_string());
         files.insert("foo.rs".to_string(), "fn foo() {}".to_string());
         files.insert("bar.rs".to_string(), "fn bar() {}".to_string());
         let multifile = super::join(files).unwrap();
+        assert_eq!(multifile.filenames, vec!["bar.rs", "foo.rs", "lib.rs"]);
+
         assert_eq!(
             multifile.finalize("foo.rs").unwrap(),
             "\
@@ -111,7 +122,18 @@ fn bar() {}
 pub use foo::*;
 "
         );
-        assert_eq!(multifile.filenames, vec!["bar.rs", "foo.rs", "lib.rs"]);
+
+        assert_eq!(
+            multifile.finalize("lib.rs").unwrap(),
+            "\
+mod foo { // start multifile
+fn foo() {}
+} // end multifile
+pub mod bar { // start multifile
+fn bar() {}
+} // end multifile
+"
+        );
     }
 
     #[test]
