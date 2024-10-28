@@ -196,20 +196,22 @@ impl Component for EditorWindow {
             }
             Msg::LoadedCodeFromDisk(multifile) => {
                 if let Some(linked_files) = self.linked_files.as_mut() {
-                    // TODO handle invalid main selection
-                    let main_filename = linked_files
+                    let reset_main = !linked_files
                         .main_filename
                         .as_ref()
-                        .or_else(|| multifile.filenames.first())
-                        .unwrap()
-                        .clone();
-                    let text = multifile.finalize(&main_filename).unwrap();
+                        .is_some_and(|x| multifile.filenames.contains(x));
+                    if reset_main {
+                        linked_files.main_filename = multifile.filenames.first().cloned();
+                    }
+                    assert!(linked_files.main_filename.is_some());
+                    let text = multifile
+                        .finalize(linked_files.main_filename.as_ref().unwrap())
+                        .unwrap();
                     linked_files.multifile = multifile;
                     let editor_link = context.props().editor_link.clone();
                     editor_link.with_editor(|editor| {
                         if editor.get_model().unwrap().get_value() != text {
                             editor.get_model().unwrap().set_value(&text);
-                            // TODO trigger analyzer run
                         }
                     });
                 }
@@ -217,18 +219,10 @@ impl Component for EditorWindow {
             }
             Msg::SelectedMain(main_filename) => {
                 if let Some(linked_files) = self.linked_files.as_mut() {
-                    // TODO handle invalid main selection
-                    let text = linked_files.multifile.finalize(&main_filename).unwrap();
                     linked_files.main_filename = Some(main_filename);
-                    let editor_link = context.props().editor_link.clone();
-                    editor_link.with_editor(|editor| {
-                        if editor.get_model().unwrap().get_value() != text {
-                            editor.get_model().unwrap().set_value(&text);
-                            // TODO trigger analyzer run
-                        }
-                    });
+                    context.link().send_message(Msg::CheckLinkedFile);
                 }
-                true
+                false
             }
             Msg::LinkedFiles(file_handles) => {
                 self.linked_files = Some(LinkedFiles {
