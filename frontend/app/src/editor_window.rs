@@ -59,6 +59,12 @@ pub enum EditorAction {
     ReplayPaused,
 }
 
+pub struct LinkedFiles {
+    file_handles: Vec<FileHandle>,
+    multifile: Multifile,
+    main_filename: Option<String>,
+}
+
 #[derive(Properties, Clone, PartialEq)]
 pub struct EditorWindowProps {
     pub host: web_sys::Element,
@@ -76,11 +82,8 @@ pub struct EditorWindow {
     analyzer_interval: Interval,
     current_completion: Option<(Function, Function)>,
     folded: bool,
-    file_handles: Option<Vec<FileHandle>>,
-    multifile: Option<Multifile>,
-    main_filename: Option<String>,
-    linked: bool,
     drop_target_ref: NodeRef,
+    linked_files: Option<LinkedFiles>,
 }
 
 impl Component for EditorWindow {
@@ -105,11 +108,8 @@ impl Component for EditorWindow {
             analyzer_interval,
             current_completion: None,
             folded: false,
-            file_handles: None,
-            multifile: None,
-            main_filename: None,
-            linked: false,
             drop_target_ref: NodeRef::default(),
+            linked_files: None,
         }
     }
 
@@ -195,29 +195,31 @@ impl Component for EditorWindow {
                 false
             }
             Msg::LoadedCodeFromDisk(multifile) => {
-                // TODO handle invalid main selection
-                let main_filename = self
-                    .main_filename
-                    .as_ref()
-                    .or_else(|| multifile.filenames.first())
-                    .unwrap()
-                    .clone();
-                let text = multifile.finalize(&main_filename).unwrap();
-                self.multifile = Some(multifile);
-                let editor_link = context.props().editor_link.clone();
-                editor_link.with_editor(|editor| {
-                    if editor.get_model().unwrap().get_value() != text {
-                        editor.get_model().unwrap().set_value(&text);
-                        // TODO trigger analyzer run
-                    }
-                });
+                if let Some(linked_files) = self.linked_files.as_mut() {
+                    // TODO handle invalid main selection
+                    let main_filename = linked_files
+                        .main_filename
+                        .as_ref()
+                        .or_else(|| multifile.filenames.first())
+                        .unwrap()
+                        .clone();
+                    let text = multifile.finalize(&main_filename).unwrap();
+                    linked_files.multifile = multifile;
+                    let editor_link = context.props().editor_link.clone();
+                    editor_link.with_editor(|editor| {
+                        if editor.get_model().unwrap().get_value() != text {
+                            editor.get_model().unwrap().set_value(&text);
+                            // TODO trigger analyzer run
+                        }
+                    });
+                }
                 true
             }
             Msg::SelectedMain(main_filename) => {
-                if let Some(multifile) = self.multifile.as_ref() {
+                if let Some(linked_files) = self.linked_files.as_mut() {
                     // TODO handle invalid main selection
-                    let text = multifile.finalize(&main_filename).unwrap();
-                    self.main_filename = Some(main_filename);
+                    let text = linked_files.multifile.finalize(&main_filename).unwrap();
+                    linked_files.main_filename = Some(main_filename);
                     let editor_link = context.props().editor_link.clone();
                     editor_link.with_editor(|editor| {
                         if editor.get_model().unwrap().get_value() != text {
@@ -229,16 +231,17 @@ impl Component for EditorWindow {
                 true
             }
             Msg::LinkedFiles(file_handles) => {
-                self.file_handles = Some(file_handles);
-                self.linked = true;
+                self.linked_files = Some(LinkedFiles {
+                    file_handles,
+                    multifile: Multifile::empty(),
+                    main_filename: None,
+                });
                 context.link().send_message(Msg::CheckLinkedFile);
                 self.set_read_only(true);
                 false
             }
             Msg::UnlinkedFiles => {
-                self.linked = false;
-                self.file_handles = None;
-                self.multifile = None;
+                self.linked_files = None;
                 let editor_link = context.props().editor_link.clone();
                 editor_link.with_editor(|editor| {
                     let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
@@ -249,25 +252,24 @@ impl Component for EditorWindow {
                 true
             }
             Msg::CheckLinkedFile => {
-                if self.linked {
-                    if let Some(file_handles) = self.file_handles.clone() {
-                        let link = context.link().clone();
-                        wasm_bindgen_futures::spawn_local(async move {
-                            match read_multifile(&file_handles).await {
-                                Ok(multifile) => {
-                                    link.send_message(Msg::LoadedCodeFromDisk(multifile));
-                                    let timeout = Timeout::new(1_000, move || {
-                                        link.send_message(Msg::CheckLinkedFile);
-                                    });
-                                    timeout.forget();
-                                }
-                                Err(e) => {
-                                    log::error!("reload failed: {:?}", e);
-                                    link.send_message(Msg::UnlinkedFiles);
-                                }
+                if let Some(linked_files) = self.linked_files.as_ref() {
+                    let link = context.link().clone();
+                    let file_handles = linked_files.file_handles.clone();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        match read_multifile(&file_handles).await {
+                            Ok(multifile) => {
+                                link.send_message(Msg::LoadedCodeFromDisk(multifile));
+                                let timeout = Timeout::new(1_000, move || {
+                                    link.send_message(Msg::CheckLinkedFile);
+                                });
+                                timeout.forget();
                             }
-                        });
-                    }
+                            Err(e) => {
+                                log::error!("reload failed: {:?}", e);
+                                link.send_message(Msg::UnlinkedFiles);
+                            }
+                        }
+                    });
                 }
                 false
             }
@@ -326,24 +328,24 @@ impl Component for EditorWindow {
             let data = target.unchecked_into::<HtmlInputElement>().value();
             Msg::SelectedMain(data)
         });
-        let render_main_option = |name: &str| {
-            let selected = self
-                .main_filename
-                .as_ref()
-                .map(|x| x == name)
-                .unwrap_or_default();
-            html! { <option value={name.to_string()} selected={selected}>{name.to_string()}</option> }
-        };
-        let multifile_select = if let Some(multifile) = self.multifile.as_ref() {
+        let multifile_select = if let Some(linked_files) = self.linked_files.as_ref() {
+            let render_main_option = |name: &str| {
+                let selected = linked_files
+                    .main_filename
+                    .as_ref()
+                    .map(|x| x == name)
+                    .unwrap_or_default();
+                html! { <option value={name.to_string()} selected={selected}>{name.to_string()}</option> }
+            };
             html! {
                 <select onchange={select_main_cb}>
-                    { for multifile.filenames.iter().map(|x| render_main_option(x)) }
+                    { for linked_files.multifile.filenames.iter().map(|x| render_main_option(x)) }
                 </select>
             }
         } else {
             html! {}
         };
-        let show_multifile_selector = self.multifile.is_some();
+        let show_multifile_selector = self.linked_files.is_some();
         let unlink_cb = context.link().callback(|_| Msg::UnlinkedFiles);
 
         create_portal(

@@ -8,6 +8,13 @@ pub struct Multifile {
 }
 
 impl Multifile {
+    pub fn empty() -> Self {
+        Self {
+            src: String::new(),
+            filenames: Vec::new(),
+        }
+    }
+
     pub fn finalize(&self, main_filename: &str) -> anyhow::Result<String> {
         if !self.filenames.contains(&main_filename.to_owned()) {
             bail!("Main file {} not found in multifile", main_filename);
