@@ -416,5 +416,5 @@ b.error {
 
 div.multifile_select {
   padding: 1rem;
-  width: calc(min(100% - 2rem, 80em));
+  padding-right: 80px;
 }
