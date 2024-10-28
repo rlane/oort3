@@ -55,7 +55,7 @@ fn main() -> Result<()> {
 
         let joined = oort_multifile::join(files)?;
 
-        std::fs::write(&args.output, joined.finalize(&main))?;
+        std::fs::write(&args.output, joined.finalize(&main)?)?;
 
         if !args.watch {
             break;

@@ -79,7 +79,7 @@ pub struct EditorWindow {
     folded: bool,
     file_handles: Option<Vec<FileHandle>>,
     multifile: Option<Multifile>,
-    main: Option<String>,
+    main_filename: Option<String>,
     linked: bool,
     drop_target_ref: NodeRef,
 }
@@ -108,7 +108,7 @@ impl Component for EditorWindow {
             folded: false,
             file_handles: None,
             multifile: None,
-            main: None,
+            main_filename: None,
             linked: false,
             drop_target_ref: NodeRef::default(),
         }
@@ -197,13 +197,13 @@ impl Component for EditorWindow {
             }
             Msg::LoadedCodeFromDisk(multifile) => {
                 // TODO handle invalid main selection
-                let main = self
-                    .main
+                let main_filename = self
+                    .main_filename
                     .as_ref()
-                    .or_else(|| multifile.names.first())
+                    .or_else(|| multifile.filenames.first())
                     .unwrap()
                     .clone();
-                let text = multifile.finalize(&main);
+                let text = multifile.finalize(&main_filename).unwrap();
                 self.multifile = Some(multifile);
                 let editor_link = context.props().editor_link.clone();
                 editor_link.with_editor(|editor| {
@@ -214,11 +214,11 @@ impl Component for EditorWindow {
                 });
                 true
             }
-            Msg::SelectedMain(main) => {
+            Msg::SelectedMain(main_filename) => {
                 if let Some(multifile) = self.multifile.as_ref() {
                     // TODO handle invalid main selection
-                    let text = multifile.finalize(&main);
-                    self.main = Some(main);
+                    let text = multifile.finalize(&main_filename).unwrap();
+                    self.main_filename = Some(main_filename);
                     let editor_link = context.props().editor_link.clone();
                     editor_link.with_editor(|editor| {
                         if editor.get_model().unwrap().get_value() != text {
@@ -333,13 +333,17 @@ impl Component for EditorWindow {
             Msg::SelectedMain(data)
         });
         let render_main_option = |name: &str| {
-            let selected = self.main.as_ref().map(|x| x == name).unwrap_or_default();
+            let selected = self
+                .main_filename
+                .as_ref()
+                .map(|x| x == name)
+                .unwrap_or_default();
             html! { <option value={name.to_string()} selected={selected}>{name.to_string()}</option> }
         };
         let multifile_select = if let Some(multifile) = self.multifile.as_ref() {
             html! {
                 <select onchange={select_main_cb}>
-                    { for multifile.names.iter().map(|x| render_main_option(x)) }
+                    { for multifile.filenames.iter().map(|x| render_main_option(x)) }
                 </select>
             }
         } else {

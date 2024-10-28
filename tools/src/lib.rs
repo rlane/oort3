@@ -163,7 +163,9 @@ pub fn read_filesystem(path: &str) -> anyhow::Result<String> {
                 );
             }
         }
-        oort_multifile::join(files).map(|x| x.finalize("") /*TODO*/)
+        let multifile = oort_multifile::join(files)?;
+        let main_filename = multifile.filenames.first().unwrap();
+        multifile.finalize(main_filename)
     } else {
         anyhow::bail!("Not a file or directory: {:?}", path);
     }

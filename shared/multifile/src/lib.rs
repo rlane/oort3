@@ -4,34 +4,42 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct Multifile {
     pub src: String,
-    pub names: Vec<String>,
+    pub filenames: Vec<String>,
 }
 
 impl Multifile {
-    pub fn finalize(&self, name: &str) -> String {
-        let mut src = self.src.clone();
-        if !name.is_empty() {
-            src.push_str(&format!("\npub use {}::*;\n", name));
+    pub fn finalize(&self, main_filename: &str) -> anyhow::Result<String> {
+        if !self.filenames.contains(&main_filename.to_owned()) {
+            bail!("Main file {} not found in multifile", main_filename);
         }
-        src
+        let mut src = self.src.clone();
+        if main_filename != "lib.rs" {
+            src.push_str(&format!(
+                "\npub use {}::*;\n",
+                main_filename.strip_suffix(".rs").unwrap()
+            ));
+        }
+        Ok(src)
     }
 }
 
+// 3 cases:
+// 1. Single file with arbitrary name.
+// 2. Multiple files with Ship in lib.rs.
+// 3. Multiple files with Ship in a child module.
 pub fn join(mut files: HashMap<String, String>) -> Result<Multifile, anyhow::Error> {
     if files.len() == 1 {
-        let src = files.drain().next().unwrap().1;
+        let (filename, src) = files.drain().next().unwrap();
         return Ok(Multifile {
             src,
-            names: vec!["".to_string()],
+            filenames: vec![filename],
         });
     }
 
-    let lib = if let Some(src) = files.remove("lib.rs") {
-        src
-    } else if let Some(src) = files.remove("mod.rs") {
-        src
+    let lib = if let Some(src) = files.get("lib.rs") {
+        src.clone()
     } else {
-        bail!("Missing lib.rs or mod.rs file");
+        bail!("Missing lib.rs file");
     };
 
     let re = regex::Regex::new(r"(pub )?mod (\w+);").unwrap();
@@ -51,12 +59,9 @@ pub fn join(mut files: HashMap<String, String>) -> Result<Multifile, anyhow::Err
         })
         .into_owned();
 
-    let mut names: Vec<String> = files
-        .keys()
-        .map(|x| x.strip_suffix(".rs").unwrap_or(x).to_owned())
-        .collect();
-    names.sort();
-    Ok(Multifile { src, names })
+    let mut filenames: Vec<String> = files.keys().cloned().collect();
+    filenames.sort();
+    Ok(Multifile { src, filenames })
 }
 
 pub fn split(lib: &str) -> HashMap<String, String> {
@@ -85,8 +90,9 @@ mod test {
         files.insert("lib.rs".to_string(), "mod foo;\npub mod bar;\n".to_string());
         files.insert("foo.rs".to_string(), "fn foo() {}".to_string());
         files.insert("bar.rs".to_string(), "fn bar() {}".to_string());
+        let multifile = super::join(files).unwrap();
         assert_eq!(
-            super::join(files).unwrap().finalize("foo"),
+            multifile.finalize("foo.rs").unwrap(),
             "\
 mod foo { // start multifile
 fn foo() {}
@@ -98,6 +104,7 @@ fn bar() {}
 pub use foo::*;
 "
         );
+        assert_eq!(multifile.filenames, vec!["bar.rs", "foo.rs", "lib.rs"]);
     }
 
     #[test]
@@ -111,7 +118,7 @@ pub use foo::*;
         files.insert("bar.rs".to_string(), "fn bar() {}".to_string());
         assert_eq!(
             super::join(files).unwrap_err().to_string(),
-            "Missing lib.rs or mod.rs file"
+            "Missing lib.rs file"
         );
     }
 
@@ -121,8 +128,8 @@ pub use foo::*;
         files.insert("lib.rs".to_string(), "mod foo;".to_string());
         files.insert("bar.rs".to_string(), "".to_string());
         assert_eq!(
-            super::join(files).unwrap().finalize(""),
-            "mod foo;\npub use ::*;\n"
+            super::join(files).unwrap().finalize("lib.rs").unwrap(),
+            "mod foo;"
         );
     }
 
@@ -145,7 +152,10 @@ pub use foo::*;
         files.insert("foo.rs".to_string(), reference.to_string());
         files.insert("bar.rs".to_string(), reference.to_string());
 
-        let multifile = super::join(files.clone()).unwrap().finalize("foo");
+        let multifile = super::join(files.clone())
+            .unwrap()
+            .finalize("lib.rs")
+            .unwrap();
         eprintln!("---------");
         eprintln!("{}", multifile);
         eprintln!("---------");
