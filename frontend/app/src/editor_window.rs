@@ -231,18 +231,10 @@ impl Component for EditorWindow {
                     main_filename: None,
                 });
                 context.link().send_message(Msg::CheckLinkedFile);
-                self.set_read_only(true);
                 false
             }
             Msg::UnlinkedFiles => {
                 self.linked_files = None;
-                let editor_link = context.props().editor_link.clone();
-                editor_link.with_editor(|editor| {
-                    let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-                    let options = monaco::sys::editor::IEditorOptions::from(empty());
-                    options.set_read_only(Some(false));
-                    ed.update_options(&options);
-                });
                 true
             }
             Msg::CheckLinkedFile => {
@@ -602,15 +594,6 @@ impl EditorWindow {
             });
         }
         self.folded = !self.folded;
-    }
-
-    fn set_read_only(&mut self, read_only: bool) {
-        self.editor_link.with_editor(|editor| {
-            let ed: &monaco::sys::editor::IStandaloneCodeEditor = editor.as_ref();
-            let options = monaco::sys::editor::IEditorOptions::from(empty());
-            options.set_read_only(Some(read_only));
-            ed.update_options(&options);
-        });
     }
 }
 
