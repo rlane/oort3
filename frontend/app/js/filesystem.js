@@ -45,3 +45,23 @@ export async function open() {
   }
   return results;
 }
+
+export class DirectoryHandle {
+  constructor(handle) {
+    this._handle = handle;
+  }
+
+  async getFiles() {
+    let files = [];
+    for await (let entry of this._handle.values()) {
+      if (entry.kind === "file") {
+        files.push(new FileHandle(entry));
+      }
+    }
+    return files;
+  }
+}
+
+export async function openDirectory() {
+  return new DirectoryHandle(await window.showDirectoryPicker());
+}

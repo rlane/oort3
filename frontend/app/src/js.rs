@@ -19,6 +19,16 @@ pub mod filesystem {
 
         #[wasm_bindgen(catch)]
         pub async fn open() -> Result<JsValue, JsValue>;
+
+        #[wasm_bindgen]
+        #[derive(Debug, Clone)]
+        pub type DirectoryHandle;
+
+        #[wasm_bindgen(method)]
+        pub async fn getFiles(this: &DirectoryHandle) -> JsValue;
+
+        #[wasm_bindgen(catch)]
+        pub async fn openDirectory() -> Result<JsValue, JsValue>;
     }
 }
 

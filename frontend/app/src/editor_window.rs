@@ -1,7 +1,7 @@
 #![allow(clippy::drop_non_drop)]
 use crate::analyzer_stub::{self, AnalyzerAgent, CompletionItem};
 use crate::js;
-use crate::js::filesystem::FileHandle;
+use crate::js::filesystem::{DirectoryHandle, FileHandle};
 use gloo_timers::callback::Interval;
 use gloo_timers::callback::Timeout;
 use js_sys::Function;
@@ -47,6 +47,7 @@ pub enum Msg {
     LoadedCodeFromDisk(Multifile),
     SelectedMain(String),
     LinkedFiles(Vec<FileHandle>),
+    LinkedDirectory(DirectoryHandle),
     UnlinkedFiles,
     CheckLinkedFile,
     Drop(DragEvent),
@@ -61,6 +62,7 @@ pub enum EditorAction {
 
 pub struct LinkedFiles {
     file_handles: Vec<FileHandle>,
+    directory_handle: Option<DirectoryHandle>,
     multifile: Multifile,
     main_filename: Option<String>,
 }
@@ -139,6 +141,22 @@ impl Component for EditorWindow {
                         .cast::<Element>()
                         .unwrap()
                         .set_class_name("drop_target");
+                }
+                false
+            }
+            Msg::EditorAction(ref action) if action == "oort-link-directory" => {
+                if has_open_file_picker() {
+                    let cb = context.link().callback(Msg::LinkedDirectory);
+                    wasm_bindgen_futures::spawn_local(async move {
+                        match js::filesystem::openDirectory().await {
+                            Ok(directory_handle) => {
+                                let directory_handle =
+                                    directory_handle.dyn_into::<DirectoryHandle>().unwrap();
+                                cb.emit(directory_handle);
+                            }
+                            Err(e) => log::error!("open failed: {:?}", e),
+                        };
+                    });
                 }
                 false
             }
@@ -227,6 +245,17 @@ impl Component for EditorWindow {
             Msg::LinkedFiles(file_handles) => {
                 self.linked_files = Some(LinkedFiles {
                     file_handles,
+                    directory_handle: None,
+                    multifile: Multifile::empty(),
+                    main_filename: None,
+                });
+                context.link().send_message(Msg::CheckLinkedFile);
+                false
+            }
+            Msg::LinkedDirectory(directory_handle) => {
+                self.linked_files = Some(LinkedFiles {
+                    file_handles: vec![],
+                    directory_handle: Some(directory_handle),
                     multifile: Multifile::empty(),
                     main_filename: None,
                 });
@@ -240,8 +269,23 @@ impl Component for EditorWindow {
             Msg::CheckLinkedFile => {
                 if let Some(linked_files) = self.linked_files.as_ref() {
                     let link = context.link().clone();
+                    let directory_handle = linked_files.directory_handle.clone();
                     let file_handles = linked_files.file_handles.clone();
+
                     wasm_bindgen_futures::spawn_local(async move {
+                        let file_handles = if let Some(directory_handle) = directory_handle.as_ref()
+                        {
+                            let file_handles = directory_handle.getFiles().await;
+                            let file_handles = file_handles.dyn_into::<js_sys::Array>().unwrap();
+                            let file_handles = file_handles
+                                .iter()
+                                .map(|file_handle| file_handle.dyn_into::<FileHandle>().unwrap())
+                                .collect::<Vec<_>>();
+                            file_handles
+                        } else {
+                            file_handles
+                        };
+
                         match read_multifile(&file_handles).await {
                             Ok(multifile) => {
                                 link.send_message(Msg::LoadedCodeFromDisk(multifile));
@@ -467,9 +511,19 @@ impl Component for EditorWindow {
 
                 add_action(
                     "oort-link-file",
-                    "Link to file on disk",
+                    "Link to file(s) on disk",
                     Some(
                         monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyI as u32,
+                    ),
+                );
+
+                add_action(
+                    "oort-link-directory",
+                    "Link to a directory on disk",
+                    Some(
+                        monaco::sys::KeyMod::ctrl_cmd() as u32
+                            | monaco::sys::KeyMod::shift() as u32
+                            | monaco::sys::KeyCode::KeyI as u32,
                     ),
                 );
 
