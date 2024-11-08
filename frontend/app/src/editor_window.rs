@@ -17,7 +17,10 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use web_sys::{DragEvent, Element, EventTarget, FileSystemFileEntry, HtmlInputElement};
+use web_sys::{
+    DataTransferItemList, DragEvent, Element, EventTarget, FileSystemDirectoryEntry,
+    FileSystemFileEntry, HtmlInputElement,
+};
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -157,6 +160,11 @@ impl Component for EditorWindow {
                             Err(e) => log::error!("open failed: {:?}", e),
                         };
                     });
+                } else {
+                    self.drop_target_ref
+                        .cast::<Element>()
+                        .unwrap()
+                        .set_class_name("drop_target");
                 }
                 false
             }
@@ -312,20 +320,35 @@ impl Component for EditorWindow {
                 false
             }
             Msg::Drop(e) => {
-                // TODO support multiple files
                 self.drop_target_ref
                     .cast::<Element>()
                     .unwrap()
                     .set_class_name("drop_target display_none");
                 e.prevent_default();
+                let mut files = vec![];
+                let mut directory = None;
                 if let Some(data_transfer) = e.data_transfer() {
-                    if let Some(entry) = data_transfer.items().get(0) {
-                        if let Ok(Some(file_entry)) = entry.webkit_get_as_entry() {
-                            let file_entry = file_entry.unchecked_into::<FileSystemFileEntry>();
-                            context
-                                .link()
-                                .send_message(Msg::LinkedFiles(vec![FileHandle::new(file_entry)]));
+                    let items: DataTransferItemList = data_transfer.items();
+                    let n = items.length();
+                    for i in 0..n {
+                        if let Some(entry) = items.get(i) {
+                            if let Ok(Some(entry)) = entry.webkit_get_as_entry() {
+                                if entry.is_file() {
+                                    let file_entry = entry.unchecked_into::<FileSystemFileEntry>();
+                                    files.push(FileHandle::new(file_entry));
+                                } else {
+                                    let directory_entry =
+                                        entry.unchecked_into::<FileSystemDirectoryEntry>();
+                                    directory = Some(DirectoryHandle::new(directory_entry));
+                                }
+                            }
                         }
+                    }
+
+                    if !files.is_empty() {
+                        context.link().send_message(Msg::LinkedFiles(files));
+                    } else if let Some(directory) = directory {
+                        context.link().send_message(Msg::LinkedDirectory(directory));
                     }
                 }
                 false

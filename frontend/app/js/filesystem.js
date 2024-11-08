@@ -53,9 +53,17 @@ export class DirectoryHandle {
 
   async getFiles() {
     let files = [];
-    for await (let entry of this._handle.values()) {
-      if (entry.kind === "file") {
+    if ("createReader" in this._handle) {
+      let reader = this._handle.createReader();
+      let entries = await new Promise((resolve) => reader.readEntries(resolve));
+      entries.forEach((entry) => {
         files.push(new FileHandle(entry));
+      });
+    } else {
+      for await (let entry of this._handle.values()) {
+        if (entry.kind === "file") {
+          files.push(new FileHandle(entry));
+        }
       }
     }
     return files;

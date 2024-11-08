@@ -75,6 +75,7 @@ features = [
   'DomRect',
   'Navigator',
   'FileSystemFileEntry',
+  'FileSystemDirectoryEntry',
   'DataTransfer',
   'DataTransferItem',
   'DataTransferItemList',

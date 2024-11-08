@@ -1,6 +1,6 @@
 pub mod filesystem {
     use wasm_bindgen::prelude::*;
-    use web_sys::FileSystemFileEntry;
+    use web_sys::{FileSystemDirectoryEntry, FileSystemFileEntry};
 
     #[wasm_bindgen(module = "/js/filesystem.js")]
     extern "C" {
@@ -23,6 +23,9 @@ pub mod filesystem {
         #[wasm_bindgen]
         #[derive(Debug, Clone)]
         pub type DirectoryHandle;
+
+        #[wasm_bindgen(constructor)]
+        pub fn new(handle: FileSystemDirectoryEntry) -> DirectoryHandle;
 
         #[wasm_bindgen(method)]
         pub async fn getFiles(this: &DirectoryHandle) -> JsValue;
