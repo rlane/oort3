@@ -76,6 +76,7 @@ pub struct EditorWindowProps {
     pub editor_link: CodeEditorLink,
     pub on_editor_action: Callback<String>,
     pub team: usize,
+    pub scenario: String,
 }
 
 pub struct EditorWindow {
@@ -227,7 +228,12 @@ impl Component for EditorWindow {
                         .as_ref()
                         .is_some_and(|x| multifile.filenames.contains(x));
                     if reset_main {
-                        linked_files.main_filename = multifile.filenames.first().cloned();
+                        let guess = format!("{}.rs", context.props().scenario);
+                        if multifile.filenames.contains(&guess) {
+                            linked_files.main_filename = Some(guess);
+                        } else {
+                            linked_files.main_filename = multifile.filenames.first().cloned();
+                        }
                     }
                     assert!(linked_files.main_filename.is_some());
                     let text = multifile
