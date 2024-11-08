@@ -543,7 +543,7 @@ impl Component for EditorWindow {
                     "oort-link-file",
                     "Link to file(s) on disk",
                     Some(
-                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyI as u32,
+                        monaco::sys::KeyMod::ctrl_cmd() as u32 | monaco::sys::KeyCode::KeyY as u32,
                     ),
                 );
 
@@ -553,7 +553,7 @@ impl Component for EditorWindow {
                     Some(
                         monaco::sys::KeyMod::ctrl_cmd() as u32
                             | monaco::sys::KeyMod::shift() as u32
-                            | monaco::sys::KeyCode::KeyI as u32,
+                            | monaco::sys::KeyCode::KeyY as u32,
                     ),
                 );
 
