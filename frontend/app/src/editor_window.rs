@@ -376,9 +376,12 @@ impl Component for EditorWindow {
             html! {}
         };
         let show_multifile_selector = self.linked_files.is_some();
-        let relink_cb = context
+        let relink_files_cb = context
             .link()
             .callback(|_| Msg::EditorAction("oort-link-file".to_string()));
+        let relink_directory_cb = context
+            .link()
+            .callback(|_| Msg::EditorAction("oort-link-directory".to_string()));
         let unlink_cb = context.link().callback(|_| Msg::UnlinkedFiles);
 
         create_portal(
@@ -386,9 +389,13 @@ impl Component for EditorWindow {
                 <>
                     <div class="multifile_select" hidden={!show_multifile_selector}>
                         <p>
-                            { "This editor is linked to files on disk. Select the Ship implementation below, " }
-                            <a href="#" onclick={relink_cb}>{ "link to different files" }</a>{ ", or " }
-                            <a href="#" onclick={unlink_cb}>{ "unlink" }</a>{ "." }
+                            { "This editor is linked to files on disk. Select the Ship implementation below, link to different " }
+                            <a href="#" onclick={relink_files_cb}>{ "files" }</a>
+                            { ", " }
+                            <a href="#" onclick={relink_directory_cb}>{ "directory" }</a>
+                            { ", or " }
+                            <a href="#" onclick={unlink_cb}>{ "unlink" }</a>
+                            { "." }
                         </p>
                         {multifile_select}
                     </div>
