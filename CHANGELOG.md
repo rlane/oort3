@@ -1,3 +1,6 @@
+- Added the ability to link the editor to multiple files or a directory.
+- Changed the link-to-file shortcut to Ctrl-Y.
+
 ### 0.79.3 - 2024-04-18
 
 - Fixed crashes related to the welcome window.
