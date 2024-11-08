@@ -132,41 +132,40 @@ impl ParallelCompiler {
 }
 
 pub fn read_filesystem(path: &str) -> anyhow::Result<String> {
-    let mut pathbuf = PathBuf::from(path);
-    let mut metadata = std::fs::metadata(&pathbuf)
+    let pathbuf = PathBuf::from(path);
+    let metadata = std::fs::metadata(&pathbuf)
         .map_err(|e| anyhow::anyhow!("Failed to read {:?}: {:?}", pathbuf, e.to_string()))?;
-    if metadata.is_dir() {
-        if let Ok(src_metadata) = std::fs::metadata(pathbuf.join("src")) {
-            pathbuf.push("src");
-            metadata = src_metadata;
-        }
+
+    if !metadata.is_file() {
+        anyhow::bail!("Not a file: {:?}", path);
     }
 
-    if metadata.is_file() {
-        Ok(std::fs::read_to_string(&pathbuf)?)
-    } else if metadata.is_dir() {
-        let mut files = HashMap::new();
-        for entry in std::fs::read_dir(&pathbuf)? {
-            let entry = entry?;
-            let path = entry.path();
-            let extension = path.extension().unwrap_or_default();
-            let stem = path.file_stem().unwrap_or_default().to_string_lossy();
-            if path.is_file()
-                && extension == "rs"
-                && !stem.starts_with('.')
-                && !stem.ends_with("test")
-            {
-                log::info!("Reading {:?}", path);
-                files.insert(
-                    path.file_name().unwrap().to_string_lossy().to_string(),
-                    std::fs::read_to_string(path)?,
-                );
-            }
-        }
-        let multifile = oort_multifile::join(files)?;
-        let main_filename = multifile.filenames.first().unwrap();
-        multifile.finalize(main_filename)
-    } else {
-        anyhow::bail!("Not a file or directory: {:?}", path);
+    let mut lib_path = pathbuf.clone();
+    lib_path.pop();
+    lib_path.push("lib.rs");
+    if !lib_path.exists() {
+        return Ok(std::fs::read_to_string(&pathbuf)?);
     }
+
+    let mut dir_path = pathbuf.clone();
+    dir_path.pop();
+
+    let mut files = HashMap::new();
+    for entry in std::fs::read_dir(&dir_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        let extension = path.extension().unwrap_or_default();
+        let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+        if path.is_file() && extension == "rs" && !stem.starts_with('.') && !stem.ends_with("test")
+        {
+            log::info!("Reading {:?}", path);
+            files.insert(
+                path.file_name().unwrap().to_string_lossy().to_string(),
+                std::fs::read_to_string(path)?,
+            );
+        }
+    }
+    let multifile = oort_multifile::join(files)?;
+    let main_filename = pathbuf.file_name().unwrap().to_string_lossy().to_string();
+    multifile.finalize(&main_filename)
 }
