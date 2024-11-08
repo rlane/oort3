@@ -1,6 +1,6 @@
 [package]
 name = "oort-bundler"
-version = "0.79.3"
+version = "0.80.0"
 edition = "2021"
 
 [dependencies]
