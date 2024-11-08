@@ -40,9 +40,9 @@ async fn run(project_id: &str, dry_run: bool) -> anyhow::Result<()> {
     for doc in &docs {
         if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(doc) {
             map.entry(msg.scenario_name.clone())
-                .or_insert(HashMap::new())
+                .or_default()
                 .entry(msg.username.clone())
-                .or_insert(Vec::new())
+                .or_default()
                 .push((doc.name.clone(), msg));
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);
