@@ -414,7 +414,7 @@ impl Component for EditorWindow {
                         <p>
                             { "This editor is linked to files on disk. Select the Ship implementation below, link to different " }
                             <a href="#" onclick={relink_files_cb}>{ "files" }</a>
-                            { ", " }
+                            { ", another " }
                             <a href="#" onclick={relink_directory_cb}>{ "directory" }</a>
                             { ", or " }
                             <a href="#" onclick={unlink_cb}>{ "unlink" }</a>
@@ -443,7 +443,7 @@ impl Component for EditorWindow {
                     <form>
                         <div class="drop_target display_none" ref={self.drop_target_ref.clone()}>
                             <span for="file" ondrop={context.link().callback(Msg::Drop)}>
-                                { "Drop file here " }
+                                { "Drop files or a directory here " }
                             </span>
                             <input type="file" ondrop={context.link().callback(Msg::Drop)} />
                             <button onclick={context.link().callback(Msg::CancelDrop)}>{ "cancel" }</button>
