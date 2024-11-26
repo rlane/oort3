@@ -3,6 +3,8 @@ use oort_simulator::simulation::Code;
 use oort_simulator::{scenario, simulation};
 use oort_tools::AI;
 use rayon::prelude::*;
+use serde::Serialize;
+use serde_json::json;
 use std::default::Default;
 use std::path::PathBuf;
 
@@ -23,6 +25,9 @@ struct Arguments {
 
     #[clap(long)]
     local_compiler: bool,
+
+    #[clap(short, long, help = "Output results in JSON format")]
+    json: bool,
 }
 
 #[tokio::main]
@@ -73,6 +78,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         })
         .collect::<Vec<_>>();
 
+    if args.json {
+        let res = results_per_opponent
+            .iter()
+            .map(|(p, r)| json!({
+                "opponent": p.name,
+                "wins": r.team0_wins,
+                "losses": r.team1_wins,
+                "draws": r.draws,
+                "times": r.times,
+                "average_time": r.times.iter().sum::<f64>() / r.times.len() as f64,
+            }))
+            .collect::<Vec<_>>();
+        serde_json::to_writer(std::io::stdout(), &res)?;
+        return Ok(());
+    }
     for (player1, results) in results_per_opponent {
         let n = 10;
         println!("{} vs {}:", player0.name, player1.name);
@@ -108,7 +128,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Serialize)]
 struct Results {
     team0_wins: Vec<u32>,
     team1_wins: Vec<u32>,
