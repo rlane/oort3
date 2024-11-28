@@ -41,7 +41,7 @@ pub struct UI {
     paused: bool,
     slowmo: bool,
     keys_down: std::collections::HashSet<String>,
-    keys_ignored: std::collections::HashSet<String>,
+    keys_pressed: std::collections::HashSet<String>,
     frame: u64,
     start_time: instant::Instant,
     last_render_time: instant::Instant,
@@ -93,7 +93,7 @@ impl UI {
         let single_steps = 0;
 
         let keys_down = std::collections::HashSet::<String>::new();
-        let keys_ignored = std::collections::HashSet::<String>::new();
+        let keys_pressed = std::collections::HashSet::<String>::new();
 
         let debug = setting::read("debug", false);
         renderer.set_debug(debug);
@@ -118,7 +118,7 @@ impl UI {
             paused,
             slowmo: false,
             keys_down,
-            keys_ignored,
+            keys_pressed,
             frame: 0,
             start_time: instant::Instant::now(),
             last_render_time: instant::Instant::now(),
@@ -162,78 +162,75 @@ impl UI {
         let was_slowmo = self.slowmo;
 
         let camera_step = 0.01 / self.zoom;
-        if self.keys_down.contains("w") {
+        if self.keys_down.contains("KeyW") {
             self.camera_offset.y += camera_step;
         }
-        if self.keys_down.contains("s") {
+        if self.keys_down.contains("KeyS") {
             self.camera_offset.y -= camera_step;
         }
-        if self.keys_down.contains("a") {
+        if self.keys_down.contains("KeyA") {
             self.camera_offset.x -= camera_step;
         }
-        if self.keys_down.contains("d") {
+        if self.keys_down.contains("KeyD") {
             self.camera_offset.x += camera_step;
         }
-        if self.keys_down.contains("z") && self.zoom > MIN_ZOOM {
+        if self.keys_down.contains("KeyZ") && self.zoom > MIN_ZOOM {
             self.zoom /= 1.0 + ZOOM_SPEED;
         }
-        if self.keys_down.contains("x") && self.zoom < MAX_ZOOM {
+        if self.keys_down.contains("KeyX") && self.zoom < MAX_ZOOM {
             self.zoom *= 1.0 + ZOOM_SPEED;
         }
-        if self.keys_down.contains(" ") && !self.keys_ignored.contains(" ") {
-            self.keys_ignored.insert(" ".to_string());
+        if self.keys_pressed.contains("Space") {
             self.paused = !self.paused;
             self.single_steps = 0;
         }
-        if self.keys_down.contains("n") && !self.keys_ignored.contains("n") {
-            self.keys_ignored.insert("n".to_string());
+        if self.keys_pressed.contains("KeyN") {
             self.paused = true;
             self.single_steps += 1;
         }
 
-        // Docs for key strings: https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
-        let ctrl_cmd = if is_mac() { "Meta" } else { "Control" };
-        let execute_set = vec![ctrl_cmd, "Enter"];
-        let replay_set = vec![ctrl_cmd, "Shift", "Enter"];
-        let replay_paused_set = vec![ctrl_cmd, "Alt", "Enter"];
-        if self.match_key_set(&replay_paused_set) {
-            self.on_key_set_match(replay_paused_set, |ui| {
-                ui.on_editor_action.emit(EditorAction::ReplayPaused)
-            });
-        } else if self.match_key_set(&replay_set) {
-            self.on_key_set_match(replay_set, |ui| {
-                ui.on_editor_action.emit(EditorAction::Replay)
-            });
-        } else if self.match_key_set(&execute_set) {
-            self.on_key_set_match(execute_set, |ui| {
-                ui.on_editor_action.emit(EditorAction::Execute)
-            });
+        if is_mac() {
+            if self.keys_pressed.contains("Meta-Enter") {
+                self.on_editor_action.emit(EditorAction::Execute)
+            }
+            if self.keys_pressed.contains("Meta-Shift-Enter") {
+                self.on_editor_action.emit(EditorAction::Replay)
+            }
+            if self.keys_pressed.contains("Meta-Alt-Enter") {
+                self.on_editor_action.emit(EditorAction::ReplayPaused)
+            }
+        } else {
+            if self.keys_pressed.contains("Ctrl-Enter") {
+                self.on_editor_action.emit(EditorAction::Execute)
+            }
+            if self.keys_pressed.contains("Ctrl-Shift-Enter") {
+                self.on_editor_action.emit(EditorAction::Replay)
+            }
+            if self.keys_pressed.contains("Ctrl-Alt-Enter") {
+                self.on_editor_action.emit(EditorAction::ReplayPaused)
+            }
         }
 
-        if self.keys_down.contains("g") && !self.keys_ignored.contains("g") {
-            self.keys_ignored.insert("g".to_string());
+        if self.keys_pressed.contains("KeyG") {
             self.debug = !self.debug;
             self.renderer.set_debug(self.debug);
             setting::write("debug", &self.debug);
         }
-        if self.keys_down.contains("q") {
+        if self.keys_pressed.contains("KeyQ") {
             self.set_status_message("EXITED");
             self.quit = true;
         }
-        let fast_forward = self.keys_down.contains("f");
-        self.slowmo = self.keys_down.contains("m");
-        if self.keys_down.contains("b") && !self.keys_ignored.contains("b") {
-            self.keys_ignored.insert("b".to_string());
+        let fast_forward = self.keys_down.contains("KeyF");
+        self.slowmo = self.keys_down.contains("KeyM");
+        if self.keys_pressed.contains("KeyB") {
             self.renderer.set_blur(!self.renderer.get_blur());
             setting::write("blur", &self.renderer.get_blur());
         }
-        if self.keys_down.contains("v") && !self.keys_ignored.contains("v") {
-            self.keys_ignored.insert("v".to_string());
+        if self.keys_pressed.contains("KeyV") {
             self.renderer.set_nlips(!self.renderer.get_nlips());
             setting::write("nlips", &self.renderer.get_nlips());
         }
-        if self.keys_down.contains("c") && !self.keys_ignored.contains("c") {
-            self.keys_ignored.insert("c".to_string());
+        if self.keys_pressed.contains("KeyC") {
             self.chasing_ship_id = match self.chasing_ship_id {
                 Some(_) => None,
                 None => self.picked_ship_id,
@@ -368,28 +365,8 @@ impl UI {
 
         self.frame_timer
             .end((instant::Instant::now() - self.start_time).as_millis() as f64);
-    }
 
-    fn match_key_set(&mut self, set: &[&str]) -> bool {
-        let does_match = set.iter().all(|key| self.keys_down.contains(*key));
-        let not_ignored = set.iter().all(|key| !self.keys_ignored.contains(*key));
-
-        does_match && not_ignored
-    }
-
-    fn on_key_set_match<F>(&mut self, set: Vec<&str>, callback: F)
-    where
-        F: Fn(&mut Self),
-    {
-        if self.match_key_set(&set) {
-            callback(self);
-
-            // Avoid retriggering hotkey over multiple frames
-            // Keys will be removed from keys_ignored when they are released
-            for key in set {
-                self.keys_ignored.insert(key.to_string());
-            }
-        }
+        self.keys_pressed.clear();
     }
 
     pub fn on_snapshot(&mut self, snapshot: Snapshot) {
@@ -494,10 +471,24 @@ impl UI {
 
     pub fn on_key_event(&mut self, e: web_sys::KeyboardEvent) {
         if e.type_() == "keydown" {
-            self.keys_down.insert(e.key());
+            self.keys_down.insert(e.code());
+
+            let mut pressed_key: String = e.code().to_string();
+            if e.shift_key() {
+                pressed_key.insert_str(0, "Shift-");
+            }
+            if e.meta_key() {
+                pressed_key.insert_str(0, "Meta-");
+            }
+            if e.alt_key() {
+                pressed_key.insert_str(0, "Alt-");
+            }
+            if e.ctrl_key() {
+                pressed_key.insert_str(0, "Ctrl-");
+            }
+            self.keys_pressed.insert(pressed_key);
         } else if e.type_() == "keyup" {
-            self.keys_down.remove(&e.key());
-            self.keys_ignored.remove(&e.key());
+            self.keys_down.remove(&e.code());
         }
         self.needs_render = true;
     }
@@ -684,6 +675,7 @@ impl UI {
         self.needs_render
             || !(self.paused || self.status != Status::Running)
             || !self.keys_down.is_empty()
+            || !self.keys_pressed.is_empty()
     }
 
     pub fn camera_target(&self) -> Point2<f32> {
