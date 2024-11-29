@@ -32,7 +32,10 @@ impl Scenario for TutorialSearch {
         }
         {
             let position = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_point(&point![rng.gen_range(6000.0..8000.0), 0.0]);
+                .transform_point(&point![
+                    rng.gen_range((self.world_size() * 0.3)..(self.world_size() * 0.35)),
+                    0.0
+                ]);
             ship::create(
                 sim,
                 position.coords,
@@ -44,7 +47,7 @@ impl Scenario for TutorialSearch {
     }
 
     fn status(&self, sim: &Simulation) -> Status {
-        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 3)
+        check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 4)
     }
 
     fn initial_code(&self) -> Vec<Code> {
@@ -64,5 +67,9 @@ impl Scenario for TutorialSearch {
 
     fn previous_names(&self) -> Vec<String> {
         vec!["tutorial08".into()]
+    }
+
+    fn world_size(&self) -> f64 {
+        80e3
     }
 }

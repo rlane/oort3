@@ -1,3 +1,5 @@
+- Increased enemy distance in tutorial_search.
+
 ### 0.80.0 - 2024-11-08
 
 - Added the ability to link the editor to multiple files or a directory.
