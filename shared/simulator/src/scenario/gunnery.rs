@@ -47,6 +47,10 @@ impl Scenario for GunneryScenario {
         check_tutorial_victory(sim, DEFAULT_TUTORIAL_MAX_TICKS * 2)
     }
 
+    fn initial_code(&self) -> Vec<Code> {
+        vec![builtin("challenge/gunnery_initial")]
+    }
+
     fn solution(&self) -> Code {
         builtin("challenge/gunnery_solution")
     }

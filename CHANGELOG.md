@@ -1,4 +1,5 @@
 - Increased enemy distance in tutorial_search.
+- Added comments to challenge mission initial code.
 
 ### 0.80.0 - 2024-11-08
 

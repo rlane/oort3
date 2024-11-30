@@ -73,7 +73,10 @@ impl Scenario for CruiserDefense {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![empty_ai(), builtin("tutorial/tutorial_cruiser_enemy")]
+        vec![
+            builtin("challenge/cruiser_defense_initial"),
+            builtin("tutorial/tutorial_cruiser_enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {

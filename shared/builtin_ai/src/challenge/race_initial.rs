@@ -1,3 +1,5 @@
+// Challenge: Race
+// Fly through the three target positions. These are advertised on radio channels 0, 1, and 2.
 use oort_api::prelude::*;
 
 pub struct Ship {

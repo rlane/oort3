@@ -157,7 +157,10 @@ impl Scenario for PlanetaryDefense {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![empty_ai(), builtin("challenge/planetary_defense_enemy")]
+        vec![
+            builtin("challenge/planetary_defense_initial"),
+            builtin("challenge/planetary_defense_enemy"),
+        ]
     }
 
     fn solution(&self) -> Code {
