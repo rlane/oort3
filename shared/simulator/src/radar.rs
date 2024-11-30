@@ -112,6 +112,7 @@ struct RadarEmitter {
     reliable_rssi: f64,
     min_rssi: f64,
     team: i32,
+    radar_idx: usize,
     rays: [Vector2<f64>; 2],
 }
 
@@ -123,7 +124,7 @@ struct RadarReflector {
     radar_cross_section: f64,
     radius: f64,
     class: ShipClass,
-    jammer: Option<RadarJammer>,
+    jammers: Vec<RadarJammer>,
 }
 
 #[derive(Clone)]
@@ -186,10 +187,11 @@ fn build_reflectors(sim: &Simulation) -> Reflectors {
         if class == ShipClass::Planet {
             continue;
         }
-        let jammer = ship_data
-            .radar
-            .as_ref()
-            .and_then(|radar| match radar.ecm_mode {
+        // TODO: Add support for multiple radars.
+        let jammers = ship_data
+            .radars
+            .iter()
+            .filter_map(|radar| match radar.ecm_mode {
                 EcmMode::None => None,
                 _ => Some(RadarJammer {
                     width: radar.width,
@@ -197,7 +199,8 @@ fn build_reflectors(sim: &Simulation) -> Reflectors {
                     power: radar.power,
                     ecm_mode: radar.ecm_mode,
                 }),
-            });
+            })
+            .collect();
         let group_key = ReflectorGroupKey {
             team: ship_data.team,
             radius: ship_data.radar_radius,
@@ -212,7 +215,7 @@ fn build_reflectors(sim: &Simulation) -> Reflectors {
                 radar_cross_section,
                 radius: ship_data.radar_radius as f64,
                 class,
-                jammer,
+                jammers,
             });
     }
 
@@ -264,56 +267,60 @@ pub fn tick(sim: &mut Simulation) {
     let mut reflector_shapes = HashMap::new();
 
     for handle in handle_snapshot.iter().cloned() {
-        let ship = sim.ship(handle);
-        let ship_data = ship.data();
+        let radars_idxs = 0..sim.ship(handle).data().radars.len();
+        for radar_idx in radars_idxs {
+            let mut emitter;
+            let reliable_distance;
+            {
+                let ship = sim.ship(handle);
+                let ship_data = ship.data();
+                let radar = ship_data.radars.get(radar_idx).unwrap();
+                let h = radar.heading;
+                let w = radar.width;
+                assert!(w < TAU / 2.0);
+                let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
+                    .min(radar.max_distance)
+                    .min(simulation::MAX_WORLD_SIZE);
+                let min_distance = radar.min_distance.min(max_distance);
+                reliable_distance = compute_reliable_detection_range(radar, 10.0 /*fighter*/)
+                    .min(radar.max_distance)
+                    .min(simulation::MAX_WORLD_SIZE);
 
-        if let Some(radar) = ship_data.radar.as_ref() {
-            let h = radar.heading;
-            let w = radar.width;
-            assert!(w < TAU / 2.0);
-            let max_distance = compute_max_detection_range(radar, 40.0 /*cruiser*/)
-                .min(radar.max_distance)
-                .min(simulation::MAX_WORLD_SIZE);
-            let min_distance = radar.min_distance.min(max_distance);
-            let reliable_distance = compute_reliable_detection_range(radar, 10.0 /*fighter*/)
-                .min(radar.max_distance)
-                .min(simulation::MAX_WORLD_SIZE);
+                let start_bearing = h - 0.5 * w;
+                let end_bearing = h + 0.5 * w;
+                let ray0 = Rotation2::new(start_bearing).transform_vector(&vector![1.0, 0.0]);
+                let ray1 = Rotation2::new(end_bearing).transform_vector(&vector![1.0, 0.0]);
+                assert!(is_clockwise(ray1, ray0));
+                let rays = [ray0, ray1];
+                emitter = RadarEmitter {
+                    handle,
+                    team: ship_data.team,
+                    radar_idx,
+                    center: ship.position().vector.into(),
+                    power: radar.power,
+                    reliable_rssi: radar.reliable_rssi,
+                    min_rssi: radar.min_rssi,
+                    rx_cross_section: radar.rx_cross_section,
+                    width: w,
+                    start_bearing,
+                    bearing: h,
+                    bearing_vector: Rotation2::new(h).transform_vector(&vector![1.0, 0.0]),
+                    end_bearing,
+                    min_distance,
+                    max_distance,
+                    square_distance_range: ComplexField::powi(radar.min_distance, 2)
+                        ..ComplexField::powi(max_distance, 2),
+                    rays,
+                };
 
-            let start_bearing = h - 0.5 * w;
-            let end_bearing = h + 0.5 * w;
-            let ray0 = Rotation2::new(start_bearing).transform_vector(&vector![1.0, 0.0]);
-            let ray1 = Rotation2::new(end_bearing).transform_vector(&vector![1.0, 0.0]);
-            assert!(is_clockwise(ray1, ray0));
-            let rays = [ray0, ray1];
-            let mut emitter = RadarEmitter {
-                handle,
-                team: ship_data.team,
-                center: ship.position().vector.into(),
-                power: radar.power,
-                reliable_rssi: radar.reliable_rssi,
-                min_rssi: radar.min_rssi,
-                rx_cross_section: radar.rx_cross_section,
-                width: w,
-                start_bearing,
-                bearing: h,
-                bearing_vector: Rotation2::new(h).transform_vector(&vector![1.0, 0.0]),
-                end_bearing,
-                min_distance,
-                max_distance,
-                square_distance_range: ComplexField::powi(radar.min_distance, 2)
-                    ..ComplexField::powi(max_distance, 2),
-                rays,
-            };
-
-            if radar.ecm_mode != EcmMode::None {
-                {
-                    let mut ship = sim.ship_mut(emitter.handle);
+                if radar.ecm_mode != EcmMode::None {
+                    let mut ship = sim.ship_mut(handle);
                     let ship_data = ship.data_mut();
-                    let radar = ship_data.radar.as_mut().unwrap();
+                    let radar = ship_data.radars.get_mut(radar_idx).unwrap();
                     radar.result = None;
+                    draw_emitter(sim, &emitter, reliable_distance);
+                    continue;
                 }
-                draw_emitter(sim, &emitter, reliable_distance);
-                continue;
             }
 
             let mut rng = rng::new_rng(sim.tick());
@@ -338,7 +345,7 @@ pub fn tick(sim: &mut Simulation) {
             let emitter_isometry = Isometry::new(emitter.center.coords, emitter.bearing);
 
             for reflector in candidates.iter() {
-                if let Some(jammer) = reflector.jammer.as_ref() {
+                for jammer in &reflector.jammers {
                     match jammer.ecm_mode {
                         EcmMode::None => {}
                         EcmMode::Noise => {
@@ -454,7 +461,7 @@ pub fn tick(sim: &mut Simulation) {
             {
                 let mut ship = sim.ship_mut(emitter.handle);
                 let ship_data = ship.data_mut();
-                let radar = ship_data.radar.as_mut().unwrap();
+                let radar = ship_data.radars.get_mut(emitter.radar_idx).unwrap();
                 radar.result = result;
             }
 
@@ -781,44 +788,44 @@ mod test {
             ship::target(1),
         );
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
         // Explicit heading and width.
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 6.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
         // Just outside of sector (clockwise).
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = TAU / 12.0 + EPSILON;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading = TAU / 12.0 + EPSILON;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 6.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_none());
 
         // Just inside of sector (clockwise).
-        sim.ship_mut(ship0).radar_mut().unwrap().heading -= 2.0 * EPSILON;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading -= 2.0 * EPSILON;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
         // Just outside of sector (counter-clockwise).
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = -TAU / 12.0 - EPSILON;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading = -TAU / 12.0 - EPSILON;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 6.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_none());
 
         // Just inside of sector (counter-clockwise).
-        sim.ship_mut(ship0).radar_mut().unwrap().heading += 2.0 * EPSILON;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading += 2.0 * EPSILON;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
         // Out of range.
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 6.0;
         sim.ship_mut(ship1)
             .body()
             .set_translation(vector![1e6, 0.0], true);
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_none());
     }
 
     #[test]
@@ -845,19 +852,19 @@ mod test {
         );
 
         // Pointing at center of target
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 6.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
         // Pointing at target but not at center
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.001 + TAU / 12.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.001 + TAU / 12.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
         // Not pointing at target
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = TAU / 4.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading = TAU / 4.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_none());
     }
 
     #[test]
@@ -883,9 +890,9 @@ mod test {
             },
         );
 
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 3600.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 3600.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_none());
     }
 
     #[test]
@@ -908,22 +915,22 @@ mod test {
             ship::target(1),
         );
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
-        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 900.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 1100.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().min_distance = 900.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().max_distance = 1100.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
 
-        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 1050.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 1100.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().min_distance = 1050.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().max_distance = 1100.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_none());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_none());
 
-        sim.ship_mut(ship0).radar_mut().unwrap().min_distance = 985.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().max_distance = 995.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().min_distance = 985.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().max_distance = 995.0;
         sim.step();
-        assert!(sim.ship(ship0).radar().unwrap().result.is_some());
+        assert!(sim.ship(ship0).radar(0).unwrap().result.is_some());
     }
 
     #[test]
@@ -954,13 +961,13 @@ mod test {
                 0.0,
                 class_to_ship_data(reflector_class, 1),
             );
-            sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-            sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 360.0;
+            sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.0;
+            sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 360.0;
 
             (0..100)
                 .map(|_| {
                     sim.step();
-                    sim.ship(ship0).radar().unwrap().result.is_some()
+                    sim.ship(ship0).radar(0).unwrap().result.is_some()
                 })
                 .filter(|x| *x)
                 .count()
@@ -998,15 +1005,15 @@ mod test {
                 0.0,
                 ship::fighter(1),
             );
-            sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-            sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 360.0;
-            sim.ship_mut(ship1).radar_mut().unwrap().heading = PI;
-            sim.ship_mut(ship1).radar_mut().unwrap().width = TAU / 360.0;
-            sim.ship_mut(ship1).radar_mut().unwrap().ecm_mode = EcmMode::Noise;
+            sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.0;
+            sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 360.0;
+            sim.ship_mut(ship1).radar_mut(0).unwrap().heading = PI;
+            sim.ship_mut(ship1).radar_mut(0).unwrap().width = TAU / 360.0;
+            sim.ship_mut(ship1).radar_mut(0).unwrap().ecm_mode = EcmMode::Noise;
             (0..10)
                 .map(|_| {
                     sim.step();
-                    sim.ship(ship0).radar().unwrap().result.is_some()
+                    sim.ship(ship0).radar(0).unwrap().result.is_some()
                 })
                 .filter(|x| *x)
                 .count()
@@ -1015,6 +1022,97 @@ mod test {
 
         assert!(check_detection(50e3));
         assert!(!check_detection(70e3));
+    }
+
+    #[test]
+    fn test_multiple_radars() {
+        let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+
+        let ship0 = ship::create(
+            &mut sim,
+            vector![0.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(0),
+        );
+
+        let _ship1 = ship::create(
+            &mut sim,
+            vector![1000.0, 0.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(1),
+        );
+
+        let _ship2 = ship::create(
+            &mut sim,
+            vector![0.0, 1000.0],
+            vector![0.0, 0.0],
+            0.0,
+            ship::fighter(1),
+        );
+
+        {
+            let mut ship0 = sim.ship_mut(ship0);
+            let radars = &mut ship0.data_mut().radars;
+            radars.push(radars[0].clone());
+            radars[0].heading = 0.0;
+            radars[1].heading = PI / 2.0;
+        }
+
+        sim.step();
+
+        {
+            let result = sim.ship(ship0).radar(0).unwrap().result.unwrap();
+            approx::assert_abs_diff_eq!(result.position, vector![1000.0, 0.0], epsilon = 10.0);
+        }
+
+        {
+            let result = sim.ship(ship0).radar(1).unwrap().result.unwrap();
+            approx::assert_abs_diff_eq!(result.position, vector![0.0, 1000.0], epsilon = 10.0);
+        }
+    }
+
+    #[test]
+    fn test_multiple_radar_jamming() {
+        let check_detection = |range| {
+            let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
+            let ship0 = ship::create(
+                &mut sim,
+                vector![0.0, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                ship::fighter(0),
+            );
+            let ship1 = ship::create(
+                &mut sim,
+                vector![range, 0.0],
+                vector![0.0, 0.0],
+                0.0,
+                ship::fighter(1),
+            );
+            sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.0;
+            sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 360.0;
+            sim.ship_mut(ship1).radar_mut(0).unwrap().heading = PI;
+            sim.ship_mut(ship1).radar_mut(0).unwrap().width = TAU / 360.0;
+            sim.ship_mut(ship1).radar_mut(0).unwrap().ecm_mode = EcmMode::Noise;
+            {
+                let mut ship1 = sim.ship_mut(ship1);
+                let radars = &mut ship1.data_mut().radars;
+                radars.push(radars[0].clone());
+            }
+            (0..10)
+                .map(|_| {
+                    sim.step();
+                    sim.ship(ship0).radar(0).unwrap().result.is_some()
+                })
+                .filter(|x| *x)
+                .count()
+                > 6
+        };
+
+        assert!(check_detection(40e3));
+        assert!(!check_detection(50e3));
     }
 
     #[test]
@@ -1041,14 +1139,14 @@ mod test {
         );
 
         // Explicit heading and width.
-        sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-        sim.ship_mut(ship0).radar_mut().unwrap().width = TAU / 6.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.0;
+        sim.ship_mut(ship0).radar_mut(0).unwrap().width = TAU / 6.0;
 
         // Ship starts with a velocity, so we expect it to be TICK_LENGTH * velocity * 1 away from
         // its origin after the first step
         sim.step();
 
-        let scan_result = sim.ship(ship0).radar().unwrap().result;
+        let scan_result = sim.ship(ship0).radar(0).unwrap().result;
         let ship1_radar_scan_pos_first = scan_result.unwrap().position;
         let num_ticks = 1.0;
         let predicted_distance_given_velocity = TICK_LENGTH * 10.0 * num_ticks;
@@ -1061,7 +1159,7 @@ mod test {
         sim.step();
 
         // We expect scan to get us the new position of ship1
-        let scan_result = sim.ship(ship0).radar().unwrap().result;
+        let scan_result = sim.ship(ship0).radar(0).unwrap().result;
         let ship1_radar_scan_pos_second = scan_result.unwrap().position;
         let num_ticks = 2.0;
         let predicted_distance_given_velocity = TICK_LENGTH * 10.0 * num_ticks;
@@ -1108,14 +1206,14 @@ mod test {
 
             let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], 0.0, ship::fighter(0));
             let ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));
-            sim.ship_mut(ship0).radar_mut().unwrap().heading = h;
-            sim.ship_mut(ship0).radar_mut().unwrap().width = w;
+            sim.ship_mut(ship0).radar_mut(0).unwrap().heading = h;
+            sim.ship_mut(ship0).radar_mut(0).unwrap().width = w;
             sim.step();
 
             let r = sim.ship(ship1).data().radar_radius as f64;
 
             let expected = reference(dp, h, w, r);
-            let got = sim.ship(ship0).radar().unwrap().result.is_some();
+            let got = sim.ship(ship0).radar(0).unwrap().result.is_some();
             if got != expected {
                 let expected_high = reference(dp, h, w, r * 1.05);
                 let expected_low = reference(dp, h, w, r * 0.95);

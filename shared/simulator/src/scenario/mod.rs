@@ -313,7 +313,7 @@ pub fn fighter_without_missiles(team: i32) -> ShipData {
 pub fn fighter_without_missiles_or_radar(team: i32) -> ShipData {
     let mut data = fighter(team);
     data.missile_launchers.pop();
-    data.radar = None;
+    data.radars.clear();
     data
 }
 

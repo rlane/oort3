@@ -89,7 +89,7 @@ fn test_decoy() {
 
     assert_eq!(
         sim.ship(ship0)
-            .radar()
+            .radar(0)
             .as_ref()
             .unwrap()
             .scan()

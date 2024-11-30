@@ -83,7 +83,7 @@ impl Scenario for MissileTest {
         let s = 500.0;
         let target_v: Vector2<f64> = vector![self.rng.gen_range(-s..s), self.rng.gen_range(-s..s)];
 
-        if let Some(radar) = missile_data.radar.as_mut() {
+        if let Some(radar) = missile_data.radars.get_mut(0) {
             radar.heading = target_p.angle(&vector![0.0, 0.0]);
             radar.width = TAU / 128.0;
         }

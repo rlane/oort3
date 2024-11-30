@@ -125,7 +125,8 @@ impl TeamController {
         );
         state.set(SystemState::Id, self.next_id as f64);
         self.next_id += 1;
-        if let Some(radar) = sim.ship(handle).data().radar.as_ref() {
+        // TODO: Support multiple radars
+        if let Some(radar) = sim.ship(handle).data().radars.first() {
             state.set(SystemState::RadarHeading, radar.heading);
             state.set(SystemState::RadarWidth, radar.width);
             state.set(SystemState::RadarMinDistance, radar.min_distance);
@@ -569,7 +570,8 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
         sim.ship(handle).angular_velocity(),
     );
 
-    if let Some(radar) = sim.ship_mut(handle).data_mut().radar.as_mut() {
+    // TODO: Support multiple radars
+    if let Some(radar) = sim.ship_mut(handle).data_mut().radars.get_mut(0) {
         state.set(SystemState::RadarHeading, radar.get_heading());
         state.set(SystemState::RadarWidth, radar.get_width());
         state.set(SystemState::RadarMinDistance, radar.get_min_distance());
@@ -682,7 +684,8 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         }
     }
 
-    if let Some(radar) = sim.ship_mut(handle).data_mut().radar.as_mut() {
+    // TODO: Support multiple radars
+    if let Some(radar) = sim.ship_mut(handle).data_mut().radars.get_mut(0) {
         radar.set_heading(state.get(SystemState::RadarHeading));
         radar.set_width(state.get(SystemState::RadarWidth));
         radar.set_min_distance(state.get(SystemState::RadarMinDistance));

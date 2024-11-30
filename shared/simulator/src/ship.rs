@@ -151,7 +151,7 @@ pub struct ShipData {
     pub fuel: Option<f64>,
     pub guns: Vec<Gun>,
     pub missile_launchers: Vec<MissileLauncher>,
-    pub radar: Option<Radar>,
+    pub radars: Vec<Radar>,
     pub radar_cross_section: f64,
     pub radar_radius: i32,
     pub radios: Vec<Radio>,
@@ -201,7 +201,7 @@ impl Default for ShipData {
             fuel: None,
             guns: vec![],
             missile_launchers: vec![],
-            radar: None,
+            radars: vec![],
             radar_cross_section: 10.0,
             radar_radius: 1,
             radios: vec![],
@@ -299,12 +299,12 @@ pub fn fighter(team: i32) -> ShipData {
             offset: vector![20.0, 0.0],
             angle: 0.0,
         }],
-        radar: Some(Radar {
+        radars: vec![Radar {
             power: 20e3,
             rx_cross_section: 5.0,
             min_width: TAU / 720.0,
             ..Default::default()
-        }),
+        }],
         radar_cross_section: 10.0,
         radar_radius: 10,
         radios: vec![radio(), radio()],
@@ -353,11 +353,11 @@ pub fn frigate(team: i32) -> ShipData {
             offset: vector![120.0, 0.0],
             angle: 0.0,
         }],
-        radar: Some(Radar {
+        radars: vec![Radar {
             power: 100e3,
             rx_cross_section: 10.0,
             ..Default::default()
-        }),
+        }],
         radar_cross_section: 30.0,
         radar_radius: 120,
         radios: vec![radio(), radio(), radio(), radio()],
@@ -414,11 +414,11 @@ pub fn cruiser(team: i32) -> ShipData {
                 angle: 0.0,
             },
         ],
-        radar: Some(Radar {
+        radars: vec![Radar {
             power: 200e3,
             rx_cross_section: 20.0,
             ..Default::default()
-        }),
+        }],
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
         radar_radius: 240,
         radios: vec![
@@ -478,12 +478,12 @@ pub fn missile(team: i32) -> ShipData {
         class: ShipClass::Missile,
         team,
         health: 20.0,
-        radar: Some(Radar {
+        radars: vec![Radar {
             power: 1e3,
             rx_cross_section: 3.0,
             min_width: TAU / 720.0,
             ..Default::default()
-        }),
+        }],
         radar_cross_section: 0.1,
         radar_radius: 3,
         radios: vec![radio()],
@@ -511,12 +511,12 @@ pub fn torpedo(team: i32) -> ShipData {
         class: ShipClass::Torpedo,
         team,
         health: 100.0,
-        radar: Some(Radar {
+        radars: vec![Radar {
             power: 10e3,
             rx_cross_section: 3.0,
             min_width: TAU / 720.0,
             ..Default::default()
-        }),
+        }],
         radar_cross_section: 0.3,
         radar_radius: 8,
         radios: vec![radio()],
@@ -641,8 +641,8 @@ impl<'a> ShipAccessor<'a> {
         self.simulation.ship_data.get(self.handle.index()).unwrap()
     }
 
-    pub fn radar(&self) -> Option<&Radar> {
-        self.data().radar.as_ref()
+    pub fn radar(&self, idx: usize) -> Option<&Radar> {
+        self.data().radars.get(idx)
     }
 
     pub fn radio(&self, idx: usize) -> Option<&Radio> {
@@ -713,8 +713,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             .unwrap()
     }
 
-    pub fn radar_mut(&mut self) -> Option<&mut Radar> {
-        self.data_mut().radar.as_mut()
+    pub fn radar_mut(&mut self, idx: usize) -> Option<&mut Radar> {
+        self.data_mut().radars.get_mut(idx)
     }
 
     pub fn radio_mut(&mut self, idx: usize) -> Option<&mut Radio> {

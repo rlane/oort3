@@ -54,13 +54,13 @@ fn run_simulation(
         0.0,
         class_to_ship_data(reflector_class, 1),
     );
-    sim.ship_mut(ship0).radar_mut().unwrap().heading = 0.0;
-    sim.ship_mut(ship0).radar_mut().unwrap().width = beamwidth;
+    sim.ship_mut(ship0).radar_mut(0).unwrap().heading = 0.0;
+    sim.ship_mut(ship0).radar_mut(0).unwrap().width = beamwidth;
 
     if ecm {
-        sim.ship_mut(ship1).radar_mut().unwrap().heading = PI;
-        sim.ship_mut(ship1).radar_mut().unwrap().width = TAU / 360.0;
-        sim.ship_mut(ship1).radar_mut().unwrap().ecm_mode = EcmMode::Noise;
+        sim.ship_mut(ship1).radar_mut(0).unwrap().heading = PI;
+        sim.ship_mut(ship1).radar_mut(0).unwrap().width = TAU / 360.0;
+        sim.ship_mut(ship1).radar_mut(0).unwrap().ecm_mode = EcmMode::Noise;
     }
 
     let trials = 100;
@@ -71,7 +71,7 @@ fn run_simulation(
         sim.step();
         let x = sim
             .ship(ship0)
-            .radar()
+            .radar(0)
             .unwrap()
             .result
             .map(|contact| (contact.position - target_position).magnitude());
