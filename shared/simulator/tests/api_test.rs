@@ -6,8 +6,11 @@ use test_log::test;
 
 #[test]
 fn test_scenario_name() {
-    let mut sim =
-        simulation::Simulation::new("test", 0, &[Code::Builtin("test".to_string()), Code::None]);
+    let mut sim = simulation::Simulation::new(
+        "test",
+        0,
+        &[Code::Builtin("testing/test".to_string()), Code::None],
+    );
     let mut env = BTreeMap::new();
     env.insert("TESTCASE".to_string(), "scenario_name".to_string());
     sim.update_environment(0, env);
@@ -29,8 +32,11 @@ fn test_scenario_name() {
 
 #[test]
 fn test_world_size() {
-    let mut sim =
-        simulation::Simulation::new("test", 0, &[Code::Builtin("test".to_string()), Code::None]);
+    let mut sim = simulation::Simulation::new(
+        "test",
+        0,
+        &[Code::Builtin("testing/test".to_string()), Code::None],
+    );
     let mut env = BTreeMap::new();
     env.insert("TESTCASE".to_string(), "world_size".to_string());
     sim.update_environment(0, env);
@@ -60,8 +66,8 @@ fn test_id() {
         "test",
         0,
         &[
-            Code::Builtin("test".to_string()),
-            Code::Builtin("test".to_string()),
+            Code::Builtin("testing/test".to_string()),
+            Code::Builtin("testing/test".to_string()),
         ],
     );
     let mut env = BTreeMap::new();

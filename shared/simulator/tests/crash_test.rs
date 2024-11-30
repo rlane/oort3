@@ -7,8 +7,11 @@ use std::collections::BTreeMap;
 #[test]
 #[serial]
 fn test_panic() {
-    let mut sim =
-        simulation::Simulation::new("test", 0, &[Code::Builtin("test".to_string()), Code::None]);
+    let mut sim = simulation::Simulation::new(
+        "test",
+        0,
+        &[Code::Builtin("testing/test".to_string()), Code::None],
+    );
     let mut env = BTreeMap::new();
     env.insert("TESTCASE".to_string(), "panic".to_string());
     sim.update_environment(0, env);
@@ -41,8 +44,11 @@ fn test_panic() {
 #[test]
 #[serial]
 fn test_infinite_loop() {
-    let mut sim =
-        simulation::Simulation::new("test", 0, &[Code::Builtin("test".to_string()), Code::None]);
+    let mut sim = simulation::Simulation::new(
+        "test",
+        0,
+        &[Code::Builtin("testing/test".to_string()), Code::None],
+    );
     let mut env = BTreeMap::new();
     env.insert("TESTCASE".to_string(), "infinite_loop".to_string());
     sim.update_environment(0, env);

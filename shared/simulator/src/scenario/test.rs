@@ -141,7 +141,7 @@ impl Scenario for MissileTest {
     }
 
     fn solution(&self) -> Code {
-        builtin("missile")
+        builtin("testing/missile")
     }
 }
 
@@ -290,7 +290,10 @@ impl Scenario for RadarTest {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("radar_test"), builtin("radar_test_enemy")]
+        vec![
+            builtin("testing/radar_test"),
+            builtin("testing/radar_test_enemy"),
+        ]
     }
 
     fn world_size(&self) -> f64 {

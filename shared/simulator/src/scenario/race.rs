@@ -159,11 +159,11 @@ impl Scenario for Race {
     }
 
     fn initial_code(&self) -> Vec<Code> {
-        vec![builtin("race_initial"), empty_ai()]
+        vec![builtin("challenge/race_initial"), empty_ai()]
     }
 
     fn solution(&self) -> Code {
-        builtin("race_solution")
+        builtin("challenge/race_solution")
     }
     fn world_size(&self) -> f64 {
         10e3

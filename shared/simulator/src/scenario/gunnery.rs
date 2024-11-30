@@ -48,7 +48,7 @@ impl Scenario for GunneryScenario {
     }
 
     fn solution(&self) -> Code {
-        builtin("gunnery")
+        builtin("challenge/gunnery_solution")
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
