@@ -25,6 +25,7 @@ fn main() -> Result<()> {
     log::info!("current dir: {:?}", std::env::current_dir()?);
     let input = "src";
     let output = "../../target/builtin-ai.tar.gz";
+    std::fs::create_dir_all("../../target")?;
 
     let directory_paths = glob(&format!("{}/**/*", input))?
         .map(|x| x.unwrap())
