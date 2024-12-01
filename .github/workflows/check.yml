@@ -30,3 +30,6 @@ jobs:
         with:
           tools: binaryen
       - run: cargo check --manifest-path=frontend/Cargo.toml --target=wasm32-unknown-unknown
+        env:
+          RUST_BACKTRACE: 1
+          RUST_LOG: info
