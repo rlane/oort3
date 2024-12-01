@@ -1,3 +1,5 @@
+- turn() oscillates less around the target speed.
+
 ### 0.82.0 - 2024-11-30
 
 - Added a second radar to cruisers.

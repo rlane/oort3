@@ -582,7 +582,12 @@ mod api {
     /// Internally this uses `torque()`. Reaching the commanded speed takes time.
     pub fn turn(speed: f64) {
         let max = max_angular_acceleration() * 0.2;
-        torque((speed.clamp(-max, max) - angular_velocity()).signum() * max_angular_acceleration());
+        let dv = speed.clamp(-max, max) - angular_velocity();
+        if dv.abs() < max_angular_acceleration() * TICK_LENGTH {
+            torque(dv / TICK_LENGTH);
+        } else {
+            torque(dv.signum() * max_angular_acceleration());
+        }
     }
 
     /// Sets the angular acceleration for the next tick (in radians/s²).
