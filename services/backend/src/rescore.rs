@@ -13,8 +13,6 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
     let db = FirestoreDb::new(&crate::project_id()).await?;
     let http = reqwest::Client::new();
     let current_version = oort_version::version();
-    let mut updates: Vec<(String, LeaderboardSubmission, Option<LeaderboardSubmission>)> =
-        Vec::new();
 
     let scenario_names: Vec<String> = scenario::list()
         .iter()
@@ -23,6 +21,8 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
 
     for scenario_name in &scenario_names {
         log::info!("Processing scenario {}", scenario_name);
+        let mut updates: Vec<(String, LeaderboardSubmission, Option<LeaderboardSubmission>)> =
+            Vec::new();
 
         let docs: Vec<Document> = db
             .query_doc(
@@ -117,36 +117,35 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
                 }
             }
         }
-    }
 
-    log::info!("Applying {} updates:", updates.len());
-    let mut table = Table::new();
-    table.load_preset(UTF8_FULL);
-    table.set_header(vec!["Scenario", "User", "Old Time", "New Time", "Docid"]);
-    for (docname, old_msg, new_msg) in &updates {
-        let docid = extract_docid(docname);
-        table.add_row(vec![
-            old_msg.scenario_name.clone(),
-            old_msg.username.clone(),
-            format!("{:.3}", old_msg.time),
-            format!("{:.3?}", new_msg.as_ref().map(|x| x.time)),
-            docid.clone(),
-        ]);
-    }
-    println!("{table}");
+        log::info!("Applying {} updates:", updates.len());
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL);
+        table.set_header(vec!["Scenario", "User", "Old Time", "New Time", "Docid"]);
+        for (docname, old_msg, new_msg) in &updates {
+            let docid = extract_docid(docname);
+            table.add_row(vec![
+                old_msg.scenario_name.clone(),
+                old_msg.username.clone(),
+                format!("{:.3}", old_msg.time),
+                format!("{:.3?}", new_msg.as_ref().map(|x| x.time)),
+                docid.clone(),
+            ]);
+        }
+        println!("{table}");
 
-    if dry_run {
-        log::info!("Dry run, skipping");
-        return Ok(());
-    }
-
-    for (docname, _old_msg, new_msg) in &updates {
-        let docid = extract_docid(docname);
-        if let Some(new_msg) = new_msg {
-            db.update_obj("leaderboard", &docid, new_msg, None, None, None)
-                .await?;
+        if dry_run {
+            log::info!("Dry run, skipping database update");
         } else {
-            db.delete_by_id("leaderboard", &docid, None).await?;
+            for (docname, _old_msg, new_msg) in &updates {
+                let docid = extract_docid(docname);
+                if let Some(new_msg) = new_msg {
+                    db.update_obj("leaderboard", &docid, new_msg, None, None, None)
+                        .await?;
+                } else {
+                    db.delete_by_id("leaderboard", &docid, None).await?;
+                }
+            }
         }
     }
 
