@@ -6,7 +6,10 @@ pub struct Ship {}
 
 impl Ship {
     pub fn new() -> Ship {
-        set_radar_heading(heading());
+        if class() == Class::Cruiser {
+            select_radar(1);
+            set_radar_heading(PI);
+        }
         Ship {}
     }
 
@@ -22,28 +25,29 @@ impl Ship {
                 }
 
                 set_radar_heading((contact.position - position()).angle());
-                set_radar_width((10.0 * TAU / dp.length()).clamp(TAU / 30.0, TAU));
+                set_radar_width(TAU / 120.0);
+            } else if let Some(msg) = receive() {
+                let target_position = vec2(msg[0], msg[1]);
+                let dp = target_position - position();
+                set_radar_width(TAU / 120.0);
+                set_radar_heading(dp.angle());
             } else {
                 accelerate(vec2(100.0, 0.0).rotate(heading()));
                 set_radar_width(TAU / 32.0);
                 set_radar_heading(radar_heading() + radar_width());
             }
         } else {
-            set_radar_width(TAU / 32.0);
-            if let Some(contact) = scan() {
-                fire(1);
-                fire(2);
-
-                aim(0, lead_target(contact.position, contact.velocity, 2000.0));
-                fire(0);
-
-                let dp = contact.position - position();
-                turn_to(dp.angle());
-                set_radar_heading(dp.angle());
-            } else {
+            for radar in 0..2 {
+                select_radar(radar);
+                set_radar_width(TAU / 32.0);
+                if let Some(contact) = scan() {
+                    fire(radar + 1); // Corresponding missile
+                    send([contact.position.x, contact.position.y, 0.0, 0.0]);
+                    aim(0, lead_target(contact.position, contact.velocity, 2000.0));
+                    fire(0);
+                }
                 set_radar_heading(radar_heading() + TAU / 32.0);
             }
-            turn(1.0);
         }
     }
 }
