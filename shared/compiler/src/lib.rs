@@ -110,6 +110,8 @@ impl Compiler {
                 "--release",
                 "--target",
                 "wasm32-unknown-unknown",
+                "--config",
+                "build.rustc-wrapper=\"\"",
             ])
             .env(
                 "RUSTFLAGS",
