@@ -56,6 +56,10 @@ impl Compiler {
         }
 
         std::fs::write(
+            tmp_path.join("rust-toolchain.toml"),
+            include_bytes!("../../../rust-toolchain.toml"),
+        )?;
+        std::fs::write(
             tmp_path.join("Cargo.toml"),
             include_bytes!("../../../Cargo.toml.user"),
         )?;
@@ -97,7 +101,9 @@ impl Compiler {
         )?;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
 
-        let output = std::process::Command::new("cargo")
+        let allowed_environment_variables = ["PATH"];
+
+        match std::process::Command::new("cargo")
             .args([
                 "build",
                 "--manifest-path",
@@ -110,16 +116,30 @@ impl Compiler {
                 "--release",
                 "--target",
                 "wasm32-unknown-unknown",
-                "--config",
-                "build.rustc-wrapper=\"\"",
             ])
+            .current_dir(tmp_path)
+            .env_clear()
+            .envs(
+                std::env::vars()
+                    .filter(|(k, _)| allowed_environment_variables.contains(&k.as_str())),
+            )
             .env(
                 "RUSTFLAGS",
                 "-C opt-level=s -C link-arg=-zstack-size=16384 -C llvm-args=-rng-seed=42",
             )
-            .output()?;
-        if !output.status.success() {
-            bail!("cargo failed: {}", std::str::from_utf8(&output.stderr)?);
+            .output()
+        {
+            Ok(output) => {
+                if !output.status.success() {
+                    log::error!("stdout:\n{}", std::str::from_utf8(&output.stdout)?);
+                    log::error!("stderr:\n{}", std::str::from_utf8(&output.stderr)?);
+                    bail!("cargo failed: {}", std::str::from_utf8(&output.stderr)?);
+                }
+            }
+            Err(e) => {
+                log::error!("spawning cargo failed: {}", e);
+                bail!("spawning cargo failed: {}", e);
+            }
         }
 
         self.compile_rust_fast(code)
@@ -131,6 +151,8 @@ impl Compiler {
         let rustc_bin_dir = Path::new(&self.rustc).parent().unwrap();
 
         let output = std::process::Command::new(&self.rustc)
+            .current_dir(tmp_path)
+            .env_clear()
             .env(
                 "LD_LIBRARY_PATH",
                 &format!("{}/../lib", rustc_bin_dir.display()),

@@ -1,11 +1,10 @@
 use anyhow::Result;
-use clap::Parser as _;
 use glob::glob;
 use libflate::gzip::{EncodeOptions, Encoder, HeaderBuilder};
 use rayon::prelude::*;
 use std::cell::RefCell;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tar::Header;
 
 thread_local! {
@@ -13,21 +12,25 @@ thread_local! {
 }
 
 fn main() -> Result<()> {
-    env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("build_builtin_ais=info"),
-    )
-    .init();
+    env_logger::Builder::from_env(env_logger::Env::default()).init();
 
-    #[derive(clap::Parser, Debug)]
-    struct Arguments {
-        #[clap(short, long, default_value = "shared/builtin_ai/src")]
-        input: String,
-        #[clap(short, long, default_value = "shared/builtin_ai/builtin-ai.tar.gz")]
-        output: String,
+    std::env::vars().for_each(|(k, v)| {
+        log::info!("Environment: {}={}", k, v);
+    });
+
+    log::info!("current dir: {:?}", std::env::current_dir()?);
+    let input = "src";
+    let output = Path::new(&std::env::var("OUT_DIR").unwrap()).join("builtin-ai.tar.gz");
+
+    let directory_paths = glob(&format!("{}/**/*", input))?
+        .map(|x| x.unwrap())
+        .filter(|x| x.is_dir())
+        .collect::<Vec<_>>();
+    for directory_path in directory_paths {
+        println!("cargo:rerun-if-changed={}", directory_path.display());
     }
-    let args = Arguments::parse();
 
-    let paths: Vec<_> = glob(&format!("{}/**/*.rs", args.input))?
+    let paths: Vec<_> = glob(&format!("{}/**/*.rs", input))?
         .map(|x| x.unwrap())
         .filter(|x| !["lib.rs", "mod.rs"].contains(&x.file_name().unwrap().to_str().unwrap()))
         .collect();
@@ -40,7 +43,8 @@ fn main() -> Result<()> {
                 let wasm = COMPILERS
                     .with(|compiler_cell| compiler_cell.borrow_mut().compile(&source_code))?;
                 let optimized_wasm = wasm_opt(&wasm)?;
-                println!(
+                println!("cargo::rerun-if-changed={}", path.display());
+                log::info!(
                     "{} source {}K wasm {}K optimized {}K",
                     path.display(),
                     source_code.len() / 1000,
@@ -52,7 +56,7 @@ fn main() -> Result<()> {
         )
         .collect();
 
-    let writer = std::fs::File::create(args.output)?;
+    let writer = std::fs::File::create(output)?;
     let header = HeaderBuilder::new().modification_time(0).finish();
     let options = EncodeOptions::new().header(header);
     let encoder = Encoder::with_options(writer, options).unwrap();
@@ -60,7 +64,7 @@ fn main() -> Result<()> {
 
     for r in results.iter() {
         let (path, source_code, _) = r.as_ref().unwrap();
-        let path = path.strip_prefix(&args.input)?;
+        let path = path.strip_prefix(input)?;
         let data = source_code.as_bytes();
         let mut header = Header::new_gnu();
         header.set_size(data.len() as u64);
@@ -71,7 +75,7 @@ fn main() -> Result<()> {
 
     for r in results.iter() {
         let (path, _, wasm) = r.as_ref().unwrap();
-        let mut path = path.strip_prefix(&args.input)?.to_path_buf();
+        let mut path = path.strip_prefix(input)?.to_path_buf();
         path.set_extension("wasm");
         let mut header = Header::new_gnu();
         header.set_size(wasm.len() as u64);

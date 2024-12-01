@@ -112,7 +112,7 @@ fn main() -> Result<()> {
             "frontend/app/dist-debug",
             "frontend/app/index.html",
             "--watch=frontend",
-            "--watch=shared/builtin_ai/builtin-ai.tar.gz",
+            "--watch=target/builtin-ai.tar.gz",
             "--watch=shared/api",
             "--watch=shared/simulator",
             "--ignore=frontend/app/dist",

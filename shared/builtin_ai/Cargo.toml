@@ -7,3 +7,15 @@ edition = "2021"
 
 [dependencies]
 oort_api = { path = "../../shared/api" }
+
+[build-dependencies]
+oort_compiler = { path = "../compiler" }
+oort_api = { path = "../../shared/api" }
+log = "0.4.20"
+env_logger = "0.10.1"
+rayon = "1.8.0"
+clap = { version = "4.4.11", features = ["derive"] }
+anyhow = "1.0.77"
+glob = "0.3.1"
+tar = "0.4.40"
+libflate = "2.0.0"

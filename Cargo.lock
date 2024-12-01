@@ -2727,7 +2727,16 @@ dependencies = [
 name = "oort_builtin_ai"
 version = "0.81.0"
 dependencies = [
+ "anyhow",
+ "clap 4.4.11",
+ "env_logger 0.10.1",
+ "glob 0.3.1",
+ "libflate",
+ "log",
  "oort_api",
+ "oort_compiler",
+ "rayon",
+ "tar",
 ]
 
 [[package]]
