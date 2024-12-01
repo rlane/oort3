@@ -91,6 +91,7 @@ pub async fn post(
         }
     };
     let mut obj: LeaderboardSubmission = serde_json::from_slice(&payload)?;
+    obj.rescored_version = None;
 
     if obj.code.is_empty() || obj.code.starts_with("ENCRYPTED") {
         return Err(error(

@@ -12,6 +12,7 @@ const TOP_N: u32 = 10;
 pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
     let db = FirestoreDb::new(&crate::project_id()).await?;
     let http = reqwest::Client::new();
+    let current_version = oort_version::version();
     let mut updates: Vec<(String, LeaderboardSubmission, Option<LeaderboardSubmission>)> =
         Vec::new();
 
@@ -54,6 +55,18 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
         for doc in docs {
             let docid = extract_docid(&doc.name);
             if let Ok(msg) = FirestoreDb::deserialize_doc_to::<LeaderboardSubmission>(&doc) {
+                if let Some(ref rescored_version) = msg.rescored_version {
+                    if *rescored_version == current_version {
+                        log::info!(
+                            "Skipping rescore for userid={} scenario_name={} docid={}",
+                            msg.userid,
+                            msg.scenario_name,
+                            docid
+                        );
+                        continue;
+                    }
+                }
+
                 log::info!(
                     "Running simulations for username={} scenario={} old_time={} docid={}",
                     msg.username,
@@ -86,6 +99,7 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
                             log::info!("Updating time from {} to {}", msg.time, new_time);
                             let mut new_msg = msg.clone();
                             new_msg.time = new_time;
+                            new_msg.rescored_version = Some(current_version.clone());
                             updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
                         } else {
                             log::info!("Time unchanged, {}", new_time);

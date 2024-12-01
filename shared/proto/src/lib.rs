@@ -70,6 +70,7 @@ pub struct LeaderboardSubmission {
     pub time: f64,
     pub code_size: usize,
     pub code: String,
+    pub rescored_version: Option<String>,
 }
 
 impl Eq for LeaderboardSubmission {}

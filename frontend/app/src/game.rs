@@ -998,6 +998,7 @@ impl Game {
                     code: source_code.clone(),
                     code_size,
                     time: summary.average_time.unwrap(),
+                    rescored_version: None,
                 });
             html! {
                 <>

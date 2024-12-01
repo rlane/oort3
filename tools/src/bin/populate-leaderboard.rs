@@ -110,6 +110,7 @@ async fn run(
                 code: code.clone(),
                 code_size: *code_size,
                 time: time.unwrap(),
+                rescored_version: None,
             });
         }
     }

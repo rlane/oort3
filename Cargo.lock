@@ -2712,6 +2712,7 @@ dependencies = [
  "oort_envelope",
  "oort_proto",
  "oort_simulator",
+ "oort_version",
  "rand 0.8.5",
  "rayon",
  "regex",

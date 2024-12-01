@@ -9,6 +9,7 @@ oort_envelope = { path = "../../shared/envelope" }
 oort_code_encryption = { path = "../../shared/code_encryption" }
 oort_proto = { path = "../../shared/proto" }
 oort_simulator = { path = "../../shared/simulator", features = ["precompile"] }
+oort_version = { path = "../../shared/version" }
 anyhow = "1.0"
 chrono = "0.4.31"
 firestore = "0.37.5"
