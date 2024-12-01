@@ -1,3 +1,6 @@
+- Added a second radar to cruisers.
+- Added a `select_radar` API.
+
 ### 0.81.0 - 2024-11-29
 
 - Increased enemy distance in tutorial_search.

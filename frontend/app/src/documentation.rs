@@ -112,6 +112,7 @@ pub fn documentation(props: &DocumentationProps) -> Html {
               <li><code>{ "set_radar_ecm_mode(mode: EcmMode)" }</code>{ ": Set the Electronic Counter Measures (ECM) mode." }</li>
               <li><code>{ "EcmMode::None" }</code>{ ": No ECM, radar will operate normally." }</li>
               <li><code>{ "EcmMode::Noise" }</code>{ ": Decrease the enemy radar's signal to noise ratio, making it more difficult to detect targets and reducing accuracy of returned contacts." }</li>
+              <li><code>{ "select_radar(index: usize)" }</code>{ ": Select the radar to control with subsequent API calls. Cruisers have two radars." }</li>
             </ul>
 
             <h2>{ "Radio" }</h2>

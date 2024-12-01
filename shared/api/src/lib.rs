@@ -723,7 +723,7 @@ mod api {
         }
     }
 
-    /// Select the radio to control with subsequent API calls.
+    /// Select the radar to control with subsequent API calls.
     pub fn select_radar(index: usize) {
         let index = index.clamp(0, radar_internal::MAX_RADARS - 1);
         write_system_state(SystemState::SelectedRadar, index as f64);

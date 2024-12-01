@@ -113,6 +113,12 @@ Retrieving current state:
 - [`radar_min_distance() -> f64`](prelude::radar_min_distance): Get current minimum distance filter.
 - [`radar_max_distance() -> f64`](prelude::radar_max_distance): Get current maximum distance filter.
 
+Multiple radars:
+
+Most ships have a single radar except for cruisers which have two.
+
+- [`select_radar(index: usize)`](prelude::select_radar): Select the radar to control with subsequent API calls.
+
 ## Radio
 
 The radio can be used to send or receive a `[f64; 4]` message per tick. There are 10
