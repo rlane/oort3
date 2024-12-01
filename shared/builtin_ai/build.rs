@@ -99,7 +99,8 @@ fn wasm_opt(wasm: &[u8]) -> Result<Vec<u8>> {
         .args(["-Oz", "-o", "-"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
-        .spawn()?;
+        .spawn()
+        .expect("failed to spawn wasm-opt");
     let mut child_stdin = child.stdin.take().unwrap();
     child_stdin.write_all(wasm)?;
     drop(child_stdin);
