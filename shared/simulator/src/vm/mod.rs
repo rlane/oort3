@@ -125,12 +125,12 @@ impl TeamController {
         );
         state.set(SystemState::Id, self.next_id as f64);
         self.next_id += 1;
-        // TODO: Support multiple radars
-        if let Some(radar) = sim.ship(handle).data().radars.first() {
-            state.set(SystemState::RadarHeading, radar.heading);
-            state.set(SystemState::RadarWidth, radar.width);
-            state.set(SystemState::RadarMinDistance, radar.min_distance);
-            state.set(SystemState::RadarMaxDistance, radar.max_distance);
+        for (idx, radar) in sim.ship(handle).data().radars.iter().enumerate() {
+            let idxs = oort_api::prelude::radar_internal::radar_control_indices(idx);
+            state.set(idxs.heading, radar.heading);
+            state.set(idxs.width, radar.width);
+            state.set(idxs.min_distance, radar.min_distance);
+            state.set(idxs.max_distance, radar.max_distance);
         }
 
         self.vm.select_submemory(index)?;
@@ -570,38 +570,38 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
         sim.ship(handle).angular_velocity(),
     );
 
-    // TODO: Support multiple radars
-    if let Some(radar) = sim.ship_mut(handle).data_mut().radars.get_mut(0) {
-        state.set(SystemState::RadarHeading, radar.get_heading());
-        state.set(SystemState::RadarWidth, radar.get_width());
-        state.set(SystemState::RadarMinDistance, radar.get_min_distance());
-        state.set(SystemState::RadarMaxDistance, radar.get_max_distance());
+    for (idx, radar) in sim.ship(handle).data().radars.iter().enumerate() {
+        let idxs = oort_api::prelude::radar_internal::radar_control_indices(idx);
+        state.set(idxs.heading, radar.get_heading());
+        state.set(idxs.width, radar.get_width());
+        state.set(idxs.min_distance, radar.get_min_distance());
+        state.set(idxs.max_distance, radar.get_max_distance());
 
+        let idxs = oort_api::prelude::radar_internal::radar_contact_indices(idx);
         if let Some(contact) = radar.scan() {
-            state.set(SystemState::RadarContactFound, 1.0);
-            state.set(SystemState::RadarContactPositionX, contact.position.x);
-            state.set(SystemState::RadarContactPositionY, contact.position.y);
-            state.set(SystemState::RadarContactVelocityX, contact.velocity.x);
-            state.set(SystemState::RadarContactVelocityY, contact.velocity.y);
-            state.set(
-                SystemState::RadarContactClass,
-                translate_class(contact.class) as u32 as f64,
-            );
-            state.set(SystemState::RadarContactRssi, contact.rssi);
-            state.set(SystemState::RadarContactSnr, contact.snr);
+            state.set(idxs.found, 1.0);
+            state.set(idxs.position[0], contact.position.x);
+            state.set(idxs.position[1], contact.position.y);
+            state.set(idxs.velocity[0], contact.velocity.x);
+            state.set(idxs.velocity[1], contact.velocity.y);
+            state.set(idxs.class, translate_class(contact.class) as u32 as f64);
+            state.set(idxs.rssi, contact.rssi);
+            state.set(idxs.snr, contact.snr);
         } else {
-            state.set(SystemState::RadarContactFound, 0.0);
+            state.set(idxs.found, 0.0);
         }
-    } else if let Some(target) = sim.ship(handle).data().target.as_ref() {
-        state.set(SystemState::RadarContactFound, 1.0);
-        state.set(SystemState::RadarContactPositionX, target.position.x);
-        state.set(SystemState::RadarContactPositionY, target.position.y);
-        state.set(SystemState::RadarContactVelocityX, target.velocity.x);
-        state.set(SystemState::RadarContactVelocityY, target.velocity.y);
-        state.set(
-            SystemState::RadarContactClass,
-            oort_api::Class::Fighter as u32 as f64,
-        );
+    }
+
+    if sim.ship(handle).data().radars.is_empty() {
+        if let Some(target) = sim.ship(handle).data().target.as_ref() {
+            let idxs = oort_api::prelude::radar_internal::radar_contact_indices(0);
+            state.set(idxs.found, 1.0);
+            state.set(idxs.position[0], target.position.x);
+            state.set(idxs.position[1], target.position.y);
+            state.set(idxs.velocity[0], target.velocity.x);
+            state.set(idxs.velocity[1], target.velocity.y);
+            state.set(idxs.class, oort_api::Class::Fighter as u32 as f64);
+        }
     }
 
     {
@@ -684,13 +684,19 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         }
     }
 
-    // TODO: Support multiple radars
-    if let Some(radar) = sim.ship_mut(handle).data_mut().radars.get_mut(0) {
-        radar.set_heading(state.get(SystemState::RadarHeading));
-        radar.set_width(state.get(SystemState::RadarWidth));
-        radar.set_min_distance(state.get(SystemState::RadarMinDistance));
-        radar.set_max_distance(state.get(SystemState::RadarMaxDistance));
-        radar.set_ecm_mode(translate_ecm_mode(state.get(SystemState::RadarEcmMode)));
+    for (idx, radar) in sim
+        .ship_mut(handle)
+        .data_mut()
+        .radars
+        .iter_mut()
+        .enumerate()
+    {
+        let idxs = oort_api::prelude::radar_internal::radar_control_indices(idx);
+        radar.set_heading(state.get(idxs.heading));
+        radar.set_width(state.get(idxs.width));
+        radar.set_min_distance(state.get(idxs.min_distance));
+        radar.set_max_distance(state.get(idxs.max_distance));
+        radar.set_ecm_mode(translate_ecm_mode(state.get(idxs.ecm_mode)));
     }
 
     let active_abilities = ActiveAbilities(state.get_u64(SystemState::ActivateAbility));

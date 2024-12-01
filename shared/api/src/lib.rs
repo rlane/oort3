@@ -35,14 +35,35 @@ pub enum SystemState {
 
     Explode,
 
-    RadarHeading,
-    RadarWidth,
-    RadarContactFound,
-    RadarContactClass,
-    RadarContactPositionX,
-    RadarContactPositionY,
-    RadarContactVelocityX,
-    RadarContactVelocityY,
+    Radar0Heading,
+    Radar0Width,
+    Radar0MinDistance,
+    Radar0MaxDistance,
+    Radar0EcmMode,
+
+    Radar0ContactFound,
+    Radar0ContactClass,
+    Radar0ContactPositionX,
+    Radar0ContactPositionY,
+    Radar0ContactVelocityX,
+    Radar0ContactVelocityY,
+    Radar0ContactRssi,
+    Radar0ContactSnr,
+
+    Radar1Heading,
+    Radar1Width,
+    Radar1MinDistance,
+    Radar1MaxDistance,
+    Radar1EcmMode,
+
+    Radar1ContactFound,
+    Radar1ContactClass,
+    Radar1ContactPositionX,
+    Radar1ContactPositionY,
+    Radar1ContactVelocityX,
+    Radar1ContactVelocityY,
+    Radar1ContactRssi,
+    Radar1ContactSnr,
 
     DebugTextPointer,
     DebugTextLength,
@@ -53,9 +74,6 @@ pub enum SystemState {
 
     DebugLinesPointer,
     DebugLinesLength,
-
-    RadarMinDistance,
-    RadarMaxDistance,
 
     CurrentTick,
     MaxBackwardAcceleration,
@@ -128,17 +146,13 @@ pub enum SystemState {
 
     // TODO not part of interface
     SelectedRadio,
+    SelectedRadar,
 
     DrawnTextPointer,
     DrawnTextLength,
 
-    RadarEcmMode,
-
     Health,
     Fuel,
-
-    RadarContactRssi,
-    RadarContactSnr,
 
     ReloadTicks0,
     ReloadTicks1,
@@ -638,23 +652,103 @@ mod api {
         read_system_state(SystemState::Fuel)
     }
 
+    #[doc(hidden)]
+    pub mod radar_internal {
+        use super::SystemState;
+
+        pub const MAX_RADARS: usize = 2;
+
+        pub struct RadarControlIndices {
+            pub heading: SystemState,
+            pub width: SystemState,
+            pub min_distance: SystemState,
+            pub max_distance: SystemState,
+            pub ecm_mode: SystemState,
+        }
+
+        pub fn radar_control_indices(sel: usize) -> RadarControlIndices {
+            assert!(sel < MAX_RADARS);
+            let stride = 13;
+            let offset = stride * sel;
+            let add_offset =
+                |x| unsafe { ::std::mem::transmute::<u8, SystemState>((x as u8) + offset as u8) };
+            RadarControlIndices {
+                heading: add_offset(SystemState::Radar0Heading),
+                width: add_offset(SystemState::Radar0Width),
+                min_distance: add_offset(SystemState::Radar0MinDistance),
+                max_distance: add_offset(SystemState::Radar0MaxDistance),
+                ecm_mode: add_offset(SystemState::Radar0EcmMode),
+            }
+        }
+
+        pub fn current_radar_control_indices() -> RadarControlIndices {
+            let sel = super::read_system_state(SystemState::SelectedRadar) as usize;
+            radar_control_indices(sel)
+        }
+
+        pub struct RadarContactIndices {
+            pub found: SystemState,
+            pub class: SystemState,
+            pub position: [SystemState; 2],
+            pub velocity: [SystemState; 2],
+            pub rssi: SystemState,
+            pub snr: SystemState,
+        }
+
+        pub fn radar_contact_indices(sel: usize) -> RadarContactIndices {
+            assert!(sel < MAX_RADARS);
+            let stride = 13;
+            let offset = stride * sel;
+            let add_offset =
+                |x| unsafe { ::std::mem::transmute::<u8, SystemState>((x as u8) + offset as u8) };
+            RadarContactIndices {
+                found: add_offset(SystemState::Radar0ContactFound),
+                class: add_offset(SystemState::Radar0ContactClass),
+                position: [
+                    add_offset(SystemState::Radar0ContactPositionX),
+                    add_offset(SystemState::Radar0ContactPositionY),
+                ],
+                velocity: [
+                    add_offset(SystemState::Radar0ContactVelocityX),
+                    add_offset(SystemState::Radar0ContactVelocityY),
+                ],
+                rssi: add_offset(SystemState::Radar0ContactRssi),
+                snr: add_offset(SystemState::Radar0ContactSnr),
+            }
+        }
+
+        pub fn current_radar_contact_indices() -> RadarContactIndices {
+            let sel = super::read_system_state(SystemState::SelectedRadar) as usize;
+            radar_contact_indices(sel)
+        }
+    }
+
+    /// Select the radio to control with subsequent API calls.
+    pub fn select_radar(index: usize) {
+        let index = index.clamp(0, radar_internal::MAX_RADARS - 1);
+        write_system_state(SystemState::SelectedRadar, index as f64);
+    }
+
     /// Returns the heading the radar is pointed at.
     pub fn radar_heading() -> f64 {
-        read_system_state(SystemState::RadarHeading)
+        read_system_state(radar_internal::current_radar_control_indices().heading)
     }
 
     /// Sets the heading to point the radar at.
     ///
     /// It takes effect next tick.
     pub fn set_radar_heading(heading: f64) {
-        write_system_state(SystemState::RadarHeading, heading);
+        write_system_state(
+            radar_internal::current_radar_control_indices().heading,
+            heading,
+        );
     }
 
     /// Returns the current radar width (in radians).
     ///
     /// This is the field of view of the radar.
     pub fn radar_width() -> f64 {
-        read_system_state(SystemState::RadarWidth)
+        read_system_state(radar_internal::current_radar_control_indices().width)
     }
 
     /// Sets the radar width (in radians).
@@ -662,41 +756,50 @@ mod api {
     /// This is the field of view of the radar.
     /// It takes effect next tick.
     pub fn set_radar_width(width: f64) {
-        write_system_state(SystemState::RadarWidth, width);
+        write_system_state(radar_internal::current_radar_control_indices().width, width);
     }
 
     /// Gets the current minimum distance filter of the radar (in meters).
     pub fn radar_min_distance() -> f64 {
-        read_system_state(SystemState::RadarMinDistance)
+        read_system_state(radar_internal::current_radar_control_indices().min_distance)
     }
 
     /// Sets the minimum distance filter of the radar (in meters).
     ///
     /// It takes effect next tick.
     pub fn set_radar_min_distance(dist: f64) {
-        write_system_state(SystemState::RadarMinDistance, dist);
+        write_system_state(
+            radar_internal::current_radar_control_indices().min_distance,
+            dist,
+        );
     }
 
     /// Gets the current maximum distance filter of the radar (in meters).
     pub fn radar_max_distance() -> f64 {
-        read_system_state(SystemState::RadarMaxDistance)
+        read_system_state(radar_internal::current_radar_control_indices().max_distance)
     }
 
     /// Sets the maximum distance filter of the radar (in meters).
     ///
     /// It takes effect next tick.
     pub fn set_radar_max_distance(dist: f64) {
-        write_system_state(SystemState::RadarMaxDistance, dist);
+        write_system_state(
+            radar_internal::current_radar_control_indices().max_distance,
+            dist,
+        );
     }
 
     /// Gets the Electronic Counter Measures (ECM) mode.
     pub fn radar_ecm_mode() -> EcmMode {
-        read_system_state(SystemState::RadarEcmMode).into()
+        read_system_state(radar_internal::current_radar_control_indices().ecm_mode).into()
     }
 
     /// Sets the Electronic Counter Measures (ECM) mode.
     pub fn set_radar_ecm_mode(mode: EcmMode) {
-        write_system_state(SystemState::RadarEcmMode, mode as u32 as f64);
+        write_system_state(
+            radar_internal::current_radar_control_indices().ecm_mode,
+            mode as u32 as f64,
+        );
     }
 
     /// A radar contact.
@@ -716,21 +819,22 @@ mod api {
 
     /// Returns the radar contact with the highest signal strength.
     pub fn scan() -> Option<ScanResult> {
-        if read_system_state(SystemState::RadarContactFound) == 0.0 {
+        let indices = radar_internal::current_radar_contact_indices();
+        if read_system_state(indices.found) == 0.0 {
             return None;
         }
         Some(ScanResult {
-            class: Class::from_f64(read_system_state(SystemState::RadarContactClass)),
+            class: Class::from_f64(read_system_state(indices.class)),
             position: vec2(
-                read_system_state(SystemState::RadarContactPositionX),
-                read_system_state(SystemState::RadarContactPositionY),
+                read_system_state(indices.position[0]),
+                read_system_state(indices.position[1]),
             ),
             velocity: vec2(
-                read_system_state(SystemState::RadarContactVelocityX),
-                read_system_state(SystemState::RadarContactVelocityY),
+                read_system_state(indices.velocity[0]),
+                read_system_state(indices.velocity[1]),
             ),
-            rssi: read_system_state(SystemState::RadarContactRssi),
-            snr: read_system_state(SystemState::RadarContactSnr),
+            rssi: read_system_state(indices.rssi),
+            snr: read_system_state(indices.snr),
         })
     }
 
@@ -926,8 +1030,8 @@ mod api {
     /// Only used in tutorials.
     pub fn target() -> Vec2 {
         vec2(
-            read_system_state(SystemState::RadarContactPositionX),
-            read_system_state(SystemState::RadarContactPositionY),
+            read_system_state(radar_internal::current_radar_contact_indices().position[0]),
+            read_system_state(radar_internal::current_radar_contact_indices().position[1]),
         )
     }
 
@@ -935,8 +1039,8 @@ mod api {
     /// Only used in tutorials.
     pub fn target_velocity() -> Vec2 {
         vec2(
-            read_system_state(SystemState::RadarContactVelocityX),
-            read_system_state(SystemState::RadarContactVelocityY),
+            read_system_state(radar_internal::current_radar_contact_indices().velocity[0]),
+            read_system_state(radar_internal::current_radar_contact_indices().velocity[1]),
         )
     }
 }
