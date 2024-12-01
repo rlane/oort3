@@ -1,3 +1,5 @@
+### 0.82.0 - 2024-11-30
+
 - Added a second radar to cruisers.
 - Added a `select_radar` API.
 
