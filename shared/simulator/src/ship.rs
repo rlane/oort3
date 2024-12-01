@@ -414,11 +414,18 @@ pub fn cruiser(team: i32) -> ShipData {
                 angle: 0.0,
             },
         ],
-        radars: vec![Radar {
-            power: 200e3,
-            rx_cross_section: 20.0,
-            ..Default::default()
-        }],
+        radars: vec![
+            Radar {
+                power: 200e3,
+                rx_cross_section: 20.0,
+                ..Default::default()
+            },
+            Radar {
+                power: 200e3,
+                rx_cross_section: 20.0,
+                ..Default::default()
+            },
+        ],
         radar_cross_section: CRUISER_RADAR_CROSS_SECTION,
         radar_radius: 240,
         radios: vec![
