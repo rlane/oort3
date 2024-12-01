@@ -2833,6 +2833,7 @@ dependencies = [
  "nalgebra",
  "oorandom",
  "oort_api",
+ "oort_builtin_ai",
  "rand 0.8.5",
  "rand_chacha",
  "rand_distr",
