@@ -101,7 +101,8 @@ impl Compiler {
         )?;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
 
-        let allowed_environment_variables = ["PATH"];
+        let allowed_environment_variables =
+            ["PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUST_VERSION"];
 
         match std::process::Command::new("cargo")
             .args([

@@ -4,11 +4,15 @@ use libflate::gzip::{EncodeOptions, Encoder, HeaderBuilder};
 use rayon::prelude::*;
 use std::cell::RefCell;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tar::Header;
 
 thread_local! {
-  static COMPILERS: std::cell::RefCell<oort_compiler::Compiler> = RefCell::new(oort_compiler::Compiler::new());
+    static COMPILERS: std::cell::RefCell<oort_compiler::Compiler> = RefCell::new({
+        let mut x = oort_compiler::Compiler::new();
+        x.enable_online();
+        x
+    });
 }
 
 fn main() -> Result<()> {
@@ -20,7 +24,7 @@ fn main() -> Result<()> {
 
     log::info!("current dir: {:?}", std::env::current_dir()?);
     let input = "src";
-    let output = Path::new(&std::env::var("OUT_DIR").unwrap()).join("builtin-ai.tar.gz");
+    let output = "../../target/builtin-ai.tar.gz";
 
     let directory_paths = glob(&format!("{}/**/*", input))?
         .map(|x| x.unwrap())
