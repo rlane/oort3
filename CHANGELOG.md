@@ -1,3 +1,5 @@
+### 0.83.2 - 2024-12-01
+
 - Made rescoring more robust to panics in the simulation.
 
 ### 0.83.1 - 2024-12-01

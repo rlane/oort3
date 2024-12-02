@@ -2107,7 +2107,7 @@ checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
 
 [[package]]
 name = "oort-app"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2155,7 +2155,7 @@ dependencies = [
 
 [[package]]
 name = "oort_analyzer_worker"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "console_error_panic_hook",
  "console_log",
@@ -2171,7 +2171,7 @@ dependencies = [
 
 [[package]]
 name = "oort_api"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "byteorder",
  "maths-rs",
@@ -2181,7 +2181,7 @@ dependencies = [
 
 [[package]]
 name = "oort_builtin_ai"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "anyhow",
  "clap 4.4.18",
@@ -2197,7 +2197,7 @@ dependencies = [
 
 [[package]]
 name = "oort_compiler"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "anyhow",
  "glob",
@@ -2209,14 +2209,14 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "sha2",
 ]
 
 [[package]]
 name = "oort_multifile"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "anyhow",
  "regex",
@@ -2224,7 +2224,7 @@ dependencies = [
 
 [[package]]
 name = "oort_proto"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "chrono",
  "serde",
@@ -2232,7 +2232,7 @@ dependencies = [
 
 [[package]]
 name = "oort_renderer"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "gloo-utils 0.2.0",
  "image",
@@ -2249,7 +2249,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulation_worker"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "oort_simulator",
  "serde",
@@ -2258,7 +2258,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulator"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -2294,14 +2294,14 @@ dependencies = [
 
 [[package]]
 name = "oort_version"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "built",
 ]
 
 [[package]]
 name = "oort_version_control"
-version = "0.83.1"
+version = "0.83.2"
 dependencies = [
  "anyhow",
  "chrono",
