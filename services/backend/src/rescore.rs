@@ -94,7 +94,7 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
                 log::info!("Successfully compiled to WASM");
                 let status = run_simulations(&msg.scenario_name, &wasm);
                 match status {
-                    Some(new_time) => {
+                    Ok(Some(new_time)) => {
                         if (msg.time - new_time).abs() >= 0.001 {
                             log::info!("Updating time from {} to {}", msg.time, new_time);
                         } else {
@@ -105,7 +105,7 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
                         new_msg.rescored_version = Some(current_version.clone());
                         updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
                     }
-                    None => {
+                    Ok(None) => {
                         log::warn!(
                             "Simulation failed for userid={} scenario_name={} docid={}",
                             msg.username,
@@ -113,6 +113,15 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
                             docid,
                         );
                         updates.push((doc.name.to_string(), msg.clone(), None));
+                    }
+                    Err(e) => {
+                        log::error!(
+                            "Simulation panicked for userid={} scenario_name={} docid={}: {:?}",
+                            msg.username,
+                            msg.scenario_name,
+                            docid,
+                            e
+                        );
                     }
                 }
             }
@@ -171,30 +180,35 @@ async fn compile(http: &reqwest::Client, name: &str, source_code: &str) -> anyho
     Ok(oort_simulator::vm::precompile(&compiled_code).unwrap())
 }
 
-fn run_simulations(scenario_name: &str, code: &Code) -> Option<f64> {
-    let results: Vec<Option<f64>> = (0..10u32)
+fn run_simulations(scenario_name: &str, code: &Code) -> std::thread::Result<Option<f64>> {
+    let results: std::thread::Result<Vec<Option<f64>>> = (0..10u32)
         .into_par_iter()
         .map(|seed| run_simulation(scenario_name, seed, code.clone()))
         .collect();
+    let results = results?;
     log::info!("Results: {:?}", results);
     if results.iter().any(|x| x.is_none()) {
-        return None;
+        return Ok(None);
     }
-    Some(results.iter().map(|x| x.unwrap()).sum::<f64>() / results.len() as f64)
+    Ok(Some(
+        results.iter().map(|x| x.unwrap()).sum::<f64>() / results.len() as f64,
+    ))
 }
 
-fn run_simulation(scenario_name: &str, seed: u32, code: Code) -> Option<f64> {
-    let scenario = scenario::load(scenario_name);
-    let mut codes = scenario.initial_code();
-    codes[0] = code;
-    let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
-    while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
-        sim.step();
-    }
-    match sim.status() {
-        scenario::Status::Victory { team: 0 } => Some(sim.score_time()),
-        _ => None,
-    }
+fn run_simulation(scenario_name: &str, seed: u32, code: Code) -> std::thread::Result<Option<f64>> {
+    std::panic::catch_unwind(|| {
+        let scenario = scenario::load(scenario_name);
+        let mut codes = scenario.initial_code();
+        codes[0] = code;
+        let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
+        while sim.status() == scenario::Status::Running && sim.tick() < scenario::MAX_TICKS {
+            sim.step();
+        }
+        match sim.status() {
+            scenario::Status::Victory { team: 0 } => Some(sim.score_time()),
+            _ => None,
+        }
+    })
 }
 
 fn extract_docid(docname: &str) -> String {
