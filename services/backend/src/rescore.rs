@@ -97,13 +97,13 @@ pub async fn rescore(dry_run: bool) -> anyhow::Result<()> {
                     Some(new_time) => {
                         if (msg.time - new_time).abs() >= 0.001 {
                             log::info!("Updating time from {} to {}", msg.time, new_time);
-                            let mut new_msg = msg.clone();
-                            new_msg.time = new_time;
-                            new_msg.rescored_version = Some(current_version.clone());
-                            updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
                         } else {
                             log::info!("Time unchanged, {}", new_time);
                         }
+                        let mut new_msg = msg.clone();
+                        new_msg.time = new_time;
+                        new_msg.rescored_version = Some(current_version.clone());
+                        updates.push((doc.name.to_string(), msg.clone(), Some(new_msg)));
                     }
                     None => {
                         log::warn!(
