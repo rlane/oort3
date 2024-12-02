@@ -1,6 +1,6 @@
 [package]
 name = "oort-app"
-version = "0.83.0"
+version = "0.83.1"
 edition = "2021"
 publish = false
 

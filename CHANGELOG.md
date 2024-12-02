@@ -1,3 +1,5 @@
+### 0.83.1 - 2024-12-01
+
 - Fix rescoring not removing asterisk when the time is unchanged.
 
 ### 0.83.0 - 2024-12-01
