@@ -1,3 +1,5 @@
+- Fix rescoring not removing asterisk when the time is unchanged.
+
 ### 0.83.0 - 2024-12-01
 
 - turn() oscillates less around the target speed.
