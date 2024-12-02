@@ -1,4 +1,5 @@
 - turn() oscillates less around the target speed.
+- The leaderboard now shows an asterisk if the solution hasn't been validated yet.
 
 ### 0.82.0 - 2024-11-30
 
