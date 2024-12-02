@@ -62,6 +62,7 @@ pub fn make_row(submission: &LeaderboardSubmission) -> TimeLeaderboardRow {
             "leaderboard:{}:{}",
             submission.username, submission.scenario_name
         )),
+        rescored_version: submission.rescored_version.clone(),
     }
 }
 

@@ -57,6 +57,7 @@ pub struct TimeLeaderboardRow {
     pub timestamp: Option<DateTime<Utc>>,
     pub time_float: Option<f64>,
     pub shortcode: Option<String>,
+    pub rescored_version: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

@@ -70,6 +70,7 @@ impl Component for Leaderboard {
     }
 
     fn view(&self, context: &yew::Context<Self>) -> Html {
+        let current_version = oort_version::version();
         if let Some(ref error) = self.error {
             html! { <p>{ error.clone() }</p> }
         } else if self.fetching {
@@ -92,11 +93,16 @@ impl Component for Leaderboard {
                         .play_cb
                         .reform(move |_| (team, shortcode.clone()))
                 };
+                let asterisk = if row.rescored_version.as_ref() != Some(&current_version) {
+                    html! { "*" }
+                } else {
+                    html! {}
+                };
                 html! {
                     <tr class={classes!(class)}>
                         <td class="centered"><b>{ rank }</b></td>
                         <td>{ row.username.clone().unwrap_or_else(|| userid::generate_username(&row.userid)) }</td>
-                        <td>{ &row.time }</td>
+                        <td>{ &row.time }{ asterisk }</td>
                         <td>
                             <a title="Play As" class="material-symbols-outlined" onclick={make_play_cb(0)}>{ "play_arrow" }</a>
                             { if is_tournament { html! { <>
