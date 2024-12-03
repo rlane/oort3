@@ -496,9 +496,9 @@ async fn main() -> anyhow::Result<()> {
                         "--image", &container_image,
                         "--args", "oort_backend_service,rescore",
                         "--region", REGION,
-                        "--cpu=1",
+                        "--cpu=2",
                         "--memory=1G",
-                        "--task-timeout=30m",
+                        "--task-timeout=120m",
                         &format!("--service-account=oort-backend-service@{project}.iam.gserviceaccount.com"),
                         &format!("--set-env-vars=PROJECT_ID={project},COMPILER_URL={compiler_url}"),
                     ]).await?;
