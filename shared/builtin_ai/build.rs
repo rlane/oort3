@@ -1,9 +1,8 @@
-use anyhow::Result;
+use anyhow::{Result, Context};
 use glob::glob;
 use libflate::gzip::{EncodeOptions, Encoder, HeaderBuilder};
 use rayon::prelude::*;
 use std::cell::RefCell;
-use std::io::Write;
 use std::path::PathBuf;
 use tar::Header;
 
@@ -47,7 +46,7 @@ fn main() -> Result<()> {
                 let source_code = std::fs::read_to_string(path).unwrap();
                 let wasm = COMPILERS
                     .with(|compiler_cell| compiler_cell.borrow_mut().compile(&source_code))?;
-                let optimized_wasm = wasm_opt(&wasm)?;
+                let optimized_wasm = wasm_opt(&wasm).context("wasm-opt")?;
                 println!("cargo::rerun-if-changed={}", path.display());
                 log::info!(
                     "{} source {}K wasm {}K optimized {}K",
@@ -96,15 +95,16 @@ fn main() -> Result<()> {
 }
 
 fn wasm_opt(wasm: &[u8]) -> Result<Vec<u8>> {
-    let mut child = std::process::Command::new("wasm-opt")
-        .args(["-Oz", "-o", "-"])
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .spawn()
-        .expect("failed to spawn wasm-opt");
-    let mut child_stdin = child.stdin.take().unwrap();
-    child_stdin.write_all(wasm)?;
-    drop(child_stdin);
-    let output = child.wait_with_output()?;
-    Ok(output.stdout)
+    let tmp_dir = tempdir::TempDir::new("oort_wasm_opt").unwrap();
+    let infile = tmp_dir.path().join("input.wasm");
+    let outfile = tmp_dir.path().join("output.wasm");
+    std::fs::write(&infile, wasm).context("writing input file")?;
+    let output = std::process::Command::new("wasm-opt")
+        .args(["-Oz", "-o", outfile.as_os_str().to_str().unwrap(), infile.as_os_str().to_str().unwrap()])
+        .output().context("spawning wasm-opt")?;
+    if !output.status.success() {
+        anyhow::bail!("wasm-opt failed with stderr: {}", std::str::from_utf8(&output.stderr)?);
+    }
+    let output = std::fs::read(outfile).context("reading output file")?;
+    Ok(output)
 }
