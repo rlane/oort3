@@ -101,8 +101,7 @@ impl Compiler {
         )?;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
 
-        let allowed_environment_variables =
-            ["PATH", "HOME", "CARGO_HOME", "RUSTUP_HOME", "RUST_VERSION"];
+        let disallowed_environment_variables = ["RUSTC_WORKSPACE_WRAPPER", "RUSTC_WRAPPER"];
 
         match std::process::Command::new("cargo")
             .args([
@@ -122,7 +121,7 @@ impl Compiler {
             .env_clear()
             .envs(
                 std::env::vars()
-                    .filter(|(k, _)| allowed_environment_variables.contains(&k.as_str())),
+                    .filter(|(k, _)| !disallowed_environment_variables.contains(&k.as_str())),
             )
             .env(
                 "RUSTFLAGS",
@@ -150,14 +149,18 @@ impl Compiler {
         let tmp_path = &self.dir;
         std::fs::write(tmp_path.join("ai/src/user.rs"), code.as_bytes())?;
         let rustc_bin_dir = Path::new(&self.rustc).parent().unwrap();
+        let mut ld_library_path = format!("{}/../lib", rustc_bin_dir.display(),);
+        if std::env::var("LD_LIBRARY_PATH").is_ok() {
+            ld_library_path = format!(
+                "{}:{}",
+                ld_library_path,
+                std::env::var("LD_LIBRARY_PATH").unwrap()
+            );
+        }
 
         let output = std::process::Command::new(&self.rustc)
             .current_dir(tmp_path)
-            .env_clear()
-            .env(
-                "LD_LIBRARY_PATH",
-                &format!("{}/../lib", rustc_bin_dir.display()),
-            )
+            .env("LD_LIBRARY_PATH", &ld_library_path)
             .args([
                 "--crate-name",
                 "oort_ai",
