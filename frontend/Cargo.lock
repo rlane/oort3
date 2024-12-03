@@ -2193,6 +2193,7 @@ dependencies = [
  "oort_compiler",
  "rayon",
  "tar",
+ "tempdir",
 ]
 
 [[package]]
