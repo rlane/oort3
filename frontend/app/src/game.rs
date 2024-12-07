@@ -349,10 +349,14 @@ impl Component for Game {
                 if matches!(self.overlay, Some(Overlay::Compiling)) {
                     self.overlay = None;
                 }
+
+                // TODO: Smarter cache eviction policy
                 if self.compilation_cache.len() > 10 {
                     self.compilation_cache.clear();
                 }
                 let mut teams_with_errors = vec![];
+
+                // Display compiler errors or cache compilation results
                 for (team, result) in results.iter().enumerate() {
                     match result {
                         Ok(code) => {
@@ -375,6 +379,7 @@ impl Component for Game {
                     .cloned()
                     .collect();
                 if errors.is_empty() {
+                    // If no errors, start running simulation
                     services::send_telemetry(Telemetry::StartScenario {
                         scenario_name: context.props().scenario.clone(),
                         code: code_to_string(&self.player_team().running_source_code),
@@ -382,6 +387,7 @@ impl Component for Game {
                     self.run(context, execution_mode);
                     self.focus_simulation();
                 } else {
+                    // Populate compiler output with compilation errors and focus compiler output tab
                     self.compiler_errors = Some(errors.join("\n"));
                     self.focus_editor(teams_with_errors[0]);
                     js::golden_layout::select_tab("compiler_output");
@@ -1050,11 +1056,13 @@ impl Game {
             .link()
             .callback(move |results| Msg::CompileFinished(results, execution_mode));
 
+        /// Sends code to the compiler service, returns a compiled WASM binary
         async fn compile(text: String) -> Result<Code, String> {
             if text.trim().is_empty() {
                 return Ok(Code::None);
             }
 
+            // Compilation time will be logged
             let start_time = instant::Instant::now();
 
             let url = format!("{}/compile", services::compiler_url());
@@ -1091,10 +1099,12 @@ impl Game {
                 } else if team.running_source_code == team.initial_source_code
                     && team.initial_compiled_code != Code::None
                 {
+                    // Avoid recompilation if using the initial source code
                     team.initial_compiled_code.clone()
                 } else if let Some(compiled_code) =
                     self.compilation_cache.get(&team.running_source_code)
                 {
+                    // Avoid recompilation if current code has already been compilde and cached
                     compiled_code.clone()
                 } else {
                     team.running_source_code.clone()
@@ -1104,6 +1114,8 @@ impl Game {
 
         wasm_bindgen_futures::spawn_local(async move {
             let mut results = vec![];
+
+            // All uncompiled code is compiled, and the callback defined above is called on completion
             for source_code in source_codes {
                 let result = match source_code {
                     Code::Rust(text) => compile(text).await,
@@ -1116,15 +1128,20 @@ impl Game {
         });
     }
 
+    /// Kicks off simulation using running compiled code from each team
+    /// NOTE: Assumes no compiler errors
     pub fn run(&mut self, context: &Context<Self>, execution_mode: ExecutionMode) {
         self.compiler_errors = None;
 
+        // Collect compiled code from each team
         let codes: Vec<_> = self
             .teams
             .iter()
             .map(|x| x.running_compiled_code.clone())
             .collect();
         let rand_seed = rand::thread_rng().gen();
+
+        // If replaying, reuse last seed instead of using a newly generated seed
         let seed = match execution_mode {
             ExecutionMode::Initial | ExecutionMode::Run => {
                 self.configured_seed(context).unwrap_or(rand_seed)
@@ -1134,6 +1151,8 @@ impl Game {
                 .unwrap_or(self.previous_seed.unwrap_or(rand_seed)),
         };
         let start_paused = matches!(execution_mode, ExecutionMode::Replay { paused: true });
+
+        // Cache seed for replays
         self.previous_seed = Some(seed);
         self.execution_mode = execution_mode;
 
