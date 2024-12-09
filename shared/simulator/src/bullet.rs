@@ -85,6 +85,7 @@ pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
     );
 }
 
+/// Process movement and collisions for each bullet in the simulation
 pub fn tick(sim: &mut Simulation) {
     let dt = PHYSICS_TICK_LENGTH;
     let (indices_by_team, coarse_grids_by_team) = build_indices(sim, dt);
@@ -92,16 +93,16 @@ pub fn tick(sim: &mut Simulation) {
     let shape = rapier2d_f64::geometry::Ball { radius: 1.0 };
     let bullets: Vec<BulletHandle> = sim.bullets.iter().cloned().collect();
     for handle in bullets {
-        let team = {
-            let data = data_mut(sim, handle);
-            data.ttl -= dt as f32;
-            if data.ttl <= 0.0 {
-                destroy(sim, handle);
-                continue;
-            }
-            data.team
-        };
+        let data = data_mut(sim, handle);
 
+        // If a bullet's lifetime has been exceeded, destroy it and move on to the next bullet
+        data.ttl -= dt as f32;
+        if data.ttl <= 0.0 {
+            destroy(sim, handle);
+            continue;
+        }
+
+        let team = data.team;
         let has_collider;
         let coarse_grid_hit;
         let mut needs_collider = false;

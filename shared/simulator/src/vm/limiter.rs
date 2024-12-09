@@ -1,6 +1,7 @@
 // Based on https://github.com/scrtlabs/SecretNetwork/blob/621d3899babc4741ef1ba596152c097677d246db/cosmwasm/enclaves/shared/contract-engine/src/wasm3/gas.rs
 use walrus::{ir::*, FunctionBuilder, GlobalId, InitExpr, LocalFunction, ValType};
 
+/// Alters wasm to insert gas functions
 pub fn rewrite(wasm: &[u8]) -> Result<Vec<u8>, super::Error> {
     let mut module = match walrus::Module::from_buffer(wasm) {
         Ok(m) => m,

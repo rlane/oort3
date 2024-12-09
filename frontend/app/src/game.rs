@@ -1141,7 +1141,8 @@ impl Game {
             .collect();
         let rand_seed = rand::thread_rng().gen();
 
-        // If replaying, reuse last seed instead of using a newly generated seed
+        // If replaying, reuse previous seed if it exists
+        // instead of using a newly generated seed
         let seed = match execution_mode {
             ExecutionMode::Initial | ExecutionMode::Run => {
                 self.configured_seed(context).unwrap_or(rand_seed)
