@@ -414,6 +414,9 @@ impl WasmVm {
             .i32()
             .unwrap() as u32;
 
+        // The compiler service creates a file that includes this global `tick` function, which calls the
+        // user's `ship.tick()` function. You can find that file in `shared/ai/src/tick.rs`,
+        // and find the compile step in `shard/compiler/src/lib.rs`
         let tick_ship = translate_error(instance.exports.get_function("tick"))?.clone();
         let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
         let get_gas = translate_error(instance.exports.get_function("get_gas"))?.typed(&store)?;

@@ -95,6 +95,7 @@ impl Compiler {
             tmp_path.join("ai/src/lib.rs"),
             include_bytes!("../../ai/src/lib.rs"),
         )?;
+        // This is the file that exposes the global `tick` function referened in `shared/simulator/src/vm/mod.rs`
         std::fs::write(
             tmp_path.join("ai/src/tick.rs"),
             include_bytes!("../../ai/src/tick.rs"),
@@ -103,6 +104,8 @@ impl Compiler {
 
         let disallowed_environment_variables = ["RUSTC_WORKSPACE_WRAPPER", "RUSTC_WRAPPER"];
 
+        // TODO: If `cargo` crate was imported, we could call this directly instead of going through
+        // the command line
         match std::process::Command::new("cargo")
             .args([
                 "build",

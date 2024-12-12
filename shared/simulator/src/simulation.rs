@@ -207,6 +207,7 @@ impl Simulation {
         radar::tick(self);
         self.timing.radar += radar_timer.elapsed();
 
+        // Transmit radio messages
         let radio_timer = Timer::new();
         radio::tick(self);
         self.timing.radio += radio_timer.elapsed();
@@ -219,7 +220,12 @@ impl Simulation {
             .collect();
         teams.sort_by_key(|(k, _)| *k);
 
-        // Run ship tick functions for each ship in each team
+        // Ship tick processing happens in two steps.
+        //
+        // First within the team controller the user's ship tick function
+        // is called for each ship, which loads state updates into shared memory.
+        // The updates are read from shared memory and applied to the
+        // simulator.
         for (_, team_controller) in teams.iter() {
             team_controller.borrow_mut().tick(self);
         }
@@ -227,6 +233,9 @@ impl Simulation {
 
         let ship_timer = Timer::new();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
+
+        // Second, some upkeep is performed for each ship, including things
+        // like moving reload timings forward.
         for handle in handle_snapshot {
             self.ship_mut(handle).tick();
             if self.ships.contains(handle) {

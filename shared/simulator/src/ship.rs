@@ -766,6 +766,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         let team = ship_data.team;
         let gun = {
             let gun = &mut ship_data.guns[index as usize];
+            // Exit if gun is still reloading
             if gun.reload_ticks_remaining > 0 {
                 return;
             }
@@ -932,13 +933,10 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
     }
 
     pub fn tick(&mut self) {
-        // Weapons.
+        // Weapons
+        // Handle reload timers
         {
-            let ship_data = self
-                .simulation
-                .ship_data
-                .get_mut(self.handle.index())
-                .unwrap();
+            let ship_data = self.data_mut();
             for gun in ship_data.guns.iter_mut() {
                 if gun.reload_ticks_remaining > 0 {
                     gun.reload_ticks_remaining -= 1;
@@ -952,7 +950,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             }
         }
 
-        // Acceleration.
+        // Movement
+        // Apply boosts, consume fuel
         {
             let mut acceleration = self.data().acceleration;
             if self.readonly().is_ability_active(Ability::Boost) {
@@ -976,7 +975,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             self.data_mut().acceleration = vector![0.0, 0.0];
         }
 
-        // Torque.
+        // Torque
         {
             let inertia_sqrt = 1.0
                 / self
@@ -991,6 +990,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
         }
 
         // TTL
+        // Destroy ship if it exceeds TTL
         {
             if let Some(ttl) = self.data_mut().ttl {
                 self.data_mut().ttl = Some(ttl - 1);
@@ -1000,7 +1000,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             }
         }
 
-        // Special abilities.
+        // Special abilities
+        // Handle reload and remaining time
         {
             for ship_ability in self.data_mut().abilities.iter_mut() {
                 ship_ability.active_time_remaining =
@@ -1010,7 +1011,8 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             }
         }
 
-        // Destruction.
+        // Destruction
+        // If a ship has been destroyed, remove it from the simulation
         if self.data().destroyed {
             if let Some(team_ctrl) = self.simulation.get_team_controller(self.data().team) {
                 team_ctrl.borrow_mut().remove_ship(self.handle);
@@ -1022,7 +1024,7 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
                 &mut self.simulation.colliders,
                 &mut self.simulation.impulse_joints,
                 &mut self.simulation.multibody_joints,
-                /*remove_attached_colliders=*/ true,
+                true,
             );
             self.simulation
                 .ship_data
