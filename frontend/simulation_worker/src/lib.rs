@@ -55,6 +55,7 @@ impl yew_agent::Worker for SimAgent {
                 nonce,
             } => {
                 self.sim = Some(Simulation::new(&scenario_name, seed, &codes));
+                // Snapshot of the starting state of the simulation
                 let snapshot = self.sim().snapshot(nonce);
                 self.errored = !snapshot.errors.is_empty();
                 self.link.respond(who, Response::Snapshot { snapshot });

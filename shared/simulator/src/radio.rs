@@ -56,6 +56,7 @@ pub fn tick(sim: &mut Simulation) {
     let mut receivers: BTreeMap<usize, Vec<RadioReceiver>> = BTreeMap::new();
     let mut senders: BTreeMap<usize, Vec<RadioSender>> = BTreeMap::new();
 
+    // Create a cache of radio senders and recievers for each channel
     for handle in handle_snapshot.iter().cloned() {
         let ship = sim.ship(handle);
         let ship_data = ship.data();
@@ -82,6 +83,8 @@ pub fn tick(sim: &mut Simulation) {
     }
 
     for channel in 0..NUM_CHANNELS {
+        // For each reciever, look for the sender on the same channel with the highest
+        // signal strength, and give that message to the reciever
         for rx in receivers.get(&channel).unwrap_or(&Vec::new()) {
             let mut best_msg = None;
             let mut best_rssi = rx.min_rssi;
@@ -100,6 +103,7 @@ pub fn tick(sim: &mut Simulation) {
         }
     }
 
+    // Reset sent messages
     for handle in handle_snapshot.iter().cloned() {
         for radio in sim.ship_mut(handle).data_mut().radios.iter_mut() {
             radio.sent = None;
@@ -107,6 +111,10 @@ pub fn tick(sim: &mut Simulation) {
     }
 }
 
+/// Computes signal strength between a sender and reciever based on
+/// their distance from each other and the sender's power.
+///
+/// Reference: https://en.wikipedia.org/wiki/Received_signal_strength_indicator
 fn compute_rssi(sender: &RadioSender, receiver: &RadioReceiver) -> f64 {
     let r_sq = nalgebra::distance_squared(&sender.position, &receiver.position);
     sender.power * receiver.rx_cross_section / (TAU * r_sq)

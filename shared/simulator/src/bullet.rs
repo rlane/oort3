@@ -85,23 +85,30 @@ pub fn destroy(sim: &mut Simulation, handle: BulletHandle) {
     );
 }
 
+/// Process movement and collisions for each bullet in the simulation
+///
+/// NOTE: As a performance optimization, colliders are only added to
+/// bullets after a collision has been detected since most bullets
+/// spend most of their lifetime far away from any ships they could
+/// hit.
 pub fn tick(sim: &mut Simulation) {
     let dt = PHYSICS_TICK_LENGTH;
+    // Indices for ships
     let (indices_by_team, coarse_grids_by_team) = build_indices(sim, dt);
     let mut stack = Vec::new();
     let shape = rapier2d_f64::geometry::Ball { radius: 1.0 };
     let bullets: Vec<BulletHandle> = sim.bullets.iter().cloned().collect();
     for handle in bullets {
-        let team = {
-            let data = data_mut(sim, handle);
-            data.ttl -= dt as f32;
-            if data.ttl <= 0.0 {
-                destroy(sim, handle);
-                continue;
-            }
-            data.team
-        };
+        let data = data_mut(sim, handle);
 
+        // If a bullet's lifetime has been exceeded, destroy it and move on to the next bullet
+        data.ttl -= dt as f32;
+        if data.ttl <= 0.0 {
+            destroy(sim, handle);
+            continue;
+        }
+
+        let team = data.team;
         let has_collider;
         let coarse_grid_hit;
         let mut needs_collider = false;
@@ -110,6 +117,7 @@ pub fn tick(sim: &mut Simulation) {
             let body = sim.bodies.get_mut(RigidBodyHandle(handle.index())).unwrap();
             has_collider = !body.colliders().is_empty();
 
+            // If bullet is outside world, destroy it
             let position = *body.translation();
             if position.x < -world_size / 2.0
                 || position.x > world_size / 2.0
@@ -120,6 +128,7 @@ pub fn tick(sim: &mut Simulation) {
                 continue;
             }
 
+            // If bullet maybe hits a ship belonging to another team
             coarse_grid_hit = coarse_grids_by_team
                 .iter()
                 .any(|(other_team, grid)| *other_team != team && grid.lookup(position));
@@ -129,8 +138,10 @@ pub fn tick(sim: &mut Simulation) {
                     &body.predict_position_using_velocity_and_forces(dt),
                 );
 
+                // Check index for hit
                 for (other_team, index) in indices_by_team.iter() {
                     if team != *other_team {
+                        // The bullet needs a collider if there was a hit
                         needs_collider = needs_collider
                             || index
                                 .query_iter_with_stack(
@@ -142,6 +153,8 @@ pub fn tick(sim: &mut Simulation) {
                                 )
                                 .next()
                                 .is_some();
+                        // TODO: Could we break here if the index query returns something
+                        // rather than continuing to check if a bullet has hit multiple teams?
                     }
                 }
             }
@@ -153,6 +166,7 @@ pub fn tick(sim: &mut Simulation) {
             remove_collider(sim, handle);
         }
 
+        // Debugging helper
         if COLOR_COLLIDERS {
             if needs_collider {
                 data_mut(sim, handle).color = 0x00ff00ff;
@@ -165,6 +179,9 @@ pub fn tick(sim: &mut Simulation) {
     }
 }
 
+/// Builds ship position indices for fast lookups
+///
+/// Returns (indicies_by_team, coarse_grids_by_team)
 fn build_indices(
     sim: &Simulation,
     dt: f64,
@@ -261,10 +278,13 @@ impl CoarseGrid {
     pub fn insert(&mut self, mut aabb: Aabb) {
         aabb.mins -= vector![Self::CELL_SIZE, Self::CELL_SIZE];
         aabb.maxs += vector![Self::CELL_SIZE, Self::CELL_SIZE];
+
+        // If the aabb intersects with the world, work with the intersection.
         if let Some(aabb) = aabb.intersection(&Aabb::from_half_extents(
             point![0.0, 0.0],
             vector![MAX_WORLD_SIZE / 2.0, MAX_WORLD_SIZE / 2.0],
         )) {
+            // Set the cells occupied by the aabb to true
             let w = ((aabb.maxs.x - aabb.mins.x) * Self::RECIP_CELL_SIZE).ceil() as i32;
             let h = ((aabb.maxs.y - aabb.mins.y) * Self::RECIP_CELL_SIZE).ceil() as i32;
             let min_index = Self::to_cell(aabb.mins.coords);

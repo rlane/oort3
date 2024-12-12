@@ -12,6 +12,7 @@ pub struct Line {
     pub color: Vector4<f32>,
 }
 
+/// Display gun orientation, acceleration vector, and radar radius for each ship
 pub fn emit_ship(sim: &mut Simulation, handle: ShipHandle) {
     let mut lines = Vec::with_capacity(2 + sim.ship(handle).data().guns.len());
     let body = sim.ship(handle).body();
