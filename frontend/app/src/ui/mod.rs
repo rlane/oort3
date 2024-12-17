@@ -28,7 +28,8 @@ pub struct UI {
     seed: u32,
     snapshot: Option<Snapshot>,
     uninterpolated_snapshot: Option<Snapshot>,
-    pending_snapshots: VecDeque<Snapshot>,
+    snapshots: VecDeque<Snapshot>,
+    snapshot_index: usize,
     renderer: Renderer,
     canvas: HtmlCanvasElement,
     zoom: f32,
@@ -105,7 +106,8 @@ impl UI {
             seed,
             snapshot: None,
             uninterpolated_snapshot: None,
-            pending_snapshots: VecDeque::new(),
+            snapshots: VecDeque::new(),
+            snapshot_index: 0,
             renderer,
             canvas,
             zoom,
@@ -317,7 +319,7 @@ impl UI {
             _ => {}
         }
 
-        if self.pending_snapshots.len() <= 1 && !fast_forward {
+        if self.snapshots.len() <= 1 && !fast_forward {
             status_msgs.push("SLOW SIM".to_owned());
         }
 
@@ -341,7 +343,7 @@ impl UI {
                 if let Some(snapshot) = self.snapshot.as_ref() {
                     status_msgs.push(format!("SIM {:.1} ms", snapshot.timing.total() * 1e3));
                 }
-                status_msgs.push(format!("SNAP {}", self.pending_snapshots.len()));
+                status_msgs.push(format!("SNAP {}", self.snapshots.len()));
             }
             status_msgs.push(self.version.clone());
             let status_msg = status_msgs.join("; ");
@@ -374,7 +376,7 @@ impl UI {
             return;
         }
 
-        self.pending_snapshots.push_back(snapshot);
+        self.snapshots.push_back(snapshot);
         if self.snapshot_requests_in_flight > 0 {
             self.snapshot_requests_in_flight -= 1;
         }
@@ -383,29 +385,54 @@ impl UI {
     }
 
     pub fn update_snapshot(&mut self, interpolate: bool) {
-        while self.pending_snapshots.len() > SNAPSHOT_PRELOAD / 2
-            && std::time::Duration::from_secs_f64(self.pending_snapshots[1].time)
-                <= self.physics_time
+        while self
+            .snapshots
+            .len()
+            .checked_sub(self.snapshot_index)
+            .and_then(|num| num.checked_sub(1))
+            .unwrap_or(0)
+            > SNAPSHOT_PRELOAD / 2
+            && std::time::Duration::from_secs_f64(self.snapshots[self.snapshot_index + 2].time)
+                < self.physics_time
         {
-            self.pending_snapshots.pop_front();
+            self.snapshot_index += 1;
+            log::info!("Index moved forward: {}", self.snapshot_index);
         }
 
-        if self.pending_snapshots.len() < SNAPSHOT_PRELOAD
+        if self
+            .snapshots
+            .len()
+            .checked_sub(self.snapshot_index)
+            .and_then(|num| num.checked_sub(1))
+            .unwrap_or(0)
+            < SNAPSHOT_PRELOAD
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
+            log::info!("Preloading snapshots");
             self.request_snapshot.emit(());
             self.request_snapshot.emit(());
             self.snapshot_requests_in_flight += 2;
         }
 
-        if !self.pending_snapshots.is_empty()
-            && std::time::Duration::from_secs_f64(self.pending_snapshots[0].time)
+        log::info!(
+            "Update snapshot attempt: snapshot_index = {}, snapshot_count = {}",
+            self.snapshot_index,
+            self.snapshots.len()
+        );
+        if self.snapshot_index < self.snapshots.len()
+            && std::time::Duration::from_secs_f64(self.snapshots[self.snapshot_index].time)
                 <= self.physics_time
         {
             let first_snapshot = self.snapshot.is_none();
 
-            self.snapshot = self.pending_snapshots.pop_front();
+            // self.snapshot = self.snapshots.pop_front();
+            assert!(self.snapshots.len() - 1 >= self.snapshot_index);
+            self.snapshot = self.snapshots.get(self.snapshot_index).cloned();
             self.uninterpolated_snapshot = self.snapshot.clone();
+
+            self.snapshot_index += 1;
+            log::info!("Index moved forward: {}", self.snapshot_index);
+
             let snapshot = self.snapshot.as_mut().unwrap();
 
             if first_snapshot {
@@ -448,9 +475,17 @@ impl UI {
             self.status = snapshot.status;
         }
 
+        // TODO: There's a lot of mutation going on here
         if let Some(snapshot) = self.snapshot.as_mut() {
             let t = std::time::Duration::from_secs_f64(snapshot.time);
-            assert!(self.physics_time >= t);
+            assert!(
+                self.physics_time >= t,
+                "physics_time = {}, t = {}, snapshot_index = {}, snapshots.count = {}",
+                self.physics_time.as_millis(),
+                t.as_millis(),
+                self.snapshot_index,
+                self.snapshots.len()
+            );
             let mut delta = (self.physics_time - t).min(Duration::from_millis(16));
             if delta > Duration::from_millis(3) {
                 delta -= Duration::from_millis(1);
