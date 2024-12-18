@@ -29,7 +29,6 @@ pub struct UI {
     snapshot: Option<Snapshot>,
     uninterpolated_snapshot: Option<Snapshot>,
     snapshots: VecDeque<Snapshot>,
-    snapshot_index: usize,
     renderer: Renderer,
     canvas: HtmlCanvasElement,
     zoom: f32,
@@ -109,7 +108,6 @@ impl UI {
             snapshot: None,
             uninterpolated_snapshot: None,
             snapshots: VecDeque::new(),
-            snapshot_index: 0,
             renderer,
             canvas,
             zoom,
@@ -394,30 +392,29 @@ impl UI {
         // Select an index and a snapshot, update self
 
         // There are a few cases we need to account for
+
         // Playing the animation
         // While the animation is played, `physics_time` is moved
         // forward based on the current time - the time of the previous render
         // so that the animation speed can be decoupled from the rendering
-        // speed
+        // speed and the snapshots are displayed in "real time"
+
+        // Moving one frame forward
+        // Already covered. `physics_time` is moved forward
+        // a single tick, and the rest of the process is the same
+
+        // Moving one frame back
+        // This is new. The system assumes forward progression, so a
+        // lot will need to change.
+
+        // Are snapshots evenly spaced?
+        // I'm relatively confident they each represent a delta of `PHYSICS_TICK_LENGTH`.
+        // That means we can identify the snapshot index based on physics_time
     }
 
     pub fn update_snapshot(&mut self, interpolate: bool) {
-        // snapshots.len - snapshot_index - 1 > SNAPSHOT_PRELOAD / 2
-        // safe subtraction to avoid crashing
-        while self
-            .snapshots
-            .len()
-            .checked_sub(self.snapshot_index)
-            .and_then(|num| num.checked_sub(1))
-            .unwrap_or(0)
-            > SNAPSHOT_PRELOAD / 2
-            // Next snapshot time is behind physics_time, need to move to the next snapshot
-            && std::time::Duration::from_secs_f64(self.snapshots[self.snapshot_index + 1].time)
-                <= self.physics_time
-        {
-            self.snapshot_index += 1;
-            log::info!("Snapshot behind: {}", self.snapshot_index);
-        }
+        let snapshot_index =
+            (self.physics_time.as_secs_f64() / PHYSICS_TICK_LENGTH).round() as usize;
 
         // snapshots.len - snapshot_index - 1 < SNAPSHOT_PRELOAD
         // safe subtraction to avoid crashing
@@ -425,7 +422,7 @@ impl UI {
         if self
             .snapshots
             .len()
-            .checked_sub(self.snapshot_index)
+            .checked_sub(snapshot_index)
             .and_then(|num| num.checked_sub(1))
             .unwrap_or(0)
             < SNAPSHOT_PRELOAD
@@ -439,24 +436,25 @@ impl UI {
 
         log::info!(
             "Update snapshot attempt: snapshot_index = {}, snapshot_count = {}",
-            self.snapshot_index,
+            snapshot_index,
             self.snapshots.len()
         );
 
-        // TODO: I think the second condition is necessarily true because of the
-        // while loop above. Could be removed if so.
-        if self.snapshot_index < self.snapshots.len()
-            && std::time::Duration::from_secs_f64(self.snapshots[self.snapshot_index].time)
+        if snapshot_index < self.snapshots.len()
+            && std::time::Duration::from_secs_f64(self.snapshots[snapshot_index].time)
                 <= self.physics_time
         {
             let first_snapshot = self.snapshot.is_none();
 
-            assert!(self.snapshots.len() - 1 >= self.snapshot_index);
-            self.snapshot = self.snapshots.get(self.snapshot_index).cloned();
+            assert!(self.snapshots.len() - 1 >= snapshot_index);
+            self.snapshot = self.snapshots.get(snapshot_index).cloned();
             self.uninterpolated_snapshot = self.snapshot.clone();
 
-            self.snapshot_index += 1;
-            log::info!("Index moved forward: {}", self.snapshot_index);
+            log::info!(
+                "Snapshot time: {}, physics_time: {}",
+                self.snapshot.as_ref().unwrap().time,
+                self.physics_time.as_secs_f64()
+            );
 
             let snapshot = self.snapshot.as_mut().unwrap();
 
@@ -500,7 +498,6 @@ impl UI {
             self.status = snapshot.status;
         }
 
-        // TODO: There's a lot of mutation going on here
         if let Some(snapshot) = self.snapshot.as_mut() {
             // Time of the snapshot
             let t = std::time::Duration::from_secs_f64(snapshot.time);
@@ -510,7 +507,7 @@ impl UI {
                 "physics_time = {}, t = {}, snapshot_index = {}, snapshots.count = {}",
                 self.physics_time.as_millis(),
                 t.as_millis(),
-                self.snapshot_index,
+                snapshot_index,
                 self.snapshots.len()
             );
             // Find the difference between current time and snapshot time, with a max value of 16
@@ -532,6 +529,7 @@ impl UI {
                 snapshot::interpolate(snapshot, delta.as_secs_f64());
             } else if snapshot.time != self.uninterpolated_snapshot.as_ref().unwrap().time {
                 // TODO: Do we need to do this? Does this ever happen?
+                // uninterpolated_snapshot is a copy of snapshot
                 log::info!("Uninterpolated");
                 *snapshot = self.uninterpolated_snapshot.as_ref().unwrap().clone();
             }
