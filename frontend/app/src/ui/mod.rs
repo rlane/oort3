@@ -190,6 +190,12 @@ impl UI {
         if self.keys_pressed.contains("KeyN") {
             self.paused = true;
             self.single_steps += 1;
+        } else if self.keys_pressed.contains("KeyJ") {
+            // TODO: This technically works, but it's a hack. We can do better.
+            self.paused = true;
+            self.single_steps += 1;
+            self.physics_time -=
+                std::time::Duration::from_secs_f64(simulation::PHYSICS_TICK_LENGTH) * 2;
         }
 
         if is_mac() {
@@ -410,6 +416,9 @@ impl UI {
         // Are snapshots evenly spaced?
         // I'm relatively confident they each represent a delta of `PHYSICS_TICK_LENGTH`.
         // That means we can identify the snapshot index based on physics_time
+
+        // Since we can do that, then we can shift around physics_time and
+        // quit messing with the index entirely
     }
 
     pub fn update_snapshot(&mut self, interpolate: bool) {
