@@ -21,6 +21,7 @@ pub enum Msg {
     WheelEvent(web_sys::WheelEvent),
     PointerEvent(web_sys::PointerEvent),
     BlurEvent(web_sys::FocusEvent),
+    TimelineEvent(f32),
     RequestSnapshot,
     ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
@@ -150,6 +151,12 @@ impl Component for SimulationWindow {
                 }
                 false
             }
+            Msg::TimelineEvent(percent) => {
+                // if let Some(ui) = self.ui.as_mut() {
+                //     ui
+                // }
+                false
+            }
         };
 
         if let Some(ui) = self.ui.as_ref() {
@@ -185,6 +192,7 @@ impl Component for SimulationWindow {
                         onpointerup={pointer_event_cb.clone()}
                         onpointerdown={pointer_event_cb}
                         onblur={blur_event_cb} />
+                    // <input type="range" min=0 max={self.frame_count} value={self.frame_count} oninput={} class="slider" id="myRange"/>
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>

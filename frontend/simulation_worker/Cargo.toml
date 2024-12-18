@@ -8,3 +8,4 @@ publish = false
 oort_simulator = { path = "../../shared/simulator", features = ["js"], default-features = false }
 yew-agent = "0.2.0"
 serde = "1.0.193"
+log = "0.4.20"

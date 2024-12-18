@@ -37,6 +37,7 @@ use nalgebra::{vector, Vector2};
 use rand::{seq::SliceRandom, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 
 pub mod prelude {
     pub use super::Scenario;
@@ -69,6 +70,14 @@ pub enum Status {
     Victory { team: i32 },
     Failed,
     Draw,
+}
+
+impl fmt::Display for Status {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
 }
 
 pub trait Scenario {
