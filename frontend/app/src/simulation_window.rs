@@ -4,6 +4,8 @@ use oort_simulation_worker::SimAgent;
 use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
 use rand::Rng;
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
+use web_sys::HtmlInputElement;
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -21,7 +23,7 @@ pub enum Msg {
     WheelEvent(web_sys::WheelEvent),
     PointerEvent(web_sys::PointerEvent),
     BlurEvent(web_sys::FocusEvent),
-    TimelineEvent(f32),
+    TimelineEvent(usize),
     RequestSnapshot,
     ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
@@ -151,10 +153,10 @@ impl Component for SimulationWindow {
                 }
                 false
             }
-            Msg::TimelineEvent(percent) => {
-                // if let Some(ui) = self.ui.as_mut() {
-                //     ui
-                // }
+            Msg::TimelineEvent(index) => {
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.to_time(index);
+                }
                 false
             }
         };
@@ -178,6 +180,31 @@ impl Component for SimulationWindow {
         let wheel_event_cb = context.link().callback(Msg::WheelEvent);
         let pointer_event_cb = context.link().callback(Msg::PointerEvent);
         let blur_event_cb = context.link().callback(Msg::BlurEvent);
+        // let input_value_handle = use_state(String::default);
+
+        let timeline_event_cb = context.link().callback(|event: InputEvent| {
+            let target = event
+                .target()
+                .expect("Event should have a target when dispatched");
+
+            let slider_value = target
+                .unchecked_into::<HtmlInputElement>()
+                .value_as_number()
+                .round() as usize;
+
+            Msg::TimelineEvent(slider_value)
+        });
+
+        let timeline_max = self
+            .ui
+            .as_ref()
+            .map_or(0, |ui| ui.snapshot_count())
+            .to_string();
+        let timeline_value = self
+            .ui
+            .as_ref()
+            .map_or(0, |ui| ui.snapshot_index())
+            .to_string();
 
         create_portal(
             html! {
@@ -192,7 +219,7 @@ impl Component for SimulationWindow {
                         onpointerup={pointer_event_cb.clone()}
                         onpointerdown={pointer_event_cb}
                         onblur={blur_event_cb} />
-                    // <input type="range" min=0 max={self.frame_count} value={self.frame_count} oninput={} class="slider" id="myRange"/>
+                    <input type="range" min=0 max={timeline_max} value={timeline_value} oninput={timeline_event_cb} class="slider" id="myRange"/>
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>

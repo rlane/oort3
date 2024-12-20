@@ -392,7 +392,7 @@ impl UI {
         self.needs_render = true;
     }
 
-    pub fn to_time(&mut self, percent: f32) {
+    pub fn to_time(&mut self, index: usize) {
         // Take the start time using the first snapshot
         // Take the end time using the last snapshot
         // Select an index and a snapshot, update self
@@ -419,6 +419,19 @@ impl UI {
 
         // Since we can do that, then we can shift around physics_time and
         // quit messing with the index entirely
+
+        // The first time is expected to be at 0 at the time this was written
+        // This will need to be updated if that expectation changes
+        // let firstTime: f64 = 0.0;
+        // let lastTime = self
+        //     .snapshots
+        //     .iter()
+        //     .last()
+        //     .map_or(0.0, |snapshot| snapshot.time);
+
+        // let percent_time = firstTime + ((lastTime - firstTime) * percent);
+        self.physics_time = Duration::from_secs_f64((index as f64) * PHYSICS_TICK_LENGTH);
+        self.update_snapshot(false);
     }
 
     pub fn update_snapshot(&mut self, interpolate: bool) {
@@ -691,6 +704,14 @@ impl UI {
 
     pub fn snapshot(&self) -> Option<Snapshot> {
         self.snapshot.clone()
+    }
+
+    pub fn snapshot_count(&self) -> usize {
+        self.snapshots.len()
+    }
+
+    pub fn snapshot_index(&self) -> usize {
+        (self.snapshot.as_ref().map_or(0.0, |s| s.time) / PHYSICS_TICK_LENGTH).round() as usize
     }
 
     pub fn update_picked(&mut self) {

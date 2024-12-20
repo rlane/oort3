@@ -103,6 +103,17 @@ body {
   font-size: 24px;
 }
 
+.slider {
+  bottom: 50px;
+  right: 20px;
+  height: 24px;
+  left: 20px;
+
+  width: fill-available;
+  position: absolute;
+  color: #dddddd;
+}
+
 .picked {
   top: 20px;
   left: 20px;
