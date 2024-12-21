@@ -37,7 +37,8 @@ pub struct UI {
     frame_timer: frame_timer::FrameTimer,
     status: Status,
     quit: bool,
-    single_steps: i32,
+    steps_forward: i32,
+    steps_backward: i32,
     paused: bool,
     slowmo: bool,
     keys_down: std::collections::HashSet<String>,
@@ -116,7 +117,8 @@ impl UI {
             frame_timer,
             status: Status::Running,
             quit: false,
-            single_steps,
+            steps_forward: single_steps,
+            steps_backward: single_steps,
             paused,
             slowmo: false,
             keys_down,
@@ -185,17 +187,15 @@ impl UI {
         }
         if self.keys_pressed.contains("Space") {
             self.paused = !self.paused;
-            self.single_steps = 0;
+            self.steps_forward = 0;
+            self.steps_backward = 0;
         }
         if self.keys_pressed.contains("KeyN") {
             self.paused = true;
-            self.single_steps += 1;
+            self.steps_forward += 1;
         } else if self.keys_pressed.contains("KeyJ") {
-            // TODO: This technically works, but it's a hack. We can do better.
             self.paused = true;
-            self.single_steps += 1;
-            self.physics_time -=
-                std::time::Duration::from_secs_f64(simulation::PHYSICS_TICK_LENGTH) * 2;
+            self.steps_backward += 1;
         }
 
         if is_mac() {
@@ -255,7 +255,8 @@ impl UI {
 
         if self.status == Status::Running
             && (!self.paused
-                || self.single_steps > 0
+                || self.steps_forward > 0
+                || self.steps_backward > 0
                 || fast_forward
                 || self.slowmo
                 || self.snapshot.is_none())
@@ -266,9 +267,13 @@ impl UI {
                     self.physics_time += dt;
                     self.update_snapshot(true);
                 }
-            } else if self.single_steps > 0 {
+            } else if self.steps_forward > 0 {
                 self.physics_time += dt;
                 self.update_snapshot(false);
+            } else if self.steps_backward > 0 {
+                self.physics_time -= dt;
+                self.update_snapshot(false);
+                self.steps_backward -= 1;
             } else if self.slowmo {
                 self.physics_time += dt / 10;
                 self.update_snapshot(true);
@@ -276,8 +281,8 @@ impl UI {
                 // TODO: When do we hit this branch? When it's the first snapshot?
                 self.update_snapshot(true);
             }
-            if self.single_steps > 0 {
-                self.single_steps -= 1;
+            if self.steps_forward > 0 {
+                self.steps_forward -= 1;
             }
         } else if self.paused != was_paused || self.slowmo != was_slowmo {
             self.update_snapshot(false);
@@ -523,18 +528,14 @@ impl UI {
         if let Some(snapshot) = self.snapshot.as_mut() {
             // Time of the snapshot
             let t = std::time::Duration::from_secs_f64(snapshot.time);
-            // Assert that the "current" time is greater than or equal to the snapshot
-            assert!(
-                self.physics_time >= t,
-                "physics_time = {}, t = {}, snapshot_index = {}, snapshots.count = {}",
-                self.physics_time.as_millis(),
-                t.as_millis(),
-                snapshot_index,
-                self.snapshots.len()
-            );
+
             // Find the difference between current time and snapshot time, with a max value of 16
             // TODO: Why 16? The tick length is 16.66 miliseconds. Maybe that's it?
-            let mut delta = (self.physics_time - t).min(Duration::from_millis(16));
+            let mut delta = if t <= self.physics_time {
+                (self.physics_time - t).min(Duration::from_millis(16))
+            } else {
+                (t - self.physics_time).min(Duration::from_millis(16))
+            };
 
             // TODO: Unsure what this is for
             // TODO: More magic numbers
@@ -544,7 +545,11 @@ impl UI {
 
             // Set the new current time to the time of the snapshot + the delta
             // Could just be unchanged if the delta is less than 4
-            self.physics_time = t + delta;
+            self.physics_time = if t <= self.physics_time {
+                t + delta
+            } else {
+                t - delta
+            };
 
             if interpolate {
                 // Alters snapshot to make it appear as it would at `physics_time`
