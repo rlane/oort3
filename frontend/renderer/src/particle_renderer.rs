@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
+
 use crate::geometry;
 
 use super::{buffer_arena, glutil};
@@ -8,7 +11,8 @@ use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlVertexArrayObject};
 use WebGl2RenderingContext as gl;
 
-const MAX_PARTICLES: usize = 1000;
+const MAX_PARTICLES: usize = 100;
+const EMPTY_PARTICLE_CREATION_TIME: f32 = -100.0;
 
 pub struct ParticleRenderer {
     context: WebGl2RenderingContext,
@@ -18,6 +22,8 @@ pub struct ParticleRenderer {
     scale_loc: WebGlUniformLocation,
     buffer_arena: buffer_arena::BufferArena,
     particles: Vec<Particle>,
+    /// HashSet consisting of the time of the snapshot and the particle's index
+    seen_particles: HashSet<Particle>,
     next_particle_index: usize,
     max_particles_seen: usize,
     vao: WebGlVertexArrayObject,
@@ -33,6 +39,61 @@ pub struct Particle {
     creation_time: f32,
 }
 
+impl PartialEq for Particle {
+    fn eq(&self, other: &Particle) -> bool {
+        let positions = self.position;
+        let other_positions = other.position;
+        if !positions.eq(&other_positions) {
+            return false;
+        }
+
+        let velocity = self.velocity;
+        let other_velocity = other.velocity;
+        if !velocity.eq(&other_velocity) {
+            return false;
+        }
+
+        let color = self.color;
+        let other_color = other.color;
+        if !color.eq(&other_color) {
+            return false;
+        }
+
+        if self.lifetime - other.lifetime != 0.0 {
+            return false;
+        }
+
+        if self.creation_time - other.creation_time != 0.0 {
+            return false;
+        }
+
+        true
+    }
+}
+
+impl Eq for Particle {}
+impl Hash for Particle {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let position = self.position;
+        let velocity = self.velocity;
+        let color = self.color;
+        for position in &position {
+            state.write(&position.to_be_bytes());
+        }
+
+        for velocity in &velocity {
+            state.write(&velocity.to_be_bytes());
+        }
+
+        for color in &color {
+            state.write(&color.to_be_bytes());
+        }
+
+        state.write(&self.lifetime.to_be_bytes());
+        state.write(&self.creation_time.to_be_bytes());
+    }
+}
+
 #[derive(Debug)]
 pub struct DrawSet {
     projection_matrix: Matrix4<f32>,
@@ -41,6 +102,12 @@ pub struct DrawSet {
     attribs_token: buffer_arena::Token,
     num_instances: usize,
     current_time: f32,
+}
+
+impl DrawSet {
+    pub fn len(&self) -> usize {
+        self.num_instances
+    }
 }
 
 impl ParticleRenderer {
@@ -63,7 +130,7 @@ out vec4 varying_color;
 void main() {
     float dt = current_time - creation_time;
     float life_fraction = clamp(dt / lifetime, 0.0, 1.0);
-    float size = (1.0 - life_fraction) * scale;
+    float size = dt >= 0.0 ? (1.0 - life_fraction) * scale : 0.0;
     vec2 p = vertex.xy * size + position + velocity * dt;
     gl_Position = transform * vec4(p, 0.0, 1.0);
     varying_color = vec4(color.x, color.y, color.z, color.w * (1.0 - life_fraction));
@@ -109,7 +176,7 @@ void main() {
                 velocity: vector![0.0, 0.0],
                 color: vector![0.0, 0.0, 0.0, 0.0],
                 lifetime: 1.0,
-                creation_time: -100.0,
+                creation_time: EMPTY_PARTICLE_CREATION_TIME,
             });
         }
 
@@ -126,6 +193,7 @@ void main() {
                 1024 * 1024,
             )?,
             particles,
+            seen_particles: HashSet::new(),
             next_particle_index: 0,
             max_particles_seen: MAX_PARTICLES,
             vao,
@@ -133,11 +201,21 @@ void main() {
     }
 
     pub fn add_particle(&mut self, particle: Particle) {
+        // Don't duplicate particles
+        if self.seen_particles.get(&particle).is_some() {
+            return;
+        }
+
+        // If a particle is being overwritten, remove it from the seen index
+        self.seen_particles
+            .remove(&self.particles[self.next_particle_index]);
+
         self.particles[self.next_particle_index] = particle;
         self.next_particle_index += 1;
         if self.next_particle_index >= self.particles.len() {
             self.next_particle_index = 0;
         }
+        self.seen_particles.insert(particle);
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
@@ -167,6 +245,8 @@ void main() {
             .filter(|x| x.creation_time >= current_time - 10.0)
             .cloned()
             .collect();
+
+        let creation_times: Vec<f32> = attribs.iter().map(|p| p.creation_time).collect();
 
         DrawSet {
             projection_matrix: *projection_matrix,
