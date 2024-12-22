@@ -184,6 +184,7 @@ impl TeamController {
     }
 
     fn tick_ship(&mut self, sim: &mut Simulation, handle: ShipHandle) -> Result<(), Error> {
+        // If ship code crashed
         if let Some(msg) = sim.ship(handle).data().crash_message.as_ref() {
             sim.emit_debug_text(handle, format!("Crashed: {}", msg.clone()));
             let mut rng = new_rng(sim.tick());
@@ -195,6 +196,8 @@ impl TeamController {
                 let v =
                     sim.ship(handle).body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
                 let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
+
+                // Display ship exploding animation
                 sim.events.particles.push(Particle {
                     position: p + offset,
                     velocity: v,
@@ -229,7 +232,7 @@ impl TeamController {
             slice.write_slice(&state.state).expect("system state write");
         }
 
-        // Run user's ship tick
+        // Run user's ship tick function
         let result = vm.tick_ship.call(vm.store_mut().deref_mut(), &[]);
         if let Err(e) = result {
             // If gas has run out, throw an error
@@ -252,6 +255,8 @@ impl TeamController {
                 ) {
                     let null_pos = vec.iter().position(|&x| x == 0).unwrap_or(vec.len());
                     let msg = String::from_utf8_lossy(&vec[0..null_pos]).to_string();
+
+                    // Assume gas error if error message is missing
                     if msg.is_empty() {
                         return Err(Error {
                             msg: "Ship exceeded maximum number of instructions".to_string(),
@@ -273,6 +278,7 @@ impl TeamController {
             );
         }
 
+        // Read shared memory after ship tick, and apply and actions to the simulation
         {
             let store = vm.store();
             let memory_view = vm.memory.view(store.deref());
@@ -280,6 +286,7 @@ impl TeamController {
             let slice = ptr
                 .slice(&memory_view, SystemState::Size as u32)
                 .expect("system state read");
+
             slice
                 .read_slice(&mut state.state)
                 .expect("system state read");
@@ -337,6 +344,7 @@ impl TeamController {
         Ok(())
     }
 
+    /// Writes `environment` to each ship's memory
     pub fn update_environment(&mut self, environment: &Environment) -> Result<(), Error> {
         self.environment = environment.clone();
         for (_, ship_controller) in self.ship_controllers.iter_mut() {
@@ -371,6 +379,8 @@ impl WasmVm {
         let module = match code {
             Code::Wasm(wasm) => {
                 let wasm = wasm_submemory::rewrite(wasm, SUBMEMORY_SIZE)?;
+
+                // Add gas tracking and functions
                 let wasm = limiter::rewrite(&wasm)?;
                 translate_error(Module::new(&store, wasm))?
             }
@@ -404,6 +414,9 @@ impl WasmVm {
             .i32()
             .unwrap() as u32;
 
+        // The compiler service creates a file that includes this global `tick` function, which calls the
+        // user's `ship.tick()` function. You can find that file in `shared/ai/src/tick.rs`,
+        // and find the compile step in `shard/compiler/src/lib.rs`
         let tick_ship = translate_error(instance.exports.get_function("tick"))?.clone();
         let reset_gas = translate_error(instance.exports.get_function("reset_gas"))?.clone();
         let get_gas = translate_error(instance.exports.get_function("get_gas"))?.typed(&store)?;
@@ -461,6 +474,9 @@ impl WasmVm {
         Some(src_slice.to_vec())
     }
 
+    /// Write environment as a string to the VM's memory
+    ///
+    /// Throws error if environment size exceeds `MAX_ENVIRONMENT_SIZE`
     fn update_environment(&self, ptr: WasmPtr<u8>, environment: &Environment) -> Result<(), Error> {
         let environment_string = environment
             .iter()
@@ -550,6 +566,7 @@ impl LocalSystemState {
     }
 }
 
+/// Set ship memory based on the state of the ship in the simulator
 fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
     state.set(
         SystemState::Class,
@@ -657,7 +674,10 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
     }
 }
 
+/// Draws ship state from memory, applies it to the simulator,
+/// and then resets memory to default values
 fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
+    // Set ship acceleration
     sim.ship_mut(handle).accelerate(Vec2::new(
         state.get(SystemState::AccelerateX),
         state.get(SystemState::AccelerateY),
@@ -665,9 +685,11 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
     state.set(SystemState::AccelerateX, 0.0);
     state.set(SystemState::AccelerateY, 0.0);
 
+    // Set torque
     sim.ship_mut(handle).torque(state.get(SystemState::Torque));
     state.set(SystemState::Torque, 0.0);
 
+    // Fire guns
     for (i, (aim, fire)) in [
         (SystemState::Aim0, SystemState::Fire0),
         (SystemState::Aim1, SystemState::Fire1),
@@ -684,6 +706,7 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         }
     }
 
+    // Set radar positions
     for (idx, radar) in sim
         .ship_mut(handle)
         .data_mut()
@@ -699,6 +722,7 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         radar.set_ecm_mode(translate_ecm_mode(state.get(idxs.ecm_mode)));
     }
 
+    // Activate abilities
     let active_abilities = ActiveAbilities(state.get_u64(SystemState::ActivateAbility));
     for &ability in oort_api::ABILITIES {
         let current = sim.ship(handle).is_ability_active(ability);
@@ -712,11 +736,13 @@ fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut Loca
         }
     }
 
+    // Explode
     if state.get(SystemState::Explode) > 0.0 {
         sim.ship_mut(handle).explode();
         state.set(SystemState::Explode, 0.0);
     }
 
+    // Set radio channels and send messages
     for (i, radio) in sim
         .ship_mut(handle)
         .data_mut()

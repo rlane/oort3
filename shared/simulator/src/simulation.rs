@@ -70,6 +70,8 @@ impl Simulation {
         let mut scenario = scenario::load(scenario_name);
 
         log::debug!("seed {seed}");
+
+        // Create channel to communicate collision events
         let (contact_send, contact_recv) = crossbeam::channel::unbounded();
         let mut sim = Box::new(Simulation {
             scenario: None,
@@ -112,6 +114,7 @@ impl Simulation {
 
         collision::add_walls(&mut sim);
 
+        // Configure the simulation according to the scenario
         scenario.init(&mut sim, seed);
         sim.scenario = Some(scenario);
 
@@ -204,6 +207,7 @@ impl Simulation {
         radar::tick(self);
         self.timing.radar += radar_timer.elapsed();
 
+        // Transmit radio messages
         let radio_timer = Timer::new();
         radio::tick(self);
         self.timing.radio += radio_timer.elapsed();
@@ -216,6 +220,12 @@ impl Simulation {
             .collect();
         teams.sort_by_key(|(k, _)| *k);
 
+        // Ship tick processing happens in two steps.
+        //
+        // First within the team controller the user's ship tick function
+        // is called for each ship, which loads state updates into shared memory.
+        // The updates are read from shared memory and applied to the
+        // simulator.
         for (_, team_controller) in teams.iter() {
             team_controller.borrow_mut().tick(self);
         }
@@ -223,6 +233,9 @@ impl Simulation {
 
         let ship_timer = Timer::new();
         let handle_snapshot: Vec<ShipHandle> = self.ships.iter().cloned().collect();
+
+        // Second, some upkeep is performed for each ship, including things
+        // like moving reload timings forward.
         for handle in handle_snapshot {
             self.ship_mut(handle).tick();
             if self.ships.contains(handle) {
@@ -321,6 +334,9 @@ impl Simulation {
         s.finish()
     }
 
+    /// Generate a snapshot based on the current state of the simulation
+    ///
+    /// Collects the statuses of bullets and ships
     pub fn snapshot(&self, nonce: u32) -> Snapshot {
         let mut snapshot = Snapshot {
             nonce,
@@ -382,6 +398,7 @@ impl Simulation {
         self.team_controllers.get_mut(&team).map(|x| x.clone())
     }
 
+    /// Provide's every ship in the team with environment information
     pub fn update_environment(&mut self, team: i32, mut environment: BTreeMap<String, String>) {
         environment.insert(
             "SCENARIO_NAME".to_string(),
