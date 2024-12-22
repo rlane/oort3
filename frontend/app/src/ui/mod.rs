@@ -9,7 +9,7 @@ use oort_simulator::model;
 use oort_simulator::scenario::Status;
 use oort_simulator::simulation::{self, PHYSICS_TICK_LENGTH};
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
@@ -28,7 +28,7 @@ pub struct UI {
     seed: u32,
     snapshot: Option<Snapshot>,
     uninterpolated_snapshot: Option<Snapshot>,
-    snapshots: VecDeque<Snapshot>,
+    snapshots: Vec<Snapshot>,
     renderer: Renderer,
     canvas: HtmlCanvasElement,
     zoom: f32,
@@ -45,7 +45,6 @@ pub struct UI {
     keys_pressed: std::collections::HashSet<String>,
     frame: u64,
     start_time: instant::Instant,
-    ///
     last_render_time: instant::Instant,
     /// Time difference between the first and current frame
     physics_time: std::time::Duration,
@@ -93,7 +92,6 @@ impl UI {
         let camera_offset = vector![0.0, 0.0];
         renderer.set_view(zoom, camera_focus + camera_offset);
         let frame_timer: frame_timer::FrameTimer = Default::default();
-        let single_steps = 0;
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_pressed = std::collections::HashSet::<String>::new();
@@ -108,7 +106,7 @@ impl UI {
             seed,
             snapshot: None,
             uninterpolated_snapshot: None,
-            snapshots: VecDeque::new(),
+            snapshots: Vec::new(),
             renderer,
             canvas,
             zoom,
@@ -117,8 +115,8 @@ impl UI {
             frame_timer,
             status: Status::Running,
             quit: false,
-            steps_forward: single_steps,
-            steps_backward: single_steps,
+            steps_forward: 0,
+            steps_backward: 0,
             paused,
             slowmo: false,
             keys_down,
@@ -192,7 +190,7 @@ impl UI {
         if self.keys_pressed.contains("KeyN") {
             self.paused = true;
             self.steps_forward += 1;
-        } else if self.keys_pressed.contains("KeyJ") {
+        } else if self.keys_pressed.contains("KeyP") {
             self.paused = true;
             self.steps_backward += 1;
         }
@@ -283,7 +281,6 @@ impl UI {
                 self.physics_time += dt / 10;
                 self.update_snapshot(true);
             } else {
-                // TODO: When do we hit this branch? When it's the first snapshot?
                 self.update_snapshot(true);
             }
             if self.steps_forward > 0 {
@@ -394,7 +391,7 @@ impl UI {
             return;
         }
 
-        self.snapshots.push_back(snapshot);
+        self.snapshots.push(snapshot);
         if self.snapshot_requests_in_flight > 0 {
             self.snapshot_requests_in_flight -= 1;
         }
@@ -402,13 +399,15 @@ impl UI {
         self.needs_render = true;
     }
 
-    pub fn to_time(&mut self, index: usize) {
-        // The time of the first snapshot is expected to be at 0 at
-        // the time this was written. This will need to be updated if
-        // that expectation changes.
-
-        // Snapshots are evenly spaced, so a index can easily be converted into a time
-        // and vice versa
+    /// Sets the displayed snapshot by index
+    ///
+    /// The time of the first snapshot is expected to be at 0 at
+    /// the time this was written. This will need to be updated if
+    /// that expectation changes.
+    ///
+    /// Snapshots are evenly spaced, so an index can easily be converted into a time
+    /// and vice versa
+    pub fn set_snapshot_index(&mut self, index: usize) {
         self.physics_time = Duration::from_secs_f64((index as f64) * PHYSICS_TICK_LENGTH);
         self.paused = true;
         self.update_snapshot(false);

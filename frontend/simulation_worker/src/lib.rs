@@ -61,12 +61,6 @@ impl yew_agent::Worker for SimAgent {
                 self.link.respond(who, Response::Snapshot { snapshot });
             }
             Request::Snapshot { ticks, nonce } => {
-                log::info!(
-                    "Current status = {}, ticks = {}",
-                    self.sim().status().to_string(),
-                    ticks
-                );
-
                 if self.errored || self.sim().status() != Status::Running {
                     return;
                 }

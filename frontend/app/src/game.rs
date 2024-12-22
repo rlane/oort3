@@ -169,7 +169,6 @@ impl Component for Game {
                     context.props().player1.clone(),
                 ];
                 let has_shortcodes = !shortcodes.iter().all(Option::is_none);
-                log::info!("has shortcodes {}", has_shortcodes);
                 self.change_scenario(context, &context.props().scenario, !has_shortcodes);
                 if has_shortcodes {
                     context.link().send_future_batch(async move {
@@ -1270,7 +1269,6 @@ impl Game {
             return;
         }
         let code = self.player_team().get_editor_code();
-        log::info!("code {}", self.player_team().get_editor_text());
         if is_encrypted(&code) {
             return;
         }

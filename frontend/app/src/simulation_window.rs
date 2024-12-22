@@ -5,7 +5,7 @@ use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
 use rand::Rng;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlInputElement, Node};
+use web_sys::HtmlInputElement;
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -57,7 +57,7 @@ impl Component for SimulationWindow {
     fn create(context: &yew::Context<Self>) -> Self {
         context.props().register_link.emit(context.link().clone());
         let cb = {
-            let link: Scope<SimulationWindow> = context.link().clone();
+            let link = context.link().clone();
             move |e| link.send_message(Msg::ReceivedSimAgentResponse(e))
         };
         let sim_agent = SimAgent::bridge(Rc::new(cb));
@@ -112,6 +112,8 @@ impl Component for SimulationWindow {
             Msg::Render => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
+
+                    // Move timeline indicator
                     if let Some(timeline_ref) = self.timeline_ref.cast::<HtmlInputElement>() {
                         timeline_ref.set_value_as_number(ui.snapshot_index() as f64);
                     }
@@ -155,6 +157,8 @@ impl Component for SimulationWindow {
             }) => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.on_snapshot(snapshot);
+
+                    // Update timeline with new max value
                     if let Some(timeline_ref) = self.timeline_ref.cast::<HtmlInputElement>() {
                         timeline_ref.set_max(ui.snapshot_count().to_string().as_str());
                     }
@@ -162,8 +166,10 @@ impl Component for SimulationWindow {
                 false
             }
             Msg::TimelineEvent(index) => {
+                // Timeline was set to a new index
+                // Display the relevant snapshot
                 if let Some(ui) = self.ui.as_mut() {
-                    ui.to_time(index);
+                    ui.set_snapshot_index(index);
                 }
                 false
             }
