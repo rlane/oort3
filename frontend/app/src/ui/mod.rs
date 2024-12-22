@@ -412,6 +412,7 @@ impl UI {
         self.paused = true;
         self.update_snapshot(false);
         self.needs_render = true;
+        let _ = self.canvas.focus();
     }
 
     pub fn update_snapshot(&mut self, interpolate: bool) {
