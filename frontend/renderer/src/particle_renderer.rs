@@ -112,7 +112,6 @@ impl DrawSet {
 
 impl ParticleRenderer {
     pub fn new(context: WebGl2RenderingContext) -> Result<Self, JsValue> {
-        // float size = dt >= 0.0 ? (1.0 - life_fraction) * scale : 0.0;
         let vert_shader = glutil::compile_shader(
             &context,
             gl::VERTEX_SHADER,
@@ -215,11 +214,8 @@ void main() {
         // We're using a String for the times because Rust's floats
         // don't implement Hash or Eq
         if self.seen_snapshots.contains(&snapshot.time.to_string()) {
-            log::info!("old snapshot");
             return;
         }
-
-        log::info!("new snapshot");
 
         if snapshot.particles.len() > self.max_particles_seen {
             self.max_particles_seen = snapshot.particles.len();

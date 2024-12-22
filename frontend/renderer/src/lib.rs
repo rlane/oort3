@@ -175,9 +175,6 @@ impl Renderer {
         let particle_drawset = self
             .particle_renderer
             .upload(&self.projection_matrix, snapshot);
-
-        log::info!("partical count {}", particle_drawset.len());
-
         let flare_drawset = self
             .flare_renderer
             .upload(&self.projection_matrix, snapshot);
