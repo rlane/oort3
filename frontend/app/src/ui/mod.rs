@@ -418,16 +418,8 @@ impl UI {
         let snapshot_index =
             (self.physics_time.as_secs_f64() / PHYSICS_TICK_LENGTH).round() as usize;
 
-        // snapshots.len - snapshot_index - 1 < SNAPSHOT_PRELOAD
-        // safe subtraction to avoid crashing
         // Reaching the end of the preloaded snapshots, need to preload more
-        if self
-            .snapshots
-            .len()
-            .checked_sub(snapshot_index)
-            .and_then(|num| num.checked_sub(1))
-            .unwrap_or(0)
-            < SNAPSHOT_PRELOAD
+        if SNAPSHOT_PRELOAD + 1 + snapshot_index > self.snapshots.len()
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
             self.request_snapshot.emit(());
@@ -441,7 +433,6 @@ impl UI {
         {
             let first_snapshot = self.snapshot.is_none();
 
-            assert!(self.snapshots.len() - 1 >= snapshot_index);
             self.snapshot = self.snapshots.get(snapshot_index).cloned();
             self.uninterpolated_snapshot = self.snapshot.clone();
 
@@ -519,7 +510,6 @@ impl UI {
             } else if snapshot.time != self.uninterpolated_snapshot.as_ref().unwrap().time {
                 // TODO: Do we need to do this? Does this ever happen?
                 // uninterpolated_snapshot is a copy of snapshot
-                log::info!("Uninterpolated");
                 *snapshot = self.uninterpolated_snapshot.as_ref().unwrap().clone();
             }
 

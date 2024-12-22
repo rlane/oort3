@@ -2252,7 +2252,6 @@ dependencies = [
 name = "oort_simulation_worker"
 version = "0.83.2"
 dependencies = [
- "log",
  "oort_simulator",
  "serde",
  "yew-agent",
