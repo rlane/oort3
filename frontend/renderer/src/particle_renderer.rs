@@ -11,7 +11,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlVertexArrayObject};
 use WebGl2RenderingContext as gl;
 
-const MAX_PARTICLES: usize = 100;
+const MAX_PARTICLES: usize = 1000;
 const EMPTY_PARTICLE_CREATION_TIME: f32 = -100.0;
 
 pub struct ParticleRenderer {
@@ -22,8 +22,8 @@ pub struct ParticleRenderer {
     scale_loc: WebGlUniformLocation,
     buffer_arena: buffer_arena::BufferArena,
     particles: Vec<Particle>,
-    /// HashSet consisting of the time of the snapshot and the particle's index
-    seen_particles: HashSet<Particle>,
+    /// Used to avoid recreating particles when re-rendering
+    seen_snapshots: HashSet<String>,
     next_particle_index: usize,
     max_particles_seen: usize,
     vao: WebGlVertexArrayObject,
@@ -112,6 +112,7 @@ impl DrawSet {
 
 impl ParticleRenderer {
     pub fn new(context: WebGl2RenderingContext) -> Result<Self, JsValue> {
+        // float size = dt >= 0.0 ? (1.0 - life_fraction) * scale : 0.0;
         let vert_shader = glutil::compile_shader(
             &context,
             gl::VERTEX_SHADER,
@@ -130,7 +131,7 @@ out vec4 varying_color;
 void main() {
     float dt = current_time - creation_time;
     float life_fraction = clamp(dt / lifetime, 0.0, 1.0);
-    float size = dt >= 0.0 ? (1.0 - life_fraction) * scale : 0.0;
+    float size = (1.0 - life_fraction) * scale;
     vec2 p = vertex.xy * size + position + velocity * dt;
     gl_Position = transform * vec4(p, 0.0, 1.0);
     varying_color = vec4(color.x, color.y, color.z, color.w * (1.0 - life_fraction));
@@ -193,7 +194,7 @@ void main() {
                 1024 * 1024,
             )?,
             particles,
-            seen_particles: HashSet::new(),
+            seen_snapshots: HashSet::new(),
             next_particle_index: 0,
             max_particles_seen: MAX_PARTICLES,
             vao,
@@ -201,24 +202,25 @@ void main() {
     }
 
     pub fn add_particle(&mut self, particle: Particle) {
-        // Don't duplicate particles
-        if self.seen_particles.get(&particle).is_some() {
-            return;
-        }
-
-        // If a particle is being overwritten, remove it from the seen index
-        self.seen_particles
-            .remove(&self.particles[self.next_particle_index]);
-
         self.particles[self.next_particle_index] = particle;
         self.next_particle_index += 1;
         if self.next_particle_index >= self.particles.len() {
             self.next_particle_index = 0;
         }
-        self.seen_particles.insert(particle);
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
+        // If we've already seen the snapshot, there's no need to recreate
+        // its particles
+        // We're using a String for the times because Rust's floats
+        // don't implement Hash or Eq
+        if self.seen_snapshots.contains(&snapshot.time.to_string()) {
+            log::info!("old snapshot");
+            return;
+        }
+
+        log::info!("new snapshot");
+
         if snapshot.particles.len() > self.max_particles_seen {
             self.max_particles_seen = snapshot.particles.len();
             log::info!("Saw {} particles in snapshot", self.max_particles_seen);
@@ -232,6 +234,8 @@ void main() {
                 creation_time: snapshot.time as f32,
             });
         }
+
+        self.seen_snapshots.insert(snapshot.time.to_string());
     }
 
     pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, snapshot: &Snapshot) -> DrawSet {
@@ -242,11 +246,11 @@ void main() {
         let attribs: Vec<Particle> = self
             .particles
             .iter()
-            .filter(|x| x.creation_time >= current_time - 10.0)
+            .filter(|x| {
+                x.creation_time <= current_time && x.creation_time != EMPTY_PARTICLE_CREATION_TIME
+            })
             .cloned()
             .collect();
-
-        let creation_times: Vec<f32> = attribs.iter().map(|p| p.creation_time).collect();
 
         DrawSet {
             projection_matrix: *projection_matrix,
