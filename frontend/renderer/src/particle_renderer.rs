@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
 
 use crate::geometry;
 
@@ -37,61 +36,6 @@ pub struct Particle {
     color: Vector4<f32>,
     lifetime: f32,
     creation_time: f32,
-}
-
-impl PartialEq for Particle {
-    fn eq(&self, other: &Particle) -> bool {
-        let positions = self.position;
-        let other_positions = other.position;
-        if !positions.eq(&other_positions) {
-            return false;
-        }
-
-        let velocity = self.velocity;
-        let other_velocity = other.velocity;
-        if !velocity.eq(&other_velocity) {
-            return false;
-        }
-
-        let color = self.color;
-        let other_color = other.color;
-        if !color.eq(&other_color) {
-            return false;
-        }
-
-        if self.lifetime - other.lifetime != 0.0 {
-            return false;
-        }
-
-        if self.creation_time - other.creation_time != 0.0 {
-            return false;
-        }
-
-        true
-    }
-}
-
-impl Eq for Particle {}
-impl Hash for Particle {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let position = self.position;
-        let velocity = self.velocity;
-        let color = self.color;
-        for position in &position {
-            state.write(&position.to_be_bytes());
-        }
-
-        for velocity in &velocity {
-            state.write(&velocity.to_be_bytes());
-        }
-
-        for color in &color {
-            state.write(&color.to_be_bytes());
-        }
-
-        state.write(&self.lifetime.to_be_bytes());
-        state.write(&self.creation_time.to_be_bytes());
-    }
 }
 
 #[derive(Debug)]
