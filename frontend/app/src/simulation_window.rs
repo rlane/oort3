@@ -5,7 +5,7 @@ use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
 use rand::Rng;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlInputElement, Node};
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -47,6 +47,7 @@ pub struct SimulationWindow {
     canvas_ref: NodeRef,
     status_ref: NodeRef,
     picked_ref: NodeRef,
+    timeline_ref: NodeRef,
 }
 
 impl Component for SimulationWindow {
@@ -56,7 +57,7 @@ impl Component for SimulationWindow {
     fn create(context: &yew::Context<Self>) -> Self {
         context.props().register_link.emit(context.link().clone());
         let cb = {
-            let link = context.link().clone();
+            let link: Scope<SimulationWindow> = context.link().clone();
             move |e| link.send_message(Msg::ReceivedSimAgentResponse(e))
         };
         let sim_agent = SimAgent::bridge(Rc::new(cb));
@@ -75,6 +76,7 @@ impl Component for SimulationWindow {
             canvas_ref: context.props().canvas_ref.clone(),
             status_ref: NodeRef::default(),
             picked_ref: NodeRef::default(),
+            timeline_ref: NodeRef::default(),
         }
     }
 
@@ -110,6 +112,9 @@ impl Component for SimulationWindow {
             Msg::Render => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
+                    if let Some(timeline_ref) = self.timeline_ref.cast::<HtmlInputElement>() {
+                        timeline_ref.set_value_as_number(ui.snapshot_index() as f64);
+                    }
                 }
                 self.check_status(context)
             }
@@ -150,6 +155,9 @@ impl Component for SimulationWindow {
             }) => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.on_snapshot(snapshot);
+                    if let Some(timeline_ref) = self.timeline_ref.cast::<HtmlInputElement>() {
+                        timeline_ref.set_max(ui.snapshot_count().to_string().as_str());
+                    }
                 }
                 false
             }
@@ -180,7 +188,6 @@ impl Component for SimulationWindow {
         let wheel_event_cb = context.link().callback(Msg::WheelEvent);
         let pointer_event_cb = context.link().callback(Msg::PointerEvent);
         let blur_event_cb = context.link().callback(Msg::BlurEvent);
-        // let input_value_handle = use_state(String::default);
 
         let timeline_event_cb = context.link().callback(|event: InputEvent| {
             let target = event
@@ -192,19 +199,10 @@ impl Component for SimulationWindow {
                 .value_as_number()
                 .round() as usize;
 
+            log::info!("timeline value changed to {}", slider_value);
+
             Msg::TimelineEvent(slider_value)
         });
-
-        let timeline_max = self
-            .ui
-            .as_ref()
-            .map_or(0, |ui| ui.snapshot_count())
-            .to_string();
-        let timeline_value = self
-            .ui
-            .as_ref()
-            .map_or(0, |ui| ui.snapshot_index())
-            .to_string();
 
         create_portal(
             html! {
@@ -219,7 +217,7 @@ impl Component for SimulationWindow {
                         onpointerup={pointer_event_cb.clone()}
                         onpointerdown={pointer_event_cb}
                         onblur={blur_event_cb} />
-                    <input type="range" min=0 max={timeline_max} value={timeline_value} oninput={timeline_event_cb} class="slider" id="myRange"/>
+                    <input ref={self.timeline_ref.clone()} type="range" oninput={timeline_event_cb} class="slider"/>
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>

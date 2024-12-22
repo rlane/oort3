@@ -398,45 +398,16 @@ impl UI {
     }
 
     pub fn to_time(&mut self, index: usize) {
-        // Take the start time using the first snapshot
-        // Take the end time using the last snapshot
-        // Select an index and a snapshot, update self
+        // The time of the first snapshot is expected to be at 0 at
+        // the time this was written. This will need to be updated if
+        // that expectation changes.
 
-        // There are a few cases we need to account for
-
-        // Playing the animation
-        // While the animation is played, `physics_time` is moved
-        // forward based on the current time - the time of the previous render
-        // so that the animation speed can be decoupled from the rendering
-        // speed and the snapshots are displayed in "real time"
-
-        // Moving one frame forward
-        // Already covered. `physics_time` is moved forward
-        // a single tick, and the rest of the process is the same
-
-        // Moving one frame back
-        // This is new. The system assumes forward progression, so a
-        // lot will need to change.
-
-        // Are snapshots evenly spaced?
-        // I'm relatively confident they each represent a delta of `PHYSICS_TICK_LENGTH`.
-        // That means we can identify the snapshot index based on physics_time
-
-        // Since we can do that, then we can shift around physics_time and
-        // quit messing with the index entirely
-
-        // The first time is expected to be at 0 at the time this was written
-        // This will need to be updated if that expectation changes
-        // let firstTime: f64 = 0.0;
-        // let lastTime = self
-        //     .snapshots
-        //     .iter()
-        //     .last()
-        //     .map_or(0.0, |snapshot| snapshot.time);
-
-        // let percent_time = firstTime + ((lastTime - firstTime) * percent);
+        // Snapshots are evenly spaced, so a index can easily be converted into a time
+        // and vice versa
         self.physics_time = Duration::from_secs_f64((index as f64) * PHYSICS_TICK_LENGTH);
+        self.paused = true;
         self.update_snapshot(false);
+        self.needs_render = true;
     }
 
     pub fn update_snapshot(&mut self, interpolate: bool) {
@@ -446,19 +417,23 @@ impl UI {
         // snapshots.len - snapshot_index - 1 < SNAPSHOT_PRELOAD
         // safe subtraction to avoid crashing
         // Reaching the end of the preloaded snapshots, need to preload more
-        if self
-            .snapshots
-            .len()
-            .checked_sub(snapshot_index)
-            .and_then(|num| num.checked_sub(1))
-            .unwrap_or(0)
-            < SNAPSHOT_PRELOAD
-            && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
-        {
-            log::info!("Preloading snapshots");
+        // if self
+        //     .snapshots
+        //     .len()
+        //     .checked_sub(snapshot_index)
+        //     .and_then(|num| num.checked_sub(1))
+        //     .unwrap_or(0)
+        //     < SNAPSHOT_PRELOAD
+        //     && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
+        // {
+        //     log::info!("Preloading snapshots");
+        //     self.request_snapshot.emit(());
+        //     self.request_snapshot.emit(());
+        //     self.snapshot_requests_in_flight += 2;
+        // }
+
+        for n in 0..100 {
             self.request_snapshot.emit(());
-            self.request_snapshot.emit(());
-            self.snapshot_requests_in_flight += 2;
         }
 
         log::info!(
