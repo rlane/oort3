@@ -199,8 +199,6 @@ impl Component for SimulationWindow {
                 .value_as_number()
                 .round() as usize;
 
-            log::info!("timeline value changed to {}", slider_value);
-
             Msg::TimelineEvent(slider_value)
         });
 

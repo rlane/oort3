@@ -145,7 +145,6 @@ impl UI {
     }
 
     pub fn render(&mut self) {
-        log::info!("rendering status = {}", self.status.to_string());
         if self.quit {
             return;
         }
@@ -271,7 +270,13 @@ impl UI {
                 self.physics_time += dt;
                 self.update_snapshot(false);
             } else if self.steps_backward > 0 {
-                self.physics_time -= dt;
+                // Avoiding overflow
+                self.physics_time = if self.physics_time < dt {
+                    Duration::from_secs(0)
+                } else {
+                    self.physics_time - dt
+                };
+
                 self.update_snapshot(false);
                 self.steps_backward -= 1;
             } else if self.slowmo {
@@ -417,30 +422,19 @@ impl UI {
         // snapshots.len - snapshot_index - 1 < SNAPSHOT_PRELOAD
         // safe subtraction to avoid crashing
         // Reaching the end of the preloaded snapshots, need to preload more
-        // if self
-        //     .snapshots
-        //     .len()
-        //     .checked_sub(snapshot_index)
-        //     .and_then(|num| num.checked_sub(1))
-        //     .unwrap_or(0)
-        //     < SNAPSHOT_PRELOAD
-        //     && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
-        // {
-        //     log::info!("Preloading snapshots");
-        //     self.request_snapshot.emit(());
-        //     self.request_snapshot.emit(());
-        //     self.snapshot_requests_in_flight += 2;
-        // }
-
-        for n in 0..100 {
+        if self
+            .snapshots
+            .len()
+            .checked_sub(snapshot_index)
+            .and_then(|num| num.checked_sub(1))
+            .unwrap_or(0)
+            < SNAPSHOT_PRELOAD
+            && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
+        {
             self.request_snapshot.emit(());
+            self.request_snapshot.emit(());
+            self.snapshot_requests_in_flight += 2;
         }
-
-        log::info!(
-            "Update snapshot attempt: snapshot_index = {}, snapshot_count = {}",
-            snapshot_index,
-            self.snapshots.len()
-        );
 
         if snapshot_index < self.snapshots.len()
             && std::time::Duration::from_secs_f64(self.snapshots[snapshot_index].time)
@@ -451,12 +445,6 @@ impl UI {
             assert!(self.snapshots.len() - 1 >= snapshot_index);
             self.snapshot = self.snapshots.get(snapshot_index).cloned();
             self.uninterpolated_snapshot = self.snapshot.clone();
-
-            log::info!(
-                "Snapshot time: {}, physics_time: {}",
-                self.snapshot.as_ref().unwrap().time,
-                self.physics_time.as_secs_f64()
-            );
 
             let snapshot = self.snapshot.as_mut().unwrap();
 
