@@ -52,6 +52,7 @@ pub struct UI {
     debug: bool,
     last_status_msg: String,
     snapshot_requests_in_flight: usize,
+    is_buffering: bool,
     nonce: u32,
     request_snapshot: yew::Callback<()>,
     picked_ship_id: Option<u64>,
@@ -129,6 +130,7 @@ impl UI {
             debug,
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
+            is_buffering: true,
             nonce,
             request_snapshot,
             picked_ship_id: None,
@@ -186,13 +188,16 @@ impl UI {
             self.paused = !self.paused;
             self.steps_forward = 0;
             self.steps_backward = 0;
+            self.is_buffering = false;
         }
         if self.keys_pressed.contains("KeyN") {
             self.paused = true;
             self.steps_forward += 1;
+            self.is_buffering = false;
         } else if self.keys_pressed.contains("KeyP") {
             self.paused = true;
             self.steps_backward += 1;
+            self.is_buffering = false;
         }
 
         if is_mac() {
@@ -413,6 +418,11 @@ impl UI {
         self.update_snapshot(false);
         self.needs_render = true;
         let _ = self.canvas.focus();
+        self.is_buffering = false;
+    }
+
+    pub fn is_buffering(&self) -> bool {
+        self.is_buffering
     }
 
     pub fn update_snapshot(&mut self, interpolate: bool) {
@@ -426,6 +436,7 @@ impl UI {
             self.request_snapshot.emit(());
             self.request_snapshot.emit(());
             self.snapshot_requests_in_flight += 2;
+            self.is_buffering = true;
         }
 
         if snapshot_index < self.snapshots.len()

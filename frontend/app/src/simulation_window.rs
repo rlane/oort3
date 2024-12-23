@@ -115,7 +115,11 @@ impl Component for SimulationWindow {
 
                     // Move timeline indicator
                     if let Some(timeline_ref) = self.timeline_ref.cast::<HtmlInputElement>() {
-                        timeline_ref.set_value_as_number(ui.snapshot_index() as f64);
+                        if ui.is_buffering() {
+                            timeline_ref.set_value(ui.snapshot_count().to_string().as_str());
+                        } else {
+                            timeline_ref.set_value_as_number(ui.snapshot_index() as f64);
+                        }
                     }
                 }
                 self.check_status(context)
