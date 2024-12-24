@@ -109,16 +109,16 @@ fn main() -> Result<()> {
             "-v",
             "serve",
             "--dist",
-            "frontend/app/dist-debug",
-            "frontend/app/index.html",
-            "--watch=frontend",
-            "--watch=target/builtin-ai.tar.gz",
-            "--watch=shared/api",
-            "--watch=shared/simulator",
-            "--ignore=frontend/app/dist",
+            "dist-debug",
+            "index.html",
+            "--watch=..",
+            "--watch=../../target/builtin-ai.tar.gz",
+            "--watch=../../shared",
+            "--ignore=dist-debug",
             if args.release { "--release" } else { "" },
             if args.listen { "--address=0.0.0.0" } else { "" },
         ])
+        .current_dir("frontend/app")
         .spawn()?
         .wait()?;
     }
