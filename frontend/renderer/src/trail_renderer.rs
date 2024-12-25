@@ -2,9 +2,8 @@ use super::glutil;
 use log::warn;
 use nalgebra::{vector, Matrix4, Point2, UnitComplex, Vector2};
 use oort_api::Ability;
-use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
+use oort_simulator::ship::ShipClass;
 use oort_simulator::snapshot::Snapshot;
-use oort_simulator::{ship::ShipClass, snapshot};
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
@@ -98,6 +97,8 @@ void main() {
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
+        // Note: These snapshots may have been altered by interpolation, and you can't rely on even spacing.
+        // Using PHYSICS_TICK_LENGTH is not accurate.
         let mut data = Vec::with_capacity(snapshot.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
         let mut n = 0;
         let prev_creation_time: f32;
@@ -153,11 +154,7 @@ void main() {
                         data.push(color.y);
                         data.push(color.z);
                         data.push(color.w);
-                        data.push(if creation_time >= prev_creation_time {
-                            creation_time - PHYSICS_TICK_LENGTH as f32
-                        } else {
-                            creation_time + PHYSICS_TICK_LENGTH as f32
-                        });
+                        data.push(prev_creation_time);
                         data.push(0.0);
 
                         data.push(current_position.x);
