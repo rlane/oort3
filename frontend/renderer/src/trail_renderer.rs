@@ -101,21 +101,8 @@ void main() {
         // Using PHYSICS_TICK_LENGTH is not accurate.
         let mut data = Vec::with_capacity(snapshot.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
         let mut n = 0;
-        let prev_creation_time: f32;
+        let prev_creation_time = self.prev_snapshot.as_ref().map_or(0.0, |s| s.time as f32);
         let creation_time = snapshot.time as f32;
-        if let Some(prev_snapshot) = &self.prev_snapshot {
-            prev_creation_time = prev_snapshot.time as f32;
-            log::info!(
-                "creation_time - prev_creation_time {}",
-                snapshot.time - prev_snapshot.time
-            );
-            log::info!(
-                "position - prev_position {}",
-                snapshot.ships[0].position - prev_snapshot.ships[0].position
-            );
-        } else {
-            prev_creation_time = 0.0;
-        }
 
         for ship in snapshot.ships.iter() {
             if let ShipClass::Asteroid { .. } = ship.class {
@@ -147,7 +134,6 @@ void main() {
                 match self.last_positions.entry(ship.id) {
                     Entry::Occupied(mut e) => {
                         let last_position = e.insert(current_position);
-                        // log::info!("last/current diff {}", current_position.x - last_position.x);
                         data.push(last_position.x);
                         data.push(last_position.y);
                         data.push(color.x);
