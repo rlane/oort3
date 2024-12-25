@@ -417,8 +417,8 @@ impl UI {
         self.paused = true;
         self.update_snapshot(false);
         self.needs_render = true;
-        let _ = self.canvas.focus();
         self.is_buffering = false;
+        let _ = self.canvas.focus();
     }
 
     pub fn is_buffering(&self) -> bool {
