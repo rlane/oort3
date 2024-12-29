@@ -9,6 +9,7 @@ use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlUniformLocation, WebGlV
 use WebGl2RenderingContext as gl;
 
 const MAX_PARTICLES: usize = 1000;
+const EMPTY_PARTICLE_CREATION_TIME: f32 = -100.0;
 
 pub struct ParticleRenderer {
     context: WebGl2RenderingContext,
@@ -18,6 +19,8 @@ pub struct ParticleRenderer {
     scale_loc: WebGlUniformLocation,
     buffer_arena: buffer_arena::BufferArena,
     particles: Vec<Particle>,
+    /// Used to avoid recreating particles when re-rendering
+    furthest_snapshot_seen: f32,
     next_particle_index: usize,
     max_particles_seen: usize,
     vao: WebGlVertexArrayObject,
@@ -41,6 +44,12 @@ pub struct DrawSet {
     attribs_token: buffer_arena::Token,
     num_instances: usize,
     current_time: f32,
+}
+
+impl DrawSet {
+    pub fn len(&self) -> usize {
+        self.num_instances
+    }
 }
 
 impl ParticleRenderer {
@@ -109,7 +118,7 @@ void main() {
                 velocity: vector![0.0, 0.0],
                 color: vector![0.0, 0.0, 0.0, 0.0],
                 lifetime: 1.0,
-                creation_time: -100.0,
+                creation_time: EMPTY_PARTICLE_CREATION_TIME,
             });
         }
 
@@ -126,6 +135,7 @@ void main() {
                 1024 * 1024,
             )?,
             particles,
+            furthest_snapshot_seen: -1.0,
             next_particle_index: 0,
             max_particles_seen: MAX_PARTICLES,
             vao,
@@ -141,6 +151,14 @@ void main() {
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
+        // If we've already seen the snapshot, there's no need to recreate
+        // its particles
+        // We're using a String for the times because Rust's floats
+        // don't implement Hash or Eq
+        if snapshot.time as f32 <= self.furthest_snapshot_seen {
+            return;
+        }
+
         if snapshot.particles.len() > self.max_particles_seen {
             self.max_particles_seen = snapshot.particles.len();
             log::info!("Saw {} particles in snapshot", self.max_particles_seen);
@@ -154,6 +172,8 @@ void main() {
                 creation_time: snapshot.time as f32,
             });
         }
+
+        self.furthest_snapshot_seen = self.furthest_snapshot_seen.max(snapshot.time as f32);
     }
 
     pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, snapshot: &Snapshot) -> DrawSet {
@@ -164,7 +184,9 @@ void main() {
         let attribs: Vec<Particle> = self
             .particles
             .iter()
-            .filter(|x| x.creation_time >= current_time - 10.0)
+            .filter(|x| {
+                current_time >= x.creation_time && current_time <= x.creation_time + x.lifetime
+            })
             .cloned()
             .collect();
 

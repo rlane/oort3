@@ -61,9 +61,10 @@ impl yew_agent::Worker for SimAgent {
                 self.link.respond(who, Response::Snapshot { snapshot });
             }
             Request::Snapshot { ticks, nonce } => {
-                if self.errored {
+                if self.errored || self.sim().status() != Status::Running {
                     return;
                 }
+
                 for _ in 0..ticks {
                     if self.sim().status() == Status::Running && self.sim().tick() < MAX_TICKS {
                         self.sim().step();

@@ -4,6 +4,8 @@ use oort_simulation_worker::SimAgent;
 use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
 use rand::Rng;
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
+use web_sys::HtmlInputElement;
 use yew::html::Scope;
 use yew::prelude::*;
 use yew_agent::{Bridge, Bridged};
@@ -21,6 +23,7 @@ pub enum Msg {
     WheelEvent(web_sys::WheelEvent),
     PointerEvent(web_sys::PointerEvent),
     BlurEvent(web_sys::FocusEvent),
+    TimelineEvent(usize),
     RequestSnapshot,
     ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
@@ -44,6 +47,7 @@ pub struct SimulationWindow {
     canvas_ref: NodeRef,
     status_ref: NodeRef,
     picked_ref: NodeRef,
+    timeline_ref: NodeRef,
 }
 
 impl Component for SimulationWindow {
@@ -72,6 +76,7 @@ impl Component for SimulationWindow {
             canvas_ref: context.props().canvas_ref.clone(),
             status_ref: NodeRef::default(),
             picked_ref: NodeRef::default(),
+            timeline_ref: NodeRef::default(),
         }
     }
 
@@ -107,6 +112,15 @@ impl Component for SimulationWindow {
             Msg::Render => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.render();
+
+                    // Move timeline indicator
+                    if let Some(timeline_ref) = self.timeline_ref.cast::<HtmlInputElement>() {
+                        if ui.is_buffering() {
+                            timeline_ref.set_value(ui.snapshot_count().to_string().as_str());
+                        } else {
+                            timeline_ref.set_value_as_number(ui.snapshot_index() as f64);
+                        }
+                    }
                 }
                 self.check_status(context)
             }
@@ -147,6 +161,19 @@ impl Component for SimulationWindow {
             }) => {
                 if let Some(ui) = self.ui.as_mut() {
                     ui.on_snapshot(snapshot);
+
+                    // Update timeline with new max value
+                    if let Some(timeline_ref) = self.timeline_ref.cast::<HtmlInputElement>() {
+                        timeline_ref.set_max(ui.snapshot_count().to_string().as_str());
+                    }
+                }
+                false
+            }
+            Msg::TimelineEvent(index) => {
+                // Timeline was set to a new index
+                // Display the relevant snapshot
+                if let Some(ui) = self.ui.as_mut() {
+                    ui.set_snapshot_index(index);
                 }
                 false
             }
@@ -172,6 +199,19 @@ impl Component for SimulationWindow {
         let pointer_event_cb = context.link().callback(Msg::PointerEvent);
         let blur_event_cb = context.link().callback(Msg::BlurEvent);
 
+        let timeline_event_cb = context.link().callback(|event: InputEvent| {
+            let target = event
+                .target()
+                .expect("Event should have a target when dispatched");
+
+            let slider_value = target
+                .unchecked_into::<HtmlInputElement>()
+                .value_as_number()
+                .round() as usize;
+
+            Msg::TimelineEvent(slider_value)
+        });
+
         create_portal(
             html! {
                 <>
@@ -185,6 +225,7 @@ impl Component for SimulationWindow {
                         onpointerup={pointer_event_cb.clone()}
                         onpointerdown={pointer_event_cb}
                         onblur={blur_event_cb} />
+                    <input ref={self.timeline_ref.clone()} type="range" oninput={timeline_event_cb} class="slider"/>
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>

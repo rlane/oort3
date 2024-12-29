@@ -114,6 +114,8 @@ impl std::ops::Mul<f64> for Timing {
     }
 }
 
+/// Alters the snapshot, moving ships and bullets
+/// based on dt and their velocity
 pub fn interpolate(snapshot: &mut Snapshot, dt: f64) {
     snapshot.time += dt;
 

@@ -3,7 +3,6 @@ use log::warn;
 use nalgebra::{vector, Matrix4, Point2, UnitComplex, Vector2};
 use oort_api::Ability;
 use oort_simulator::ship::ShipClass;
-use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use oort_simulator::snapshot::Snapshot;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
@@ -24,6 +23,7 @@ pub struct TrailRenderer {
     buffer: WebGlBuffer,
     index: i32,
     last_positions: HashMap<u64, Point2<f32>>,
+    prev_snapshot: Option<Snapshot>,
 }
 
 impl TrailRenderer {
@@ -42,7 +42,7 @@ void main() {
     gl_Position = transform * vertex;
     varying_color = color;
     float lifetime = 2.0;
-    float age_frac = clamp((current_time - creation_time) / lifetime, 0.0, 1.0);
+    float age_frac = current_time >= creation_time ? clamp((current_time - creation_time) / lifetime, 0.0, 1.0) : 1.0;
     varying_color.a *= (1.0 - age_frac);
 }
     "#,
@@ -88,6 +88,7 @@ void main() {
             buffer,
             index: 0,
             last_positions: HashMap::new(),
+            prev_snapshot: None,
         })
     }
 
@@ -96,9 +97,13 @@ void main() {
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
+        // Note: These snapshots may have been altered by interpolation, and you can't rely on even spacing.
+        // Using PHYSICS_TICK_LENGTH is not accurate.
         let mut data = Vec::with_capacity(snapshot.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
         let mut n = 0;
+        let prev_creation_time = self.prev_snapshot.as_ref().map_or(0.0, |s| s.time as f32);
         let creation_time = snapshot.time as f32;
+
         for ship in snapshot.ships.iter() {
             if let ShipClass::Asteroid { .. } = ship.class {
                 continue;
@@ -108,7 +113,12 @@ void main() {
                     continue;
                 }
             }
-            let mut color = super::ShipRenderer::team_color(ship.team);
+            let mut color: nalgebra::Matrix<
+                f32,
+                nalgebra::Const<4>,
+                nalgebra::Const<1>,
+                nalgebra::ArrayStorage<f32, 4, 1>,
+            > = super::ShipRenderer::team_color(ship.team);
             color.w = match ship.class {
                 ShipClass::Missile => 0.10,
                 ShipClass::Torpedo => 0.15,
@@ -130,7 +140,7 @@ void main() {
                         data.push(color.y);
                         data.push(color.z);
                         data.push(color.w);
-                        data.push(creation_time - PHYSICS_TICK_LENGTH as f32);
+                        data.push(prev_creation_time);
                         data.push(0.0);
 
                         data.push(current_position.x);
@@ -150,6 +160,8 @@ void main() {
                 };
             }
         }
+
+        self.prev_snapshot = Some(snapshot.clone());
 
         assert_eq!(n % 2, 0);
 

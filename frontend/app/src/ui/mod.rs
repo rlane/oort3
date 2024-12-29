@@ -9,7 +9,7 @@ use oort_simulator::model;
 use oort_simulator::scenario::Status;
 use oort_simulator::simulation::{self, PHYSICS_TICK_LENGTH};
 use oort_simulator::snapshot::{self, ShipSnapshot, Snapshot};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 use web_sys::{Element, HtmlCanvasElement};
 use yew::NodeRef;
@@ -28,7 +28,7 @@ pub struct UI {
     seed: u32,
     snapshot: Option<Snapshot>,
     uninterpolated_snapshot: Option<Snapshot>,
-    pending_snapshots: VecDeque<Snapshot>,
+    snapshots: Vec<Snapshot>,
     renderer: Renderer,
     canvas: HtmlCanvasElement,
     zoom: f32,
@@ -37,7 +37,8 @@ pub struct UI {
     frame_timer: frame_timer::FrameTimer,
     status: Status,
     quit: bool,
-    single_steps: i32,
+    steps_forward: i32,
+    steps_backward: i32,
     paused: bool,
     slowmo: bool,
     keys_down: std::collections::HashSet<String>,
@@ -45,11 +46,13 @@ pub struct UI {
     frame: u64,
     start_time: instant::Instant,
     last_render_time: instant::Instant,
+    /// Time difference between the first and current frame
     physics_time: std::time::Duration,
     fps: fps::FPS,
     debug: bool,
     last_status_msg: String,
     snapshot_requests_in_flight: usize,
+    is_buffering: bool,
     nonce: u32,
     request_snapshot: yew::Callback<()>,
     picked_ship_id: Option<u64>,
@@ -90,7 +93,6 @@ impl UI {
         let camera_offset = vector![0.0, 0.0];
         renderer.set_view(zoom, camera_focus + camera_offset);
         let frame_timer: frame_timer::FrameTimer = Default::default();
-        let single_steps = 0;
 
         let keys_down = std::collections::HashSet::<String>::new();
         let keys_pressed = std::collections::HashSet::<String>::new();
@@ -105,7 +107,7 @@ impl UI {
             seed,
             snapshot: None,
             uninterpolated_snapshot: None,
-            pending_snapshots: VecDeque::new(),
+            snapshots: Vec::new(),
             renderer,
             canvas,
             zoom,
@@ -114,7 +116,8 @@ impl UI {
             frame_timer,
             status: Status::Running,
             quit: false,
-            single_steps,
+            steps_forward: 0,
+            steps_backward: 0,
             paused,
             slowmo: false,
             keys_down,
@@ -127,6 +130,7 @@ impl UI {
             debug,
             last_status_msg: "".to_owned(),
             snapshot_requests_in_flight: 0,
+            is_buffering: true,
             nonce,
             request_snapshot,
             picked_ship_id: None,
@@ -147,11 +151,7 @@ impl UI {
         self.needs_render = false;
 
         let now = instant::Instant::now();
-        let elapsed = now - self.last_render_time;
-        self.last_render_time = now;
-        if elapsed.as_millis() > 20 {
-            debug!("Late render: {:.1} ms", elapsed.as_millis());
-        }
+
         self.fps
             .start_frame((now - self.start_time).as_millis() as f64);
         self.frame_timer
@@ -182,11 +182,19 @@ impl UI {
         }
         if self.keys_pressed.contains("Space") {
             self.paused = !self.paused;
-            self.single_steps = 0;
+            self.steps_forward = 0;
+            self.steps_backward = 0;
+            self.is_buffering = false;
+            self.last_render_time = instant::Instant::now();
         }
         if self.keys_pressed.contains("KeyN") {
             self.paused = true;
-            self.single_steps += 1;
+            self.steps_forward += 1;
+            self.is_buffering = false;
+        } else if self.keys_pressed.contains("KeyP") {
+            self.paused = true;
+            self.steps_backward += 1;
+            self.is_buffering = false;
         }
 
         if is_mac() {
@@ -240,13 +248,20 @@ impl UI {
             }
         }
 
+        let elapsed = now - self.last_render_time;
+        self.last_render_time = now;
+        if elapsed.as_millis() > 20 {
+            debug!("Late render: {:.1} ms", elapsed.as_millis());
+        }
+
         if !self.paused && !self.slowmo {
             self.physics_time += elapsed;
         }
 
         if self.status == Status::Running
             && (!self.paused
-                || self.single_steps > 0
+                || self.steps_forward > 0
+                || self.steps_backward > 0
                 || fast_forward
                 || self.slowmo
                 || self.snapshot.is_none())
@@ -257,17 +272,27 @@ impl UI {
                     self.physics_time += dt;
                     self.update_snapshot(true);
                 }
-            } else if self.single_steps > 0 {
+            } else if self.steps_forward > 0 {
                 self.physics_time += dt;
                 self.update_snapshot(false);
+            } else if self.steps_backward > 0 {
+                // Avoiding overflow
+                self.physics_time = if self.physics_time < dt {
+                    Duration::from_secs(0)
+                } else {
+                    self.physics_time - dt
+                };
+
+                self.update_snapshot(false);
+                self.steps_backward -= 1;
             } else if self.slowmo {
                 self.physics_time += dt / 10;
                 self.update_snapshot(true);
             } else {
                 self.update_snapshot(true);
             }
-            if self.single_steps > 0 {
-                self.single_steps -= 1;
+            if self.steps_forward > 0 {
+                self.steps_forward -= 1;
             }
         } else if self.paused != was_paused || self.slowmo != was_slowmo {
             self.update_snapshot(false);
@@ -317,7 +342,7 @@ impl UI {
             _ => {}
         }
 
-        if self.pending_snapshots.len() <= 1 && !fast_forward {
+        if self.snapshots.len() <= 1 && !fast_forward {
             status_msgs.push("SLOW SIM".to_owned());
         }
 
@@ -341,7 +366,7 @@ impl UI {
                 if let Some(snapshot) = self.snapshot.as_ref() {
                     status_msgs.push(format!("SIM {:.1} ms", snapshot.timing.total() * 1e3));
                 }
-                status_msgs.push(format!("SNAP {}", self.pending_snapshots.len()));
+                status_msgs.push(format!("SNAP {}", self.snapshots.len()));
             }
             status_msgs.push(self.version.clone());
             let status_msg = status_msgs.join("; ");
@@ -374,7 +399,7 @@ impl UI {
             return;
         }
 
-        self.pending_snapshots.push_back(snapshot);
+        self.snapshots.push(snapshot);
         if self.snapshot_requests_in_flight > 0 {
             self.snapshot_requests_in_flight -= 1;
         }
@@ -382,34 +407,54 @@ impl UI {
         self.needs_render = true;
     }
 
-    pub fn update_snapshot(&mut self, interpolate: bool) {
-        while self.pending_snapshots.len() > SNAPSHOT_PRELOAD / 2
-            && std::time::Duration::from_secs_f64(self.pending_snapshots[1].time)
-                <= self.physics_time
-        {
-            self.pending_snapshots.pop_front();
-        }
+    /// Sets the displayed snapshot by index
+    ///
+    /// The time of the first snapshot is expected to be at 0 at
+    /// the time this was written. This will need to be updated if
+    /// that expectation changes.
+    ///
+    /// Snapshots are evenly spaced, so an index can easily be converted into a time
+    /// and vice versa
+    pub fn set_snapshot_index(&mut self, index: usize) {
+        self.physics_time = Duration::from_secs_f64((index as f64) * PHYSICS_TICK_LENGTH);
+        self.paused = true;
+        self.update_snapshot(false);
+        self.needs_render = true;
+        self.is_buffering = false;
+        let _ = self.canvas.focus();
+    }
 
-        if self.pending_snapshots.len() < SNAPSHOT_PRELOAD
+    pub fn is_buffering(&self) -> bool {
+        self.is_buffering
+    }
+
+    pub fn update_snapshot(&mut self, interpolate: bool) {
+        let snapshot_index =
+            (self.physics_time.as_secs_f64() / PHYSICS_TICK_LENGTH).round() as usize;
+
+        // Reaching the end of the preloaded snapshots, need to preload more
+        if SNAPSHOT_PRELOAD + 1 + snapshot_index > self.snapshots.len()
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
             self.request_snapshot.emit(());
             self.request_snapshot.emit(());
             self.snapshot_requests_in_flight += 2;
+            self.is_buffering = true;
         }
 
-        if !self.pending_snapshots.is_empty()
-            && std::time::Duration::from_secs_f64(self.pending_snapshots[0].time)
+        if snapshot_index < self.snapshots.len()
+            && std::time::Duration::from_secs_f64(self.snapshots[snapshot_index].time)
                 <= self.physics_time
         {
             let first_snapshot = self.snapshot.is_none();
 
-            self.snapshot = self.pending_snapshots.pop_front();
+            self.snapshot = self.snapshots.get(snapshot_index).cloned();
             self.uninterpolated_snapshot = self.snapshot.clone();
+
             let snapshot = self.snapshot.as_mut().unwrap();
 
             if first_snapshot {
-                // Zoom out to show all ships.
+                // Set zoom to show all ships.
                 let mut points = snapshot
                     .ships
                     .iter()
@@ -449,17 +494,37 @@ impl UI {
         }
 
         if let Some(snapshot) = self.snapshot.as_mut() {
+            // Time of the snapshot
             let t = std::time::Duration::from_secs_f64(snapshot.time);
-            assert!(self.physics_time >= t);
-            let mut delta = (self.physics_time - t).min(Duration::from_millis(16));
+
+            // Find the difference between current time and snapshot time, with a max value of 16
+            // TODO: Why 16? The tick length is 16.66 miliseconds. Maybe that's it?
+            let mut delta = if t <= self.physics_time {
+                (self.physics_time - t).min(Duration::from_millis(16))
+            } else {
+                (t - self.physics_time).min(Duration::from_millis(16))
+            };
+
+            // TODO: Unsure what this is for
+            // TODO: More magic numbers
             if delta > Duration::from_millis(3) {
                 delta -= Duration::from_millis(1);
             }
-            self.physics_time = t + delta;
+
+            // Set the new current time to the time of the snapshot + the delta
+            // Could just be unchanged if the delta is less than 4
+            self.physics_time = if t <= self.physics_time {
+                t + delta
+            } else {
+                t - delta
+            };
 
             if interpolate {
+                // Alters snapshot to make it appear as it would at `physics_time`
                 snapshot::interpolate(snapshot, delta.as_secs_f64());
             } else if snapshot.time != self.uninterpolated_snapshot.as_ref().unwrap().time {
+                // TODO: Do we need to do this? Does this ever happen?
+                // uninterpolated_snapshot is a copy of snapshot
                 *snapshot = self.uninterpolated_snapshot.as_ref().unwrap().clone();
             }
 
@@ -611,6 +676,14 @@ impl UI {
 
     pub fn snapshot(&self) -> Option<Snapshot> {
         self.snapshot.clone()
+    }
+
+    pub fn snapshot_count(&self) -> usize {
+        self.snapshots.len()
+    }
+
+    pub fn snapshot_index(&self) -> usize {
+        (self.snapshot.as_ref().map_or(0.0, |s| s.time) / PHYSICS_TICK_LENGTH).round() as usize
     }
 
     pub fn update_picked(&mut self) {
