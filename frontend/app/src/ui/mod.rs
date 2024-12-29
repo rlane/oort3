@@ -145,7 +145,6 @@ impl UI {
     }
 
     pub fn render(&mut self) {
-        log::info!("Physics time = {}", self.physics_time.as_secs_f64());
         if self.quit {
             return;
         }
@@ -250,14 +249,12 @@ impl UI {
         }
 
         let elapsed = now - self.last_render_time;
-        log::info!("elapsed = {}", elapsed.as_secs_f32());
         self.last_render_time = now;
         if elapsed.as_millis() > 20 {
             debug!("Late render: {:.1} ms", elapsed.as_millis());
         }
 
         if !self.paused && !self.slowmo {
-            log::info!("hit render");
             self.physics_time += elapsed;
         }
 
@@ -516,7 +513,6 @@ impl UI {
 
             // Set the new current time to the time of the snapshot + the delta
             // Could just be unchanged if the delta is less than 4
-            log::info!("Updating snapshot");
             self.physics_time = if t <= self.physics_time {
                 t + delta
             } else {
