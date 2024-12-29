@@ -185,7 +185,7 @@ void main() {
             .particles
             .iter()
             .filter(|x| {
-                x.creation_time <= current_time && x.creation_time != EMPTY_PARTICLE_CREATION_TIME
+                current_time >= x.creation_time && current_time <= x.creation_time + x.lifetime
             })
             .cloned()
             .collect();
