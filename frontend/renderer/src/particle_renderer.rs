@@ -20,7 +20,7 @@ pub struct ParticleRenderer {
     buffer_arena: buffer_arena::BufferArena,
     particles: Vec<Particle>,
     /// Used to avoid recreating particles when re-rendering
-    furthest_snapshot_timestamp: f32,
+    furthest_snapshot_seen: f32,
     next_particle_index: usize,
     max_particles_seen: usize,
     vao: WebGlVertexArrayObject,
@@ -135,7 +135,7 @@ void main() {
                 1024 * 1024,
             )?,
             particles,
-            furthest_snapshot_timestamp: -1.0,
+            furthest_snapshot_seen: -1.0,
             next_particle_index: 0,
             max_particles_seen: MAX_PARTICLES,
             vao,
@@ -155,7 +155,7 @@ void main() {
         // its particles
         // We're using a String for the times because Rust's floats
         // don't implement Hash or Eq
-        if snapshot.time as f32 <= self.furthest_snapshot_timestamp {
+        if snapshot.time as f32 <= self.furthest_snapshot_seen {
             return;
         }
 
@@ -173,8 +173,7 @@ void main() {
             });
         }
 
-        self.furthest_snapshot_timestamp =
-            self.furthest_snapshot_timestamp.max(snapshot.time as f32);
+        self.furthest_snapshot_seen = self.furthest_snapshot_seen.max(snapshot.time as f32);
     }
 
     pub fn upload(&mut self, projection_matrix: &Matrix4<f32>, snapshot: &Snapshot) -> DrawSet {
