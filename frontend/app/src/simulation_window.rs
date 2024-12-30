@@ -212,6 +212,21 @@ impl Component for SimulationWindow {
             Msg::TimelineEvent(slider_value)
         });
 
+        // We need a separate callback for the onchange event because the input event is not fired on release
+        // which causes the timeline to remain focused which captures all key events
+        let timeline_on_change_cb = context.link().callback(|event: Event| {
+            let target = event
+                .target()
+                .expect("Event should have a target when dispatched");
+
+            let slider_value = target
+                .unchecked_into::<HtmlInputElement>()
+                .value_as_number()
+                .round() as usize;
+
+            Msg::TimelineEvent(slider_value)
+        });
+
         create_portal(
             html! {
                 <>
@@ -225,7 +240,7 @@ impl Component for SimulationWindow {
                         onpointerup={pointer_event_cb.clone()}
                         onpointerdown={pointer_event_cb}
                         onblur={blur_event_cb} />
-                    <input ref={self.timeline_ref.clone()} type="range" oninput={timeline_event_cb} class="slider"/>
+                    <input ref={self.timeline_ref.clone()} type="range" oninput={timeline_event_cb} onchange={timeline_on_change_cb} class="slider"/>
                     <div class="status" ref={self.status_ref.clone()} />
                     <div class="picked">
                         <pre ref={self.picked_ref.clone()}></pre>
