@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Snapshot {
     pub nonce: u32,
+    pub tick: u32,
     pub time: f64,
     pub score_time: f64,
     pub status: Status,

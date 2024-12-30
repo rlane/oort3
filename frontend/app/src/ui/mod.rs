@@ -27,7 +27,7 @@ pub struct UI {
     version: String,
     seed: u32,
     snapshot: Option<Snapshot>,
-    uninterpolated_snapshot: Option<Snapshot>,
+    interpolated_snapshot: Option<Snapshot>,
     snapshots: Vec<Snapshot>,
     renderer: Renderer,
     canvas: HtmlCanvasElement,
@@ -46,8 +46,8 @@ pub struct UI {
     frame: u64,
     start_time: instant::Instant,
     last_render_time: instant::Instant,
-    /// Time difference between the first and current frame
-    physics_time: std::time::Duration,
+    /// Point in time we're rendering the simulation, may be in between snapshots
+    simulation_time: InterpolatedTick,
     fps: fps::FPS,
     debug: bool,
     last_status_msg: String,
@@ -102,11 +102,13 @@ impl UI {
         renderer.set_blur(setting::read("blur", true));
         renderer.set_nlips(setting::read("nlips", false));
 
+        let now = instant::Instant::now();
+
         UI {
             version,
             seed,
             snapshot: None,
-            uninterpolated_snapshot: None,
+            interpolated_snapshot: None,
             snapshots: Vec::new(),
             renderer,
             canvas,
@@ -123,9 +125,12 @@ impl UI {
             keys_down,
             keys_pressed,
             frame: 0,
-            start_time: instant::Instant::now(),
-            last_render_time: instant::Instant::now(),
-            physics_time: std::time::Duration::ZERO,
+            start_time: now,
+            last_render_time: now,
+            simulation_time: InterpolatedTick {
+                tick: 0,
+                delta: Duration::ZERO,
+            },
             fps: fps::FPS::new(),
             debug,
             last_status_msg: "".to_owned(),
@@ -158,8 +163,6 @@ impl UI {
             .start((now - self.start_time).as_millis() as f64);
 
         let mut status_msgs: Vec<String> = Vec::new();
-        let was_paused = self.paused;
-        let was_slowmo = self.slowmo;
 
         let camera_step = 0.01 / self.zoom;
         if self.keys_down.contains("KeyW") {
@@ -255,9 +258,11 @@ impl UI {
             debug!("Late render: {:.1} ms", elapsed.as_millis());
         }
 
-        if !self.paused && !self.slowmo {
-            self.physics_time += elapsed;
-        }
+        let current_tick = if let Some(snapshot) = self.snapshot.as_ref() {
+            snapshot.tick
+        } else {
+            0
+        };
 
         if self.status == Status::Running
             && (!self.paused
@@ -269,34 +274,22 @@ impl UI {
         {
             let dt = std::time::Duration::from_secs_f64(simulation::PHYSICS_TICK_LENGTH);
             if fast_forward {
-                for _ in 0..10 {
-                    self.physics_time += dt;
-                    self.update_snapshot(true);
+                for i in 0..10 {
+                    self.seek(current_tick + i + 1);
                 }
             } else if self.steps_forward > 0 {
-                self.physics_time += dt;
-                self.update_snapshot(false);
+                self.seek(current_tick + 1);
+                self.steps_forward -= 1;
             } else if self.steps_backward > 0 {
-                // Avoiding overflow
-                self.physics_time = if self.physics_time < dt {
-                    Duration::from_secs(0)
-                } else {
-                    self.physics_time - dt
-                };
-
-                self.update_snapshot(false);
+                if current_tick > 0 {
+                    self.seek(current_tick - 1);
+                }
                 self.steps_backward -= 1;
             } else if self.slowmo {
-                self.physics_time += dt / 10;
-                self.update_snapshot(true);
+                self.advance_time(dt / 10);
             } else {
-                self.update_snapshot(true);
+                self.advance_time(elapsed.min(dt));
             }
-            if self.steps_forward > 0 {
-                self.steps_forward -= 1;
-            }
-        } else if self.paused != was_paused || self.slowmo != was_slowmo {
-            self.update_snapshot(false);
         }
 
         if self.snapshot.is_some() {
@@ -316,7 +309,7 @@ impl UI {
             self.renderer.render(
                 self.camera_target(),
                 self.zoom,
-                self.snapshot.as_ref().unwrap(),
+                self.interpolated_snapshot.as_ref().or(self.snapshot.as_ref()).unwrap(),
             );
 
             if self.snapshot.as_ref().unwrap().cheats {
@@ -351,8 +344,7 @@ impl UI {
             status_msgs.push(format!("SEED {}", self.seed));
             if let Some(snapshot) = self.snapshot.as_ref() {
                 status_msgs.push(format!(
-                    "TICK {}",
-                    (snapshot.time / PHYSICS_TICK_LENGTH).round() as i64
+                    "TICK {}", snapshot.tick
                 ));
             }
         }
@@ -407,18 +399,10 @@ impl UI {
         self.needs_render = true;
     }
 
-    /// Sets the displayed snapshot by index
-    ///
-    /// The time of the first snapshot is expected to be at 0 at
-    /// the time this was written. This will need to be updated if
-    /// that expectation changes.
-    ///
-    /// Snapshots are evenly spaced, so an index can easily be converted into a time
-    /// and vice versa
-    pub fn set_snapshot_index(&mut self, index: usize) {
-        self.physics_time = Duration::from_secs_f64((index as f64) * PHYSICS_TICK_LENGTH);
+    pub fn seek_from_timeline(&mut self, index: usize) {
+        let tick = index as u32;
+        self.seek(tick);
         self.paused = true;
-        self.update_snapshot(false);
         self.needs_render = true;
         self.is_buffering = false;
         let _ = self.canvas.focus();
@@ -428,12 +412,24 @@ impl UI {
         self.is_buffering
     }
 
-    pub fn update_snapshot(&mut self, interpolate: bool) {
-        let snapshot_index =
-            (self.physics_time.as_secs_f64() / PHYSICS_TICK_LENGTH).round() as usize;
+    pub fn seek(&mut self, tick: u32) {
+        self.simulation_time = InterpolatedTick {
+            tick,
+            delta: Duration::ZERO,
+        };
+        self.update_snapshot();
+    }
+
+    pub fn advance_time(&mut self, dt: Duration) {
+        self.simulation_time = self.simulation_time.advance(dt);
+        self.update_snapshot();
+    }
+
+    pub fn update_snapshot(&mut self) {
+        let requested_tick = self.simulation_time.tick;
 
         // Reaching the end of the preloaded snapshots, need to preload more
-        if SNAPSHOT_PRELOAD + 1 + snapshot_index > self.snapshots.len()
+        if SNAPSHOT_PRELOAD + 1 + requested_tick as usize > self.snapshots.len()
             && self.snapshot_requests_in_flight < MAX_SNAPSHOT_REQUESTS_IN_FLIGHT
         {
             self.request_snapshot.emit(());
@@ -442,14 +438,10 @@ impl UI {
             self.is_buffering = true;
         }
 
-        if snapshot_index < self.snapshots.len()
-            && std::time::Duration::from_secs_f64(self.snapshots[snapshot_index].time)
-                <= self.physics_time
-        {
+        if (requested_tick as usize) < self.snapshots.len() {
             let first_snapshot = self.snapshot.is_none();
 
-            self.snapshot = self.snapshots.get(snapshot_index).cloned();
-            self.uninterpolated_snapshot = self.snapshot.clone();
+            self.snapshot = self.snapshots.get(requested_tick as usize).cloned();
 
             let snapshot = self.snapshot.as_mut().unwrap();
 
@@ -494,41 +486,16 @@ impl UI {
         }
 
         if let Some(snapshot) = self.snapshot.as_mut() {
-            // Time of the snapshot
-            let t = std::time::Duration::from_secs_f64(snapshot.time);
-
-            // Find the difference between current time and snapshot time, with a max value of 16
-            // TODO: Why 16? The tick length is 16.66 miliseconds. Maybe that's it?
-            let mut delta = if t <= self.physics_time {
-                (self.physics_time - t).min(Duration::from_millis(16))
+            let interpolation_delta = self.simulation_time.delta.as_secs_f64();
+            if snapshot.tick == self.simulation_time.tick && interpolation_delta > 0.0 {
+                let mut interpolated_snapshot = snapshot.clone();
+                snapshot::interpolate(&mut interpolated_snapshot, interpolation_delta);
+                self.renderer.update(&interpolated_snapshot);
+                self.interpolated_snapshot = Some(interpolated_snapshot);
             } else {
-                (t - self.physics_time).min(Duration::from_millis(16))
-            };
-
-            // TODO: Unsure what this is for
-            // TODO: More magic numbers
-            if delta > Duration::from_millis(3) {
-                delta -= Duration::from_millis(1);
+                self.renderer.update(snapshot);
+                self.interpolated_snapshot = None;
             }
-
-            // Set the new current time to the time of the snapshot + the delta
-            // Could just be unchanged if the delta is less than 4
-            self.physics_time = if t <= self.physics_time {
-                t + delta
-            } else {
-                t - delta
-            };
-
-            if interpolate {
-                // Alters snapshot to make it appear as it would at `physics_time`
-                snapshot::interpolate(snapshot, delta.as_secs_f64());
-            } else if snapshot.time != self.uninterpolated_snapshot.as_ref().unwrap().time {
-                // TODO: Do we need to do this? Does this ever happen?
-                // uninterpolated_snapshot is a copy of snapshot
-                *snapshot = self.uninterpolated_snapshot.as_ref().unwrap().clone();
-            }
-
-            self.renderer.update(snapshot);
 
             snapshot.particles.clear();
         }
@@ -683,7 +650,7 @@ impl UI {
     }
 
     pub fn snapshot_index(&self) -> usize {
-        (self.snapshot.as_ref().map_or(0.0, |s| s.time) / PHYSICS_TICK_LENGTH).round() as usize
+        self.snapshot.as_ref().map_or(0, |s| s.tick) as usize
     }
 
     pub fn update_picked(&mut self) {
@@ -759,4 +726,22 @@ impl UI {
 #[derive(Debug)]
 struct Touch {
     world_camera_offset: Point2<f64>,
+}
+
+#[derive(Debug)]
+struct InterpolatedTick {
+    pub tick: u32,
+    pub delta: Duration,
+}
+
+impl InterpolatedTick {
+    pub fn advance(&self, dt: Duration) -> InterpolatedTick {
+        let total_delta = self.delta + dt;
+        let new_tick = self.tick + (total_delta.as_secs_f64() / PHYSICS_TICK_LENGTH).trunc() as u32;
+        let new_delta = Duration::from_secs_f64(total_delta.as_secs_f64() % PHYSICS_TICK_LENGTH);
+        InterpolatedTick {
+            tick: new_tick,
+            delta: new_delta,
+        }
+    }
 }

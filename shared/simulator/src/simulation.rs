@@ -340,6 +340,7 @@ impl Simulation {
     pub fn snapshot(&self, nonce: u32) -> Snapshot {
         let mut snapshot = Snapshot {
             nonce,
+            tick: self.tick,
             time: self.time(),
             score_time: self.score_time(),
             status: self.status(),

@@ -46,12 +46,6 @@ pub struct DrawSet {
     current_time: f32,
 }
 
-impl DrawSet {
-    pub fn len(&self) -> usize {
-        self.num_instances
-    }
-}
-
 impl ParticleRenderer {
     pub fn new(context: WebGl2RenderingContext) -> Result<Self, JsValue> {
         let vert_shader = glutil::compile_shader(

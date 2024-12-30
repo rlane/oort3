@@ -173,7 +173,7 @@ impl Component for SimulationWindow {
                 // Timeline was set to a new index
                 // Display the relevant snapshot
                 if let Some(ui) = self.ui.as_mut() {
-                    ui.set_snapshot_index(index);
+                    ui.seek_from_timeline(index);
                 }
                 false
             }
