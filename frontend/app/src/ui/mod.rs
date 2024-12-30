@@ -185,7 +185,8 @@ impl UI {
             self.steps_forward = 0;
             self.steps_backward = 0;
             self.is_buffering = false;
-            self.last_render_time = instant::Instant::now();
+            // No time should elapse while pausing
+            self.last_render_time = now;
         }
         if self.keys_pressed.contains("KeyN") {
             self.paused = true;
@@ -390,7 +391,6 @@ impl UI {
 
         self.frame_timer
             .end((instant::Instant::now() - self.start_time).as_millis() as f64);
-
         self.keys_pressed.clear();
     }
 
