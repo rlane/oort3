@@ -3,6 +3,8 @@
 // "target_velocity" function.
 //
 // Hint: p = p₀ + v₀t + ½at² (the third equation of kinematics)
+// Learn more about the physics of Oort in the wiki:
+// https://github.com/rlane/oort3/wiki/The-Physics-of-Oort
 //
 // p.s. You can change your username by clicking on it at the top of the page.
 use oort_api::prelude::*;
