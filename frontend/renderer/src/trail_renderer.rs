@@ -4,6 +4,7 @@ use nalgebra::{vector, Matrix4, Point2, UnitComplex, Vector2};
 use oort_api::Ability;
 use oort_simulator::ship::ShipClass;
 use oort_simulator::snapshot::Snapshot;
+use oort_simulator::simulation::PHYSICS_TICK_LENGTH;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
@@ -22,8 +23,12 @@ pub struct TrailRenderer {
     projection_matrix: Matrix4<f32>,
     buffer: WebGlBuffer,
     index: i32,
-    last_positions: HashMap<u64, Point2<f32>>,
-    prev_snapshot: Option<Snapshot>,
+    states: HashMap<u64, TrailState>,
+}
+
+struct TrailState {
+    position: Point2<f32>,
+    time: f32,
 }
 
 impl TrailRenderer {
@@ -87,8 +92,7 @@ void main() {
             projection_matrix: Matrix4::identity(),
             buffer,
             index: 0,
-            last_positions: HashMap::new(),
-            prev_snapshot: None,
+            states: HashMap::new(),
         })
     }
 
@@ -101,7 +105,6 @@ void main() {
         // Using PHYSICS_TICK_LENGTH is not accurate.
         let mut data = Vec::with_capacity(snapshot.ships.len() * 2 * FLOATS_PER_VERTEX as usize);
         let mut n = 0;
-        let prev_creation_time = self.prev_snapshot.as_ref().map_or(0.0, |s| s.time as f32);
         let creation_time = snapshot.time as f32;
 
         for ship in snapshot.ships.iter() {
@@ -113,12 +116,7 @@ void main() {
                     continue;
                 }
             }
-            let mut color: nalgebra::Matrix<
-                f32,
-                nalgebra::Const<4>,
-                nalgebra::Const<1>,
-                nalgebra::ArrayStorage<f32, 4, 1>,
-            > = super::ShipRenderer::team_color(ship.team);
+            let mut color = super::ShipRenderer::team_color(ship.team);
             color.w = match ship.class {
                 ShipClass::Missile => 0.10,
                 ShipClass::Torpedo => 0.15,
@@ -131,37 +129,41 @@ void main() {
                 + UnitComplex::new(ship.heading as f32).transform_vector(&trail_offset(ship.class));
             {
                 use std::collections::hash_map::Entry;
-                match self.last_positions.entry(ship.id) {
+                match self.states.entry(ship.id) {
                     Entry::Occupied(mut e) => {
-                        let last_position = e.insert(current_position);
-                        data.push(last_position.x);
-                        data.push(last_position.y);
-                        data.push(color.x);
-                        data.push(color.y);
-                        data.push(color.z);
-                        data.push(color.w);
-                        data.push(prev_creation_time);
-                        data.push(0.0);
+                        let old_state = e.get();
+                        if creation_time > old_state.time && creation_time < old_state.time + PHYSICS_TICK_LENGTH as f32 * 2.0 {
+                            data.push(old_state.position.x);
+                            data.push(old_state.position.y);
+                            data.push(color.x);
+                            data.push(color.y);
+                            data.push(color.z);
+                            data.push(color.w);
+                            data.push(old_state.time);
+                            data.push(0.0);
 
-                        data.push(current_position.x);
-                        data.push(current_position.y);
-                        data.push(color.x);
-                        data.push(color.y);
-                        data.push(color.z);
-                        data.push(color.w);
-                        data.push(creation_time);
-                        data.push(0.0);
+                            data.push(current_position.x);
+                            data.push(current_position.y);
+                            data.push(color.x);
+                            data.push(color.y);
+                            data.push(color.z);
+                            data.push(color.w);
+                            data.push(creation_time);
+                            data.push(0.0);
 
-                        n += 2;
+                            n += 2;
+                        }
+
+                        if creation_time > old_state.time {
+                            e.insert(TrailState { position: current_position, time: creation_time });
+                        }
                     }
                     Entry::Vacant(e) => {
-                        e.insert(current_position);
+                        e.insert(TrailState { position: current_position, time: creation_time });
                     }
                 };
             }
         }
-
-        self.prev_snapshot = Some(snapshot.clone());
 
         assert_eq!(n % 2, 0);
 
