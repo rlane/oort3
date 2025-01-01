@@ -10,8 +10,8 @@ use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlUniformLocation};
 use WebGl2RenderingContext as gl;
 
-// Sizing: 512 ships * 2 vertex/tick * 60 tick/s * 2 s
-const MAX_VERTICES: i32 = 128 * 1024;
+// Sizing: 512 ships * 2 vertex/tick * 60 tick/s * 30 s
+const MAX_VERTICES: i32 = 1800 * 1024;
 const FLOATS_PER_VERTEX: i32 = 8;
 const VERTEX_ATTRIB_SIZE: i32 = FLOATS_PER_VERTEX * 4;
 
