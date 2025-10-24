@@ -122,7 +122,7 @@ impl Scenario for PlanetaryDefense {
                 "POP {:.1}B",
                 10.0 * sim.ship(planet_handle).data().health / Self::PLANET_HEALTH
             );
-            let mut buf = [0u8; 11];
+            let mut buf = [0u8; 27];
             for (i, b) in s.bytes().enumerate() {
                 buf[i] = b;
             }

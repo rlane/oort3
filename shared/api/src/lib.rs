@@ -377,7 +377,7 @@ pub struct Text {
     pub y: f64,
     pub color: u32,
     pub length: u8,
-    pub text: [u8; 11],
+    pub text: [u8; 27],
 }
 
 /// Message sent and received on the radio.
@@ -420,11 +420,15 @@ pub mod sys {
         // Format is key=value\nkey=value\n... ending with a null byte.
         unsafe {
             let environment = ptr::addr_of!(ENVIRONMENT);
-            let n = (*environment)
+
+            let env_arr: &[u8] = &*environment;
+
+            let n = env_arr
                 .iter()
                 .position(|&c| c == 0)
                 .unwrap_or((*environment).len());
-            std::str::from_utf8(&(*environment)[..n])
+
+            std::str::from_utf8(&env_arr[..n])
                 .expect("Failed to convert environment to string")
         }
     }
@@ -1221,7 +1225,7 @@ pub mod dbg {
         let _ = std::fmt::write(&mut text, args);
         let buf = unsafe { &mut *ptr::addr_of_mut!(DRAWN_TEXT_BUFFER) };
         // TODO handle longer text
-        let mut text_buf = [0u8; 11];
+        let mut text_buf = [0u8; 27];
         text_buf
             .iter_mut()
             .zip(text.bytes())

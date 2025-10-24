@@ -191,10 +191,22 @@ void main() {
                 (projected.x + 1.0) * screen_width / 2.0,
                 (projected.y + 1.0) * screen_height / 2.0
             ];
-            let mut pos = vector![projected_pixels.x.floor(), projected_pixels.y.floor()];
+            let initial_x = projected_pixels.x.floor();
+            let mut pos = vector![initial_x, projected_pixels.y.floor()];
             let color = color::from_u24(text.color);
+                log::info!("text: {}", text.length);
             for i in 0..text.length {
-                let idx = (text.text[i as usize] as usize - 32).clamp(0, FONT_ROWS * FONT_COLS - 1);
+                let char_id = (text.text[i as usize]) as usize;
+
+
+                // Support for newline characters: if we're a \n (code 10), adjust the col 
+                if char_id == 10 {
+                    pos.y -= (FONT_GLYPH_SIZE as f32 + 1.0) * scale;
+                    pos.x = initial_x;
+                    continue;
+                }
+
+                let idx = char_id.saturating_sub(32).clamp(0, FONT_ROWS * FONT_COLS - 1);
                 let row = FONT_ROWS - idx / FONT_COLS - 1;
                 let col = idx % FONT_COLS;
 
