@@ -405,6 +405,9 @@ impl UI {
         self.paused = true;
         self.needs_render = true;
         self.is_buffering = false;
+    }
+
+    pub fn focus_canvas(&mut self) {
         let _ = self.canvas.focus();
     }
 

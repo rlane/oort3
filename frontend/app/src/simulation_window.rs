@@ -23,7 +23,7 @@ pub enum Msg {
     WheelEvent(web_sys::WheelEvent),
     PointerEvent(web_sys::PointerEvent),
     BlurEvent(web_sys::FocusEvent),
-    TimelineEvent(usize),
+    TimelineEvent(usize, bool),
     RequestSnapshot,
     ReceivedSimAgentResponse(oort_simulation_worker::Response),
 }
@@ -169,11 +169,19 @@ impl Component for SimulationWindow {
                 }
                 false
             }
-            Msg::TimelineEvent(index) => {
+            Msg::TimelineEvent(index, is_change_event) => {
                 // Timeline was set to a new index
                 // Display the relevant snapshot
                 if let Some(ui) = self.ui.as_mut() {
                     ui.seek_from_timeline(index);
+
+                    // Change event fires after the user lets go
+                    // of the slider. In Firefox focusing the canvas
+                    // makes the slider ignore further motion, hence
+                    // breaking the experience.
+                    if is_change_event {
+                        ui.focus_canvas();
+                    }
                 }
                 false
             }
@@ -209,7 +217,7 @@ impl Component for SimulationWindow {
                 .value_as_number()
                 .round() as usize;
 
-            Msg::TimelineEvent(slider_value)
+            Msg::TimelineEvent(slider_value, false)
         });
 
         // We need a separate callback for the onchange event because the input event is not fired on release
@@ -224,7 +232,7 @@ impl Component for SimulationWindow {
                 .value_as_number()
                 .round() as usize;
 
-            Msg::TimelineEvent(slider_value)
+            Msg::TimelineEvent(slider_value, true)
         });
 
         create_portal(
