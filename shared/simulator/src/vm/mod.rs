@@ -3,6 +3,7 @@
 // TODO shift pointers according to headroom + base
 pub mod builtin;
 mod limiter;
+pub mod native;
 
 use crate::color;
 use crate::debug;
@@ -26,8 +27,8 @@ pub type Environment = BTreeMap<String, String>;
 
 const SUBMEMORY_SIZE: u32 = 2 << 20;
 const GAS_PER_TICK: i32 = 1_000_000;
-const MAX_DEBUG_LINES: u32 = 1024;
-const MAX_DRAWN_TEXT: u32 = 128;
+pub(crate) const MAX_DEBUG_LINES: u32 = 1024;
+pub(crate) const MAX_DRAWN_TEXT: u32 = 128;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Error {
@@ -67,20 +68,30 @@ impl From<anyhow::Error> for Error {
     }
 }
 
-pub fn new_team_controller(code: &Code) -> Result<Box<TeamController>, Error> {
+pub trait TeamControllerTrait {
+    fn add_ship(&mut self, handle: ShipHandle, sim: &Simulation) -> Result<(), Error>;
+    fn remove_ship(&mut self, handle: ShipHandle);
+    fn tick(&mut self, sim: &mut Simulation);
+    fn update_environment(&mut self, environment: &Environment) -> Result<(), Error>;
+}
+
+pub fn new_team_controller(code: &Code) -> Result<Box<dyn TeamControllerTrait>, Error> {
     match code {
-        Code::Wasm(_) => TeamController::create(code),
+        Code::Wasm(_) => WasmTeamController::create(code),
         #[cfg(feature = "precompile")]
-        Code::Precompiled(_) => TeamController::create(code),
+        Code::Precompiled(_) => WasmTeamController::create(code),
         Code::Builtin(name) => match builtin::load_compiled(name) {
             Ok(code) => new_team_controller(&code),
             Err(e) => Err(Error { msg: e }),
         },
+        Code::Native(factory) => {
+            Ok(Box::new(native::NativeTeamController::new(factory.clone())))
+        }
         _ => unreachable!(),
     }
 }
 
-pub struct ShipController {
+struct WasmShipController {
     index: u32,
     state: LocalSystemState,
     base_address: u32,
@@ -89,98 +100,23 @@ pub struct ShipController {
     panic_buffer_ptr: WasmPtr<u8>,
 }
 
-pub struct TeamController {
+pub struct WasmTeamController {
     vm: WasmVm,
-    ship_controllers: HashMap<ShipHandle, ShipController>,
+    ship_controllers: HashMap<ShipHandle, WasmShipController>,
     next_id: u32,
     free_submemories: Vec<(u32, u32)>, // (index, base_address)
     environment: Environment,
 }
 
-impl TeamController {
-    pub fn create(code: &Code) -> Result<Box<TeamController>, Error> {
-        Ok(Box::new(TeamController {
+impl WasmTeamController {
+    pub fn create(code: &Code) -> Result<Box<dyn TeamControllerTrait>, Error> {
+        Ok(Box::new(WasmTeamController {
             vm: WasmVm::create(code)?,
             ship_controllers: HashMap::new(),
             next_id: 1,
             free_submemories: Vec::new(),
             environment: Environment::new(),
         }))
-    }
-
-    pub fn add_ship(&mut self, handle: ShipHandle, sim: &Simulation) -> Result<(), Error> {
-        let mut state = LocalSystemState::new();
-
-        let (index, base_address) = {
-            if let Some((index, base_address)) = self.free_submemories.pop() {
-                (index, base_address)
-            } else {
-                self.vm.add_submemory()?
-            }
-        };
-
-        state.set(
-            SystemState::Seed,
-            (make_seed(sim.seed(), handle) & 0xffffff) as f64,
-        );
-        state.set(SystemState::Id, self.next_id as f64);
-        self.next_id += 1;
-        for (idx, radar) in sim.ship(handle).data().radars.iter().enumerate() {
-            let idxs = oort_api::prelude::radar_internal::radar_control_indices(idx);
-            state.set(idxs.heading, radar.heading);
-            state.set(idxs.width, radar.width);
-            state.set(idxs.min_distance, radar.min_distance);
-            state.set(idxs.max_distance, radar.max_distance);
-        }
-
-        self.vm.select_submemory(index)?;
-
-        let system_state_ptr: WasmPtr<u64> =
-            WasmPtr::new(base_address + self.vm.system_state_offset);
-        let environment_ptr: WasmPtr<u8> = WasmPtr::new(base_address + self.vm.environment_offset);
-        let panic_buffer_ptr: WasmPtr<u8> =
-            WasmPtr::new(base_address + self.vm.panic_buffer_offset);
-
-        self.vm
-            .update_environment(environment_ptr, &self.environment)?;
-
-        self.ship_controllers.insert(
-            handle,
-            ShipController {
-                index,
-                state,
-                base_address,
-                system_state_ptr,
-                environment_ptr,
-                panic_buffer_ptr,
-            },
-        );
-
-        Ok(())
-    }
-
-    pub fn remove_ship(&mut self, handle: ShipHandle) {
-        let ship_controller = self.ship_controllers.remove(&handle).unwrap();
-        self.vm
-            .reset_gas
-            .call(&mut self.vm.store_mut(), &[GAS_PER_TICK.into()])
-            .unwrap();
-        self.vm.reset_submemory(ship_controller.index).unwrap();
-        self.free_submemories
-            .push((ship_controller.index, ship_controller.base_address));
-    }
-
-    pub fn tick(&mut self, sim: &mut Simulation) {
-        let mut handles: Vec<_> = self.ship_controllers.keys().cloned().collect();
-        handles.sort_by_key(|x| x.0);
-
-        for handle in handles {
-            if let Err(e) = self.tick_ship(sim, handle) {
-                log::warn!("{}", e.msg);
-                sim.emit_debug_text(handle, format!("Crashed: {}", e.msg.clone()));
-                sim.ship_mut(handle).data_mut().crash_message = Some(e.msg);
-            }
-        }
     }
 
     fn tick_ship(&mut self, sim: &mut Simulation, handle: ShipHandle) -> Result<(), Error> {
@@ -343,9 +279,85 @@ impl TeamController {
 
         Ok(())
     }
+}
 
-    /// Writes `environment` to each ship's memory
-    pub fn update_environment(&mut self, environment: &Environment) -> Result<(), Error> {
+impl TeamControllerTrait for WasmTeamController {
+    fn add_ship(&mut self, handle: ShipHandle, sim: &Simulation) -> Result<(), Error> {
+        let mut state = LocalSystemState::new();
+
+        let (index, base_address) = {
+            if let Some((index, base_address)) = self.free_submemories.pop() {
+                (index, base_address)
+            } else {
+                self.vm.add_submemory()?
+            }
+        };
+
+        state.set(
+            SystemState::Seed,
+            (make_seed(sim.seed(), handle) & 0xffffff) as f64,
+        );
+        state.set(SystemState::Id, self.next_id as f64);
+        self.next_id += 1;
+        for (idx, radar) in sim.ship(handle).data().radars.iter().enumerate() {
+            let idxs = oort_api::prelude::radar_internal::radar_control_indices(idx);
+            state.set(idxs.heading, radar.heading);
+            state.set(idxs.width, radar.width);
+            state.set(idxs.min_distance, radar.min_distance);
+            state.set(idxs.max_distance, radar.max_distance);
+        }
+
+        self.vm.select_submemory(index)?;
+
+        let system_state_ptr: WasmPtr<u64> =
+            WasmPtr::new(base_address + self.vm.system_state_offset);
+        let environment_ptr: WasmPtr<u8> = WasmPtr::new(base_address + self.vm.environment_offset);
+        let panic_buffer_ptr: WasmPtr<u8> =
+            WasmPtr::new(base_address + self.vm.panic_buffer_offset);
+
+        self.vm
+            .update_environment(environment_ptr, &self.environment)?;
+
+        self.ship_controllers.insert(
+            handle,
+            WasmShipController {
+                index,
+                state,
+                base_address,
+                system_state_ptr,
+                environment_ptr,
+                panic_buffer_ptr,
+            },
+        );
+
+        Ok(())
+    }
+
+    fn remove_ship(&mut self, handle: ShipHandle) {
+        let ship_controller = self.ship_controllers.remove(&handle).unwrap();
+        self.vm
+            .reset_gas
+            .call(&mut self.vm.store_mut(), &[GAS_PER_TICK.into()])
+            .unwrap();
+        self.vm.reset_submemory(ship_controller.index).unwrap();
+        self.free_submemories
+            .push((ship_controller.index, ship_controller.base_address));
+    }
+
+    fn tick(&mut self, sim: &mut Simulation) {
+        let mut handles: Vec<_> = self.ship_controllers.keys().cloned().collect();
+        handles.sort_by_key(|x| x.0);
+
+        for handle in handles {
+            if let Err(e) = self.tick_ship(sim, handle) {
+                log::warn!("{}", e.msg);
+                sim.emit_debug_text(handle, format!("Crashed: {}", e.msg.clone()));
+                sim.ship_mut(handle).data_mut().crash_message = Some(e.msg);
+            }
+        }
+    }
+
+    fn update_environment(&mut self, environment: &Environment) -> Result<(), Error> {
         self.environment = environment.clone();
         for (_, ship_controller) in self.ship_controllers.iter_mut() {
             self.vm
@@ -533,26 +545,26 @@ impl WasmVm {
     }
 }
 
-struct LocalSystemState {
+pub(crate) struct LocalSystemState {
     pub state: [u64; SystemState::Size as usize],
 }
 
 impl LocalSystemState {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             state: [0; SystemState::Size as usize],
         }
     }
 
-    fn get_u64(&self, index: SystemState) -> u64 {
+    pub(crate) fn get_u64(&self, index: SystemState) -> u64 {
         self.state[index as usize]
     }
 
-    fn set_u64(&mut self, index: SystemState, value: u64) {
+    pub(crate) fn set_u64(&mut self, index: SystemState, value: u64) {
         self.state[index as usize] = value;
     }
 
-    fn get(&self, index: SystemState) -> f64 {
+    pub(crate) fn get(&self, index: SystemState) -> f64 {
         let v = f64::from_bits(self.get_u64(index));
         if v.is_nan() || v.is_infinite() {
             0.0
@@ -561,13 +573,13 @@ impl LocalSystemState {
         }
     }
 
-    fn set(&mut self, index: SystemState, value: f64) {
+    pub(crate) fn set(&mut self, index: SystemState, value: f64) {
         self.set_u64(index, value.to_bits());
     }
 }
 
 /// Set ship memory based on the state of the ship in the simulator
-fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
+pub(crate) fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
     state.set(
         SystemState::Class,
         translate_class(sim.ship(handle).data().class) as u32 as f64,
@@ -676,7 +688,7 @@ fn generate_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut L
 
 /// Draws ship state from memory, applies it to the simulator,
 /// and then resets memory to default values
-fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
+pub(crate) fn apply_system_state(sim: &mut Simulation, handle: ShipHandle, state: &mut LocalSystemState) {
     // Set ship acceleration
     sim.ship_mut(handle).accelerate(Vec2::new(
         state.get(SystemState::AccelerateX),
@@ -810,17 +822,17 @@ fn translate_runtime_error<T>(err: Result<T, wasmer::RuntimeError>) -> Result<T,
     }
 }
 
-fn validate_floats(vs: &[f64]) -> bool {
+pub(crate) fn validate_floats(vs: &[f64]) -> bool {
     vs.iter().all(|v| v.is_finite())
 }
 
-fn validate_lines(lines: &[Line]) -> bool {
+pub(crate) fn validate_lines(lines: &[Line]) -> bool {
     lines
         .iter()
         .all(|l| validate_floats(&[l.x0, l.y0, l.x1, l.y1]))
 }
 
-fn validate_texts(texts: &[Text]) -> bool {
+pub(crate) fn validate_texts(texts: &[Text]) -> bool {
     texts
         .iter()
         .all(|t| validate_floats(&[t.x, t.y]) && t.length as usize <= t.text.len())
@@ -835,7 +847,7 @@ pub fn precompile(wasm: &[u8]) -> Result<Code, Error> {
     Ok(Code::Precompiled(translate_error(module.serialize())?))
 }
 
-fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
+pub(crate) fn make_seed(sim_seed: u32, handle: ShipHandle) -> i64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::Hasher;
     let mut s = DefaultHasher::new();

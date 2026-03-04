@@ -17,6 +17,7 @@ members = [
     "services/compiler",
 
     "tools",
+    "tools/native-runner",
     "bundler",
 ]
 

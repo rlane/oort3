@@ -2678,6 +2678,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "oort-native-runner"
+version = "0.84.0"
+dependencies = [
+ "clap 4.4.11",
+ "env_logger 0.10.1",
+ "log",
+ "oort_ai",
+ "oort_api",
+ "oort_simulator",
+]
+
+[[package]]
 name = "oort_ai"
 version = "0.84.0"
 dependencies = [

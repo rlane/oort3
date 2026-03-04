@@ -1280,6 +1280,21 @@ pub mod dbg {
             DRAWN_TEXT_BUFFER.clear();
         }
     }
+
+    #[doc(hidden)]
+    pub unsafe fn text_buffer() -> &'static str {
+        &*ptr::addr_of!(TEXT_BUFFER)
+    }
+
+    #[doc(hidden)]
+    pub unsafe fn line_buffer() -> &'static [super::Line] {
+        &*ptr::addr_of!(LINE_BUFFER)
+    }
+
+    #[doc(hidden)]
+    pub unsafe fn drawn_text_buffer() -> &'static [super::Text] {
+        &*ptr::addr_of!(DRAWN_TEXT_BUFFER)
+    }
 }
 
 mod deprecated {

@@ -10,7 +10,7 @@ use crate::scenario::Scenario;
 use crate::ship::{ShipAccessor, ShipAccessorMut, ShipData, ShipHandle, Target};
 use crate::snapshot::*;
 use crate::vm;
-use crate::vm::TeamController;
+use crate::vm::TeamControllerTrait;
 use crossbeam::channel::Sender;
 use instant::Instant;
 use nalgebra::{Vector2, Vector4};
@@ -22,11 +22,18 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub const MAX_WORLD_SIZE: f64 = 200000.0;
 pub const PHYSICS_TICK_LENGTH: f64 = 1.0 / 60.0;
 
-#[derive(Clone, Serialize, Deserialize, Debug, Eq, Hash, PartialEq)]
+pub trait NativeShip {
+    fn tick(&mut self);
+}
+
+pub type NativeShipFactory = Arc<dyn Fn() -> Box<dyn NativeShip> + Send + Sync>;
+
+#[derive(Clone)]
 pub enum Code {
     None,
     Rust(String),
@@ -34,13 +41,101 @@ pub enum Code {
     Builtin(String),
     #[cfg(feature = "precompile")]
     Precompiled(bytes::Bytes),
+    Native(NativeShipFactory),
+}
+
+impl std::fmt::Debug for Code {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Code::None => write!(f, "None"),
+            Code::Rust(s) => f.debug_tuple("Rust").field(s).finish(),
+            Code::Wasm(b) => f.debug_tuple("Wasm").field(&format!("[{} bytes]", b.len())).finish(),
+            Code::Builtin(s) => f.debug_tuple("Builtin").field(s).finish(),
+            #[cfg(feature = "precompile")]
+            Code::Precompiled(b) => f.debug_tuple("Precompiled").field(&format!("[{} bytes]", b.len())).finish(),
+            Code::Native(_) => write!(f, "Native(<factory>)"),
+        }
+    }
+}
+
+impl PartialEq for Code {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Code::None, Code::None) => true,
+            (Code::Rust(a), Code::Rust(b)) => a == b,
+            (Code::Wasm(a), Code::Wasm(b)) => a == b,
+            (Code::Builtin(a), Code::Builtin(b)) => a == b,
+            #[cfg(feature = "precompile")]
+            (Code::Precompiled(a), Code::Precompiled(b)) => a == b,
+            (Code::Native(a), Code::Native(b)) => Arc::ptr_eq(a, b),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Code {}
+
+impl std::hash::Hash for Code {
+    fn hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
+        std::mem::discriminant(self).hash(hasher);
+        match self {
+            Code::None => {}
+            Code::Rust(s) => s.hash(hasher),
+            Code::Wasm(b) => b.hash(hasher),
+            Code::Builtin(s) => s.hash(hasher),
+            #[cfg(feature = "precompile")]
+            Code::Precompiled(b) => b.hash(hasher),
+            Code::Native(f) => (Arc::as_ptr(f) as *const () as usize).hash(hasher),
+        }
+    }
+}
+
+impl Serialize for Code {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        #[derive(Serialize)]
+        enum CodeRef<'a> {
+            None,
+            Rust(&'a String),
+            Wasm(&'a Vec<u8>),
+            Builtin(&'a String),
+        }
+        let proxy = match self {
+            Code::None => CodeRef::None,
+            Code::Rust(s) => CodeRef::Rust(s),
+            Code::Wasm(b) => CodeRef::Wasm(b),
+            Code::Builtin(s) => CodeRef::Builtin(s),
+            #[cfg(feature = "precompile")]
+            Code::Precompiled(_) => return Err(serde::ser::Error::custom("cannot serialize Precompiled")),
+            Code::Native(_) => return Err(serde::ser::Error::custom("cannot serialize Native")),
+        };
+        proxy.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Code {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        enum CodeOwned {
+            None,
+            Rust(String),
+            Wasm(Vec<u8>),
+            Builtin(String),
+        }
+        let proxy = CodeOwned::deserialize(deserializer)?;
+        Ok(match proxy {
+            CodeOwned::None => Code::None,
+            CodeOwned::Rust(s) => Code::Rust(s),
+            CodeOwned::Wasm(b) => Code::Wasm(b),
+            CodeOwned::Builtin(s) => Code::Builtin(s),
+        })
+    }
 }
 
 pub struct Simulation {
     scenario: Option<Box<dyn Scenario>>,
     pub ships: IndexSet<ShipHandle>,
     pub(crate) ship_data: Coarena<ShipData>,
-    team_controllers: HashMap<i32, Rc<RefCell<Box<TeamController>>>>,
+    team_controllers: HashMap<i32, Rc<RefCell<Box<dyn TeamControllerTrait>>>>,
     pub new_ships: Vec<(/*team*/ i32, ShipHandle)>,
     pub bullets: IndexSet<BulletHandle>,
     pub(crate) bullet_data: Coarena<BulletData>,
@@ -395,7 +490,7 @@ impl Simulation {
         snapshot
     }
 
-    pub fn get_team_controller(&mut self, team: i32) -> Option<Rc<RefCell<Box<TeamController>>>> {
+    pub fn get_team_controller(&mut self, team: i32) -> Option<Rc<RefCell<Box<dyn TeamControllerTrait>>>> {
         self.team_controllers.get_mut(&team).map(|x| x.clone())
     }
 
