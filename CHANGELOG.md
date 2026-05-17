@@ -1,3 +1,5 @@
+### 0.84.1 - 2026-05-16
+
 - Workaround glGenerateMipmaps error on latest Chrome.
 
 ### 0.84.0 - 2025-01-03
