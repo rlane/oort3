@@ -1,8 +1,7 @@
 FROM rust:1.77.2-slim-bookworm as builder
 WORKDIR /usr/src/app
-RUN apt-get update && echo 20241130
-RUN apt-get install -y clang
-RUN cargo install wasm-opt --version 0.116.0
+RUN apt-get update && echo 20260516
+RUN apt-get install -y clang binaryen
 COPY . .
 ARG OORT_ENVELOPE_SECRET
 ARG OORT_CODE_ENCRYPTION_SECRET
