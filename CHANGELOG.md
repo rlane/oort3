@@ -1,3 +1,5 @@
+- Workaround glGenerateMipmaps error on latest Chrome.
+
 ### 0.84.0 - 2025-01-03
 
 - Added the ability to rewind time, very useful for debugging AIs (by twof).

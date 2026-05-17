@@ -243,7 +243,7 @@ void main() {
     }
 
     // Stop rendering to renderbuffer
-    pub fn finish(&mut self) {
+    pub fn finish(&mut self) -> Result<(), String> {
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
         self.context.viewport(0, 0, screen_width, screen_height);
@@ -257,7 +257,6 @@ void main() {
             gl::DRAW_FRAMEBUFFER,
             Some(&self.active_framebuffers.texture_fb),
         );
-
         self.context.blit_framebuffer(
             0,
             0,
@@ -276,8 +275,18 @@ void main() {
 
         self.context
             .bind_texture(gl::TEXTURE_2D, Some(&self.active_framebuffers.texture));
+        assert_eq!(self.context.get_error(), gl::NO_ERROR);
         self.context.generate_mipmap(gl::TEXTURE_2D);
+        let e = self.context.get_error();
+        if e != gl::NO_ERROR {
+            return Err(format!(
+                "Error generating mipmap: {}",
+                e));
+        }
+
         self.context.bind_texture(gl::TEXTURE_2D, None);
+
+        Ok(())
     }
 
     // Draw blurred texture to screen

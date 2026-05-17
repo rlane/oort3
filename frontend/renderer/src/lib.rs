@@ -72,6 +72,8 @@ impl Renderer {
         context.enable(gl::BLEND);
         context.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
+        assert_eq!(context.get_error(), gl::NO_ERROR);
+
         Ok(Renderer {
             canvas,
             context: context.clone(),
@@ -236,7 +238,10 @@ impl Renderer {
                 .draw(&particle_drawset, 10.0 * self.base_line_width);
             self.line_renderer.draw(&scenario_line_drawset);
             self.ship_renderer.draw(&ship_drawset);
-            self.blur.finish();
+            if let Err(e) = self.blur.finish() {
+                log::error!("WebGL error during blur rendering: {:?}", e);
+                self.blur_enabled = false;
+            }
         }
 
         {
@@ -258,6 +263,8 @@ impl Renderer {
             self.ship_renderer.draw(&ship_drawset);
             self.text_renderer.draw(&text_drawset);
         }
+
+        assert_eq!(self.context.get_error(), gl::NO_ERROR);
     }
 
     pub fn update(&mut self, snapshot: &Snapshot) {
