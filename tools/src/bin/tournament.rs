@@ -260,7 +260,7 @@ fn run_simulation(scenario_name: &str, seed: u32, ais: &[&AI]) -> Outcomes {
             _ => unreachable!(),
         }
     };
-    match ::std::panic::catch_unwind(f) {
+    match ::std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
         Ok(x) => x,
         Err(e) => {
             log::error!("Simulation panicked: {:?}", e);

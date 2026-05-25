@@ -9,7 +9,7 @@ repository = "https://github.com/rlane/oort3"
 publish = false
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 oort_api = { path = "../api" }

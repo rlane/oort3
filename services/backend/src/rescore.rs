@@ -196,7 +196,7 @@ fn run_simulations(scenario_name: &str, code: &Code) -> std::thread::Result<Opti
 }
 
 fn run_simulation(scenario_name: &str, seed: u32, code: Code) -> std::thread::Result<Option<f64>> {
-    std::panic::catch_unwind(|| {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let scenario = scenario::load(scenario_name);
         let mut codes = scenario.initial_code();
         codes[0] = code;
@@ -208,7 +208,7 @@ fn run_simulation(scenario_name: &str, seed: u32, code: Code) -> std::thread::Re
             scenario::Status::Victory { team: 0 } => Some(sim.score_time()),
             _ => None,
         }
-    })
+    }))
 }
 
 fn extract_docid(docname: &str) -> String {
