@@ -127,7 +127,7 @@ async fn cmd_run(
     let ais: Vec<AI> = results.into_iter().collect::<anyhow::Result<Vec<AI>>>()?;
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &ais, rounds);
+    let results = run_tournament(scenario_name, &ais, rounds, run_simulation);
 
     display_results(&results);
 
@@ -152,17 +152,48 @@ async fn cmd_run_unofficial(
         .await?;
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &ais, rounds);
+    let results = run_tournament(scenario_name, &ais, rounds, run_simulation);
 
     display_results(&results);
 
     Ok(())
 }
 
-fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentResults {
+fn unordered_pair(name0: &str, name1: &str) -> (String, String) {
+    if name0 < name1 {
+        (name0.to_string(), name1.to_string())
+    } else {
+        (name1.to_string(), name0.to_string())
+    }
+}
+
+fn run_tournament(
+    scenario_name: &str,
+    ais: &[AI],
+    rounds: i32,
+    run_sim: fn(&str, u32, &[&AI]) -> Outcomes,
+) -> TournamentResults {
+    let min_players_for_adaptive = 5;
+    let min_rounds_for_adaptive = 10;
+
+    let use_adaptive = ais.len() > min_players_for_adaptive && rounds >= min_rounds_for_adaptive;
+
+    if use_adaptive {
+        run_adaptive_tournament(scenario_name, ais, rounds, run_sim)
+    } else {
+        run_round_robin_tournament(scenario_name, ais, rounds, run_sim)
+    }
+}
+
+fn run_round_robin_tournament(
+    scenario_name: &str,
+    ais: &[AI],
+    rounds: i32,
+    run_sim: fn(&str, u32, &[&AI]) -> Outcomes,
+) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().gen()).collect();
-    let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let config = Glicko2Config::new();
+    let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
     ratings.resize_with(ais.len(), Default::default);
     let pairs: Vec<(i32, Vec<_>)> = (0..rounds)
@@ -180,7 +211,7 @@ fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentRes
             let seed = seeds[*round as usize];
             let ai0: &AI = &ais[indices[0]];
             let ai1: &AI = &ais[indices[1]];
-            let r = run_simulation(scenario_name, seed, &[ai0, ai1]);
+            let r = run_sim(scenario_name, seed, &[ai0, ai1]);
             progress.inc(1);
             (*round, indices.clone(), r)
         })
@@ -238,6 +269,237 @@ fn run_tournament(scenario_name: &str, ais: &[AI], rounds: i32) -> TournamentRes
             );
         }
     }
+
+    TournamentResults {
+        scenario_name: scenario_name.to_string(),
+        competitors,
+        win_matrix,
+    }
+}
+
+fn run_adaptive_tournament(
+    scenario_name: &str,
+    ais: &[AI],
+    rounds: i32,
+    run_sim: fn(&str, u32, &[&AI]) -> Outcomes,
+) -> TournamentResults {
+    let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().gen()).collect();
+    let config = Glicko2Config::new();
+    let s_base = 5;
+
+    log::info!(
+        "Running adaptive tournament for {} players (s_base = {}, rounds = {})",
+        ais.len(),
+        s_base,
+        rounds
+    );
+
+    // 1. Base Phase (First s_base rounds)
+    let base_pairs: Vec<(i32, Vec<usize>)> = (0..s_base)
+        .flat_map(|round| (0..(ais.len())).permutations(2).map(move |x| (round, x)))
+        .collect();
+
+    let progress = indicatif::ProgressBar::new(base_pairs.len() as u64);
+    progress.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("[Base Phase] {wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
+            .unwrap(),
+    );
+
+    let base_outcomes: Vec<(i32, Vec<usize>, Outcomes)> = base_pairs
+        .par_iter()
+        .map(|(round, indices)| {
+            let seed = seeds[*round as usize];
+            let ai0: &AI = &ais[indices[0]];
+            let ai1: &AI = &ais[indices[1]];
+            let r = run_sim(scenario_name, seed, &[ai0, ai1]);
+            progress.inc(1);
+            (*round, indices.clone(), r)
+        })
+        .collect();
+    progress.finish_and_clear();
+
+    // Track stats for the base phase
+    let mut wins: HashMap<(String, String), usize> = HashMap::new();
+    let mut total_played: HashMap<(String, String), usize> = HashMap::new();
+    let mut ratings: Vec<Glicko2Rating> = vec![Default::default(); ais.len()];
+
+    for (_round, indices, outcome) in &base_outcomes {
+        let i0 = indices[0];
+        let i1 = indices[1];
+        let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], outcome, &config);
+        ratings[i0] = r0;
+        ratings[i1] = r1;
+
+        let name0 = &ais[i0].name;
+        let name1 = &ais[i1].name;
+
+        let key = unordered_pair(name0, name1);
+        *total_played.entry(key.clone()).or_default() += 1;
+
+        if *outcome == Outcomes::WIN {
+            *wins.entry((name0.clone(), name1.clone())).or_default() += 1;
+        } else if *outcome == Outcomes::LOSS {
+            *wins.entry((name1.clone(), name0.clone())).or_default() += 1;
+        }
+    }
+
+    // Identify top 8 players based on intermediate ratings
+    let mut intermediate_indices: Vec<usize> = (0..ais.len()).collect();
+    intermediate_indices.sort_by(|&a, &b| {
+        ratings[b].rating.partial_cmp(&ratings[a].rating).unwrap()
+    });
+    let top_tier_count = std::cmp::min(8, ais.len());
+    let top_tier: Vec<usize> = intermediate_indices[0..top_tier_count].to_vec();
+
+    // 2. Identify which pairs need refinement
+    let mut refined_pairs = Vec::new();
+    for i in 0..ais.len() {
+        for j in (i + 1)..ais.len() {
+            let name_i = &ais[i].name;
+            let name_j = &ais[j].name;
+            let key = unordered_pair(name_i, name_j);
+
+            let played = total_played.get(&key).copied().unwrap_or(0);
+            if played == 0 {
+                continue;
+            }
+
+            let wins_i = wins.get(&(name_i.clone(), name_j.clone())).copied().unwrap_or(0);
+            let wins_j = wins.get(&(name_j.clone(), name_i.clone())).copied().unwrap_or(0);
+            let win_rate_i = wins_i as f64 / played as f64;
+            let win_rate_j = wins_j as f64 / played as f64;
+
+            let rating_diff = (ratings[i].rating - ratings[j].rating).abs();
+
+            let close_ratings = rating_diff < 100.0;
+
+            let unexpected_outcome = if ratings[i].rating < ratings[j].rating - 150.0 {
+                win_rate_i >= 0.30
+            } else if ratings[j].rating < ratings[i].rating - 150.0 {
+                win_rate_j >= 0.30
+            } else {
+                false
+            };
+
+            let both_top_tier = top_tier.contains(&i) && top_tier.contains(&j);
+
+            if close_ratings || unexpected_outcome || both_top_tier {
+                refined_pairs.push((i, j));
+            }
+        }
+    }
+
+    // 3. Refinement Phase (Remaining rounds for selected pairs)
+    let mut refinement_matchups = Vec::new();
+    for &(i, j) in &refined_pairs {
+        for round in s_base..rounds {
+            refinement_matchups.push((round, vec![i, j]));
+            refinement_matchups.push((round, vec![j, i]));
+        }
+    }
+
+    let refinement_outcomes: Vec<(i32, Vec<usize>, Outcomes)> = if !refinement_matchups.is_empty() {
+        let progress = indicatif::ProgressBar::new(refinement_matchups.len() as u64);
+        progress.set_style(
+            indicatif::ProgressStyle::default_bar()
+                .template("[Refinement Phase] {wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
+                .unwrap(),
+        );
+
+        let outcomes: Vec<(i32, Vec<usize>, Outcomes)> = refinement_matchups
+            .par_iter()
+            .map(|(round, indices)| {
+                let seed = seeds[*round as usize];
+                let ai0: &AI = &ais[indices[0]];
+                let ai1: &AI = &ais[indices[1]];
+                let r = run_sim(scenario_name, seed, &[ai0, ai1]);
+                progress.inc(1);
+                (*round, indices.clone(), r)
+            })
+            .collect();
+        progress.finish_and_clear();
+        outcomes
+    } else {
+        Vec::new()
+    };
+
+    // 4. Combine and update final ratings
+    let mut all_outcomes = base_outcomes;
+    all_outcomes.extend(refinement_outcomes);
+    all_outcomes.sort_by_key(|x| x.0);
+
+    let mut final_ratings: Vec<Glicko2Rating> = vec![Default::default(); ais.len()];
+    wins.clear();
+    total_played.clear();
+
+    for (_round, indices, outcome) in &all_outcomes {
+        let i0 = indices[0];
+        let i1 = indices[1];
+        let (r0, r1) = glicko2(&final_ratings[i0], &final_ratings[i1], outcome, &config);
+        final_ratings[i0] = r0;
+        final_ratings[i1] = r1;
+
+        let name0 = &ais[i0].name;
+        let name1 = &ais[i1].name;
+
+        let key = unordered_pair(name0, name1);
+        *total_played.entry(key.clone()).or_default() += 1;
+
+        if *outcome == Outcomes::WIN {
+            *wins.entry((name0.clone(), name1.clone())).or_default() += 1;
+        } else if *outcome == Outcomes::LOSS {
+            *wins.entry((name1.clone(), name0.clone())).or_default() += 1;
+        }
+    }
+
+    let mut competitors: Vec<_> = ais
+        .iter()
+        .enumerate()
+        .map(|(i, x)| TournamentCompetitor {
+            username: x.name.clone(),
+            shortcode: "".to_string(),
+            rating: final_ratings[i].rating,
+        })
+        .collect();
+    competitors.sort_by_key(|c| (-c.rating * 1e6) as i64);
+
+    let mut win_matrix: Vec<f64> = vec![];
+    for competitor in &competitors {
+        for other_competitor in &competitors {
+            let name0 = &competitor.username;
+            let name1 = &other_competitor.username;
+
+            if name0 == name1 {
+                win_matrix.push(0.0);
+                continue;
+            }
+
+            let key = unordered_pair(name0, name1);
+
+            let played = total_played.get(&key).copied().unwrap_or(0);
+            let w = wins.get(&(name0.clone(), name1.clone())).copied().unwrap_or(0);
+
+            let win_rate = if played > 0 {
+                w as f64 / played as f64
+            } else {
+                0.0
+            };
+            win_matrix.push(win_rate);
+        }
+    }
+
+    let total_rr_sims = rounds * (ais.len() as i32) * ((ais.len() - 1) as i32);
+    let actual_sims = all_outcomes.len();
+    let savings = (1.0 - (actual_sims as f64 / total_rr_sims as f64)) * 100.0;
+    log::info!(
+        "Adaptive tournament complete. Ran {} simulations instead of {} ({:.1}% saved). Refined {}/{} pairs.",
+        actual_sims,
+        total_rr_sims,
+        savings,
+        refined_pairs.len(),
+        (ais.len() * (ais.len() - 1)) / 2
+    );
 
     TournamentResults {
         scenario_name: scenario_name.to_string(),
@@ -437,4 +699,94 @@ async fn cmd_write(
     db.update_obj("tournament", docid, &msg, None, None, None)
         .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mock_run_simulation(_scenario_name: &str, _seed: u32, ais: &[&AI]) -> Outcomes {
+        let name0 = &ais[0].name;
+        let name1 = &ais[1].name;
+
+        if name0 == "bot0" && name1 == "bot5" {
+            Outcomes::WIN
+        } else if name0 == "bot5" && name1 == "bot0" {
+            Outcomes::LOSS
+        } else {
+            if name0 < name1 {
+                Outcomes::WIN
+            } else {
+                Outcomes::LOSS
+            }
+        }
+    }
+
+    #[test]
+    fn test_adaptive_tournament() {
+        let _ = env_logger::builder().is_test(true).try_init();
+
+        let names = vec![
+            "bot0".to_string(),
+            "bot1".to_string(),
+            "bot2".to_string(),
+            "bot3".to_string(),
+            "bot4".to_string(),
+            "bot5".to_string(),
+        ];
+
+        let ais: Vec<AI> = names
+            .into_iter()
+            .map(|name| AI {
+                name,
+                source_code: String::new(),
+                compiled_code: oort_simulator::simulation::Code::None,
+            })
+            .collect();
+
+        let results = run_tournament("fighter_duel", &ais, 12, mock_run_simulation);
+
+        assert_eq!(results.competitors.len(), 6);
+        assert_eq!(results.win_matrix.len(), 36);
+        for competitor in &results.competitors {
+            assert!(competitor.rating > 0.0);
+        }
+
+        let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
+        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot4", "bot5"]);
+    }
+
+    #[test]
+    fn test_round_robin_tournament() {
+        let _ = env_logger::builder().is_test(true).try_init();
+
+        let names = vec![
+            "bot0".to_string(),
+            "bot1".to_string(),
+            "bot2".to_string(),
+            "bot3".to_string(),
+            "bot4".to_string(),
+            "bot5".to_string(),
+        ];
+
+        let ais: Vec<AI> = names
+            .into_iter()
+            .map(|name| AI {
+                name,
+                source_code: String::new(),
+                compiled_code: oort_simulator::simulation::Code::None,
+            })
+            .collect();
+
+        let results = run_tournament("fighter_duel", &ais, 3, mock_run_simulation);
+
+        assert_eq!(results.competitors.len(), 6);
+        assert_eq!(results.win_matrix.len(), 36);
+        for competitor in &results.competitors {
+            assert!(competitor.rating > 0.0);
+        }
+
+        let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
+        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot4", "bot5"]);
+    }
 }
