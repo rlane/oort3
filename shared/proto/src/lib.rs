@@ -102,6 +102,14 @@ pub struct TournamentResults {
     pub scenario_name: String,
     pub competitors: Vec<TournamentCompetitor>,
     pub win_matrix: Vec<f64>,
+    #[serde(default)]
+    pub crashes: Vec<TournamentCrash>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct TournamentCrash {
+    pub seed: u32,
+    pub ais: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

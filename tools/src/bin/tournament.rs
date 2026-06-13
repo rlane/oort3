@@ -171,7 +171,7 @@ fn run_tournament(
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
-    run_sim: fn(&str, u32, &[&AI]) -> Outcomes,
+    run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
     let min_players_for_adaptive = 5;
     let min_rounds_for_adaptive = 10;
@@ -189,7 +189,7 @@ fn run_round_robin_tournament(
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
-    run_sim: fn(&str, u32, &[&AI]) -> Outcomes,
+    run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().gen()).collect();
     let config = Glicko2Config::new();
@@ -205,20 +205,31 @@ fn run_round_robin_tournament(
             .template("{wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
             .unwrap(),
     );
-    let outcomes: Vec<(i32, Vec<_>, Outcomes)> = pairs
+    let outcomes: Vec<(i32, Vec<_>, Result<Outcomes, String>)> = pairs
         .par_iter()
         .map(|(round, indices)| {
             let seed = seeds[*round as usize];
             let ai0: &AI = &ais[indices[0]];
             let ai1: &AI = &ais[indices[1]];
-            let r = run_sim(scenario_name, seed, &[ai0, ai1]);
+            let res = run_sim(scenario_name, seed, &[ai0, ai1]);
             progress.inc(1);
-            (*round, indices.clone(), r)
+            (*round, indices.clone(), res)
         })
         .collect();
     progress.finish_and_clear();
 
-    for (round, indices, outcome) in outcomes {
+    let mut crashes = Vec::new();
+    for (round, indices, outcome_res) in outcomes {
+        let outcome = match outcome_res {
+            Ok(outcome) => outcome,
+            Err(_) => {
+                crashes.push(oort_proto::TournamentCrash {
+                    seed: seeds[round as usize],
+                    ais: indices.iter().map(|&idx| ais[idx].name.clone()).collect(),
+                });
+                Outcomes::DRAW
+            }
+        };
         let i0 = indices[0];
         let i1 = indices[1];
         log::debug!(
@@ -274,6 +285,7 @@ fn run_round_robin_tournament(
         scenario_name: scenario_name.to_string(),
         competitors,
         win_matrix,
+        crashes,
     }
 }
 
@@ -281,7 +293,7 @@ fn run_adaptive_tournament(
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
-    run_sim: fn(&str, u32, &[&AI]) -> Outcomes,
+    run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().gen()).collect();
     let config = Glicko2Config::new();
@@ -306,15 +318,15 @@ fn run_adaptive_tournament(
             .unwrap(),
     );
 
-    let base_outcomes: Vec<(i32, Vec<usize>, Outcomes)> = base_pairs
+    let base_outcomes: Vec<(i32, Vec<usize>, Result<Outcomes, String>)> = base_pairs
         .par_iter()
         .map(|(round, indices)| {
             let seed = seeds[*round as usize];
             let ai0: &AI = &ais[indices[0]];
             let ai1: &AI = &ais[indices[1]];
-            let r = run_sim(scenario_name, seed, &[ai0, ai1]);
+            let res = run_sim(scenario_name, seed, &[ai0, ai1]);
             progress.inc(1);
-            (*round, indices.clone(), r)
+            (*round, indices.clone(), res)
         })
         .collect();
     progress.finish_and_clear();
@@ -324,7 +336,11 @@ fn run_adaptive_tournament(
     let mut total_played: HashMap<(String, String), usize> = HashMap::new();
     let mut ratings: Vec<Glicko2Rating> = vec![Default::default(); ais.len()];
 
-    for (_round, indices, outcome) in &base_outcomes {
+    for (_round, indices, outcome_res) in &base_outcomes {
+        let outcome = match outcome_res {
+            Ok(o) => o,
+            Err(_) => &Outcomes::DRAW,
+        };
         let i0 = indices[0];
         let i1 = indices[1];
         let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], outcome, &config);
@@ -399,7 +415,7 @@ fn run_adaptive_tournament(
         }
     }
 
-    let refinement_outcomes: Vec<(i32, Vec<usize>, Outcomes)> = if !refinement_matchups.is_empty() {
+    let refinement_outcomes: Vec<(i32, Vec<usize>, Result<Outcomes, String>)> = if !refinement_matchups.is_empty() {
         let progress = indicatif::ProgressBar::new(refinement_matchups.len() as u64);
         progress.set_style(
             indicatif::ProgressStyle::default_bar()
@@ -407,15 +423,15 @@ fn run_adaptive_tournament(
                 .unwrap(),
         );
 
-        let outcomes: Vec<(i32, Vec<usize>, Outcomes)> = refinement_matchups
+        let outcomes: Vec<(i32, Vec<usize>, Result<Outcomes, String>)> = refinement_matchups
             .par_iter()
             .map(|(round, indices)| {
                 let seed = seeds[*round as usize];
                 let ai0: &AI = &ais[indices[0]];
                 let ai1: &AI = &ais[indices[1]];
-                let r = run_sim(scenario_name, seed, &[ai0, ai1]);
+                let res = run_sim(scenario_name, seed, &[ai0, ai1]);
                 progress.inc(1);
-                (*round, indices.clone(), r)
+                (*round, indices.clone(), res)
             })
             .collect();
         progress.finish_and_clear();
@@ -432,8 +448,19 @@ fn run_adaptive_tournament(
     let mut final_ratings: Vec<Glicko2Rating> = vec![Default::default(); ais.len()];
     wins.clear();
     total_played.clear();
+    let mut crashes = Vec::new();
 
-    for (_round, indices, outcome) in &all_outcomes {
+    for (_round, indices, outcome_res) in &all_outcomes {
+        let outcome = match outcome_res {
+            Ok(o) => o,
+            Err(_) => {
+                crashes.push(oort_proto::TournamentCrash {
+                    seed: seeds[*_round as usize],
+                    ais: indices.iter().map(|&idx| ais[idx].name.clone()).collect(),
+                });
+                &Outcomes::DRAW
+            }
+        };
         let i0 = indices[0];
         let i1 = indices[1];
         let (r0, r1) = glicko2(&final_ratings[i0], &final_ratings[i1], outcome, &config);
@@ -505,10 +532,11 @@ fn run_adaptive_tournament(
         scenario_name: scenario_name.to_string(),
         competitors,
         win_matrix,
+        crashes,
     }
 }
 
-fn run_simulation(scenario_name: &str, seed: u32, ais: &[&AI]) -> Outcomes {
+fn run_simulation(scenario_name: &str, seed: u32, ais: &[&AI]) -> Result<Outcomes, String> {
     let f = move || {
         let codes: Vec<_> = ais.iter().map(|x| x.compiled_code.clone()).collect();
         let mut sim = simulation::Simulation::new(scenario_name, seed, &codes);
@@ -523,15 +551,32 @@ fn run_simulation(scenario_name: &str, seed: u32, ais: &[&AI]) -> Outcomes {
         }
     };
     match ::std::panic::catch_unwind(f) {
-        Ok(x) => x,
+        Ok(x) => Ok(x),
         Err(e) => {
-            log::error!("Simulation panicked: {:?}", e);
-            Outcomes::DRAW
+            let msg = if let Some(s) = e.downcast_ref::<&str>() {
+                s.to_string()
+            } else if let Some(s) = e.downcast_ref::<String>() {
+                s.clone()
+            } else {
+                "unknown panic".to_string()
+            };
+            log::error!("Simulation panicked: {}", msg);
+            Err(msg)
         }
     }
 }
 
 fn display_results(results: &TournamentResults) {
+    if !results.crashes.is_empty() {
+        let num_crashes = results.crashes.len();
+        let displayed_crashes = std::cmp::min(10, num_crashes);
+        println!("Crashes ({displayed_crashes} of {num_crashes}):");
+        for crash in results.crashes.iter().take(displayed_crashes) {
+            println!("  Seed: {}, AIs: {:?}", crash.seed, crash.ais);
+        }
+        println!();
+    }
+
     let mut table = Table::new();
     table.load_preset(UTF8_FULL);
     table.set_header(vec!["Name", "Rating"]);
@@ -705,11 +750,15 @@ async fn cmd_write(
 mod tests {
     use super::*;
 
-    fn mock_run_simulation(_scenario_name: &str, _seed: u32, ais: &[&AI]) -> Outcomes {
+    fn mock_run_simulation(_scenario_name: &str, _seed: u32, ais: &[&AI]) -> Result<Outcomes, String> {
         let name0 = &ais[0].name;
         let name1 = &ais[1].name;
 
-        if name0 == "bot0" && name1 == "bot5" {
+        if (name0 == "bot4" && name1 == "bot5") || (name0 == "bot5" && name1 == "bot4") {
+            return Err("mock panic".to_string());
+        }
+
+        let outcome = if name0 == "bot0" && name1 == "bot5" {
             Outcomes::WIN
         } else if name0 == "bot5" && name1 == "bot0" {
             Outcomes::LOSS
@@ -719,7 +768,8 @@ mod tests {
             } else {
                 Outcomes::LOSS
             }
-        }
+        };
+        Ok(outcome)
     }
 
     #[test]
@@ -752,8 +802,16 @@ mod tests {
             assert!(competitor.rating > 0.0);
         }
 
+        // We expect bot4 vs bot5 matches to crash.
+        // Base phase (5 rounds) + Refinement phase (7 rounds) = 12 rounds * 2 directions = 24 crashes.
+        assert_eq!(results.crashes.len(), 24);
+        for crash in &results.crashes {
+            assert!(crash.ais.contains(&"bot4".to_string()));
+            assert!(crash.ais.contains(&"bot5".to_string()));
+        }
+
         let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
-        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot4", "bot5"]);
+        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
     }
 
     #[test]
@@ -786,7 +844,15 @@ mod tests {
             assert!(competitor.rating > 0.0);
         }
 
+        // We expect bot4 vs bot5 matches to crash.
+        // 3 rounds * 2 directions = 6 crashes.
+        assert_eq!(results.crashes.len(), 6);
+        for crash in &results.crashes {
+            assert!(crash.ais.contains(&"bot4".to_string()));
+            assert!(crash.ais.contains(&"bot5".to_string()));
+        }
+
         let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
-        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot4", "bot5"]);
+        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
     }
 }
