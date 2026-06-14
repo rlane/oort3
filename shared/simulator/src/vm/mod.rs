@@ -495,7 +495,7 @@ impl WasmVm {
         let store = self.store_mut();
         let view = self.memory.view(&store);
         let slice = ptr
-            .slice(&view, environment_string.bytes().len() as u32)
+            .slice(&view, environment_string.len() as u32)
             .ok()
             .unwrap();
         slice

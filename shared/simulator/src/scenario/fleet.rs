@@ -93,6 +93,6 @@ fn wedge(i: usize, heading: f64) -> Vector2<f64> {
     }
 
     let s = [-1.0, 1.0][i % 2];
-    let j = ((i + 1) / 2) as f64;
+    let j = i.div_ceil(2) as f64;
     UnitComplex::new(heading).transform_vector(&vector![-j, s * j])
 }
