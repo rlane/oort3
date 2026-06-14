@@ -349,7 +349,7 @@ impl UI {
             }
         }
 
-        if self.frame % 10 == 0 || self.paused || self.status != Status::Running {
+        if self.frame.is_multiple_of(10) || self.paused || self.status != Status::Running {
             if self.status == Status::Running {
                 status_msgs.push(format!("{:.0} fps", self.fps.fps()));
             }

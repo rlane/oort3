@@ -20,9 +20,9 @@ impl Ship {
         let t = 120;
         if current_tick() <= t {
             /* nop */
-        } else if current_tick() % t == 0 {
+        } else if current_tick().is_multiple_of(t) {
             set_radar_width(TAU / 60.0);
-        } else if current_tick() % (t / 2) == 0 {
+        } else if current_tick().is_multiple_of(t / 2) {
             set_radar_width(TAU / 360.0);
         }
     }

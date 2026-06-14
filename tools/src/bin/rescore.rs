@@ -8,8 +8,6 @@ use oort_proto::LeaderboardSubmission;
 use oort_simulator::{scenario, simulation};
 use oort_tools::ParallelCompiler;
 use rayon::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -25,12 +23,6 @@ struct Arguments {
 
     #[clap(long, value_parser, default_value_t = 10)]
     limit: usize,
-}
-
-#[derive(Serialize, Deserialize)]
-struct JsonMap {
-    #[serde(flatten)]
-    fields: HashMap<String, serde_json::Value>,
 }
 
 #[tokio::main]

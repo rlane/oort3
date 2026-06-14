@@ -301,7 +301,7 @@ impl Scenario for RadarTest {
     }
 
     fn tick(&mut self, sim: &mut Simulation) {
-        if sim.tick() > 120 && sim.tick() % 120 == 0 {
+        if sim.tick() > 120 && sim.tick().is_multiple_of(120) {
             let handles: Vec<_> = sim.ships.iter().cloned().collect();
             for handle in handles {
                 if sim.ship(handle).data().team == 1 {
