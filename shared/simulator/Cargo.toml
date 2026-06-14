@@ -25,7 +25,6 @@ rapier2d-f64 = { version = "0.17.2", features = ["wasm-bindgen", "enhanced-deter
 serde = { version = "1.0.193", features = ["derive"] }
 instant = "0.1.12"
 oort_api = { path = "../api", features = ["serde"] }
-wasmer = { version = "=6.1.0", default-features = false }
 tar = "0.4.40"
 libflate = "2.0.0"
 walrus = { version = "0.19.0", git = "https://github.com/scrtlabs/walrus", rev = "c5777d4" }
@@ -40,9 +39,11 @@ regex = "1.10.2"
 oort_builtin_ai = { path = "../builtin_ai" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-wasmer-compiler-cranelift = { version = "=6.1.0" }
+wasmer = { version = "=7.1.0", default-features = false, features = ["sys-default"] }
+wasmer-compiler-cranelift = { version = "=7.1.0" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+wasmer = { version = "=7.1.0", default-features = false, features = ["js", "wat", "std", "wasm-types-polyfill"] }
 js-sys = "=0.3.77"
 wasm-bindgen = "=0.2.100"
 wasm-bindgen-futures = "=0.4.50"
@@ -61,8 +62,8 @@ serial_test = "2.0.0"
 
 [features]
 default = ["sys"]
-sys = ["wasmer/sys-default"]
-js = ["wasmer/js", "wasmer/wat", "wasmer/std", "wasmer/wasm-types-polyfill"]
+sys = []
+js = []
 precompile = []
 
 [[bench]]

@@ -372,9 +372,9 @@ pub struct WasmVm {
 
 impl WasmVm {
     pub fn create(code: &Code) -> Result<WasmVm, Error> {
-        #[cfg(feature = "js")]
+        #[cfg(target_arch = "wasm32")]
         let mut store = Store::default();
-        #[cfg(feature = "sys")]
+        #[cfg(not(target_arch = "wasm32"))]
         let mut store = Store::new(wasmer_compiler_cranelift::Cranelift::new());
         let module = match code {
             Code::Wasm(wasm) => {
