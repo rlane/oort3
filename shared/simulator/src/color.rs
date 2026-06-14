@@ -2,7 +2,7 @@ use nalgebra::{vector, Vector4};
 
 pub fn to_u32(c: Vector4<f32>) -> u32 {
     let convert = |x| (x * 255.0) as u32;
-    convert(c.x) << 24 | convert(c.y) << 16 | convert(c.z) << 8 | convert(c.w)
+    (convert(c.x) << 24) | (convert(c.y) << 16) | (convert(c.z) << 8) | convert(c.w)
 }
 
 pub fn from_u32(c: u32) -> Vector4<f32> {

@@ -299,7 +299,7 @@ impl ActiveAbilities {
     }
     /// Get whether an ability is active.
     pub fn get_ability(&self, ability: Ability) -> bool {
-        (self.0 & 1 << (ability as u64)) >> (ability as u64) != 0
+        ((self.0 & (1 << (ability as u64))) >> (ability as u64)) != 0
     }
     /// Unset all abilities
     pub fn clear(&mut self) {
@@ -1089,7 +1089,7 @@ pub mod dbg {
         let r = r as u32;
         let g = g as u32;
         let b = b as u32;
-        r << 16 | g << 8 | b
+        (r << 16) | (g << 8) | b
     }
 
     /// Draws a line visible in debug mode.
