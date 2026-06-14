@@ -279,9 +279,7 @@ void main() {
         self.context.generate_mipmap(gl::TEXTURE_2D);
         let e = self.context.get_error();
         if e != gl::NO_ERROR {
-            return Err(format!(
-                "Error generating mipmap: {}",
-                e));
+            return Err(format!("Error generating mipmap: {e}"));
         }
 
         self.context.bind_texture(gl::TEXTURE_2D, None);

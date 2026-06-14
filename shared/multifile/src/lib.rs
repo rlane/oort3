@@ -54,11 +54,10 @@ pub fn join(mut files: HashMap<String, String>) -> Result<Multifile, anyhow::Err
         .replace_all(&lib, |caps: &regex::Captures| {
             let pubk = caps.get(1).map(|m| m.as_str()).unwrap_or("");
             let name = caps.get(2).unwrap().as_str();
-            let filename = format!("{}.rs", name);
+            let filename = format!("{name}.rs");
             if let Some(src) = files.get(&filename) {
                 format!(
-                    "{}mod {} {{ // start multifile\n{}\n}} // end multifile",
-                    pubk, name, src
+                    "{pubk}mod {name} {{ // start multifile\n{src}\n}} // end multifile"
                 )
             } else {
                 caps.get(0).unwrap().as_str().to_string()
@@ -80,7 +79,7 @@ pub fn split(lib: &str) -> HashMap<String, String> {
     for caps in re.captures_iter(lib) {
         let name = caps.get(2).unwrap().as_str();
         let src = caps.get(3).unwrap().as_str();
-        files.insert(format!("{}.rs", name), src.to_string());
+        files.insert(format!("{name}.rs"), src.to_string());
     }
     let lib = re.replace_all(lib, "${1}mod $2;").into_owned();
     files.insert("lib.rs".to_string(), lib);

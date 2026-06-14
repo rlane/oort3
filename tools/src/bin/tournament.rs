@@ -731,8 +731,8 @@ async fn cmd_write(
     path: &str,
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id).await?;
-    let userid = format!("admin-{}", username);
-    let docid = format!("{}.{}", scenario_name, userid);
+    let userid = format!("admin-{username}");
+    let docid = format!("{scenario_name}.{userid}");
     let code = std::fs::read_to_string(path)?;
     let msg = TournamentSubmission {
         userid,

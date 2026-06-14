@@ -69,43 +69,43 @@ fn diff_snapshots(a: &Snapshot, b: &Snapshot) {
         let epsilon = 0.0;
 
         if (a.position - b.position).magnitude() > epsilon {
-            println!("ship {} position differs", i);
+            println!("ship {i} position differs");
             println!("  a: {:?}", a.position);
             println!("  b: {:?}", b.position);
         }
 
         if (a.velocity - b.velocity).magnitude() > epsilon {
-            println!("ship {} velocity differs", i);
+            println!("ship {i} velocity differs");
             println!("  a: {:?}", a.velocity);
             println!("  b: {:?}", b.velocity);
         }
 
         if (a.acceleration - b.acceleration).magnitude() > epsilon {
-            println!("ship {} acceleration differs", i);
+            println!("ship {i} acceleration differs");
             println!("  a: {:?}", a.acceleration);
             println!("  b: {:?}", b.acceleration);
         }
 
         if (a.heading - b.heading).abs() > epsilon {
-            println!("ship {} heading differs", i);
+            println!("ship {i} heading differs");
             println!("  a: {:?}", a.heading);
             println!("  b: {:?}", b.heading);
         }
 
         if (a.angular_velocity - b.angular_velocity).abs() > epsilon {
-            println!("ship {} angular_velocity differs", i);
+            println!("ship {i} angular_velocity differs");
             println!("  a: {:?}", a.angular_velocity);
             println!("  b: {:?}", b.angular_velocity);
         }
 
         if (a.health - b.health).abs() > epsilon {
-            println!("ship {} health differs", i);
+            println!("ship {i} health differs");
             println!("  a: {:?}", a.health);
             println!("  b: {:?}", b.health);
         }
 
         if a.fuel != b.fuel {
-            println!("ship {} fuel differs", i);
+            println!("ship {i} fuel differs");
             println!("  a: {:?}", a.fuel);
             println!("  b: {:?}", b.fuel);
         }

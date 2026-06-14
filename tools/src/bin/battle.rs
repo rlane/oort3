@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             if i > 0 {
                 print!(", ");
             }
-            print!("{}: {:.3}", i, time);
+            print!("{i}: {time:.3}");
         }
         println!("]");
         println!(

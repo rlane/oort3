@@ -34,11 +34,11 @@ fn panic_hook(info: &PanicHookInfo) {
             file = "lib.rs";
         }
 
-        let mut cursor = Cursor::new(&mut (*std::ptr::addr_of_mut!(PANIC_BUFFER))[..]);
+        let panic_buffer_ref = &mut *std::ptr::addr_of_mut!(PANIC_BUFFER);
+        let mut cursor = Cursor::new(&mut panic_buffer_ref[..]);
         let _ = write!(
             cursor,
-            "ship panicked at '{}', {}:{}:{}",
-            payload, file, line, column
+            "ship panicked at '{payload}', {file}:{line}:{column}"
         );
         let _ = cursor.write(&[0]);
     }

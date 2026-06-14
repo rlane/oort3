@@ -26,7 +26,7 @@ fn main() -> Result<()> {
     let output = "../../target/builtin-ai.tar.gz";
     std::fs::create_dir_all("../../target")?;
 
-    let directory_paths = glob(&format!("{}/**/*", input))?
+    let directory_paths = glob(&format!("{input}/**/*"))?
         .map(|x| x.unwrap())
         .filter(|x| x.is_dir())
         .collect::<Vec<_>>();
@@ -34,7 +34,7 @@ fn main() -> Result<()> {
         println!("cargo:rerun-if-changed={}", directory_path.display());
     }
 
-    let paths: Vec<_> = glob(&format!("{}/**/*.rs", input))?
+    let paths: Vec<_> = glob(&format!("{input}/**/*.rs"))?
         .map(|x| x.unwrap())
         .filter(|x| !["lib.rs", "mod.rs"].contains(&x.file_name().unwrap().to_str().unwrap()))
         .collect();

@@ -678,7 +678,7 @@ impl UI {
                 .unwrap_or_default();
             if let Some(elem) = self.picked_ref.cast::<Element>() {
                 let fuel_text = if let Some(fuel) = fuel {
-                    format!("Fuel: {:.0}\n", fuel)
+                    format!("Fuel: {fuel:.0}\n")
                 } else {
                     "".to_string()
                 };
@@ -687,7 +687,7 @@ impl UI {
                         "Active abilities: {}\n",
                         active_abilities
                             .iter()
-                            .map(|ability| format!("{:?}", ability))
+                            .map(|ability| format!("{ability:?}"))
                             .collect::<Vec<_>>()
                             .join(", ")
                     )

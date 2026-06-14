@@ -354,8 +354,7 @@ async fn main() -> anyhow::Result<()> {
 
                 if !dry_run {
                     let container_image = format!(
-                        "{REGION}-docker.pkg.dev/{}/services/oort_compiler_service",
-                        project
+                        "{REGION}-docker.pkg.dev/{project}/services/oort_compiler_service"
                     );
 
                     progress.set_message("tagging");
@@ -448,8 +447,7 @@ async fn main() -> anyhow::Result<()> {
 
                 if !dry_run {
                     let container_image = format!(
-                        "{REGION}-docker.pkg.dev/{}/services/oort_backend_service",
-                        project
+                        "{REGION}-docker.pkg.dev/{project}/services/oort_backend_service"
                     );
 
                     progress.set_message("tagging");

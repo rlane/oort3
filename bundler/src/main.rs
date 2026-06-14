@@ -30,7 +30,7 @@ fn main() -> Result<()> {
 
     let mut watcher = notify::recommended_watcher(move |res| match res {
         Ok(_) => tx.send(()).unwrap(),
-        Err(e) => println!("watch error: {:?}", e),
+        Err(e) => println!("watch error: {e:?}"),
     })?;
     for f in &args.files {
         watcher.watch(Path::new(f), RecursiveMode::NonRecursive)?;

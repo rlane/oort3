@@ -318,7 +318,7 @@ impl Component for Game {
                                     self.save_current_code(
                                         context,
                                         context.props().scenario.as_str(),
-                                        Some(format!("{:.3} seconds", average_time)),
+                                        Some(format!("{average_time:.3} seconds")),
                                     );
                                 }
                             }

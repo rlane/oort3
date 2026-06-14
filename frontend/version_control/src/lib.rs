@@ -59,7 +59,7 @@ impl VersionControl {
         let timestamp = chrono::Utc::now();
         let timestamp_string = timestamp.format("%Y%m%d-%H%M%S");
         let digest = digest(&params.code);
-        let id = format!("{}-{}", timestamp_string, digest);
+        let id = format!("{timestamp_string}-{digest}");
         let version = Version {
             id,
             scenario_name: params.scenario_name.clone(),

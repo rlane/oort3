@@ -420,11 +420,12 @@ pub mod sys {
         // Format is key=value\nkey=value\n... ending with a null byte.
         unsafe {
             let environment = ptr::addr_of!(ENVIRONMENT);
-            let n = (*environment)
+            let env_ref = &*environment;
+            let n = env_ref
                 .iter()
                 .position(|&c| c == 0)
-                .unwrap_or((*environment).len());
-            std::str::from_utf8(&(*environment)[..n])
+                .unwrap_or(env_ref.len());
+            std::str::from_utf8(&env_ref[..n])
                 .expect("Failed to convert environment to string")
         }
     }

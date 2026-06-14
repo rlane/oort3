@@ -484,7 +484,7 @@ impl WasmVm {
     fn update_environment(&self, ptr: WasmPtr<u8>, environment: &Environment) -> Result<(), Error> {
         let environment_string = environment
             .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
+            .map(|(k, v)| format!("{k}={v}"))
             .collect::<Vec<String>>()
             .join("\n");
         if environment_string.len() > oort_api::MAX_ENVIRONMENT_SIZE {
