@@ -37,8 +37,8 @@ impl Scenario for Race {
             self.targets.push(Target {
                 hit: false,
                 position: point![
-                    rng.gen_range(-self.world_size()..self.world_size()),
-                    rng.gen_range(-self.world_size()..self.world_size())
+                    rng.random_range(-self.world_size()..self.world_size()),
+                    rng.random_range(-self.world_size()..self.world_size())
                 ] / 3.0,
             });
         }
@@ -62,8 +62,8 @@ impl Scenario for Race {
         let mut big_asteroid_positions: Vec<Vector2<f64>> = vec![];
         for i in 0..10 {
             let p = vector![
-                rng.gen_range(-self.world_size()..self.world_size()),
-                rng.gen_range(-self.world_size()..self.world_size())
+                rng.random_range(-self.world_size()..self.world_size()),
+                rng.random_range(-self.world_size()..self.world_size())
             ] / 2.0;
             if big_asteroid_positions
                 .iter()
@@ -76,16 +76,16 @@ impl Scenario for Race {
             ship::create(
                 sim,
                 p,
-                vector![rng.gen_range(-3.0..3.0), rng.gen_range(-3.0..3.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                vector![rng.random_range(-3.0..3.0), rng.random_range(-3.0..3.0)],
+                rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
                 big_asteroid(i),
             );
         }
 
         for i in 0..100 {
             let p = vector![
-                rng.gen_range(-self.world_size()..self.world_size()),
-                rng.gen_range(-self.world_size()..self.world_size())
+                rng.random_range(-self.world_size()..self.world_size()),
+                rng.random_range(-self.world_size()..self.world_size())
             ] / 2.0;
             if big_asteroid_positions
                 .iter()
@@ -96,8 +96,8 @@ impl Scenario for Race {
             ship::create(
                 sim,
                 p,
-                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                vector![rng.random_range(-30.0..30.0), rng.random_range(-30.0..30.0)],
+                rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
                 asteroid(i),
             );
         }

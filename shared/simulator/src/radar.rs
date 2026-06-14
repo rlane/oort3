@@ -328,7 +328,7 @@ pub fn tick(sim: &mut Simulation) {
             let mut best_rssi = emitter.min_rssi;
             let mut best_reflector: Option<&RadarReflector> = None;
             let mut received_noise =
-                BACKGROUND_NOISE * ComplexField::powf(2.0f64, rng.gen_range(-1.0..1.0));
+                BACKGROUND_NOISE * ComplexField::powf(2.0f64, rng.random_range(-1.0..1.0));
             candidates.clear();
 
             let planet_contact = check_planet_contact(sim, &emitter, &planets);
@@ -405,7 +405,7 @@ pub fn tick(sim: &mut Simulation) {
                 }
 
                 let rssi = compute_rssi(&emitter, reflector)
-                    * ComplexField::powf(1.2f64, rng.gen_range(-1.0..1.0));
+                    * ComplexField::powf(1.2f64, rng.random_range(-1.0..1.0));
                 if rssi > best_rssi {
                     best_reflector = Some(reflector);
                     best_rssi = rssi;
@@ -600,7 +600,7 @@ fn find_contact_position(
 }
 
 fn decide_unreliable_rssi(rng: &mut impl Rng, rssi: f64, reliable_rssi: f64) -> bool {
-    rng.gen_bool(1.0 / ComplexField::log2(2.0 * reliable_rssi / rssi))
+    rng.random_bool(1.0 / ComplexField::log2(2.0 * reliable_rssi / rssi))
 }
 
 fn is_clockwise(v0: Vector2<f64>, v1: Vector2<f64>) -> bool {
@@ -1192,7 +1192,7 @@ mod test {
         for _ in 0..10000 {
             let mut sim = Simulation::new("test", 0, &[Code::None, Code::None]);
             let mut rand_vector =
-                || vector![rng.gen_range(-100.0..100.0), rng.gen_range(-100.0..100.0)];
+                || vector![rng.random_range(-100.0..100.0), rng.random_range(-100.0..100.0)];
             let p0 = rand_vector();
             let p1 = rand_vector();
             let dp: Vector2<f64> = p1 - p0;
@@ -1201,8 +1201,8 @@ mod test {
                 continue;
             }
             let bearing = dp.y.atan2(dp.x);
-            let h = rng.gen_range(0.0..TAU);
-            let w = rng.gen_range(0.0..(TAU / 16.0));
+            let h = rng.random_range(0.0..TAU);
+            let w = rng.random_range(0.0..(TAU / 16.0));
 
             let ship0 = ship::create(&mut sim, p0, vector![0.0, 0.0], 0.0, ship::fighter(0));
             let ship1 = ship::create(&mut sim, p1, vector![0.0, 0.0], 0.0, ship::target(1));

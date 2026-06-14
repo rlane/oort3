@@ -30,12 +30,12 @@ impl Scenario for GunneryScenario {
             ship::create(
                 sim,
                 vector![
-                    9000.0 + rng.gen_range(-500.0..500.0),
-                    -9000.0 + rng.gen_range(-500.0..500.0)
+                    9000.0 + rng.random_range(-500.0..500.0),
+                    -9000.0 + rng.random_range(-500.0..500.0)
                 ],
                 vector![
-                    0.0 + rng.gen_range(-10.0..10.0),
-                    700.0 + rng.gen_range(-300.0..600.0)
+                    0.0 + rng.random_range(-10.0..10.0),
+                    700.0 + rng.random_range(-300.0..600.0)
                 ],
                 std::f64::consts::PI,
                 target(1),

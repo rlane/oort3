@@ -21,7 +21,7 @@ impl Scenario for Belt {
         let mut rng = new_rng(seed);
         for team in 0..2 {
             let signum = if team == 0 { -1.0 } else { 1.0 };
-            let center = point![rng.gen_range(-6000.0..6000.0), signum * 8000.0];
+            let center = point![rng.random_range(-6000.0..6000.0), signum * 8000.0];
             let heading = if team == 0 { TAU / 4.0 } else { -TAU / 4.0 };
             let num_fighters = 8;
             let num_frigates = 2;
@@ -58,16 +58,16 @@ impl Scenario for Belt {
 
         let bound = vector![(sim.world_size() / 2.0) * 0.9, (sim.world_size() / 4.0)];
         for _ in 0..100 {
-            let mut data = asteroid(rng.gen_range(0..30));
+            let mut data = asteroid(rng.random_range(0..30));
             data.health = 10000.0;
             ship::create(
                 sim,
                 vector![
-                    rng.gen_range(-bound.x..bound.x),
-                    rng.gen_range(-bound.y..bound.y)
+                    rng.random_range(-bound.x..bound.x),
+                    rng.random_range(-bound.y..bound.y)
                 ],
-                vector![rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                vector![rng.random_range(-1.0..1.0), rng.random_range(-1.0..1.0)],
+                rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
                 data,
             );
         }

@@ -38,7 +38,7 @@ impl Scenario for TutorialLead {
         let l = 2000.0;
         let mut rng = new_rng(seed);
         let target_data = fighter(1);
-        let direction = Rotation2::new(rng.gen_range(0.0..TAU));
+        let direction = Rotation2::new(rng.random_range(0.0..TAU));
         let p = direction.transform_vector(&vector![d, -l]);
         let h = direction.angle() + PI / 2.0;
         let v = Rotation2::new(h).transform_vector(&vector![400.0, 0.0]);

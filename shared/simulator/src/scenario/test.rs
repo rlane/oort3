@@ -79,9 +79,9 @@ impl Scenario for MissileTest {
 
         self.rng = new_rng((seed % 1000) * 1000 + self.current_iteration as u32);
         let d = 4000.0;
-        let target_p: Vector2<f64> = vector![self.rng.gen_range(-d..d), self.rng.gen_range(-d..d)];
+        let target_p: Vector2<f64> = vector![self.rng.random_range(-d..d), self.rng.random_range(-d..d)];
         let s = 500.0;
-        let target_v: Vector2<f64> = vector![self.rng.gen_range(-s..s), self.rng.gen_range(-s..s)];
+        let target_v: Vector2<f64> = vector![self.rng.random_range(-s..s), self.rng.random_range(-s..s)];
 
         if let Some(radar) = missile_data.radars.get_mut(0) {
             radar.heading = target_p.angle(&vector![0.0, 0.0]);
@@ -120,7 +120,7 @@ impl Scenario for MissileTest {
             self.init(sim, 0);
         } else if sim.ships.contains(target) {
             if (self.tick_in_iteration % 60) == 0 {
-                self.acc = Rotation2::new(self.rng.gen_range(0.0..std::f64::consts::TAU))
+                self.acc = Rotation2::new(self.rng.random_range(0.0..std::f64::consts::TAU))
                     .transform_vector(&vector![Self::MAX_ACCELERATION, 0.0]);
             }
             sim.ship_mut(target).accelerate(self.acc);
@@ -247,9 +247,9 @@ impl Scenario for FrigatePointDefense {
 
         for i in 1..10 {
             let distance = (i as f64) * 1000.0;
-            let angle = rng.gen_range(0.0..TAU);
+            let angle = rng.random_range(0.0..TAU);
             let position = Rotation2::new(angle) * vector![distance, 0.0];
-            let velocity = Rotation2::new(angle) * vector![0.0, rng.gen_range(-2000.0..2000.0)];
+            let velocity = Rotation2::new(angle) * vector![0.0, rng.random_range(-2000.0..2000.0)];
             let mut data = missile(1);
             data.ttl = None;
             ship::create(sim, position, velocity, angle + PI, data);

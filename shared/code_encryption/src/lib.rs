@@ -40,7 +40,7 @@ pub fn is_encrypted(text: &str) -> bool {
 
 fn random_nonce() -> Vec<u8> {
     let mut data = [0u8; 12];
-    rand::thread_rng().fill(&mut data);
+    rand::rng().fill(&mut data);
     data.to_vec()
 }
 

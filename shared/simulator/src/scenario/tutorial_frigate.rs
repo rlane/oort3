@@ -22,10 +22,10 @@ impl Scenario for TutorialFrigate {
 
         let mut rng = new_rng(seed);
         for _ in 0..5 {
-            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(1000.0..1500.0), 0.0]);
-            let v = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(0.0..300.0), 0.0]);
+            let p = Rotation2::new(rng.random_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.random_range(1000.0..1500.0), 0.0]);
+            let v = Rotation2::new(rng.random_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.random_range(0.0..300.0), 0.0]);
             ship::create(sim, p, v, std::f64::consts::PI, fighter(1));
         }
     }

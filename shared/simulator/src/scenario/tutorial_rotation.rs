@@ -19,12 +19,12 @@ impl Scenario for TutorialRotation {
 
     fn init(&mut self, sim: &mut Simulation, seed: u32) {
         let mut rng = new_rng(seed);
-        let target = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-            .transform_point(&point![rng.gen_range(600.0..1000.0), 0.0]);
+        let target = Rotation2::new(rng.random_range(0.0..std::f64::consts::TAU))
+            .transform_point(&point![rng.random_range(600.0..1000.0), 0.0]);
         let handle = ship::create(
             sim,
-            Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_vector(&vector![rng.gen_range(100.0..500.0), 0.0]),
+            Rotation2::new(rng.random_range(0.0..std::f64::consts::TAU))
+                .transform_vector(&vector![rng.random_range(100.0..500.0), 0.0]),
             vector![0.0, 0.0],
             0.0,
             fighter_without_missiles_or_radar(0),

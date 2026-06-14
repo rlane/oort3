@@ -30,15 +30,15 @@ impl Scenario for TutorialRadar {
         let size = 500.0;
         let range = -size..size;
         for _ in 0..3 {
-            let target = point![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+            let target = point![rng.random_range(range.clone()), rng.random_range(range.clone())];
             ship::create(
                 sim,
                 target.coords,
                 vector![
-                    rng.gen_range(0.0..std::f64::consts::TAU),
-                    rng.gen_range(-400.0..400.0)
+                    rng.random_range(0.0..std::f64::consts::TAU),
+                    rng.random_range(-400.0..400.0)
                 ],
-                rng.gen_range(-400.0..400.0),
+                rng.random_range(-400.0..400.0),
                 fighter(1),
             );
         }

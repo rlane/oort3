@@ -101,13 +101,13 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                 let energy = 0.5 * bullet::data(sim, bullet).mass as f64 * dv.magnitude_squared();
                 let damage = energy * DAMAGE_FACTOR;
                 for _ in 0..((damage as i32 / 10).clamp(1, 20)) {
-                    let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
-                    let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..1000.0), 0.0]);
-                    let p = bullet_position + v * sim.rng.gen_range(0.0..0.1);
+                    let rot = Rotation2::new(sim.rng.random_range(0.0..TAU));
+                    let v = rot.transform_vector(&vector![sim.rng.random_range(0.0..1000.0), 0.0]);
+                    let p = bullet_position + v * sim.rng.random_range(0.0..0.1);
                     sim.events.particles.push(Particle {
                         position: p,
                         velocity: v,
-                        color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
+                        color: vector![1.0, 1.0, 1.0, sim.rng.random_range(0.5..1.0)],
                         lifetime: (PHYSICS_TICK_LENGTH * 30.0) as f32,
                     });
                 }
@@ -118,23 +118,23 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                 };
                 if ship_destroyed {
                     for _ in 0..10 {
-                        let rot = Rotation2::new(sim.rng.gen_range(0.0..TAU));
-                        let v = rot.transform_vector(&vector![sim.rng.gen_range(0.0..200.0), 0.0]);
+                        let rot = Rotation2::new(sim.rng.random_range(0.0..TAU));
+                        let v = rot.transform_vector(&vector![sim.rng.random_range(0.0..200.0), 0.0]);
                         let p = sim.ship(ship).body().position().translation.vector
-                            + v * sim.rng.gen_range(0.0..0.1);
+                            + v * sim.rng.random_range(0.0..0.1);
                         let lifetime =
                             (ComplexField::log2(sim.ship_data.get(ship.index()).unwrap().mass)
                                 * PHYSICS_TICK_LENGTH) as f32;
                         sim.events.particles.push(Particle {
                             position: p,
                             velocity: v,
-                            color: vector![1.0, 1.0, 1.0, sim.rng.gen_range(0.5..1.0)],
+                            color: vector![1.0, 1.0, 1.0, sim.rng.random_range(0.5..1.0)],
                             lifetime,
                         });
                     }
                     sim.ship_mut(ship).data_mut().destroyed = true;
                     bullet::data_mut(sim, bullet).mass *= 0.5;
-                    let rotation = UnitComplex::new(sim.rng.gen_range(-0.1..0.1));
+                    let rotation = UnitComplex::new(sim.rng.random_range(-0.1..0.1));
                     let new_bullet_velocity = rotation.transform_vector(&bullet_velocity);
                     bullet::body_mut(sim, bullet).set_linvel(new_bullet_velocity, false);
                 } else {

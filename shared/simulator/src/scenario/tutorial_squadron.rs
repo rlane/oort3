@@ -33,7 +33,7 @@ impl Scenario for TutorialSquadron {
             let size = 500.0;
             let range = -size..size;
             let center = vector![8000.0, 0.0];
-            let offset = vector![rng.gen_range(range.clone()), rng.gen_range(range.clone())];
+            let offset = vector![rng.random_range(range.clone()), rng.random_range(range.clone())];
             ship::create(sim, center + offset, vector![0.0, 0.0], PI, fighter(1));
         }
     }

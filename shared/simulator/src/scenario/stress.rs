@@ -18,9 +18,9 @@ impl Scenario for StressScenario {
             for _ in 0..300 {
                 ship::create(
                     sim,
-                    vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                    vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                    rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                    vector![rng.random_range(-bound..bound), rng.random_range(-bound..bound)],
+                    vector![rng.random_range(-30.0..30.0), rng.random_range(-30.0..30.0)],
+                    rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
                     fighter(team),
                 );
             }
@@ -55,10 +55,10 @@ impl Scenario for AsteroidStressScenario {
         for _ in 0..1000 {
             ship::create(
                 sim,
-                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
-                asteroid(rng.gen_range(0..30)),
+                vector![rng.random_range(-bound..bound), rng.random_range(-bound..bound)],
+                vector![rng.random_range(-30.0..30.0), rng.random_range(-30.0..30.0)],
+                rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
+                asteroid(rng.random_range(0..30)),
             );
         }
     }
@@ -84,8 +84,8 @@ impl Scenario for BulletStressScenario {
             let s = 1000.0;
             bullet::create(
                 sim,
-                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                vector![rng.gen_range(-s..s), rng.gen_range(-s..s)],
+                vector![rng.random_range(-bound..bound), rng.random_range(-bound..bound)],
+                vector![rng.random_range(-s..s), rng.random_range(-s..s)],
                 BulletData {
                     mass: 0.1,
                     team: 0,
@@ -122,9 +122,9 @@ impl Scenario for MissileStressScenario {
         for i in 0..100 {
             ship::create(
                 sim,
-                vector![rng.gen_range(-bound..bound), rng.gen_range(-bound..bound)],
-                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                vector![rng.random_range(-bound..bound), rng.random_range(-bound..bound)],
+                vector![rng.random_range(-30.0..30.0), rng.random_range(-30.0..30.0)],
+                rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
                 missile(i % 2),
             );
         }

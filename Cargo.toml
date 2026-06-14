@@ -19,10 +19,6 @@ members = [
     "tools",
     "bundler",
 ]
-
-[patch.crates-io]
-rand_seeder = { git = "https://github.com/rlane/seeder", rev = "c39e58447f7c236fb98579a5d46e5668b92a3245" }
-
 [profile.dev.package.'*']
 opt-level = 1
 

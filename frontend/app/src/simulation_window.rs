@@ -88,7 +88,7 @@ impl Component for SimulationWindow {
                 start_paused,
                 codes,
             } => {
-                self.nonce = rand::thread_rng().r#gen();
+                self.nonce = rand::rng().random();
                 self.ui = Some(Box::new(UI::new(
                     context.link().callback(|_| Msg::RequestSnapshot),
                     context.props().on_editor_action.clone(),

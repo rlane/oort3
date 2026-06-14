@@ -33,7 +33,7 @@ impl Scenario for Orbit {
         for team in 0..2 {
             let t = team as f64 * 2.0 - 1.0;
             let t = if flip { -t } else { t };
-            let r = rng.gen_range(11e3..20e3);
+            let r = rng.random_range(11e3..20e3);
             let s = ComplexField::sqrt(G * PLANET_MASS / r);
             ship::create(
                 sim,

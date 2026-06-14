@@ -9,18 +9,18 @@ const BULLET_COLOR: u32 = 0xffffffff;
 
 #[test]
 fn test_world_edge() {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut sim = simulation::Simulation::new("test", 0, &[Code::None]);
     collision::add_walls(&mut sim);
 
     for _ in 0..100 {
         let s = 500.0;
-        let r = rng.gen_range(10.0..20.0);
-        let x = rng.gen_range((r - sim.world_size() / 2.0)..(sim.world_size() / 2.0 - r));
-        let y = rng.gen_range((r - sim.world_size() / 2.0)..(sim.world_size() / 2.0 - r));
-        let h = rng.gen_range(0.0..(2.0 * std::f32::consts::PI));
-        let vx = rng.gen_range(-s..s);
-        let vy = rng.gen_range(-s..s);
+        let r = rng.random_range(10.0..20.0);
+        let x = rng.random_range((r - sim.world_size() / 2.0)..(sim.world_size() / 2.0 - r));
+        let y = rng.random_range((r - sim.world_size() / 2.0)..(sim.world_size() / 2.0 - r));
+        let h = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
+        let vx = rng.random_range(-s..s);
+        let vy = rng.random_range(-s..s);
         ship::create(
             &mut sim,
             vector![x, y],

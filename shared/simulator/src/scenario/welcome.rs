@@ -1,7 +1,7 @@
 use crate::ship::ShipClass;
 
 use super::prelude::*;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 pub struct Welcome {
     rng: Option<SeededRng>,
@@ -29,7 +29,7 @@ impl Scenario for Welcome {
         let rng = self.rng.as_mut().unwrap();
 
         let ship_datas = &[fighter(0), frigate(0), cruiser(0)];
-        let ship_data = rng.sample(rand::distributions::Slice::new(ship_datas).unwrap());
+        let ship_data = rng.sample(rand::distr::slice::Choose::new(ship_datas).unwrap());
         ship::create(
             sim,
             vector![0.0, 0.0],
@@ -57,13 +57,13 @@ impl Scenario for Welcome {
             .filter(|s| matches!(sim.ship(**s).data().class, ShipClass::Asteroid { .. }))
             .count();
         for _ in num_asteroids..20 {
-            let p = Rotation2::new(rng.gen_range(0.0..std::f64::consts::TAU))
-                .transform_point(&point![rng.gen_range(500.0..2000.0), 0.0]);
+            let p = Rotation2::new(rng.random_range(0.0..std::f64::consts::TAU))
+                .transform_point(&point![rng.random_range(500.0..2000.0), 0.0]);
             ship::create(
                 sim,
                 vector![p.x, p.y],
-                vector![rng.gen_range(-30.0..30.0), rng.gen_range(-30.0..30.0)],
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                vector![rng.random_range(-30.0..30.0), rng.random_range(-30.0..30.0)],
+                rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
                 asteroid(*asteroid_variants.choose(rng).unwrap()),
             );
         }

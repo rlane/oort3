@@ -188,14 +188,14 @@ impl TeamController {
         if let Some(msg) = sim.ship(handle).data().crash_message.as_ref() {
             sim.emit_debug_text(handle, format!("Crashed: {}", msg.clone()));
             let mut rng = new_rng(sim.tick());
-            if rng.gen_range(0.0..1.0) < 0.2 {
-                let color = vector![0.5, 0.5, 0.9, rng.gen_range(0.5..1.0)];
-                let rot = Rotation2::new(rng.gen_range(0.0..TAU));
-                let speed = 300.0 * rng.gen_range(0.0..1.0);
+            if rng.random_range(0.0..1.0) < 0.2 {
+                let color = vector![0.5, 0.5, 0.9, rng.random_range(0.5..1.0)];
+                let rot = Rotation2::new(rng.random_range(0.0..TAU));
+                let speed = 300.0 * rng.random_range(0.0..1.0);
                 let p = sim.ship(handle).position().vector;
                 let v =
                     sim.ship(handle).body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
-                let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
+                let offset = v * rng.random_range(0.0..PHYSICS_TICK_LENGTH);
 
                 // Display ship exploding animation
                 sim.events.particles.push(Particle {

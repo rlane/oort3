@@ -27,8 +27,8 @@ impl Scenario for AsteroidDuel {
         ship::create(
             sim,
             vector![
-                rng.gen_range(-bound.x..bound.x),
-                rng.gen_range(-bound.y..bound.y)
+                rng.random_range(-bound.x..bound.x),
+                rng.random_range(-bound.y..bound.y)
             ],
             vector![0.0, 0.0],
             0.0,
@@ -37,8 +37,8 @@ impl Scenario for AsteroidDuel {
         ship::create(
             sim,
             vector![
-                rng.gen_range(-bound.x..bound.x),
-                rng.gen_range(-bound.y..bound.y)
+                rng.random_range(-bound.x..bound.x),
+                rng.random_range(-bound.y..bound.y)
             ],
             vector![0.0, 0.0],
             std::f64::consts::PI,
@@ -50,16 +50,16 @@ impl Scenario for AsteroidDuel {
             (sim.world_size() / 2.0) * 0.9
         ];
         for _ in 0..200 {
-            let mut data = asteroid(rng.gen_range(0..30));
+            let mut data = asteroid(rng.random_range(0..30));
             data.health = 10000.0;
             ship::create(
                 sim,
                 vector![
-                    rng.gen_range(-bound.x..bound.x),
-                    rng.gen_range(-bound.y..bound.y)
+                    rng.random_range(-bound.x..bound.x),
+                    rng.random_range(-bound.y..bound.y)
                 ],
-                vector![rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)] * 10.0,
-                rng.gen_range(0.0..(2.0 * std::f64::consts::PI)),
+                vector![rng.random_range(-1.0..1.0), rng.random_range(-1.0..1.0)] * 10.0,
+                rng.random_range(0.0..(2.0 * std::f64::consts::PI)),
                 data,
             );
         }

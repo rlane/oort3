@@ -792,12 +792,12 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
 
         for _ in 0..gun.burst_size {
             let relative_heading = if gun.inaccuracy > 0.0 {
-                relative_heading + rng.gen_range(-gun.inaccuracy..gun.inaccuracy)
+                relative_heading + rng.random_range(-gun.inaccuracy..gun.inaccuracy)
             } else {
                 relative_heading
             };
             let speed = if gun.speed_error > 0.0 {
-                gun.speed + rng.gen_range(-gun.speed_error..gun.speed_error)
+                gun.speed + rng.random_range(-gun.speed_error..gun.speed_error)
             } else {
                 gun.speed
             };
@@ -880,12 +880,12 @@ impl<'a: 'b, 'b> ShipAccessorMut<'a> {
             self.body().position().translation.vector - self.body().linvel() * PHYSICS_TICK_LENGTH;
         let mut rng = new_rng(0);
         for _ in 0..warhead.count {
-            let color = vector![rng.gen_range(0.7..1.0), 0.5, 0.5, rng.gen_range(0.5..1.0)];
+            let color = vector![rng.random_range(0.7..1.0), 0.5, 0.5, rng.random_range(0.5..1.0)];
             let rot = self.body().rotation()
-                * Rotation2::new(rng.gen_range((-warhead.width / 2.0)..(warhead.width / 2.0)));
-            let speed = warhead.speed * 2.0 * rng.gen_range(0.0..1.0);
+                * Rotation2::new(rng.random_range((-warhead.width / 2.0)..(warhead.width / 2.0)));
+            let speed = warhead.speed * 2.0 * rng.random_range(0.0..1.0);
             let v = self.body().linvel() + rot.transform_vector(&vector![speed, 0.0]);
-            let offset = v * rng.gen_range(0.0..PHYSICS_TICK_LENGTH);
+            let offset = v * rng.random_range(0.0..PHYSICS_TICK_LENGTH);
             bullet::create(
                 self.simulation,
                 p + offset,

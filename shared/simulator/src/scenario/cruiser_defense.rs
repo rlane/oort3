@@ -45,7 +45,7 @@ impl Scenario for CruiserDefense {
         {
             let team = 1;
             for _ in 0..3 {
-                let angle = self.rng.gen_range(0.0..TAU);
+                let angle = self.rng.random_range(0.0..TAU);
                 let center = UnitComplex::new(angle).transform_point(&point![15e3, 0.0]);
                 let heading = angle + TAU / 2.0;
                 for i in 0..3 {

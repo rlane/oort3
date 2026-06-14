@@ -340,11 +340,11 @@ pub fn place_teams(rng: &mut dyn RngCore, world_size: f64) -> Vec<Placement> {
     let range = -s..s;
     let mut placements = vec![
         Placement {
-            position: vector![-s, rng.gen_range(range.clone())],
+            position: vector![-s, rng.random_range(range.clone())],
             heading: 0.0,
         },
         Placement {
-            position: vector![s, rng.gen_range(range)],
+            position: vector![s, rng.random_range(range)],
             heading: std::f64::consts::PI,
         },
     ];

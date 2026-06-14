@@ -13,5 +13,6 @@ protocol = "sparse"
 rustflags = [
         "-C", "target-feature=+simd128",
         "--cfg", "no_salsa_async_drops", # Prevent rust-analyzer from spawning a thread.
+        "--cfg", "getrandom_backend=\"wasm_js\"",
 ]
 

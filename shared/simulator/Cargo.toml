@@ -14,13 +14,14 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 crossbeam = "0.8.3"
 getrandom = { version = "0.2.11", features = ["js"] }
+getrandom_v3 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
 log = "0.4.20"
 nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 oorandom = "11.1.3"
-rand = "0.8.5"
-rand_chacha = "0.3.1"
-rand_distr = "0.4.3"
-rand_seeder = "0.2.3"
+rand = "0.9"
+rand_chacha = "0.9"
+rand_distr = "0.5"
+rand_seeder = "0.4"
 rapier2d-f64 = { version = "0.17.2", features = ["wasm-bindgen", "enhanced-determinism"] }
 serde = { version = "1.0.193", features = ["derive"] }
 instant = "0.1.12"
