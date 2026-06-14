@@ -490,7 +490,7 @@ pub mod rng_state {
     }
 
     pub unsafe fn get() -> &'static mut RngState {
-        RNG_STATE.as_mut().unwrap()
+        (*core::ptr::addr_of_mut!(RNG_STATE)).as_mut().unwrap()
     }
 
     pub unsafe fn set(s: RngState) {
@@ -1275,9 +1275,9 @@ pub mod dbg {
     #[doc(hidden)]
     pub fn reset() {
         unsafe {
-            TEXT_BUFFER.clear();
-            LINE_BUFFER.clear();
-            DRAWN_TEXT_BUFFER.clear();
+            (*ptr::addr_of_mut!(TEXT_BUFFER)).clear();
+            (*ptr::addr_of_mut!(LINE_BUFFER)).clear();
+            (*ptr::addr_of_mut!(DRAWN_TEXT_BUFFER)).clear();
         }
     }
 }

@@ -14,7 +14,7 @@ pub unsafe fn tick() {
     oort_api::dbg::reset();
     oort_api::panic::reset();
     unsafe {
-        let ship = SHIP.get_or_insert_with(Ship::new);
+        let ship = (*std::ptr::addr_of_mut!(SHIP)).get_or_insert_with(Ship::new);
         ship.tick();
         oort_api::dbg::update();
     }

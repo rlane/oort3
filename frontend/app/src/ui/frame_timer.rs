@@ -30,13 +30,13 @@ impl FrameTimer {
         if v.is_empty() {
             return (0.0, 0.0, 0.0);
         }
-        return (
+        (
             v[0],
             v[..std::cmp::min(v.len(), SHORT_HISTORY_LENGTH)]
                 .iter()
                 .fold(f64::NEG_INFINITY, |a, &b| f64::max(a, b)),
             v.iter().fold(f64::NEG_INFINITY, |a, &b| f64::max(a, b)),
-        );
+        )
     }
 
     pub fn get_average(&mut self) -> f64 {
