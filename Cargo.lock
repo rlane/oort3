@@ -5849,7 +5849,7 @@ dependencies = [
 [[package]]
 name = "wasm-submemory"
 version = "0.1.0"
-source = "git+https://github.com/rlane/wasm-submemory#83d08c6bba95dd3fa6cc9248ccebfd011523b9ed"
+source = "git+https://github.com/rlane/wasm-submemory?rev=83d08c6bba95dd3fa6cc9248ccebfd011523b9ed#83d08c6bba95dd3fa6cc9248ccebfd011523b9ed"
 dependencies = [
  "anyhow",
  "log",

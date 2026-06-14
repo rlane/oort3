@@ -32,7 +32,7 @@ bytes = { version = "1.5.0", features = ["serde"] }
 static_aabb2d_index = { version = "2.0.0", features = ["unsafe_optimizations"] }
 bitvec = "1.0.1"
 wide = "0.7.13"
-wasm-submemory = { git = "https://github.com/rlane/wasm-submemory" }
+wasm-submemory = { git = "https://github.com/rlane/wasm-submemory", rev = "83d08c6bba95dd3fa6cc9248ccebfd011523b9ed" }
 anyhow = "1.0.77"
 lazy_static = "1.4.0"
 regex = "1.10.2"
