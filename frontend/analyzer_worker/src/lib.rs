@@ -1,7 +1,7 @@
 pub use oort_proto::analyzer::*;
 use yew_agent::{HandlerId, Private, WorkerLink};
 
-pub mod noop_backend;
+pub mod rust_analyzer;
 
 pub trait CodeAnalyzer {
     fn update_file(&mut self, text: String) -> Vec<Diagnostic>;
@@ -20,7 +20,7 @@ impl yew_agent::Worker for AnalyzerAgent {
     type Output = Response;
 
     fn create(link: WorkerLink<Self>) -> Self {
-        let backend = noop_backend::NoopBackend::new();
+        let backend = rust_analyzer::RustAnalyzerBackend::new();
         Self {
             link,
             backend: Box::new(backend),

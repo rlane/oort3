@@ -10,4 +10,8 @@ oort-rescore = "run --bin rescore --"
 protocol = "sparse"
 
 [target.wasm32-unknown-unknown]
-rustflags = ["-C", "target-feature=+simd128"]
+rustflags = [
+        "-C", "target-feature=+simd128",
+        "--cfg", "no_salsa_async_drops", # Prevent rust-analyzer from spawning a thread.
+]
+
