@@ -292,11 +292,9 @@ impl UI {
             }
         }
 
-        if self.snapshot.is_some() {
+        if let Some(snapshot) = self.snapshot.as_ref() {
             let chasing_ship = self.chasing_ship_id.and_then(|id| {
-                self.snapshot
-                    .as_ref()
-                    .unwrap()
+                snapshot
                     .ships
                     .iter()
                     .find(|s| s.id == id)
@@ -309,10 +307,10 @@ impl UI {
             self.renderer.render(
                 self.camera_target(),
                 self.zoom,
-                self.interpolated_snapshot.as_ref().or(self.snapshot.as_ref()).unwrap(),
+                self.interpolated_snapshot.as_ref().unwrap_or(snapshot),
             );
 
-            if self.snapshot.as_ref().unwrap().cheats {
+            if snapshot.cheats {
                 status_msgs.push("CHEATS".to_string());
             }
         }
