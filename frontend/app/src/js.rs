@@ -1,3 +1,5 @@
+#![allow(clippy::empty_docs)]
+
 pub mod filesystem {
     use wasm_bindgen::prelude::*;
     use web_sys::{FileSystemDirectoryEntry, FileSystemFileEntry};

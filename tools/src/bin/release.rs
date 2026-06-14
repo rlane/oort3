@@ -606,7 +606,6 @@ async fn main() -> anyhow::Result<()> {
 trait ExtendedOutput {
     fn stdout_string(&self) -> String;
     fn stderr_string(&self) -> String;
-    fn check_success(&self) -> Result<&Self>;
 }
 
 impl ExtendedOutput for Output {
@@ -620,22 +619,6 @@ impl ExtendedOutput for Output {
         std::str::from_utf8(&self.stderr)
             .expect("invalid utf8")
             .to_string()
-    }
-
-    fn check_success(&self) -> Result<&Self> {
-        if !self.status.success() {
-            log::error!(
-                "Command failed with status {}.\nstderr:\n{}",
-                self.status,
-                self.stderr_string(),
-            );
-            bail!(
-                "Command failed with status {}.\nstderr:\n{}",
-                self.status,
-                self.stderr_string(),
-            );
-        }
-        Ok(self)
     }
 }
 
