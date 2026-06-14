@@ -762,12 +762,10 @@ mod tests {
             Outcomes::WIN
         } else if name0 == "bot5" && name1 == "bot0" {
             Outcomes::LOSS
+        } else if name0 < name1 {
+            Outcomes::WIN
         } else {
-            if name0 < name1 {
-                Outcomes::WIN
-            } else {
-                Outcomes::LOSS
-            }
+            Outcomes::LOSS
         };
         Ok(outcome)
     }
