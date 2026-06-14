@@ -19,7 +19,7 @@ use bullet_renderer::BulletRenderer;
 use flare_renderer::FlareRenderer;
 use grid_renderer::GridRenderer;
 use line_renderer::LineRenderer;
-use nalgebra::{point, vector, Matrix4, Point2};
+use nalgebra::{point, vector, Matrix4, Point2, Vector2};
 use oort_api::Text;
 use oort_simulator::simulation::Line;
 use oort_simulator::snapshot::Snapshot;
@@ -95,7 +95,7 @@ impl Renderer {
         })
     }
 
-    pub fn set_view(&mut self, zoom: f32, center: Point2<f32>) {
+    fn calculate_view(&self, zoom: f32, center: Point2<f32>) -> ViewParams {
         let screen_width = self.context.drawing_buffer_width() as f32;
         let screen_height = self.context.drawing_buffer_height() as f32;
         let view_width = 1.0 / zoom;
@@ -106,12 +106,25 @@ impl Renderer {
         let top = center.y + view_height / 2.0;
         let znear = -1.0;
         let zfar = 1.0;
-        self.projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
+        let projection_matrix = Matrix4::new_orthographic(left, right, bottom, top, znear, zfar);
 
         let pixel_size = (self.unproject(1, 0) - self.unproject(0, 0)).x as f32;
         let zoom_factor = 2e-3 / zoom;
-        self.base_line_width = (zoom_factor - 0.01 * zoom_factor * zoom_factor)
+        let base_line_width = (zoom_factor - 0.01 * zoom_factor * zoom_factor)
             .clamp(pixel_size * 2.0, 3.0 * pixel_size);
+        ViewParams {
+            projection_matrix,
+            base_line_width,
+        }
+    }
+
+    fn set_view_params(&mut self, params: &ViewParams) {
+        self.projection_matrix = params.projection_matrix;
+        self.base_line_width = params.base_line_width;
+    }
+
+    pub fn set_view(&mut self, zoom: f32, center: Point2<f32>) {
+        self.set_view_params(&self.calculate_view(zoom, center))
     }
 
     pub fn set_debug(&mut self, debug: bool) {
@@ -135,7 +148,13 @@ impl Renderer {
         point![coords.x as f64, coords.y as f64]
     }
 
-    pub fn render(&mut self, camera_target: Point2<f32>, zoom: f32, snapshot: &Snapshot) {
+    pub fn render(
+        &mut self,
+        camera_target: Point2<f32>,
+        debug_lines_offset: Vector2<f32>,
+        zoom: f32,
+        snapshot: &Snapshot,
+    ) {
         let dpr = gloo_utils::window().device_pixel_ratio();
         let new_width = (self.canvas.client_width() as f64 * dpr) as u32;
         let new_height = (self.canvas.client_height() as f64 * dpr) as u32;
@@ -157,7 +176,9 @@ impl Renderer {
 
         let screen_width = self.context.drawing_buffer_width();
         let screen_height = self.context.drawing_buffer_height();
-        self.set_view(zoom, point![camera_target.x, camera_target.y]);
+        let normal_view_params = self.calculate_view(zoom, camera_target);
+        let debug_view_params = self.calculate_view(zoom, camera_target - debug_lines_offset);
+        self.set_view_params(&normal_view_params);
 
         self.grid_renderer
             .update_projection_matrix(&self.projection_matrix);
@@ -186,6 +207,7 @@ impl Renderer {
             if let Some(drawn_text) = snapshot.drawn_text.get(&None) {
                 texts.extend(drawn_text.iter().cloned());
             }
+            self.set_view_params(&debug_view_params);
             if self.debug {
                 for (_, drawn_text) in snapshot.drawn_text.iter() {
                     texts.extend(drawn_text.iter().cloned());
@@ -195,13 +217,16 @@ impl Renderer {
                     texts.extend(drawn_text.iter().cloned());
                 }
             }
-            self.text_renderer.upload(&self.projection_matrix, &texts)
+            let r = self.text_renderer.upload(&self.projection_matrix, &texts);
+            self.set_view_params(&normal_view_params);
+            r
         };
 
         let scenario_line_drawset = self
             .line_renderer
             .upload(&self.projection_matrix, &snapshot.scenario_lines);
 
+        self.set_view_params(&debug_view_params);
         let debug_line_drawset = {
             let mut lines: Vec<Line> = Vec::new();
             if self.debug {
@@ -217,6 +242,7 @@ impl Renderer {
             }
             self.line_renderer.upload(&self.projection_matrix, &lines)
         };
+        self.set_view_params(&normal_view_params);
 
         self.context.viewport(0, 0, screen_width, screen_height);
 
@@ -287,4 +313,9 @@ impl Renderer {
     pub fn get_nlips(&self) -> bool {
         self.nlips_enabled
     }
+}
+
+pub struct ViewParams {
+    projection_matrix: Matrix4<f32>,
+    base_line_width: f32,
 }
