@@ -189,7 +189,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     for (docname, _old_msg, new_msg) in &updates {
         let docid = extract_docid(docname);
         if let Some(new_msg) = new_msg {
-            db.update_obj("leaderboard", &docid, new_msg, None, None, None)
+            db.update_obj::<_, (), _>("leaderboard", &docid, new_msg, None, None, None)
                 .await?;
         } else {
             db.delete_by_id("leaderboard", &docid, None).await?;

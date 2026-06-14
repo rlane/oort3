@@ -180,6 +180,6 @@ pub async fn post(Json(mut obj): Json<ShortcodeUpload>) -> Result<String, Error>
     let db = FirestoreDb::new(&project_id()).await?;
     obj.timestamp = Utc::now();
     let docid = generate_docid();
-    db.create_obj("shortcode", Some(&docid), &obj, None).await?;
+    db.create_obj::<_, (), _>("shortcode", Some(&docid), &obj, None).await?;
     Ok(docid)
 }

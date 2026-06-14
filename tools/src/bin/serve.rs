@@ -92,7 +92,7 @@ fn main() -> Result<()> {
             let child = cmd(&c)
                 .env(
                     "RUST_LOG",
-                    &format!("none,oort_{name}_service=debug,tower_http=trace"),
+                    format!("none,oort_{name}_service=debug,tower_http=trace"),
                 )
                 .env("PROJECT_ID", &args.project)
                 .env("PORT", port.to_string())

@@ -8,7 +8,7 @@ pub async fn submit(Json(mut obj): Json<TournamentSubmission>) -> Result<String,
     let db = FirestoreDb::new(&project_id()).await?;
     obj.timestamp = Utc::now();
     let docid = format!("{}.{}", obj.scenario_name, obj.userid);
-    db.update_obj("tournament", &docid, &obj, None, None, None)
+    db.update_obj::<_, (), _>("tournament", &docid, &obj, None, None, None)
         .await?;
     Ok(docid)
 }

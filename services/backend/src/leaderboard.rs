@@ -117,7 +117,7 @@ pub async fn post(
         }
     }
 
-    db.update_obj("leaderboard", &path, &obj, None, None, None)
+    db.update_obj::<_, (), _>("leaderboard", &path, &obj, None, None, None)
         .await?;
 
     cache

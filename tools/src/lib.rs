@@ -53,7 +53,7 @@ pub async fn fetch_and_compile(
             return Ok(ai);
         }
         let source_code = http
-            .get(&format!("{shortcode_url}/shortcode/{shortcode}"))
+            .get(format!("{shortcode_url}/shortcode/{shortcode}"))
             .send()
             .await?
             .text()
@@ -64,7 +64,7 @@ pub async fn fetch_and_compile(
     log::info!("Compiling {:?}", shortcode);
 
     let response = http
-        .post(&format!("{compiler_url}/compile"))
+        .post(format!("{compiler_url}/compile"))
         .body(source_code.clone())
         .send()
         .await?;

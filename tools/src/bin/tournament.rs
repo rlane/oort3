@@ -645,11 +645,11 @@ async fn upload_results(
             code: entrant.source_code.clone(),
         };
         let shortcode = format!("{tournament_id}.{}", competitor.username);
-        db.create_obj("shortcode", Some(&shortcode), &obj, None)
+        db.create_obj::<_, (), _>("shortcode", Some(&shortcode), &obj, None)
             .await?;
         competitor.shortcode = shortcode;
     }
-    db.create_obj("tournament_results", Some(&tournament_id), &results, None)
+    db.create_obj::<_, (), _>("tournament_results", Some(&tournament_id), &results, None)
         .await?;
     println!();
     if project_id == "oort-dev" {
@@ -741,7 +741,7 @@ async fn cmd_write(
         scenario_name: scenario_name.to_owned(),
         code,
     };
-    db.update_obj("tournament", docid, &msg, None, None, None)
+    db.update_obj::<_, (), _>("tournament", docid, &msg, None, None, None)
         .await?;
     Ok(())
 }

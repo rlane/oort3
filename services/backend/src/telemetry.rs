@@ -24,7 +24,7 @@ pub async fn post(Json(mut obj): Json<TelemetryMsg>) -> Result<(), Error> {
     obj.timestamp = Utc::now();
     log::debug!("Got request obj {:?}", obj);
     let docid = generate_docid();
-    db.create_obj("telemetry", Some(&docid), &obj, None).await?;
+    db.create_obj::<_, (), _>("telemetry", Some(&docid), &obj, None).await?;
     match obj.payload {
         Telemetry::StartScenario { scenario_name, .. } => {
             log::info!("User {} started scenario {}", obj.username, scenario_name);

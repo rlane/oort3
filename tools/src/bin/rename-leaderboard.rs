@@ -59,7 +59,7 @@ async fn run(
             let new_docid = format!("{dst_scenario_name}.{userid}");
             log::info!("copying {} to {}", docid, new_docid);
             msg.scenario_name = dst_scenario_name.into();
-            db.update_obj("leaderboard", &new_docid, &msg, None, None, None)
+            db.update_obj::<_, (), _>("leaderboard", &new_docid, &msg, None, None, None)
                 .await?;
         } else {
             log::error!("Failed to deserialize doc {}", doc.name);

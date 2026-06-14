@@ -120,7 +120,7 @@ async fn run(
 
     for msg in msgs {
         let path = format!("{}.{}", msg.scenario_name, msg.userid);
-        db.create_obj("leaderboard", Some(&path), &msg, None)
+        db.create_obj::<_, (), _>("leaderboard", Some(&path), &msg, None)
             .await?;
     }
 
