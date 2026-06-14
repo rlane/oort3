@@ -396,12 +396,12 @@ pub mod sys {
         [0; SystemState::MaxSize as usize];
 
     pub fn read_system_state_u64(index: SystemState) -> u64 {
-        let system_state = unsafe { ptr::addr_of!(SYSTEM_STATE) };
+        let system_state = ptr::addr_of!(SYSTEM_STATE);
         unsafe { (*system_state)[index as usize] }
     }
 
     pub fn write_system_state_u64(index: SystemState, value: u64) {
-        let system_state = unsafe { ptr::addr_of_mut!(SYSTEM_STATE) };
+        let system_state = ptr::addr_of_mut!(SYSTEM_STATE);
         unsafe { (*system_state)[index as usize] = value };
     }
 

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::io::Cursor;
 use std::io::Write;
-use std::panic::PanicInfo;
+use std::panic::PanicHookInfo;
 
 pub const PANIC_BUFFER_SIZE: usize = 1024;
 #[no_mangle]
@@ -15,7 +15,7 @@ pub unsafe fn reset() {
     PANIC_BUFFER[0] = 0;
 }
 
-fn panic_hook(info: &PanicInfo) {
+fn panic_hook(info: &PanicHookInfo) {
     unsafe {
         let location = info.location().unwrap();
         let file = location.file();
