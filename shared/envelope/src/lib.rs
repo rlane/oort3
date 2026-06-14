@@ -12,7 +12,7 @@ fn secret() -> Vec<u8> {
 pub fn hashed_secret() -> Vec<u8> {
     let mut hasher = Sha256::new();
     hasher.update("foo");
-    hasher.update(&secret());
+    hasher.update(secret());
     hasher.finalize().to_vec()
 }
 
@@ -23,7 +23,7 @@ fn perturb(data: &[u8]) -> Vec<u8> {
 fn digest(data: &[u8]) -> Vec<u8> {
     let mut hasher = Sha256::new();
     hasher.update(data);
-    hasher.update(&secret());
+    hasher.update(secret());
     hasher.finalize().to_vec()
 }
 

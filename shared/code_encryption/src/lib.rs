@@ -30,7 +30,7 @@ fn secret() -> String {
 
 fn aes_key() -> Vec<u8> {
     let mut hasher = Sha256::new();
-    hasher.update(&secret());
+    hasher.update(secret());
     hasher.finalize().to_vec()
 }
 

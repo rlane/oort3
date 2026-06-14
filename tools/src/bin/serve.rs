@@ -95,7 +95,7 @@ fn main() -> Result<()> {
                     &format!("none,oort_{name}_service=debug,tower_http=trace"),
                 )
                 .env("PROJECT_ID", &args.project)
-                .env("PORT", &port.to_string())
+                .env("PORT", port.to_string())
                 .spawn()?;
             children.push(ChildGuard(child));
             Ok(())
