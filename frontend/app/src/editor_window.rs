@@ -733,7 +733,7 @@ pub fn is_mac() -> bool {
 }
 
 fn has_open_file_picker() -> bool {
-    gloo_utils::window().has_own_property(&"showOpenFilePicker".into())
+    js_sys::Object::has_own(gloo_utils::window().as_ref(), &"showOpenFilePicker".into())
 }
 
 async fn read_multifile(file_handles: &[FileHandle]) -> anyhow::Result<Multifile> {

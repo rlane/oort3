@@ -44,9 +44,9 @@ wasmer-compiler-cranelift = { version = "=7.1.0" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasmer = { version = "=7.1.0", default-features = false, features = ["js", "wat", "std", "wasm-types-polyfill"] }
-js-sys = "=0.3.77"
-wasm-bindgen = "=0.2.100"
-wasm-bindgen-futures = "=0.4.50"
+js-sys = "=0.3.91"
+wasm-bindgen = "=0.2.114"
+wasm-bindgen-futures = "=0.4.64"
 
 [dev-dependencies]
 bincode = "1.3.3"
