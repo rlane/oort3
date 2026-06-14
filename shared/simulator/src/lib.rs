@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 pub mod bullet;
 pub mod collision;
 pub mod color;

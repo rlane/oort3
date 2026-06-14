@@ -11,7 +11,7 @@ pub fn get_userid() -> String {
         Ok(Some(userid)) => userid,
         Ok(None) => {
             let mut rng = rand::thread_rng();
-            let userid = format!("{:x}", rng.gen::<u64>());
+            let userid = format!("{:x}", rng.r#gen::<u64>());
             info!("Generated userid {}", &userid);
             if let Err(msg) = storage.set_item("/user/id", &userid) {
                 error!("Failed to save userid: {:?}", msg);

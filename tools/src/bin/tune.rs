@@ -83,11 +83,11 @@ async fn main() -> anyhow::Result<()> {
     let s = Solver::build(metaheuristics_nature::Rga::default(), objective_function)
         .pop_num(args.population)
         .pool(pool)
-        .task(|ctx| ctx.gen + 1 == args.generations)
+        .task(|ctx| ctx.r#gen + 1 == args.generations)
         .callback(|ctx| {
             log::info!(
                 "Generation {}/{}. Best fitness {} for {:?}",
-                ctx.gen + 1,
+                ctx.r#gen + 1,
                 args.generations,
                 ctx.best_f,
                 ctx.best.iter().cloned().collect::<Vec<f64>>()

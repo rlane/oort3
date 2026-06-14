@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 pub mod blur;
 pub mod buffer_arena;
 pub mod bullet_renderer;

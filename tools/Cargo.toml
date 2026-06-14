@@ -2,7 +2,7 @@
 name = "oort_tools"
 version = "0.84.1"
 publish = false
-edition = "2021"
+edition = "2024"
 resolver = "2"
 
 [dependencies]

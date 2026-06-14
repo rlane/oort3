@@ -37,15 +37,17 @@ fn main() -> Result<()> {
         let secrets = contents.parse::<toml::Table>()?;
         for (k, v) in secrets.iter() {
             if dev_mode_secrets.contains(&k.as_str()) {
-                std::env::set_var(k, v.as_str().expect("invalid secret value"));
+                unsafe { std::env::set_var(k, v.as_str().expect("invalid secret value")); }
             }
         }
     } else {
         log::info!("Missing secrets file");
     }
 
-    std::env::set_var("COMPILER_URL", "http://localhost:8081");
-    std::env::set_var("BACKEND_URL", "http://localhost:8082");
+    unsafe {
+        std::env::set_var("COMPILER_URL", "http://localhost:8081");
+        std::env::set_var("BACKEND_URL", "http://localhost:8082");
+    }
 
     cmd(&["cargo", "build", "--workspace", "--bins"])
         .spawn()?

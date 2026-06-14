@@ -2,7 +2,7 @@
 name = "oort_compiler"
 version = "0.84.1"
 publish = false
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 anyhow = "1.0.77"

@@ -63,7 +63,7 @@ async fn run(
             let (_, docid) = doc.name.rsplit_once('/').unwrap();
             match &msg.payload {
                 Telemetry::FinishScenario { time, .. } => {
-                    let insert = if let Some((ref old_time, _, _, _)) = best_times.get(&msg.userid)
+                    let insert = if let Some((old_time, _, _, _)) = best_times.get(&msg.userid)
                     {
                         *old_time > time.unwrap_or_default()
                     } else {

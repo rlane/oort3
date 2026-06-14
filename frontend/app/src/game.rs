@@ -688,7 +688,7 @@ impl Game {
             if let Status::Victory { team: 0 } = status {
                 self.background_agents.clear();
                 self.background_snapshots.clear();
-                self.background_nonce = rand::thread_rng().gen();
+                self.background_nonce = rand::thread_rng().r#gen();
                 let codes: Vec<_> = self
                     .teams
                     .iter()
@@ -1139,7 +1139,7 @@ impl Game {
             .iter()
             .map(|x| x.running_compiled_code.clone())
             .collect();
-        let rand_seed = rand::thread_rng().gen();
+        let rand_seed = rand::thread_rng().r#gen();
 
         // If replaying, reuse previous seed if it exists
         // instead of using a newly generated seed

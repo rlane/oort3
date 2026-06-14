@@ -28,8 +28,8 @@ impl HasIndex for ShipHandle {
 
 impl From<ShipHandle> for u64 {
     fn from(handle: ShipHandle) -> u64 {
-        let (gen, idx) = handle.0.into_raw_parts();
-        ((gen as u64) << 32) | idx as u64
+        let (generation, idx) = handle.0.into_raw_parts();
+        ((generation as u64) << 32) | idx as u64
     }
 }
 

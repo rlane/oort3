@@ -2,7 +2,7 @@
 name = "oort_code_encryption"
 version = "0.84.1"
 publish = false
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 aes-gcm = { version = "0.10.3", features = ["std"] }

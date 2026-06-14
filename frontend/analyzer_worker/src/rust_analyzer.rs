@@ -194,13 +194,10 @@ impl CodeAnalyzer for RustAnalyzerBackend {
             file_id,
         );
         match diagnostics {
-            Ok(diags) => {
-                let diags = diags
-                    .iter()
-                    .map(|diag| translate_diagnostic(diag, line_index.as_ref()))
-                    .collect();
-                diags
-            }
+            Ok(diags) => diags
+                .iter()
+                .map(|diag| translate_diagnostic(diag, line_index.as_ref()))
+                .collect(),
             Err(e) => {
                 log::error!("Error getting diagnostics: {:?}", e);
                 Vec::new()

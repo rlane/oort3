@@ -391,7 +391,7 @@ pub mod sys {
     use std::ptr;
 
     // TODO crashes rust-analyzer
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub static mut SYSTEM_STATE: [u64; SystemState::MaxSize as usize] =
         [0; SystemState::MaxSize as usize];
 
@@ -413,7 +413,7 @@ pub mod sys {
         write_system_state_u64(index, value.to_bits())
     }
 
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub static mut ENVIRONMENT: [u8; MAX_ENVIRONMENT_SIZE] = [0; MAX_ENVIRONMENT_SIZE];
 
     pub fn read_environment() -> &'static str {
@@ -434,10 +434,8 @@ pub mod sys {
         let environment = read_environment();
         for line in environment.lines() {
             let mut parts = line.splitn(2, '=');
-            if let Some(k) = parts.next() {
-                if k == key {
-                    return parts.next();
-                }
+            if parts.next() == Some(key) {
+                return parts.next();
             }
         }
         None
@@ -491,11 +489,11 @@ pub mod rng_state {
     }
 
     pub unsafe fn get() -> &'static mut RngState {
-        (*core::ptr::addr_of_mut!(RNG_STATE)).as_mut().unwrap()
+        unsafe { (*core::ptr::addr_of_mut!(RNG_STATE)).as_mut().unwrap() }
     }
 
     pub unsafe fn set(s: RngState) {
-        RNG_STATE = Some(s)
+        unsafe { RNG_STATE = Some(s) }
     }
 }
 

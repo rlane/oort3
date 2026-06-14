@@ -2,7 +2,7 @@
 name = "oort_compiler_service"
 version = "0.84.1"
 publish = false
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 oort_code_encryption = { path = "../../shared/code_encryption" }

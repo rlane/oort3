@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 mod wasm_cache;
 
 use oort_compiler::Compiler;

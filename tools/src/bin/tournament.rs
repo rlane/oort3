@@ -191,7 +191,7 @@ fn run_round_robin_tournament(
     rounds: i32,
     run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
-    let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().gen()).collect();
+    let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().r#gen()).collect();
     let config = Glicko2Config::new();
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
@@ -295,7 +295,7 @@ fn run_adaptive_tournament(
     rounds: i32,
     run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
-    let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().gen()).collect();
+    let seeds: Vec<u32> = (0..rounds).map(|_| rand::thread_rng().r#gen()).collect();
     let config = Glicko2Config::new();
     let s_base = 5;
 

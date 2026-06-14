@@ -34,7 +34,7 @@ impl Component for Benchmark {
     fn create(context: &yew::Context<Self>) -> Self {
         let scenario_name = context.props().scenario.clone();
         let seed = 0;
-        let nonce = rand::thread_rng().gen();
+        let nonce = rand::thread_rng().r#gen();
         let scenario = oort_simulator::scenario::load(&scenario_name);
         let mut codes = scenario.initial_code();
         codes[0] = scenario.solution();

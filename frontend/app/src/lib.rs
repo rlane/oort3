@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if, clippy::let_and_return)]
+
 mod analyzer_stub;
 pub mod benchmark;
 pub mod code_size;

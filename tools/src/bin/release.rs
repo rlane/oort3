@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 use anyhow::{anyhow, bail, Result};
 use clap::Parser as _;
 use indicatif::{MultiProgress, ProgressBar};
@@ -91,13 +93,17 @@ async fn main() -> anyhow::Result<()> {
     let mut secrets: Secrets = Secrets::default();
     if !args.no_secrets && std::fs::metadata(".secrets/secrets.toml").is_ok() {
         secrets = toml::from_str(&std::fs::read_to_string(".secrets/secrets.toml")?)?;
-        std::env::set_var(
-            "OORT_ENVELOPE_SECRET",
-            secrets.oort_envelope_secret.clone().unwrap_or_default(),
-        );
+        unsafe {
+            std::env::set_var(
+                "OORT_ENVELOPE_SECRET",
+                secrets.oort_envelope_secret.clone().unwrap_or_default(),
+            );
+        }
     }
 
-    std::env::set_var("DOCKER_BUILDKIT", "1");
+    unsafe {
+        std::env::set_var("DOCKER_BUILDKIT", "1");
+    }
 
     if !args.skip_git_checks {
         sync_cmd_ok(&["git", "diff", "HEAD", "--quiet"])
@@ -233,7 +239,7 @@ async fn main() -> anyhow::Result<()> {
     ])
     .await?
     .stdout_string();
-    std::env::set_var("BACKEND_URL", &backend_url);
+    unsafe { std::env::set_var("BACKEND_URL", &backend_url); }
 
     let compiler_url = sync_cmd_ok(&[
         "gcloud",
@@ -252,7 +258,7 @@ async fn main() -> anyhow::Result<()> {
 
     if args.components.contains(&Component::App) {
         let project: String = args.project.to_string();
-        std::env::set_var("COMPILER_URL", &compiler_url);
+        unsafe { std::env::set_var("COMPILER_URL", &compiler_url); }
 
         tasks.spawn(Retry::spawn(retry_strategy(), move || {
             let project = project.clone();

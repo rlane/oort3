@@ -9,17 +9,17 @@ impl Ship {
     }
 
     pub fn tick(&mut self) {
-        draw_triangle(vec2(gen(), gen()), gen(), 0xffffff);
+        draw_triangle(vec2(gen_f64(), gen_f64()), gen_f64(), 0xffffff);
         for i in 0..(SystemState::MaxSize as u8) {
             if i == SystemState::Explode as u8 {
                 continue;
             }
-            oort_api::sys::write_system_state(unsafe { std::mem::transmute::<u8, SystemState>(i) }, gen());
+            oort_api::sys::write_system_state(unsafe { std::mem::transmute::<u8, SystemState>(i) }, gen_f64());
         }
     }
 }
 
-fn gen() -> f64 {
+fn gen_f64() -> f64 {
     let r = rand(0.0, 1.0);
     if r < 0.1 {
         let vals = &[

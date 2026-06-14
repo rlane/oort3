@@ -4,7 +4,7 @@ use std::io::Write;
 use std::panic::PanicHookInfo;
 
 pub const PANIC_BUFFER_SIZE: usize = 1024;
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub static mut PANIC_BUFFER: [u8; PANIC_BUFFER_SIZE] = [0; PANIC_BUFFER_SIZE];
 
 pub unsafe fn install() {
@@ -12,7 +12,9 @@ pub unsafe fn install() {
 }
 
 pub unsafe fn reset() {
-    PANIC_BUFFER[0] = 0;
+    unsafe {
+        PANIC_BUFFER[0] = 0;
+    }
 }
 
 fn panic_hook(info: &PanicHookInfo) {

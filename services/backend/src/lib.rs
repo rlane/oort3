@@ -1,3 +1,5 @@
+#![allow(clippy::collapsible_if)]
+
 pub mod discord;
 pub mod leaderboard;
 pub mod rescore;
