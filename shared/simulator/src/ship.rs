@@ -695,7 +695,7 @@ pub struct ShipAccessorMut<'a> {
 }
 
 impl<'a: 'b, 'b> ShipAccessorMut<'a> {
-    pub fn readonly(&self) -> ShipAccessor {
+    pub fn readonly(&self) -> ShipAccessor<'_> {
         ShipAccessor {
             simulation: self.simulation,
             handle: self.handle,

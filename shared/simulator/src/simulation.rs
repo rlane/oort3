@@ -149,14 +149,14 @@ impl Simulation {
         self.scenario.as_ref().unwrap().status(self)
     }
 
-    pub fn ship(self: &Simulation, handle: ShipHandle) -> ShipAccessor {
+    pub fn ship(self: &Simulation, handle: ShipHandle) -> ShipAccessor<'_> {
         ShipAccessor {
             simulation: self,
             handle,
         }
     }
 
-    pub fn ship_mut(self: &mut Simulation, handle: ShipHandle) -> ShipAccessorMut {
+    pub fn ship_mut(self: &mut Simulation, handle: ShipHandle) -> ShipAccessorMut<'_> {
         ShipAccessorMut {
             simulation: self,
             handle,
