@@ -382,7 +382,11 @@ impl WasmVm {
 
                 // Add gas tracking and functions
                 let wasm = limiter::rewrite(&wasm)?;
-                translate_error(Module::new(&store, wasm))?
+                let old_level = log::max_level();
+                log::set_max_level(log::LevelFilter::Info);
+                let res = Module::new(&store, wasm);
+                log::set_max_level(old_level);
+                translate_error(res)?
             }
             #[cfg(feature = "precompile")]
             Code::Precompiled(bytes) => {
