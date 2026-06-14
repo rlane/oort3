@@ -166,16 +166,16 @@ pub fn handle_collisions(sim: &mut Simulation, events: &[CollisionEvent]) {
                     [Collider::Bullet(b), Collider::Wall] => {
                         bullet::destroy(sim, b);
                     }
-                    [Collider::Ship(s1), Collider::Ship(s2)] => {
-                        if sim.ship(s1).data().team != sim.ship(s2).data().team {
-                            sim.ship_mut(s1).handle_collision();
-                            sim.ship_mut(s2).handle_collision();
-                        }
+                    [Collider::Ship(s1), Collider::Ship(s2)]
+                        if sim.ship(s1).data().team != sim.ship(s2).data().team =>
+                    {
+                        sim.ship_mut(s1).handle_collision();
+                        sim.ship_mut(s2).handle_collision();
                     }
-                    [Collider::Ship(s), Collider::Wall] => {
-                        if sim.ship(s).data().class != ShipClass::Planet {
-                            sim.ship_mut(s).explode();
-                        }
+                    [Collider::Ship(s), Collider::Wall]
+                        if sim.ship(s).data().class != ShipClass::Planet =>
+                    {
+                        sim.ship_mut(s).explode();
                     }
                     _ => {}
                 }
