@@ -4,7 +4,7 @@ use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Particle, Simulation, PHYSICS_TICK_LENGTH};
 use nalgebra::{ComplexField, Rotation2, UnitComplex};
 use oort_api::Ability;
-use rand::Rng;
+use rand::RngExt;
 use rapier2d_f64::prelude::*;
 use std::f64::consts::TAU;
 

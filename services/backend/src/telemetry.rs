@@ -5,7 +5,7 @@ use firestore::*;
 use oort_proto::{Telemetry, TelemetryMsg};
 
 fn generate_docid() -> String {
-    use rand::Rng;
+    use rand::RngExt;
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                             abcdefghijklmnopqrstuvwxyz\
                             0123456789";

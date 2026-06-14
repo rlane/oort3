@@ -18,10 +18,10 @@ getrandom_v3 = { package = "getrandom", version = "0.3", features = ["wasm_js"] 
 log = "0.4.20"
 nalgebra = { version = "0.32.3", features = ["serde-serialize"] }
 oorandom = "11.1.3"
-rand = "0.9"
-rand_chacha = "0.9"
-rand_distr = "0.5"
-rand_seeder = "0.4"
+rand = "0.10"
+rand_chacha = "0.10"
+rand_distr = "0.6"
+rand_seeder = "0.5"
 rapier2d-f64 = { version = "0.17.2", features = ["wasm-bindgen", "enhanced-determinism"] }
 serde = { version = "1.0.193", features = ["derive"] }
 instant = "0.1.12"

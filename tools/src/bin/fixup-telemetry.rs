@@ -55,27 +55,11 @@ async fn run(args: &Arguments) -> Result<(), Box<dyn std::error::Error + Send + 
     Ok(())
 }
 
-struct RngAdapter<R>(R);
-
-impl<R: rand::RngCore + rand::TryRngCore> rand_core_06::RngCore for RngAdapter<R> {
-    fn next_u32(&mut self) -> u32 {
-        self.0.next_u32()
-    }
-    fn next_u64(&mut self) -> u64 {
-        self.0.next_u64()
-    }
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        self.0.fill_bytes(dest);
-    }
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core_06::Error> {
-        self.0.try_fill_bytes(dest).map_err(|_| {
-            rand_core_06::Error::new("rng error")
-        })
-    }
-}
-
 pub fn generate_username(userid: &str) -> String {
-    let rng: rand_chacha::ChaCha8Rng = rand_seeder::Seeder::from(userid).into_rng();
-    let mut adapter = RngAdapter(rng);
-    petname::Petnames::default().generate(&mut adapter, 2, "-")
+    let mut rng: rand_chacha::ChaCha8Rng = rand_seeder::Seeder::from(userid).into_rng();
+    petname::Petnames::default()
+        .namer(2, "-")
+        .iter(&mut rng)
+        .next()
+        .unwrap()
 }

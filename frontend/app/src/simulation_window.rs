@@ -2,7 +2,7 @@ use crate::{editor_window::EditorAction, ui::UI};
 use gloo_render::{request_animation_frame, AnimationFrame};
 use oort_simulation_worker::SimAgent;
 use oort_simulator::{scenario, simulation::Code, snapshot::Snapshot};
-use rand::Rng;
+use rand::RngExt;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;

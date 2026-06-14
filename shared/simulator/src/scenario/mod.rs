@@ -34,7 +34,7 @@ mod welcome;
 use crate::ship::{asteroid, fighter, ShipAccessor, ShipClass, ShipData};
 use crate::simulation::{Code, Line, Simulation};
 use nalgebra::{vector, Vector2};
-use rand::{seq::SliceRandom, Rng, RngCore};
+use rand::{seq::SliceRandom, Rng, RngExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
@@ -56,7 +56,7 @@ pub mod prelude {
     };
     pub use crate::simulation::{Code, Line, Simulation};
     pub use nalgebra::{point, vector, Point2, Rotation2, Vector2};
-    pub use rand::Rng;
+    pub use rand::{Rng, RngExt};
     pub use std::f64::consts::{PI, TAU};
 }
 
@@ -335,7 +335,7 @@ pub struct Placement {
     pub heading: f64,
 }
 
-pub fn place_teams(rng: &mut dyn RngCore, world_size: f64) -> Vec<Placement> {
+pub fn place_teams(rng: &mut dyn Rng, world_size: f64) -> Vec<Placement> {
     let s = world_size * 0.45;
     let range = -s..s;
     let mut placements = vec![

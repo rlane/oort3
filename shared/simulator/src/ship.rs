@@ -11,7 +11,7 @@ use crate::{bullet, collision};
 use bullet::BulletData;
 use nalgebra::{vector, Rotation2, UnitComplex, Vector2};
 use oort_api::{Ability, Class, ClassStats};
-use rand::Rng;
+use rand::RngExt;
 use rapier2d_f64::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::TAU;

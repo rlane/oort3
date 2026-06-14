@@ -1,6 +1,6 @@
 use oort_simulation_worker::SimAgent;
 use oort_simulator::snapshot::{Snapshot, Timing};
-use rand::Rng;
+use rand::RngExt;
 use sha2::{Digest, Sha256};
 use std::rc::Rc;
 use yew::prelude::*;

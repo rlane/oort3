@@ -3,7 +3,7 @@ use crate::simulation::{Line, Simulation};
 use crate::{model, rng, simulation};
 use nalgebra::{vector, ComplexField, Point2, Rotation2, Vector2};
 use oort_api::{Ability, EcmMode};
-use rand::Rng;
+use rand::{Rng, RngExt};
 use rand_distr::StandardNormal;
 use rapier2d_f64::parry;
 use rapier2d_f64::prelude::*;
@@ -760,7 +760,7 @@ mod test {
     use nalgebra::{point, vector, UnitComplex, Vector2};
     use oort_api::prelude::TICK_LENGTH;
     use oort_api::EcmMode;
-    use rand::Rng;
+    use rand::RngExt;
     use rapier2d_f64::parry;
     use rapier2d_f64::prelude::{Isometry, Rotation, Translation};
     use std::f64::consts::{PI, TAU};

@@ -11,7 +11,7 @@ use crate::ship::{ShipClass, ShipHandle};
 use crate::simulation::{Code, Particle, Simulation, PHYSICS_TICK_LENGTH};
 use nalgebra::{point, vector, Rotation2};
 use oort_api::{ActiveAbilities, Class, EcmMode, Line, SystemState, Text};
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeMap;

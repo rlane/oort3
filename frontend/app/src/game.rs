@@ -21,7 +21,7 @@ use oort_simulator::scenario::{self, Status, MAX_TICKS};
 use oort_simulator::simulation;
 use oort_simulator::simulation::Code;
 use oort_simulator::snapshot::Snapshot;
-use rand::Rng;
+use rand::RngExt;
 use regex::Regex;
 use reqwasm::http::Request;
 use simulation::PHYSICS_TICK_LENGTH;

@@ -2,7 +2,7 @@ use nalgebra::vector;
 use oort_simulator::ship::{fighter, missile};
 use oort_simulator::simulation::{self, Code};
 use oort_simulator::{bullet, collision, ship};
-use rand::Rng;
+use rand::RngExt;
 use test_log::test;
 
 const BULLET_COLOR: u32 = 0xffffffff;

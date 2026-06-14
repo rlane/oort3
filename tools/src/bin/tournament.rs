@@ -7,7 +7,7 @@ use itertools::Itertools;
 use oort_proto::{ShortcodeUpload, TournamentCompetitor, TournamentResults, TournamentSubmission};
 use oort_simulator::{scenario, simulation};
 use oort_tools::AI;
-use rand::Rng;
+use rand::RngExt;
 use rayon::prelude::*;
 use skillratings::{
     glicko2::{glicko2, Glicko2Config, Glicko2Rating},

@@ -162,7 +162,7 @@ pub async fn get(Path(id): Path<String>) -> Result<String, Error> {
 }
 
 fn generate_docid() -> String {
-    use rand::Rng;
+    use rand::RngExt;
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                             abcdefghijklmnopqrstuvwxyz\
                             0123456789";
