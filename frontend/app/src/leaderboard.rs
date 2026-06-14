@@ -120,7 +120,7 @@ impl Component for Leaderboard {
                 .lowest_time
                 .iter()
                 .position(|row| row.userid == userid)
-                .unwrap_or(std::usize::MAX - 1);
+                .unwrap_or(usize::MAX - 1);
 
             let mut table_rows = vec![];
             let mut last_index = None;
