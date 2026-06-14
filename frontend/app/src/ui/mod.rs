@@ -292,24 +292,26 @@ impl UI {
             }
         }
 
-        if self.snapshot.is_some() {
+        if let Some(snapshot) = &self.snapshot {
+            let render_snapshot = self.interpolated_snapshot.as_ref().unwrap_or(snapshot);
             let chasing_ship = self.chasing_ship_id.and_then(|id| {
-                self.snapshot
-                    .as_ref()
-                    .unwrap()
-                    .ships
-                    .iter()
-                    .find(|s| s.id == id)
+                Some((
+                    render_snapshot.ships.iter().find(|s| s.id == id)?,
+                    snapshot.ships.iter().find(|s| s.id == id)?,
+                ))
             });
-            if let Some(s) = chasing_ship {
+            let mut debug_line_offset = vector![0.0, 0.0];
+            if let Some((s, no_interp)) = chasing_ship {
                 self.camera_focus = s.position.cast();
+                debug_line_offset = (s.position - no_interp.position).cast();
             } else {
                 self.chasing_ship_id = None;
             }
             self.renderer.render(
                 self.camera_target(),
+                debug_line_offset,
                 self.zoom,
-                self.interpolated_snapshot.as_ref().or(self.snapshot.as_ref()).unwrap(),
+                render_snapshot,
             );
 
             if self.snapshot.as_ref().unwrap().cheats {
