@@ -2604,7 +2604,7 @@ checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 
 [[package]]
 name = "oort-app"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -2652,7 +2652,7 @@ dependencies = [
 
 [[package]]
 name = "oort_analyzer_worker"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "camino",
  "console_error_panic_hook",
@@ -2671,7 +2671,7 @@ dependencies = [
 
 [[package]]
 name = "oort_api"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "byteorder",
  "maths-rs",
@@ -2681,7 +2681,7 @@ dependencies = [
 
 [[package]]
 name = "oort_builtin_ai"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2698,7 +2698,7 @@ dependencies = [
 
 [[package]]
 name = "oort_compiler"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "anyhow",
  "glob",
@@ -2710,14 +2710,14 @@ dependencies = [
 
 [[package]]
 name = "oort_envelope"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "sha2 0.10.8",
 ]
 
 [[package]]
 name = "oort_multifile"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "anyhow",
  "regex",
@@ -2725,7 +2725,7 @@ dependencies = [
 
 [[package]]
 name = "oort_proto"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "chrono",
  "serde",
@@ -2733,7 +2733,7 @@ dependencies = [
 
 [[package]]
 name = "oort_renderer"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "gloo-utils 0.2.0",
  "image",
@@ -2750,7 +2750,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulation_worker"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "oort_simulator",
  "serde",
@@ -2759,7 +2759,7 @@ dependencies = [
 
 [[package]]
 name = "oort_simulator"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -2796,14 +2796,14 @@ dependencies = [
 
 [[package]]
 name = "oort_version"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "built",
 ]
 
 [[package]]
 name = "oort_version_control"
-version = "0.84.1"
+version = "0.85.0"
 dependencies = [
  "anyhow",
  "chrono",

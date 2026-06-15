@@ -1,3 +1,5 @@
+### 0.85.0 - 2026-06-14
+
 - Update to Rust 1.96.0.
 - Fixed jittery rendering in chase mode (by @0e4ef622).
 
