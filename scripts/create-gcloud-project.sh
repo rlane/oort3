@@ -4,7 +4,8 @@
 #   - gcloud CLI installed and logged in
 #   - A Google Cloud billing account
 #   - Docker installed and logged in to gcloud
-#   - cargo install fnm trunk wasm-opt
+#   - apt install binaryen
+#   - cargo install fnm trunk
 which gcloud
 which fnm
 which trunk
