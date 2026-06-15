@@ -1,3 +1,6 @@
+- Update to Rust 1.96.0.
+- Fixed jittery rendering in chase mode (by @0e4ef622).
+
 ### 0.84.1 - 2026-05-16
 
 - Workaround glGenerateMipmaps error on latest Chrome.
