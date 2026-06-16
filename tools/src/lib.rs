@@ -1,6 +1,7 @@
 #![allow(clippy::collapsible_if)]
 
 mod wasm_cache;
+pub mod process_pool;
 
 use oort_compiler::Compiler;
 use oort_simulator::simulation::Code;
@@ -8,11 +9,15 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct AI {
     pub name: String,
     pub source_code: String,
     pub compiled_code: Code,
 }
+
 
 pub async fn fetch_and_compile(
     http: &reqwest::Client,

@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code))]
+
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use comfy_table::presets::UTF8_FULL;
@@ -7,14 +9,92 @@ use itertools::Itertools;
 use oort_proto::{ShortcodeUpload, TournamentCompetitor, TournamentResults, TournamentSubmission};
 use oort_simulator::{scenario, simulation};
 use oort_tools::AI;
+use oort_tools::process_pool::ProcessPool;
 use rand::RngExt;
-use rayon::prelude::*;
+
 use skillratings::{
     glicko2::{glicko2, Glicko2Config, Glicko2Rating},
     Outcomes,
 };
 use std::default::Default;
 use std::{collections::HashMap, path::PathBuf};
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+enum WorkerTask {
+    RegisterAIs {
+        ais: Vec<AI>,
+    },
+    RunSimulation {
+        scenario_name: String,
+        seed: u32,
+        ai_indices: Vec<usize>,
+    },
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+enum WorkerResponse {
+    Registered,
+    SimulationResult(Result<Outcomes, String>),
+    Error(String),
+}
+
+fn run_simulations_parallel(
+    pool: &ProcessPool<WorkerTask, WorkerResponse>,
+    scenario_name: &str,
+    ais: &[AI],
+    matchups: Vec<(i32, Vec<usize>)>,
+    progress: &indicatif::ProgressBar,
+    seeds: &[u32],
+) -> Vec<(i32, Vec<usize>, Result<Outcomes, String>)> {
+    let ai_data: Vec<AI> = ais.to_vec();
+
+    // 1. Register AIs with all workers
+    let responses = pool.broadcast(WorkerTask::RegisterAIs { ais: ai_data });
+    for (idx, response) in responses.into_iter().enumerate() {
+        match response {
+            Ok(WorkerResponse::Registered) => {}
+            Ok(WorkerResponse::Error(err)) => {
+                log::error!("Worker {} failed to register AIs: {}", idx, err);
+            }
+            Err(err) => {
+                log::error!("Worker {} coordinator reported error during registration: {}", idx, err);
+            }
+            _ => panic!("Unexpected response during registration"),
+        }
+    }
+
+    // 2. Execute matchups
+    let requests: Vec<WorkerTask> = matchups
+        .iter()
+        .map(|(round, ai_indices)| WorkerTask::RunSimulation {
+            scenario_name: scenario_name.to_string(),
+            seed: seeds[*round as usize],
+            ai_indices: ai_indices.clone(),
+        })
+        .collect();
+
+    let responses = pool.execute(&requests, || progress.inc(1));
+
+    // Convert responses into final results
+    let mut results = Vec::with_capacity(matchups.len());
+    for (idx, response) in responses.into_iter().enumerate() {
+        let (round, ai_indices) = &matchups[idx];
+        let outcome_res = match response {
+            Ok(WorkerResponse::SimulationResult(res)) => res,
+            Ok(WorkerResponse::Registered) => Err("Received unexpected Registered response".to_string()),
+            Ok(WorkerResponse::Error(err)) => Err(err),
+            Err(err) => Err(err),
+        };
+        results.push((
+            *round,
+            ai_indices.clone(),
+            outcome_res,
+        ));
+    }
+    results
+}
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -68,38 +148,82 @@ struct Entrant {
     source_code: String,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+#[cfg(not(test))]
+fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("tournament=info"))
         .init();
 
     let args = Arguments::parse();
-    match args.cmd {
-        SubCommand::Run {
-            scenario,
-            usernames,
-            rounds,
-            dry_run,
-        } => cmd_run(&args.project_id, &scenario, &usernames, rounds, dry_run).await,
-        SubCommand::RunUnofficial {
-            scenario,
-            shortcodes,
-            rounds,
-            dev,
-            wasm_cache,
-        } => cmd_run_unofficial(&scenario, &shortcodes, rounds, dev, wasm_cache).await,
-        SubCommand::Fetch { scenario, out_dir } => {
-            cmd_fetch(&args.project_id, &scenario, &out_dir).await
+    let needs_workers = matches!(&args.cmd, SubCommand::Run { .. } | SubCommand::RunUnofficial { .. });
+
+    let pool = if needs_workers {
+        let mut registered_ais = Vec::new();
+        Some(ProcessPool::new(move |req: WorkerTask| -> WorkerResponse {
+            match req {
+                WorkerTask::RegisterAIs { ais } => {
+                    registered_ais = ais;
+                    WorkerResponse::Registered
+                }
+                WorkerTask::RunSimulation { scenario_name, seed, ai_indices } => {
+                    let ais_for_sim: Vec<&AI> = ai_indices.iter().map(|&idx| &registered_ais[idx]).collect();
+                    let res = run_simulation(&scenario_name, seed, &ais_for_sim);
+                    WorkerResponse::SimulationResult(res)
+                }
+            }
+        }))
+    } else {
+        None
+    };
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+
+    let res = rt.block_on(async {
+        match args.cmd {
+            SubCommand::Run {
+                ref scenario,
+                ref usernames,
+                rounds,
+                dry_run,
+            } => {
+                let pool_ref = pool.as_ref().expect("Process pool must be initialized for Run");
+                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run).await
+            }
+            SubCommand::RunUnofficial {
+                ref scenario,
+                ref shortcodes,
+                rounds,
+                dev,
+                ref wasm_cache,
+            } => {
+                let pool_ref = pool.as_ref().expect("Process pool must be initialized for RunUnofficial");
+                cmd_run_unofficial(pool_ref, scenario, shortcodes, rounds, dev, wasm_cache.clone()).await
+            }
+            SubCommand::Fetch { ref scenario, ref out_dir } => {
+                cmd_fetch(&args.project_id, scenario, out_dir).await
+            }
+            SubCommand::Write {
+                ref scenario,
+                ref username,
+                ref path,
+            } => cmd_write(&args.project_id, scenario, username, path).await,
         }
-        SubCommand::Write {
-            scenario,
-            username,
-            path,
-        } => cmd_write(&args.project_id, &scenario, &username, &path).await,
-    }
+    });
+
+    drop(pool);
+
+    res
 }
 
+#[cfg(test)]
+fn main() -> anyhow::Result<()> {
+    tests::run_all_tests()
+}
+
+
 async fn cmd_run(
+    pool: &ProcessPool<WorkerTask, WorkerResponse>,
     project_id: &str,
     scenario_name: &str,
     usernames: &[String],
@@ -127,7 +251,7 @@ async fn cmd_run(
     let ais: Vec<AI> = results.into_iter().collect::<anyhow::Result<Vec<AI>>>()?;
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &ais, rounds, run_simulation);
+    let results = run_tournament(pool, scenario_name, &ais, rounds);
 
     display_results(&results);
 
@@ -139,6 +263,7 @@ async fn cmd_run(
 }
 
 async fn cmd_run_unofficial(
+    pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
     shortcodes: &[String],
     rounds: i32,
@@ -152,7 +277,7 @@ async fn cmd_run_unofficial(
         .await?;
 
     log::info!("Running tournament");
-    let results = run_tournament(scenario_name, &ais, rounds, run_simulation);
+    let results = run_tournament(pool, scenario_name, &ais, rounds);
 
     display_results(&results);
 
@@ -168,10 +293,10 @@ fn unordered_pair(name0: &str, name1: &str) -> (String, String) {
 }
 
 fn run_tournament(
+    pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
-    run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
     let min_players_for_adaptive = 5;
     let min_rounds_for_adaptive = 10;
@@ -179,17 +304,17 @@ fn run_tournament(
     let use_adaptive = ais.len() > min_players_for_adaptive && rounds >= min_rounds_for_adaptive;
 
     if use_adaptive {
-        run_adaptive_tournament(scenario_name, ais, rounds, run_sim)
+        run_adaptive_tournament(pool, scenario_name, ais, rounds)
     } else {
-        run_round_robin_tournament(scenario_name, ais, rounds, run_sim)
+        run_round_robin_tournament(pool, scenario_name, ais, rounds)
     }
 }
 
 fn run_round_robin_tournament(
+    pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
-    run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::rng().random()).collect();
     let config = Glicko2Config::new();
@@ -205,18 +330,9 @@ fn run_round_robin_tournament(
             .template("{wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
             .unwrap(),
     );
-    let outcomes: Vec<(i32, Vec<_>, Result<Outcomes, String>)> = pairs
-        .par_iter()
-        .map(|(round, indices)| {
-            let seed = seeds[*round as usize];
-            let ai0: &AI = &ais[indices[0]];
-            let ai1: &AI = &ais[indices[1]];
-            let res = run_sim(scenario_name, seed, &[ai0, ai1]);
-            progress.inc(1);
-            (*round, indices.clone(), res)
-        })
-        .collect();
+    let outcomes = run_simulations_parallel(pool, scenario_name, ais, pairs, &progress, &seeds);
     progress.finish_and_clear();
+
 
     let mut crashes = Vec::new();
     for (round, indices, outcome_res) in outcomes {
@@ -290,10 +406,10 @@ fn run_round_robin_tournament(
 }
 
 fn run_adaptive_tournament(
+    pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
-    run_sim: fn(&str, u32, &[&AI]) -> Result<Outcomes, String>,
 ) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::rng().random()).collect();
     let config = Glicko2Config::new();
@@ -318,17 +434,7 @@ fn run_adaptive_tournament(
             .unwrap(),
     );
 
-    let base_outcomes: Vec<(i32, Vec<usize>, Result<Outcomes, String>)> = base_pairs
-        .par_iter()
-        .map(|(round, indices)| {
-            let seed = seeds[*round as usize];
-            let ai0: &AI = &ais[indices[0]];
-            let ai1: &AI = &ais[indices[1]];
-            let res = run_sim(scenario_name, seed, &[ai0, ai1]);
-            progress.inc(1);
-            (*round, indices.clone(), res)
-        })
-        .collect();
+    let base_outcomes = run_simulations_parallel(pool, scenario_name, ais, base_pairs, &progress, &seeds);
     progress.finish_and_clear();
 
     // Track stats for the base phase
@@ -415,7 +521,7 @@ fn run_adaptive_tournament(
         }
     }
 
-    let refinement_outcomes: Vec<(i32, Vec<usize>, Result<Outcomes, String>)> = if !refinement_matchups.is_empty() {
+    let refinement_outcomes = if !refinement_matchups.is_empty() {
         let progress = indicatif::ProgressBar::new(refinement_matchups.len() as u64);
         progress.set_style(
             indicatif::ProgressStyle::default_bar()
@@ -423,17 +529,7 @@ fn run_adaptive_tournament(
                 .unwrap(),
         );
 
-        let outcomes: Vec<(i32, Vec<usize>, Result<Outcomes, String>)> = refinement_matchups
-            .par_iter()
-            .map(|(round, indices)| {
-                let seed = seeds[*round as usize];
-                let ai0: &AI = &ais[indices[0]];
-                let ai1: &AI = &ais[indices[1]];
-                let res = run_sim(scenario_name, seed, &[ai0, ai1]);
-                progress.inc(1);
-                (*round, indices.clone(), res)
-            })
-            .collect();
+        let outcomes = run_simulations_parallel(pool, scenario_name, ais, refinement_matchups, &progress, &seeds);
         progress.finish_and_clear();
         outcomes
     } else {
@@ -770,29 +866,8 @@ mod tests {
         Ok(outcome)
     }
 
-    #[test]
-    fn test_adaptive_tournament() {
-        let _ = env_logger::builder().is_test(true).try_init();
-
-        let names = vec![
-            "bot0".to_string(),
-            "bot1".to_string(),
-            "bot2".to_string(),
-            "bot3".to_string(),
-            "bot4".to_string(),
-            "bot5".to_string(),
-        ];
-
-        let ais: Vec<AI> = names
-            .into_iter()
-            .map(|name| AI {
-                name,
-                source_code: String::new(),
-                compiled_code: oort_simulator::simulation::Code::None,
-            })
-            .collect();
-
-        let results = run_tournament("fighter_duel", &ais, 12, mock_run_simulation);
+    fn test_adaptive_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
+        let results = run_tournament(pool, "fighter_duel", ais, 12);
 
         assert_eq!(results.competitors.len(), 6);
         assert_eq!(results.win_matrix.len(), 36);
@@ -812,10 +887,28 @@ mod tests {
         assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
     }
 
-    #[test]
-    fn test_round_robin_tournament() {
-        let _ = env_logger::builder().is_test(true).try_init();
+    fn test_round_robin_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
+        let results = run_tournament(pool, "fighter_duel", ais, 3);
 
+        assert_eq!(results.competitors.len(), 6);
+        assert_eq!(results.win_matrix.len(), 36);
+        for competitor in &results.competitors {
+            assert!(competitor.rating > 0.0);
+        }
+
+        // We expect bot4 vs bot5 matches to crash.
+        // 3 rounds * 2 directions = 6 crashes.
+        assert_eq!(results.crashes.len(), 6);
+        for crash in &results.crashes {
+            assert!(crash.ais.contains(&"bot4".to_string()));
+            assert!(crash.ais.contains(&"bot5".to_string()));
+        }
+
+        let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
+        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
+    }
+
+    pub fn run_all_tests() -> anyhow::Result<()> {
         let names = vec![
             "bot0".to_string(),
             "bot1".to_string(),
@@ -834,23 +927,30 @@ mod tests {
             })
             .collect();
 
-        let results = run_tournament("fighter_duel", &ais, 3, mock_run_simulation);
+        // Initialize the ProcessPool while single-threaded (before any other threads are spawned)
+        let mut registered_ais = Vec::new();
+        let pool = ProcessPool::new(move |req: WorkerTask| -> WorkerResponse {
+            match req {
+                WorkerTask::RegisterAIs { ais } => {
+                    registered_ais = ais;
+                    WorkerResponse::Registered
+                }
+                WorkerTask::RunSimulation { scenario_name, seed, ai_indices } => {
+                    let ais_for_sim: Vec<&AI> = ai_indices.iter().map(|&idx| &registered_ais[idx]).collect();
+                    let res = mock_run_simulation(&scenario_name, seed, &ais_for_sim);
+                    WorkerResponse::SimulationResult(res)
+                }
+            }
+        });
 
-        assert_eq!(results.competitors.len(), 6);
-        assert_eq!(results.win_matrix.len(), 36);
-        for competitor in &results.competitors {
-            assert!(competitor.rating > 0.0);
-        }
+        println!("Running test_adaptive_tournament...");
+        test_adaptive_tournament(&pool, &ais);
+        println!("test_adaptive_tournament passed.");
 
-        // We expect bot4 vs bot5 matches to crash.
-        // 3 rounds * 2 directions = 6 crashes.
-        assert_eq!(results.crashes.len(), 6);
-        for crash in &results.crashes {
-            assert!(crash.ais.contains(&"bot4".to_string()));
-            assert!(crash.ais.contains(&"bot5".to_string()));
-        }
+        println!("Running test_round_robin_tournament...");
+        test_round_robin_tournament(&pool, &ais);
+        println!("test_round_robin_tournament passed.");
 
-        let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
-        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
+        Ok(())
     }
 }
