@@ -12,7 +12,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: binaryen
+          tools: binaryen cmake
       - run: cargo check
       - run: cargo test
   check-wasm:
@@ -28,5 +28,5 @@ jobs:
           workspaces: frontend
       - uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: binaryen
+          tools: binaryen cmake
       - run: cargo check --manifest-path=frontend/Cargo.toml --target=wasm32-unknown-unknown
