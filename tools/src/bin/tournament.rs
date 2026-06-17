@@ -269,16 +269,7 @@ enum SubCommand {
         #[clap(long, default_value = "/tmp/oort-wasm-cache")]
         wasm_cache: Option<PathBuf>,
     },
-    RunIncremental {
-        scenario: String,
-        usernames: Vec<String>,
 
-        #[clap(short, long, default_value_t = 100)]
-        rounds: i32,
-
-        #[clap(short, long)]
-        dry_run: bool,
-    },
     Fetch {
         scenario: String,
         out_dir: String,
@@ -304,7 +295,7 @@ fn main() -> anyhow::Result<()> {
     let args = Arguments::parse();
     let needs_workers = matches!(
         &args.cmd,
-        SubCommand::Run { .. } | SubCommand::RunUnofficial { .. } | SubCommand::RunIncremental { .. }
+        SubCommand::Run { .. } | SubCommand::RunUnofficial { .. }
     );
 
     let pool = if needs_workers {
@@ -341,15 +332,6 @@ fn main() -> anyhow::Result<()> {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for Run");
                 cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run).await
             }
-            SubCommand::RunIncremental {
-                ref scenario,
-                ref usernames,
-                rounds,
-                dry_run,
-            } => {
-                let pool_ref = pool.as_ref().expect("Process pool must be initialized for RunIncremental");
-                cmd_run_incremental(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run).await
-            }
             SubCommand::RunUnofficial {
                 ref scenario,
                 ref shortcodes,
@@ -382,47 +364,6 @@ fn main() -> anyhow::Result<()> {
 }
 
 
-async fn cmd_run(
-    pool: &ProcessPool<WorkerTask, WorkerResponse>,
-    project_id: &str,
-    scenario_name: &str,
-    usernames: &[String],
-    rounds: i32,
-    dry_run: bool,
-) -> anyhow::Result<()> {
-    let db = FirestoreDb::new(project_id).await?;
-    scenario::load_safe(scenario_name).expect("Unknown scenario");
-
-    let mut compiler = oort_compiler::Compiler::new();
-    let entrants = get_entrants(&db, scenario_name, usernames).await?;
-    let results: Vec<anyhow::Result<AI>> = entrants
-        .iter()
-        .map(|entrant| {
-            log::info!("Compiling {:?}", entrant.username);
-            let compiled_code = compiler.compile(&entrant.source_code)?;
-            let compiled_code = oort_simulator::vm::precompile(&compiled_code).unwrap();
-            Ok(AI {
-                name: entrant.username.clone(),
-                source_code: entrant.source_code.clone(),
-                compiled_code,
-            })
-        })
-        .collect();
-    let ais: Vec<AI> = results.into_iter().collect::<anyhow::Result<Vec<AI>>>()?;
-    let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
-
-    log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, None, &ai_hashes);
-
-    display_results(&results);
-
-    if !dry_run {
-        upload_results(&db, project_id, &entrants, &results).await?;
-    }
-
-    Ok(())
-}
-
 async fn cmd_run_unofficial(
     pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
@@ -446,7 +387,7 @@ async fn cmd_run_unofficial(
     Ok(())
 }
 
-async fn cmd_run_incremental(
+async fn cmd_run(
     pool: &ProcessPool<WorkerTask, WorkerResponse>,
     project_id: &str,
     scenario_name: &str,
