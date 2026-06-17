@@ -64,9 +64,9 @@ fn get_code_hash(source_code: &str) -> String {
     hex::encode(hasher.finalize())
 }
 
-fn get_start_seed(hash0: &str, hash1: &str) -> u32 {
+fn get_start_seed(hash0: &str, hash1: &str, secret_hash: &str) -> u32 {
     let mut hasher = Sha256::new();
-    hasher.update(format!("{}:{}", hash0, hash1).as_bytes());
+    hasher.update(format!("{}:{}:{}", hash0, hash1, secret_hash).as_bytes());
     let result = hasher.finalize();
     u32::from_be_bytes(result[0..4].try_into().unwrap())
 }
@@ -83,7 +83,10 @@ fn get_pair_outcomes(
     sim_matchups_info: &mut Vec<(usize, usize, i32)>,
     cached_outcomes: &mut Vec<(i32, Vec<usize>, u32, Result<Outcomes, String>)>,
     seeds: &[u32],
+    secret_hash: &str,
 ) {
+    let expected_start_seed = get_start_seed(hash_i, hash_j, secret_hash);
+
     if cache.is_none() {
         for round in 0..target_rounds {
             to_simulate.push((round, vec![i, j], seeds[round as usize]));
@@ -97,6 +100,7 @@ fn get_pair_outcomes(
             e.player0_hash == *hash_i
                 && e.player1_hash == *hash_j
                 && e.num_seeds == target_rounds as u32
+                && e.start_seed == expected_start_seed
         })
     }) {
         cache_hit = true;
@@ -120,9 +124,8 @@ fn get_pair_outcomes(
     }
 
     if !cache_hit {
-        let start_seed = get_start_seed(hash_i, hash_j);
         for round in 0..target_rounds {
-            to_simulate.push((round, vec![i, j], start_seed.wrapping_add(round as u32)));
+            to_simulate.push((round, vec![i, j], expected_start_seed.wrapping_add(round as u32)));
             sim_matchups_info.push((i, j, target_rounds));
         }
     }
@@ -134,6 +137,7 @@ fn update_cache_from_simulations(
     sim_outcomes: &[(i32, Vec<usize>, u32, Result<Outcomes, String>)],
     sim_matchups_info: &[(usize, usize, i32)],
     ai_hashes: &[String],
+    secret_hash: &str,
 ) {
     let mut pair_results: HashMap<(usize, usize, i32), (u32, u32, u32)> = HashMap::new();
     for (idx, (_, _, _, outcome_res)) in sim_outcomes.iter().enumerate() {
@@ -153,7 +157,7 @@ fn update_cache_from_simulations(
     for ((i, j, target_rounds), (wins, losses, draws)) in pair_results {
         let hash_i = &ai_hashes[i];
         let hash_j = &ai_hashes[j];
-        let start_seed = get_start_seed(hash_i, hash_j);
+        let start_seed = get_start_seed(hash_i, hash_j, secret_hash);
         
         if let Some(entry) = cache.entries.iter_mut().find(|e| e.player0_hash == *hash_i && e.player1_hash == *hash_j) {
             entry.num_seeds = target_rounds as u32;
@@ -255,6 +259,9 @@ enum SubCommand {
 
         #[clap(short, long)]
         dry_run: bool,
+
+        #[clap(long, default_value = "")]
+        secret: String,
     },
     RunUnofficial {
         scenario: String,
@@ -328,9 +335,10 @@ fn main() -> anyhow::Result<()> {
                 ref usernames,
                 rounds,
                 dry_run,
+                ref secret,
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for Run");
-                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run).await
+                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run, secret).await
             }
             SubCommand::RunUnofficial {
                 ref scenario,
@@ -379,8 +387,9 @@ async fn cmd_run_unofficial(
         .await?;
     let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
 
+    let secret_hash = get_code_hash("");
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, None, &ai_hashes);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, None, &ai_hashes, &secret_hash);
 
     display_results(&results);
 
@@ -394,6 +403,7 @@ async fn cmd_run(
     usernames: &[String],
     rounds: i32,
     dry_run: bool,
+    secret: &str,
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id).await?;
     scenario::load_safe(scenario_name).expect("Unknown scenario");
@@ -438,8 +448,9 @@ async fn cmd_run(
         initial_entry_count
     );
 
+    let secret_hash = get_code_hash(secret);
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, Some(&mut cache), &ai_hashes);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, Some(&mut cache), &ai_hashes, &secret_hash);
 
     display_results(&results);
 
@@ -463,6 +474,7 @@ fn run_tournament(
     rounds: i32,
     mut cache: Option<&mut IncrementalCache>,
     ai_hashes: &[String],
+    secret_hash: &str,
 ) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::rng().random()).collect();
     let config = Glicko2Config::new();
@@ -493,6 +505,7 @@ fn run_tournament(
                 &mut sim_matchups_info,
                 &mut cached_outcomes,
                 &seeds,
+                secret_hash,
             );
         }
     }
@@ -512,7 +525,7 @@ fn run_tournament(
     progress.finish_and_clear();
 
     if let Some(ref mut c) = cache {
-        update_cache_from_simulations(c, &sim_outcomes, &sim_matchups_info, ai_hashes);
+        update_cache_from_simulations(c, &sim_outcomes, &sim_matchups_info, ai_hashes, secret_hash);
     }
 
     outcomes.extend(cached_outcomes);
@@ -828,7 +841,8 @@ mod tests {
 
     fn test_round_robin_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
         let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
-        let results = run_tournament(pool, "fighter_duel", ais, 3, None, &ai_hashes);
+        let secret_hash = get_code_hash("");
+        let results = run_tournament(pool, "fighter_duel", ais, 3, None, &ai_hashes, &secret_hash);
 
         assert_eq!(results.competitors.len(), 6);
         assert_eq!(results.win_matrix.len(), 36);
@@ -850,10 +864,11 @@ mod tests {
 
     fn test_incremental_cache(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
         let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
+        let secret_hash = get_code_hash("");
         let mut cache = IncrementalCache::default();
 
         // 1. First run: cache is empty, so it will simulate all matchups
-        let _results1 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes);
+        let _results1 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes, &secret_hash);
         assert_eq!(cache.entries.len(), 30); // 6 * 5 = 30 pairings
         for entry in &cache.entries {
             assert_eq!(entry.num_seeds, 3);
@@ -865,18 +880,25 @@ mod tests {
         let target_hash0 = &ai_hashes[0];
         let target_hash1 = &ai_hashes[5];
         if let Some(entry) = cache.entries.iter_mut().find(|e| e.player0_hash == *target_hash0 && e.player1_hash == *target_hash1) {
-            entry.wins = 100;
-            entry.losses = 0;
+            entry.wins = 0;
+            entry.losses = 100;
             entry.draws = 0;
             entry.num_seeds = 3;
         }
 
-        let results2 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes);
+        let results2 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes, &secret_hash);
         
         let idx0 = results2.competitors.iter().position(|c| c.username == "bot0").unwrap();
         let idx5 = results2.competitors.iter().position(|c| c.username == "bot5").unwrap();
         let win_rate = results2.win_matrix[idx0 * 6 + idx5];
-        assert!((win_rate - 1.0).abs() < 1e-9);
+        assert!((win_rate - 0.5).abs() < 1e-9);
+
+        // 3. Third run: cache is populated, but we run with a different secret
+        // It should result in a cache miss for all entries, re-simulate, and generate new entries for the new secret.
+        let different_secret_hash = get_code_hash("my-secret");
+        let results3 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes, &different_secret_hash);
+        let win_rate3 = results3.win_matrix[idx0 * 6 + idx5];
+        assert!((win_rate3 - 1.0).abs() < 1e-9);
     }
 
     pub fn run_all_tests() -> anyhow::Result<()> {
