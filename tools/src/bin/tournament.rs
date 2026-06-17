@@ -2,10 +2,12 @@
 
 use chrono::Utc;
 use clap::{Parser, Subcommand};
+use std::collections::HashSet;
+use sha2::{Digest, Sha256};
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
 use firestore::*;
-use itertools::Itertools;
+
 use oort_proto::{ShortcodeUpload, TournamentCompetitor, TournamentResults, TournamentSubmission};
 use oort_simulator::{scenario, simulation};
 use oort_tools::AI;
@@ -40,14 +42,147 @@ enum WorkerResponse {
     Error(String),
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct CacheEntry {
+    player0_hash: String,
+    player1_hash: String,
+    start_seed: u32,
+    num_seeds: u32,
+    wins: u32,
+    losses: u32,
+    draws: u32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+struct IncrementalCache {
+    entries: Vec<CacheEntry>,
+}
+
+fn get_code_hash(source_code: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(source_code.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
+fn get_start_seed(hash0: &str, hash1: &str) -> u32 {
+    let mut hasher = Sha256::new();
+    hasher.update(format!("{}:{}", hash0, hash1).as_bytes());
+    let result = hasher.finalize();
+    u32::from_be_bytes(result[0..4].try_into().unwrap())
+}
+
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+fn get_pair_outcomes(
+    i: usize,
+    j: usize,
+    hash_i: &str,
+    hash_j: &str,
+    target_rounds: i32,
+    cache: Option<&mut IncrementalCache>,
+    to_simulate: &mut Vec<(i32, Vec<usize>, u32)>,
+    sim_matchups_info: &mut Vec<(usize, usize, i32)>,
+    cached_outcomes: &mut Vec<(i32, Vec<usize>, u32, Result<Outcomes, String>)>,
+    seeds: &[u32],
+) {
+    if cache.is_none() {
+        for round in 0..target_rounds {
+            to_simulate.push((round, vec![i, j], seeds[round as usize]));
+        }
+        return;
+    }
+
+    let mut cache_hit = false;
+    if let Some(entry) = cache.as_ref().and_then(|c| {
+        c.entries.iter().find(|e| {
+            e.player0_hash == *hash_i
+                && e.player1_hash == *hash_j
+                && e.num_seeds == target_rounds as u32
+        })
+    }) {
+        cache_hit = true;
+        let mut w = entry.wins as usize;
+        let mut l = entry.losses as usize;
+        let mut d = entry.draws as usize;
+        let start_seed = entry.start_seed;
+        for round in 0..target_rounds {
+            let outcome = if w > 0 {
+                w -= 1;
+                Outcomes::WIN
+            } else if l > 0 {
+                l -= 1;
+                Outcomes::LOSS
+            } else {
+                d = d.saturating_sub(1);
+                Outcomes::DRAW
+            };
+            cached_outcomes.push((round, vec![i, j], start_seed.wrapping_add(round as u32), Ok(outcome)));
+        }
+    }
+
+    if !cache_hit {
+        let start_seed = get_start_seed(hash_i, hash_j);
+        for round in 0..target_rounds {
+            to_simulate.push((round, vec![i, j], start_seed.wrapping_add(round as u32)));
+            sim_matchups_info.push((i, j, target_rounds));
+        }
+    }
+}
+
+#[allow(clippy::type_complexity)]
+fn update_cache_from_simulations(
+    cache: &mut IncrementalCache,
+    sim_outcomes: &[(i32, Vec<usize>, u32, Result<Outcomes, String>)],
+    sim_matchups_info: &[(usize, usize, i32)],
+    ai_hashes: &[String],
+) {
+    let mut pair_results: HashMap<(usize, usize, i32), (u32, u32, u32)> = HashMap::new();
+    for (idx, (_, _, _, outcome_res)) in sim_outcomes.iter().enumerate() {
+        let (i, j, target_rounds) = sim_matchups_info[idx];
+        let counts = pair_results.entry((i, j, target_rounds)).or_insert((0, 0, 0));
+        if let Ok(outcome) = outcome_res {
+            match outcome {
+                Outcomes::WIN => counts.0 += 1,
+                Outcomes::LOSS => counts.1 += 1,
+                Outcomes::DRAW => counts.2 += 1,
+            }
+        } else {
+            counts.2 += 1;
+        }
+    }
+
+    for ((i, j, target_rounds), (wins, losses, draws)) in pair_results {
+        let hash_i = &ai_hashes[i];
+        let hash_j = &ai_hashes[j];
+        let start_seed = get_start_seed(hash_i, hash_j);
+        
+        if let Some(entry) = cache.entries.iter_mut().find(|e| e.player0_hash == *hash_i && e.player1_hash == *hash_j) {
+            entry.num_seeds = target_rounds as u32;
+            entry.start_seed = start_seed;
+            entry.wins = wins;
+            entry.losses = losses;
+            entry.draws = draws;
+        } else {
+            cache.entries.push(CacheEntry {
+                player0_hash: hash_i.clone(),
+                player1_hash: hash_j.clone(),
+                start_seed,
+                num_seeds: target_rounds as u32,
+                wins,
+                losses,
+                draws,
+            });
+        }
+    }
+}
+
+#[allow(clippy::type_complexity)]
 fn run_simulations_parallel(
     pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
     ais: &[AI],
-    matchups: Vec<(i32, Vec<usize>)>,
+    matchups: Vec<(i32, Vec<usize>, u32)>, // (round, indices, seed)
     progress: &indicatif::ProgressBar,
-    seeds: &[u32],
-) -> Vec<(i32, Vec<usize>, Result<Outcomes, String>)> {
+) -> Vec<(i32, Vec<usize>, u32, Result<Outcomes, String>)> {
     let ai_data: Vec<AI> = ais.to_vec();
 
     // 1. Register AIs with all workers
@@ -68,9 +203,9 @@ fn run_simulations_parallel(
     // 2. Execute matchups
     let requests: Vec<WorkerTask> = matchups
         .iter()
-        .map(|(round, ai_indices)| WorkerTask::RunSimulation {
+        .map(|(_, ai_indices, seed)| WorkerTask::RunSimulation {
             scenario_name: scenario_name.to_string(),
-            seed: seeds[*round as usize],
+            seed: *seed,
             ai_indices: ai_indices.clone(),
         })
         .collect();
@@ -80,7 +215,7 @@ fn run_simulations_parallel(
     // Convert responses into final results
     let mut results = Vec::with_capacity(matchups.len());
     for (idx, response) in responses.into_iter().enumerate() {
-        let (round, ai_indices) = &matchups[idx];
+        let (round, ai_indices, seed) = &matchups[idx];
         let outcome_res = match response {
             Ok(WorkerResponse::SimulationResult(res)) => res,
             Ok(WorkerResponse::Registered) => Err("Received unexpected Registered response".to_string()),
@@ -90,6 +225,7 @@ fn run_simulations_parallel(
         results.push((
             *round,
             ai_indices.clone(),
+            *seed,
             outcome_res,
         ));
     }
@@ -143,6 +279,19 @@ enum SubCommand {
         #[clap(long, value_enum, default_value_t = TournamentType::RoundRobin)]
         tournament_type: TournamentType,
     },
+    RunIncremental {
+        scenario: String,
+        usernames: Vec<String>,
+
+        #[clap(short, long, default_value_t = 100)]
+        rounds: i32,
+
+        #[clap(short, long)]
+        dry_run: bool,
+
+        #[clap(long, value_enum, default_value_t = TournamentType::RoundRobin)]
+        tournament_type: TournamentType,
+    },
     Fetch {
         scenario: String,
         out_dir: String,
@@ -166,7 +315,10 @@ fn main() -> anyhow::Result<()> {
         .init();
 
     let args = Arguments::parse();
-    let needs_workers = matches!(&args.cmd, SubCommand::Run { .. } | SubCommand::RunUnofficial { .. });
+    let needs_workers = matches!(
+        &args.cmd,
+        SubCommand::Run { .. } | SubCommand::RunUnofficial { .. } | SubCommand::RunIncremental { .. }
+    );
 
     let pool = if needs_workers {
         let mut registered_ais = Vec::new();
@@ -202,6 +354,16 @@ fn main() -> anyhow::Result<()> {
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for Run");
                 cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run, tournament_type).await
+            }
+            SubCommand::RunIncremental {
+                ref scenario,
+                ref usernames,
+                rounds,
+                dry_run,
+                tournament_type,
+            } => {
+                let pool_ref = pool.as_ref().expect("Process pool must be initialized for RunIncremental");
+                cmd_run_incremental(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run, tournament_type).await
             }
             SubCommand::RunUnofficial {
                 ref scenario,
@@ -264,9 +426,10 @@ async fn cmd_run(
         })
         .collect();
     let ais: Vec<AI> = results.into_iter().collect::<anyhow::Result<Vec<AI>>>()?;
+    let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
 
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type, None, &ai_hashes);
 
     display_results(&results);
 
@@ -291,11 +454,80 @@ async fn cmd_run_unofficial(
     let http = reqwest::Client::new();
     let ais = oort_tools::fetch_and_compile_multiple(&http, shortcodes, dev, wasm_cache.as_deref())
         .await?;
+    let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
 
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type, None, &ai_hashes);
 
     display_results(&results);
+
+    Ok(())
+}
+
+async fn cmd_run_incremental(
+    pool: &ProcessPool<WorkerTask, WorkerResponse>,
+    project_id: &str,
+    scenario_name: &str,
+    usernames: &[String],
+    rounds: i32,
+    dry_run: bool,
+    tournament_type: TournamentType,
+) -> anyhow::Result<()> {
+    let db = FirestoreDb::new(project_id).await?;
+    scenario::load_safe(scenario_name).expect("Unknown scenario");
+
+    let mut compiler = oort_compiler::Compiler::new();
+    let entrants = get_entrants(&db, scenario_name, usernames).await?;
+    let results: Vec<anyhow::Result<AI>> = entrants
+        .iter()
+        .map(|entrant| {
+            log::info!("Compiling {:?}", entrant.username);
+            let compiled_code = compiler.compile(&entrant.source_code)?;
+            let compiled_code = oort_simulator::vm::precompile(&compiled_code).unwrap();
+            Ok(AI {
+                name: entrant.username.clone(),
+                source_code: entrant.source_code.clone(),
+                compiled_code,
+            })
+        })
+        .collect();
+    let ais: Vec<AI> = results.into_iter().collect::<anyhow::Result<Vec<AI>>>()?;
+
+    let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
+    let current_hashes_set: HashSet<String> = ai_hashes.iter().cloned().collect();
+
+    log::info!("Reading incremental cache from Firestore");
+    let cache_doc_id = scenario_name.to_string();
+    let mut cache: IncrementalCache = match db.get_obj("tournament_incremental_cache", &cache_doc_id).await {
+        Ok(c) => c,
+        Err(_) => {
+            log::info!("No existing cache found. Initializing new cache.");
+            IncrementalCache::default()
+        }
+    };
+
+    let initial_entry_count = cache.entries.len();
+    cache.entries.retain(|entry| {
+        current_hashes_set.contains(&entry.player0_hash) && current_hashes_set.contains(&entry.player1_hash)
+    });
+    log::info!(
+        "Retained {}/{} cache entries based on current AIs",
+        cache.entries.len(),
+        initial_entry_count
+    );
+
+    log::info!("Running tournament");
+    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type, Some(&mut cache), &ai_hashes);
+
+    display_results(&results);
+
+    if !dry_run {
+        upload_results(&db, project_id, &entrants, &results).await?;
+        
+        log::info!("Writing updated incremental cache to Firestore");
+        db.update_obj::<_, (), _>("tournament_incremental_cache", cache_doc_id, &cache, None, None, None)
+            .await?;
+    }
 
     Ok(())
 }
@@ -314,10 +546,12 @@ fn run_tournament(
     ais: &[AI],
     rounds: i32,
     tournament_type: TournamentType,
+    cache: Option<&mut IncrementalCache>,
+    ai_hashes: &[String],
 ) -> TournamentResults {
     match tournament_type {
-        TournamentType::RoundRobin => run_round_robin_tournament(pool, scenario_name, ais, rounds),
-        TournamentType::Adaptive => run_adaptive_tournament(pool, scenario_name, ais, rounds),
+        TournamentType::RoundRobin => run_round_robin_tournament(pool, scenario_name, ais, rounds, cache, ai_hashes),
+        TournamentType::Adaptive => run_adaptive_tournament(pool, scenario_name, ais, rounds, cache, ai_hashes),
     }
 }
 
@@ -326,32 +560,71 @@ fn run_round_robin_tournament(
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
+    mut cache: Option<&mut IncrementalCache>,
+    ai_hashes: &[String],
 ) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::rng().random()).collect();
     let config = Glicko2Config::new();
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
     ratings.resize_with(ais.len(), Default::default);
-    let pairs: Vec<(i32, Vec<_>)> = (0..rounds)
-        .flat_map(|round| (0..(ais.len())).permutations(2).map(move |x| (round, x)))
-        .collect();
-    let progress = indicatif::ProgressBar::new(pairs.len() as u64);
+
+    let mut outcomes = Vec::new();
+    let mut to_simulate = Vec::new();
+    let mut cached_outcomes = Vec::new();
+    let mut sim_matchups_info = Vec::new();
+
+    for i in 0..ais.len() {
+        for j in 0..ais.len() {
+            if i == j {
+                continue;
+            }
+            let hash_i = &ai_hashes[i];
+            let hash_j = &ai_hashes[j];
+            get_pair_outcomes(
+                i,
+                j,
+                hash_i,
+                hash_j,
+                rounds,
+                cache.as_deref_mut(),
+                &mut to_simulate,
+                &mut sim_matchups_info,
+                &mut cached_outcomes,
+                &seeds,
+            );
+        }
+    }
+
+    let progress = indicatif::ProgressBar::new(to_simulate.len() as u64);
     progress.set_style(
         indicatif::ProgressStyle::default_bar()
             .template("{wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
             .unwrap(),
     );
-    let outcomes = run_simulations_parallel(pool, scenario_name, ais, pairs, &progress, &seeds);
+
+    let sim_outcomes = if !to_simulate.is_empty() {
+        run_simulations_parallel(pool, scenario_name, ais, to_simulate, &progress)
+    } else {
+        Vec::new()
+    };
     progress.finish_and_clear();
 
+    if let Some(ref mut c) = cache {
+        update_cache_from_simulations(c, &sim_outcomes, &sim_matchups_info, ai_hashes);
+    }
+
+    outcomes.extend(cached_outcomes);
+    outcomes.extend(sim_outcomes);
+    outcomes.sort_by_key(|x| x.0);
 
     let mut crashes = Vec::new();
-    for (round, indices, outcome_res) in outcomes {
+    for (round, indices, seed, outcome_res) in outcomes {
         let outcome = match outcome_res {
             Ok(outcome) => outcome,
             Err(_) => {
                 crashes.push(oort_proto::TournamentCrash {
-                    seed: seeds[round as usize],
+                    seed,
                     ais: indices.iter().map(|&idx| ais[idx].name.clone()).collect(),
                 });
                 Outcomes::DRAW
@@ -421,6 +694,8 @@ fn run_adaptive_tournament(
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
+    mut cache: Option<&mut IncrementalCache>,
+    ai_hashes: &[String],
 ) -> TournamentResults {
     let seeds: Vec<u32> = (0..rounds).map(|_| rand::rng().random()).collect();
     let config = Glicko2Config::new();
@@ -434,26 +709,60 @@ fn run_adaptive_tournament(
     );
 
     // 1. Base Phase (First s_base rounds)
-    let base_pairs: Vec<(i32, Vec<usize>)> = (0..s_base)
-        .flat_map(|round| (0..(ais.len())).permutations(2).map(move |x| (round, x)))
-        .collect();
+    let mut base_to_simulate = Vec::new();
+    let mut base_cached_outcomes = Vec::new();
+    let mut base_sim_matchups_info = Vec::new();
 
-    let progress = indicatif::ProgressBar::new(base_pairs.len() as u64);
+    for i in 0..ais.len() {
+        for j in 0..ais.len() {
+            if i == j {
+                continue;
+            }
+            let hash_i = &ai_hashes[i];
+            let hash_j = &ai_hashes[j];
+            get_pair_outcomes(
+                i,
+                j,
+                hash_i,
+                hash_j,
+                s_base,
+                cache.as_deref_mut(),
+                &mut base_to_simulate,
+                &mut base_sim_matchups_info,
+                &mut base_cached_outcomes,
+                &seeds,
+            );
+        }
+    }
+
+    let progress = indicatif::ProgressBar::new(base_to_simulate.len() as u64);
     progress.set_style(
         indicatif::ProgressStyle::default_bar()
             .template("[Base Phase] {wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
             .unwrap(),
     );
 
-    let base_outcomes = run_simulations_parallel(pool, scenario_name, ais, base_pairs, &progress, &seeds);
+    let base_sim_outcomes = if !base_to_simulate.is_empty() {
+        run_simulations_parallel(pool, scenario_name, ais, base_to_simulate, &progress)
+    } else {
+        Vec::new()
+    };
     progress.finish_and_clear();
+
+    if let Some(ref mut c) = cache {
+        update_cache_from_simulations(c, &base_sim_outcomes, &base_sim_matchups_info, ai_hashes);
+    }
+
+    let mut base_outcomes = Vec::new();
+    base_outcomes.extend(base_cached_outcomes);
+    base_outcomes.extend(base_sim_outcomes);
 
     // Track stats for the base phase
     let mut wins: HashMap<(String, String), usize> = HashMap::new();
     let mut total_played: HashMap<(String, String), usize> = HashMap::new();
     let mut ratings: Vec<Glicko2Rating> = vec![Default::default(); ais.len()];
 
-    for (_round, indices, outcome_res) in &base_outcomes {
+    for (_round, indices, _seed, outcome_res) in &base_outcomes {
         let outcome = match outcome_res {
             Ok(o) => o,
             Err(_) => &Outcomes::DRAW,
@@ -524,31 +833,79 @@ fn run_adaptive_tournament(
     }
 
     // 3. Refinement Phase (Remaining rounds for selected pairs)
-    let mut refinement_matchups = Vec::new();
+    let mut refinement_to_simulate = Vec::new();
+    let mut refinement_cached_outcomes = Vec::new();
+    let mut refinement_sim_matchups_info = Vec::new();
+
     for &(i, j) in &refined_pairs {
-        for round in s_base..rounds {
-            refinement_matchups.push((round, vec![i, j]));
-            refinement_matchups.push((round, vec![j, i]));
-        }
+        let hash_i = &ai_hashes[i];
+        let hash_j = &ai_hashes[j];
+
+        get_pair_outcomes(
+            i,
+            j,
+            hash_i,
+            hash_j,
+            rounds,
+            cache.as_deref_mut(),
+            &mut refinement_to_simulate,
+            &mut refinement_sim_matchups_info,
+            &mut refinement_cached_outcomes,
+            &seeds,
+        );
+
+        get_pair_outcomes(
+            j,
+            i,
+            hash_j,
+            hash_i,
+            rounds,
+            cache.as_deref_mut(),
+            &mut refinement_to_simulate,
+            &mut refinement_sim_matchups_info,
+            &mut refinement_cached_outcomes,
+            &seeds,
+        );
     }
 
-    let refinement_outcomes = if !refinement_matchups.is_empty() {
-        let progress = indicatif::ProgressBar::new(refinement_matchups.len() as u64);
+    let refinement_outcomes = if !refinement_to_simulate.is_empty() || !refinement_cached_outcomes.is_empty() {
+        let progress = indicatif::ProgressBar::new(refinement_to_simulate.len() as u64);
         progress.set_style(
             indicatif::ProgressStyle::default_bar()
                 .template("[Refinement Phase] {wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
                 .unwrap(),
         );
 
-        let outcomes = run_simulations_parallel(pool, scenario_name, ais, refinement_matchups, &progress, &seeds);
+        let sim_outcomes = if !refinement_to_simulate.is_empty() {
+            run_simulations_parallel(pool, scenario_name, ais, refinement_to_simulate, &progress)
+        } else {
+            Vec::new()
+        };
         progress.finish_and_clear();
+
+        if let Some(ref mut c) = cache {
+            update_cache_from_simulations(c, &sim_outcomes, &refinement_sim_matchups_info, ai_hashes);
+        }
+
+        let mut outcomes = Vec::new();
+        outcomes.extend(refinement_cached_outcomes);
+        outcomes.extend(sim_outcomes);
         outcomes
     } else {
         Vec::new()
     };
 
     // 4. Combine and update final ratings
-    let mut all_outcomes = base_outcomes;
+    let mut all_outcomes = Vec::new();
+    let refined_set: HashSet<(usize, usize)> = refined_pairs.iter().copied().collect();
+
+    for outcome in base_outcomes {
+        let i = outcome.1[0];
+        let j = outcome.1[1];
+        if !refined_set.contains(&(i, j)) && !refined_set.contains(&(j, i)) {
+            all_outcomes.push(outcome);
+        }
+    }
     all_outcomes.extend(refinement_outcomes);
     all_outcomes.sort_by_key(|x| x.0);
 
@@ -557,12 +914,12 @@ fn run_adaptive_tournament(
     total_played.clear();
     let mut crashes = Vec::new();
 
-    for (_round, indices, outcome_res) in &all_outcomes {
+    for (_round, indices, seed, outcome_res) in &all_outcomes {
         let outcome = match outcome_res {
             Ok(o) => o,
             Err(_) => {
                 crashes.push(oort_proto::TournamentCrash {
-                    seed: seeds[*_round as usize],
+                    seed: *seed,
                     ais: indices.iter().map(|&idx| ais[idx].name.clone()).collect(),
                 });
                 &Outcomes::DRAW
@@ -586,6 +943,7 @@ fn run_adaptive_tournament(
             *wins.entry((name1.clone(), name0.clone())).or_default() += 1;
         }
     }
+
 
     let mut competitors: Vec<_> = ais
         .iter()
@@ -878,7 +1236,8 @@ mod tests {
     }
 
     fn test_adaptive_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
-        let results = run_tournament(pool, "fighter_duel", ais, 12, TournamentType::Adaptive);
+        let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
+        let results = run_tournament(pool, "fighter_duel", ais, 12, TournamentType::Adaptive, None, &ai_hashes);
 
         assert_eq!(results.competitors.len(), 6);
         assert_eq!(results.win_matrix.len(), 36);
@@ -899,7 +1258,8 @@ mod tests {
     }
 
     fn test_round_robin_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
-        let results = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin);
+        let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
+        let results = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin, None, &ai_hashes);
 
         assert_eq!(results.competitors.len(), 6);
         assert_eq!(results.win_matrix.len(), 36);
@@ -919,6 +1279,37 @@ mod tests {
         assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
     }
 
+    fn test_incremental_cache(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
+        let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
+        let mut cache = IncrementalCache::default();
+
+        // 1. First run: cache is empty, so it will simulate all matchups
+        let _results1 = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin, Some(&mut cache), &ai_hashes);
+        assert_eq!(cache.entries.len(), 30); // 6 * 5 = 30 pairings
+        for entry in &cache.entries {
+            assert_eq!(entry.num_seeds, 3);
+            assert_eq!(entry.wins + entry.losses + entry.draws, 3);
+        }
+
+        // 2. Second run: cache is fully populated, so it should reuse the cached results
+        // We modify a cache entry and check if the results match the modified entry
+        let target_hash0 = &ai_hashes[0];
+        let target_hash1 = &ai_hashes[5];
+        if let Some(entry) = cache.entries.iter_mut().find(|e| e.player0_hash == *target_hash0 && e.player1_hash == *target_hash1) {
+            entry.wins = 100;
+            entry.losses = 0;
+            entry.draws = 0;
+            entry.num_seeds = 3;
+        }
+
+        let results2 = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin, Some(&mut cache), &ai_hashes);
+        
+        let idx0 = results2.competitors.iter().position(|c| c.username == "bot0").unwrap();
+        let idx5 = results2.competitors.iter().position(|c| c.username == "bot5").unwrap();
+        let win_rate = results2.win_matrix[idx0 * 6 + idx5];
+        assert!((win_rate - 1.0).abs() < 1e-9);
+    }
+
     pub fn run_all_tests() -> anyhow::Result<()> {
         let names = vec![
             "bot0".to_string(),
@@ -932,8 +1323,8 @@ mod tests {
         let ais: Vec<AI> = names
             .into_iter()
             .map(|name| AI {
-                name,
-                source_code: String::new(),
+                name: name.clone(),
+                source_code: name,
                 compiled_code: oort_simulator::simulation::Code::None,
             })
             .collect();
@@ -961,6 +1352,10 @@ mod tests {
         println!("Running test_round_robin_tournament...");
         test_round_robin_tournament(&pool, &ais);
         println!("test_round_robin_tournament passed.");
+
+        println!("Running test_incremental_cache...");
+        test_incremental_cache(&pool, &ais);
+        println!("test_incremental_cache passed.");
 
         Ok(())
     }
