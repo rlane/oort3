@@ -96,6 +96,12 @@ fn run_simulations_parallel(
     results
 }
 
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+enum TournamentType {
+    RoundRobin,
+    Adaptive,
+}
+
 #[derive(Parser, Debug)]
 #[clap()]
 struct Arguments {
@@ -117,6 +123,9 @@ enum SubCommand {
 
         #[clap(short, long)]
         dry_run: bool,
+
+        #[clap(long, value_enum, default_value_t = TournamentType::RoundRobin)]
+        tournament_type: TournamentType,
     },
     RunUnofficial {
         scenario: String,
@@ -130,6 +139,9 @@ enum SubCommand {
 
         #[clap(long, default_value = "/tmp/oort-wasm-cache")]
         wasm_cache: Option<PathBuf>,
+
+        #[clap(long, value_enum, default_value_t = TournamentType::RoundRobin)]
+        tournament_type: TournamentType,
     },
     Fetch {
         scenario: String,
@@ -186,9 +198,10 @@ fn main() -> anyhow::Result<()> {
                 ref usernames,
                 rounds,
                 dry_run,
+                tournament_type,
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for Run");
-                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run).await
+                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run, tournament_type).await
             }
             SubCommand::RunUnofficial {
                 ref scenario,
@@ -196,9 +209,10 @@ fn main() -> anyhow::Result<()> {
                 rounds,
                 dev,
                 ref wasm_cache,
+                tournament_type,
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for RunUnofficial");
-                cmd_run_unofficial(pool_ref, scenario, shortcodes, rounds, dev, wasm_cache.clone()).await
+                cmd_run_unofficial(pool_ref, scenario, shortcodes, rounds, dev, wasm_cache.clone(), tournament_type).await
             }
             SubCommand::Fetch { ref scenario, ref out_dir } => {
                 cmd_fetch(&args.project_id, scenario, out_dir).await
@@ -229,6 +243,7 @@ async fn cmd_run(
     usernames: &[String],
     rounds: i32,
     dry_run: bool,
+    tournament_type: TournamentType,
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id).await?;
     scenario::load_safe(scenario_name).expect("Unknown scenario");
@@ -251,7 +266,7 @@ async fn cmd_run(
     let ais: Vec<AI> = results.into_iter().collect::<anyhow::Result<Vec<AI>>>()?;
 
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type);
 
     display_results(&results);
 
@@ -269,6 +284,7 @@ async fn cmd_run_unofficial(
     rounds: i32,
     dev: bool,
     wasm_cache: Option<PathBuf>,
+    tournament_type: TournamentType,
 ) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
@@ -277,7 +293,7 @@ async fn cmd_run_unofficial(
         .await?;
 
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type);
 
     display_results(&results);
 
@@ -297,16 +313,11 @@ fn run_tournament(
     scenario_name: &str,
     ais: &[AI],
     rounds: i32,
+    tournament_type: TournamentType,
 ) -> TournamentResults {
-    let min_players_for_adaptive = 5;
-    let min_rounds_for_adaptive = 10;
-
-    let use_adaptive = ais.len() > min_players_for_adaptive && rounds >= min_rounds_for_adaptive;
-
-    if use_adaptive {
-        run_adaptive_tournament(pool, scenario_name, ais, rounds)
-    } else {
-        run_round_robin_tournament(pool, scenario_name, ais, rounds)
+    match tournament_type {
+        TournamentType::RoundRobin => run_round_robin_tournament(pool, scenario_name, ais, rounds),
+        TournamentType::Adaptive => run_adaptive_tournament(pool, scenario_name, ais, rounds),
     }
 }
 
@@ -867,7 +878,7 @@ mod tests {
     }
 
     fn test_adaptive_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
-        let results = run_tournament(pool, "fighter_duel", ais, 12);
+        let results = run_tournament(pool, "fighter_duel", ais, 12, TournamentType::Adaptive);
 
         assert_eq!(results.competitors.len(), 6);
         assert_eq!(results.win_matrix.len(), 36);
@@ -888,7 +899,7 @@ mod tests {
     }
 
     fn test_round_robin_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
-        let results = run_tournament(pool, "fighter_duel", ais, 3);
+        let results = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin);
 
         assert_eq!(results.competitors.len(), 6);
         assert_eq!(results.win_matrix.len(), 36);
