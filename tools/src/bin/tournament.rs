@@ -232,11 +232,7 @@ fn run_simulations_parallel(
     results
 }
 
-#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
-enum TournamentType {
-    RoundRobin,
-    Adaptive,
-}
+
 
 #[derive(Parser, Debug)]
 #[clap()]
@@ -259,9 +255,6 @@ enum SubCommand {
 
         #[clap(short, long)]
         dry_run: bool,
-
-        #[clap(long, value_enum, default_value_t = TournamentType::RoundRobin)]
-        tournament_type: TournamentType,
     },
     RunUnofficial {
         scenario: String,
@@ -275,9 +268,6 @@ enum SubCommand {
 
         #[clap(long, default_value = "/tmp/oort-wasm-cache")]
         wasm_cache: Option<PathBuf>,
-
-        #[clap(long, value_enum, default_value_t = TournamentType::RoundRobin)]
-        tournament_type: TournamentType,
     },
     RunIncremental {
         scenario: String,
@@ -288,9 +278,6 @@ enum SubCommand {
 
         #[clap(short, long)]
         dry_run: bool,
-
-        #[clap(long, value_enum, default_value_t = TournamentType::RoundRobin)]
-        tournament_type: TournamentType,
     },
     Fetch {
         scenario: String,
@@ -350,20 +337,18 @@ fn main() -> anyhow::Result<()> {
                 ref usernames,
                 rounds,
                 dry_run,
-                tournament_type,
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for Run");
-                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run, tournament_type).await
+                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run).await
             }
             SubCommand::RunIncremental {
                 ref scenario,
                 ref usernames,
                 rounds,
                 dry_run,
-                tournament_type,
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for RunIncremental");
-                cmd_run_incremental(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run, tournament_type).await
+                cmd_run_incremental(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run).await
             }
             SubCommand::RunUnofficial {
                 ref scenario,
@@ -371,10 +356,9 @@ fn main() -> anyhow::Result<()> {
                 rounds,
                 dev,
                 ref wasm_cache,
-                tournament_type,
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for RunUnofficial");
-                cmd_run_unofficial(pool_ref, scenario, shortcodes, rounds, dev, wasm_cache.clone(), tournament_type).await
+                cmd_run_unofficial(pool_ref, scenario, shortcodes, rounds, dev, wasm_cache.clone()).await
             }
             SubCommand::Fetch { ref scenario, ref out_dir } => {
                 cmd_fetch(&args.project_id, scenario, out_dir).await
@@ -405,7 +389,6 @@ async fn cmd_run(
     usernames: &[String],
     rounds: i32,
     dry_run: bool,
-    tournament_type: TournamentType,
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id).await?;
     scenario::load_safe(scenario_name).expect("Unknown scenario");
@@ -429,7 +412,7 @@ async fn cmd_run(
     let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
 
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type, None, &ai_hashes);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, None, &ai_hashes);
 
     display_results(&results);
 
@@ -447,7 +430,6 @@ async fn cmd_run_unofficial(
     rounds: i32,
     dev: bool,
     wasm_cache: Option<PathBuf>,
-    tournament_type: TournamentType,
 ) -> anyhow::Result<()> {
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
@@ -457,7 +439,7 @@ async fn cmd_run_unofficial(
     let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
 
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type, None, &ai_hashes);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, None, &ai_hashes);
 
     display_results(&results);
 
@@ -471,7 +453,6 @@ async fn cmd_run_incremental(
     usernames: &[String],
     rounds: i32,
     dry_run: bool,
-    tournament_type: TournamentType,
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id).await?;
     scenario::load_safe(scenario_name).expect("Unknown scenario");
@@ -517,7 +498,7 @@ async fn cmd_run_incremental(
     );
 
     log::info!("Running tournament");
-    let results = run_tournament(pool, scenario_name, &ais, rounds, tournament_type, Some(&mut cache), &ai_hashes);
+    let results = run_tournament(pool, scenario_name, &ais, rounds, Some(&mut cache), &ai_hashes);
 
     display_results(&results);
 
@@ -532,30 +513,9 @@ async fn cmd_run_incremental(
     Ok(())
 }
 
-fn unordered_pair(name0: &str, name1: &str) -> (String, String) {
-    if name0 < name1 {
-        (name0.to_string(), name1.to_string())
-    } else {
-        (name1.to_string(), name0.to_string())
-    }
-}
+
 
 fn run_tournament(
-    pool: &ProcessPool<WorkerTask, WorkerResponse>,
-    scenario_name: &str,
-    ais: &[AI],
-    rounds: i32,
-    tournament_type: TournamentType,
-    cache: Option<&mut IncrementalCache>,
-    ai_hashes: &[String],
-) -> TournamentResults {
-    match tournament_type {
-        TournamentType::RoundRobin => run_round_robin_tournament(pool, scenario_name, ais, rounds, cache, ai_hashes),
-        TournamentType::Adaptive => run_adaptive_tournament(pool, scenario_name, ais, rounds, cache, ai_hashes),
-    }
-}
-
-fn run_round_robin_tournament(
     pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
     ais: &[AI],
@@ -680,318 +640,6 @@ fn run_round_robin_tournament(
             );
         }
     }
-
-    TournamentResults {
-        scenario_name: scenario_name.to_string(),
-        competitors,
-        win_matrix,
-        crashes,
-    }
-}
-
-fn run_adaptive_tournament(
-    pool: &ProcessPool<WorkerTask, WorkerResponse>,
-    scenario_name: &str,
-    ais: &[AI],
-    rounds: i32,
-    mut cache: Option<&mut IncrementalCache>,
-    ai_hashes: &[String],
-) -> TournamentResults {
-    let seeds: Vec<u32> = (0..rounds).map(|_| rand::rng().random()).collect();
-    let config = Glicko2Config::new();
-    let s_base = 5;
-
-    log::info!(
-        "Running adaptive tournament for {} players (s_base = {}, rounds = {})",
-        ais.len(),
-        s_base,
-        rounds
-    );
-
-    // 1. Base Phase (First s_base rounds)
-    let mut base_to_simulate = Vec::new();
-    let mut base_cached_outcomes = Vec::new();
-    let mut base_sim_matchups_info = Vec::new();
-
-    for i in 0..ais.len() {
-        for j in 0..ais.len() {
-            if i == j {
-                continue;
-            }
-            let hash_i = &ai_hashes[i];
-            let hash_j = &ai_hashes[j];
-            get_pair_outcomes(
-                i,
-                j,
-                hash_i,
-                hash_j,
-                s_base,
-                cache.as_deref_mut(),
-                &mut base_to_simulate,
-                &mut base_sim_matchups_info,
-                &mut base_cached_outcomes,
-                &seeds,
-            );
-        }
-    }
-
-    let progress = indicatif::ProgressBar::new(base_to_simulate.len() as u64);
-    progress.set_style(
-        indicatif::ProgressStyle::default_bar()
-            .template("[Base Phase] {wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
-            .unwrap(),
-    );
-
-    let base_sim_outcomes = if !base_to_simulate.is_empty() {
-        run_simulations_parallel(pool, scenario_name, ais, base_to_simulate, &progress)
-    } else {
-        Vec::new()
-    };
-    progress.finish_and_clear();
-
-    if let Some(ref mut c) = cache {
-        update_cache_from_simulations(c, &base_sim_outcomes, &base_sim_matchups_info, ai_hashes);
-    }
-
-    let mut base_outcomes = Vec::new();
-    base_outcomes.extend(base_cached_outcomes);
-    base_outcomes.extend(base_sim_outcomes);
-
-    // Track stats for the base phase
-    let mut wins: HashMap<(String, String), usize> = HashMap::new();
-    let mut total_played: HashMap<(String, String), usize> = HashMap::new();
-    let mut ratings: Vec<Glicko2Rating> = vec![Default::default(); ais.len()];
-
-    for (_round, indices, _seed, outcome_res) in &base_outcomes {
-        let outcome = match outcome_res {
-            Ok(o) => o,
-            Err(_) => &Outcomes::DRAW,
-        };
-        let i0 = indices[0];
-        let i1 = indices[1];
-        let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], outcome, &config);
-        ratings[i0] = r0;
-        ratings[i1] = r1;
-
-        let name0 = &ais[i0].name;
-        let name1 = &ais[i1].name;
-
-        let key = unordered_pair(name0, name1);
-        *total_played.entry(key.clone()).or_default() += 1;
-
-        if *outcome == Outcomes::WIN {
-            *wins.entry((name0.clone(), name1.clone())).or_default() += 1;
-        } else if *outcome == Outcomes::LOSS {
-            *wins.entry((name1.clone(), name0.clone())).or_default() += 1;
-        }
-    }
-
-    // Identify top 8 players based on intermediate ratings
-    let mut intermediate_indices: Vec<usize> = (0..ais.len()).collect();
-    intermediate_indices.sort_by(|&a, &b| {
-        ratings[b].rating.partial_cmp(&ratings[a].rating).unwrap()
-    });
-    let top_tier_count = std::cmp::min(8, ais.len());
-    let top_tier: Vec<usize> = intermediate_indices[0..top_tier_count].to_vec();
-
-    // 2. Identify which pairs need refinement
-    let mut refined_pairs = Vec::new();
-    for i in 0..ais.len() {
-        for j in (i + 1)..ais.len() {
-            let name_i = &ais[i].name;
-            let name_j = &ais[j].name;
-            let key = unordered_pair(name_i, name_j);
-
-            let played = total_played.get(&key).copied().unwrap_or(0);
-            if played == 0 {
-                continue;
-            }
-
-            let wins_i = wins.get(&(name_i.clone(), name_j.clone())).copied().unwrap_or(0);
-            let wins_j = wins.get(&(name_j.clone(), name_i.clone())).copied().unwrap_or(0);
-            let win_rate_i = wins_i as f64 / played as f64;
-            let win_rate_j = wins_j as f64 / played as f64;
-
-            let rating_diff = (ratings[i].rating - ratings[j].rating).abs();
-
-            let close_ratings = rating_diff < 100.0;
-
-            let unexpected_outcome = if ratings[i].rating < ratings[j].rating - 150.0 {
-                win_rate_i >= 0.30
-            } else if ratings[j].rating < ratings[i].rating - 150.0 {
-                win_rate_j >= 0.30
-            } else {
-                false
-            };
-
-            let both_top_tier = top_tier.contains(&i) && top_tier.contains(&j);
-
-            if close_ratings || unexpected_outcome || both_top_tier {
-                refined_pairs.push((i, j));
-            }
-        }
-    }
-
-    // 3. Refinement Phase (Remaining rounds for selected pairs)
-    let mut refinement_to_simulate = Vec::new();
-    let mut refinement_cached_outcomes = Vec::new();
-    let mut refinement_sim_matchups_info = Vec::new();
-
-    for &(i, j) in &refined_pairs {
-        let hash_i = &ai_hashes[i];
-        let hash_j = &ai_hashes[j];
-
-        get_pair_outcomes(
-            i,
-            j,
-            hash_i,
-            hash_j,
-            rounds,
-            cache.as_deref_mut(),
-            &mut refinement_to_simulate,
-            &mut refinement_sim_matchups_info,
-            &mut refinement_cached_outcomes,
-            &seeds,
-        );
-
-        get_pair_outcomes(
-            j,
-            i,
-            hash_j,
-            hash_i,
-            rounds,
-            cache.as_deref_mut(),
-            &mut refinement_to_simulate,
-            &mut refinement_sim_matchups_info,
-            &mut refinement_cached_outcomes,
-            &seeds,
-        );
-    }
-
-    let refinement_outcomes = if !refinement_to_simulate.is_empty() || !refinement_cached_outcomes.is_empty() {
-        let progress = indicatif::ProgressBar::new(refinement_to_simulate.len() as u64);
-        progress.set_style(
-            indicatif::ProgressStyle::default_bar()
-                .template("[Refinement Phase] {wide_bar} {pos}/{len} Elapsed: {elapsed_precise} ETA: {eta_precise}")
-                .unwrap(),
-        );
-
-        let sim_outcomes = if !refinement_to_simulate.is_empty() {
-            run_simulations_parallel(pool, scenario_name, ais, refinement_to_simulate, &progress)
-        } else {
-            Vec::new()
-        };
-        progress.finish_and_clear();
-
-        if let Some(ref mut c) = cache {
-            update_cache_from_simulations(c, &sim_outcomes, &refinement_sim_matchups_info, ai_hashes);
-        }
-
-        let mut outcomes = Vec::new();
-        outcomes.extend(refinement_cached_outcomes);
-        outcomes.extend(sim_outcomes);
-        outcomes
-    } else {
-        Vec::new()
-    };
-
-    // 4. Combine and update final ratings
-    let mut all_outcomes = Vec::new();
-    let refined_set: HashSet<(usize, usize)> = refined_pairs.iter().copied().collect();
-
-    for outcome in base_outcomes {
-        let i = outcome.1[0];
-        let j = outcome.1[1];
-        if !refined_set.contains(&(i, j)) && !refined_set.contains(&(j, i)) {
-            all_outcomes.push(outcome);
-        }
-    }
-    all_outcomes.extend(refinement_outcomes);
-    all_outcomes.sort_by_key(|x| x.0);
-
-    let mut final_ratings: Vec<Glicko2Rating> = vec![Default::default(); ais.len()];
-    wins.clear();
-    total_played.clear();
-    let mut crashes = Vec::new();
-
-    for (_round, indices, seed, outcome_res) in &all_outcomes {
-        let outcome = match outcome_res {
-            Ok(o) => o,
-            Err(_) => {
-                crashes.push(oort_proto::TournamentCrash {
-                    seed: *seed,
-                    ais: indices.iter().map(|&idx| ais[idx].name.clone()).collect(),
-                });
-                &Outcomes::DRAW
-            }
-        };
-        let i0 = indices[0];
-        let i1 = indices[1];
-        let (r0, r1) = glicko2(&final_ratings[i0], &final_ratings[i1], outcome, &config);
-        final_ratings[i0] = r0;
-        final_ratings[i1] = r1;
-
-        let name0 = &ais[i0].name;
-        let name1 = &ais[i1].name;
-
-        let key = unordered_pair(name0, name1);
-        *total_played.entry(key.clone()).or_default() += 1;
-
-        if *outcome == Outcomes::WIN {
-            *wins.entry((name0.clone(), name1.clone())).or_default() += 1;
-        } else if *outcome == Outcomes::LOSS {
-            *wins.entry((name1.clone(), name0.clone())).or_default() += 1;
-        }
-    }
-
-
-    let mut competitors: Vec<_> = ais
-        .iter()
-        .enumerate()
-        .map(|(i, x)| TournamentCompetitor {
-            username: x.name.clone(),
-            shortcode: "".to_string(),
-            rating: final_ratings[i].rating,
-        })
-        .collect();
-    competitors.sort_by_key(|c| (-c.rating * 1e6) as i64);
-
-    let mut win_matrix: Vec<f64> = vec![];
-    for competitor in &competitors {
-        for other_competitor in &competitors {
-            let name0 = &competitor.username;
-            let name1 = &other_competitor.username;
-
-            if name0 == name1 {
-                win_matrix.push(0.0);
-                continue;
-            }
-
-            let key = unordered_pair(name0, name1);
-
-            let played = total_played.get(&key).copied().unwrap_or(0);
-            let w = wins.get(&(name0.clone(), name1.clone())).copied().unwrap_or(0);
-
-            let win_rate = if played > 0 {
-                w as f64 / played as f64
-            } else {
-                0.0
-            };
-            win_matrix.push(win_rate);
-        }
-    }
-
-    let total_rr_sims = rounds * (ais.len() as i32) * ((ais.len() - 1) as i32);
-    let actual_sims = all_outcomes.len();
-    let savings = (1.0 - (actual_sims as f64 / total_rr_sims as f64)) * 100.0;
-    log::info!(
-        "Adaptive tournament complete. Ran {} simulations instead of {} ({:.1}% saved). Refined {}/{} pairs.",
-        actual_sims,
-        total_rr_sims,
-        savings,
-        refined_pairs.len(),
-        (ais.len() * (ais.len() - 1)) / 2
-    );
 
     TournamentResults {
         scenario_name: scenario_name.to_string(),
@@ -1235,31 +883,11 @@ mod tests {
         Ok(outcome)
     }
 
-    fn test_adaptive_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
-        let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
-        let results = run_tournament(pool, "fighter_duel", ais, 12, TournamentType::Adaptive, None, &ai_hashes);
 
-        assert_eq!(results.competitors.len(), 6);
-        assert_eq!(results.win_matrix.len(), 36);
-        for competitor in &results.competitors {
-            assert!(competitor.rating > 0.0);
-        }
-
-        // We expect bot4 vs bot5 matches to crash.
-        // Base phase (5 rounds) + Refinement phase (7 rounds) = 12 rounds * 2 directions = 24 crashes.
-        assert_eq!(results.crashes.len(), 24);
-        for crash in &results.crashes {
-            assert!(crash.ais.contains(&"bot4".to_string()));
-            assert!(crash.ais.contains(&"bot5".to_string()));
-        }
-
-        let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
-        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
-    }
 
     fn test_round_robin_tournament(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
         let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
-        let results = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin, None, &ai_hashes);
+        let results = run_tournament(pool, "fighter_duel", ais, 3, None, &ai_hashes);
 
         assert_eq!(results.competitors.len(), 6);
         assert_eq!(results.win_matrix.len(), 36);
@@ -1284,7 +912,7 @@ mod tests {
         let mut cache = IncrementalCache::default();
 
         // 1. First run: cache is empty, so it will simulate all matchups
-        let _results1 = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin, Some(&mut cache), &ai_hashes);
+        let _results1 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes);
         assert_eq!(cache.entries.len(), 30); // 6 * 5 = 30 pairings
         for entry in &cache.entries {
             assert_eq!(entry.num_seeds, 3);
@@ -1302,7 +930,7 @@ mod tests {
             entry.num_seeds = 3;
         }
 
-        let results2 = run_tournament(pool, "fighter_duel", ais, 3, TournamentType::RoundRobin, Some(&mut cache), &ai_hashes);
+        let results2 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes);
         
         let idx0 = results2.competitors.iter().position(|c| c.username == "bot0").unwrap();
         let idx5 = results2.competitors.iter().position(|c| c.username == "bot5").unwrap();
@@ -1344,10 +972,6 @@ mod tests {
                 }
             }
         });
-
-        println!("Running test_adaptive_tournament...");
-        test_adaptive_tournament(&pool, &ais);
-        println!("test_adaptive_tournament passed.");
 
         println!("Running test_round_robin_tournament...");
         test_round_robin_tournament(&pool, &ais);
