@@ -263,8 +263,9 @@ impl<Req, Resp> Drop for ProcessPool<Req, Resp> {
     fn drop(&mut self) {
         self.workers.lock().unwrap().clear();
         for &pid in &self.child_pids {
-            let mut status = 0;
             unsafe {
+                libc::kill(pid, libc::SIGKILL);
+                let mut status = 0;
                 libc::waitpid(pid, &mut status, 0);
             }
         }
