@@ -266,6 +266,21 @@ enum SubCommand {
         #[clap(long)]
         post_to_discord: bool,
     },
+    RunMultiple {
+        scenarios: Vec<String>,
+
+        #[clap(short, long, default_value_t = 100)]
+        rounds: i32,
+
+        #[clap(short, long)]
+        dry_run: bool,
+
+        #[clap(long, default_value = "")]
+        secret: String,
+
+        #[clap(long)]
+        post_to_discord: bool,
+    },
     RunUnofficial {
         scenario: String,
         shortcodes: Vec<String>,
@@ -305,7 +320,7 @@ fn main() -> anyhow::Result<()> {
     let args = Arguments::parse();
     let needs_workers = matches!(
         &args.cmd,
-        SubCommand::Run { .. } | SubCommand::RunUnofficial { .. }
+        SubCommand::Run { .. } | SubCommand::RunMultiple { .. } | SubCommand::RunUnofficial { .. }
     );
 
     let pool = if needs_workers {
@@ -362,6 +377,39 @@ fn main() -> anyhow::Result<()> {
                     webhook,
                 )
                 .await
+            }
+            SubCommand::RunMultiple {
+                ref scenarios,
+                rounds,
+                dry_run,
+                ref secret,
+                post_to_discord,
+            } => {
+                let pool_ref = pool.as_ref().expect("Process pool must be initialized for RunMultiple");
+                let webhook = if post_to_discord {
+                    let url = std::env::var("DISCORD_TOURNAMENT_WEBHOOK").ok();
+                    if url.is_none() {
+                        log::warn!("--post-to-discord was specified, but the DISCORD_TOURNAMENT_WEBHOOK environment variable is not set.");
+                    }
+                    url
+                } else {
+                    None
+                };
+                for scenario in scenarios {
+                    log::info!("Running tournament for scenario: {}", scenario);
+                    cmd_run(
+                        pool_ref,
+                        &args.project_id,
+                        scenario,
+                        &[],
+                        rounds,
+                        dry_run,
+                        secret,
+                        webhook.clone(),
+                    )
+                    .await?;
+                }
+                Ok(())
             }
             SubCommand::RunUnofficial {
                 ref scenario,

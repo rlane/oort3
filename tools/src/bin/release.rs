@@ -519,13 +519,16 @@ async fn main() -> anyhow::Result<()> {
 
                     progress.set_message("deploying jobs (tournament)");
 
+                    let scenarios = &["fighter_duel", "mini_fleet"];
+                    let tournament_args = format!("run-multiple,{},--post-to-discord", scenarios.join(","));
+
                     let _ = sync_cmd(&["gcloud", "--project", &project,
                         "run", "jobs", "delete", "--quiet", "oort-tournament-job",]).await;
                     sync_cmd_ok(&["gcloud", "--project", &project,
                         "run", "jobs", "create", "oort-tournament-job",
                         "--image", &container_image,
                         "--command", "tournament",
-                        "--args", "run,fighter_duel,--post-to-discord",
+                        "--args", &tournament_args,
                         "--region", REGION,
                         "--cpu=8",
                         "--memory=8G",
