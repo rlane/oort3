@@ -1,3 +1,5 @@
+### 0.86.0 - 2026-06-17
+
 - Added a nightly tournament job.
 
 ### 0.85.0 - 2026-06-14
