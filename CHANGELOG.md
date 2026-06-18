@@ -1,3 +1,5 @@
+- Added a nightly tournament job.
+
 ### 0.85.0 - 2026-06-14
 
 - Update to Rust 1.96.0.
