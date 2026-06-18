@@ -78,6 +78,7 @@ struct Secrets {
     discord_changelog_webhook: Option<String>,
     discord_telemetry_webhook: Option<String>,
     discord_leaderboard_webhook: Option<String>,
+    discord_tournament_webhook: Option<String>,
 }
 
 #[tokio::main]
@@ -514,6 +515,33 @@ async fn main() -> anyhow::Result<()> {
                         "--schedule", "5 8 * * *",
                         "--http-method=POST",
                         "--uri", &format!("https://{REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/{project}/jobs/oort-rescore-job:run"),
+                        "--oauth-service-account-email", &format!("oort-backend-service@{project}.iam.gserviceaccount.com")]).await?;
+
+                    progress.set_message("deploying jobs (tournament)");
+
+                    let _ = sync_cmd(&["gcloud", "--project", &project,
+                        "run", "jobs", "delete", "--quiet", "oort-tournament-job",]).await;
+                    sync_cmd_ok(&["gcloud", "--project", &project,
+                        "run", "jobs", "create", "oort-tournament-job",
+                        "--image", &container_image,
+                        "--command", "tournament",
+                        "--args", "run,fighter_duel,--post-to-discord",
+                        "--region", REGION,
+                        "--cpu=8",
+                        "--memory=8G",
+                        "--task-timeout=120m",
+                        &format!("--service-account=oort-backend-service@{project}.iam.gserviceaccount.com"),
+                        &format!("--set-env-vars=RUST_LOG=info,PROJECT_ID={project},DISCORD_TOURNAMENT_WEBHOOK={}", secrets.discord_tournament_webhook.clone().unwrap_or_default()),
+                    ]).await?;
+                    let _ = sync_cmd(&["gcloud", "--project", &project,
+                        "scheduler", "jobs", "delete", "--quiet", "oort-tournament-scheduler",]).await;
+                    sync_cmd_ok(&["gcloud", "--project", &project,
+                        "scheduler", "jobs", "create", "http", "oort-tournament-scheduler",
+                        "--location", REGION,
+                        "--schedule", "5 22 * * *",
+                        "--time-zone", "America/Los_Angeles",
+                        "--http-method=POST",
+                        "--uri", &format!("https://{REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/{project}/jobs/oort-tournament-job:run"),
                         "--oauth-service-account-email", &format!("oort-backend-service@{project}.iam.gserviceaccount.com")]).await?;
                 }
 

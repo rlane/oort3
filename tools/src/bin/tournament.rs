@@ -42,7 +42,7 @@ enum WorkerResponse {
     Error(String),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 struct CacheEntry {
     player0_hash: String,
     player1_hash: String,
@@ -53,7 +53,7 @@ struct CacheEntry {
     draws: u32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 struct IncrementalCache {
     entries: Vec<CacheEntry>,
 }
@@ -443,6 +443,7 @@ async fn cmd_run(
     scenario::load_safe(scenario_name).expect("Unknown scenario");
 
     let mut compiler = oort_compiler::Compiler::new();
+    compiler.enable_online();
     let entrants = get_entrants(&db, scenario_name, usernames).await?;
     let results: Vec<anyhow::Result<AI>> = entrants
         .iter()
@@ -484,23 +485,36 @@ async fn cmd_run(
 
     let secret_hash = get_code_hash(secret);
     log::info!("Running tournament");
+    let original_cache = cache.clone();
     let results = run_tournament(pool, scenario_name, &ais, rounds, Some(&mut cache), &ai_hashes, &secret_hash);
 
     display_results(&results);
 
-    if !dry_run {
-        let url = upload_results(&db, project_id, &entrants, &results).await?;
-        
-        log::info!("Writing updated incremental cache to Firestore");
-        db.update_obj::<_, (), _>("tournament_incremental_cache", cache_doc_id, &cache, None, None, None)
-            .await?;
+    let cache_changed = {
+        let mut original_entries = original_cache.entries.clone();
+        original_entries.sort_by(|a, b| (&a.player0_hash, &a.player1_hash).cmp(&(&b.player0_hash, &b.player1_hash)));
+        let mut new_entries = cache.entries.clone();
+        new_entries.sort_by(|a, b| (&a.player0_hash, &a.player1_hash).cmp(&(&b.player0_hash, &b.player1_hash)));
+        original_entries != new_entries
+    };
 
-        if let Some(webhook_url) = discord_webhook.filter(|url| !url.is_empty()) {
-            log::info!("Posting results link to Discord webhook");
-            let msg = format!("New tournament results for {}: {}", scenario_name, url);
-            if let Err(e) = post_to_discord(&webhook_url, &msg).await {
-                log::warn!("Failed to post to Discord webhook: {}", e);
+    if !dry_run {
+        if cache_changed {
+            let url = upload_results(&db, project_id, &entrants, &results).await?;
+            
+            log::info!("Writing updated incremental cache to Firestore");
+            db.update_obj::<_, (), _>("tournament_incremental_cache", cache_doc_id, &cache, None, None, None)
+                .await?;
+
+            if let Some(webhook_url) = discord_webhook.filter(|url| !url.is_empty()) {
+                log::info!("Posting results link to Discord webhook");
+                let msg = format!("New tournament results for {}: {}", scenario_name, url);
+                if let Err(e) = post_to_discord(&webhook_url, &msg).await {
+                    log::warn!("Failed to post to Discord webhook: {}", e);
+                }
             }
+        } else {
+            log::info!("Incremental cache is identical to original. Skipping upload and Discord posting.");
         }
     }
 

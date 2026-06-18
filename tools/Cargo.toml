@@ -42,7 +42,7 @@ glob = "0.3.1"
 tar = "0.4.40"
 libflate = "2.0.0"
 tokio-retry = "0.3.0"
-goose = "0.17.2"
+goose = { version = "0.17.2", default-features = false, features = ["rustls-tls"] }
 nalgebra = "0.32.3"
 futures = "0.3.30"
 indicatif-log-bridge = "0.2.2"
