@@ -262,6 +262,9 @@ enum SubCommand {
 
         #[clap(long, default_value = "")]
         secret: String,
+
+        #[clap(long)]
+        post_to_discord: bool,
     },
     RunUnofficial {
         scenario: String,
@@ -336,9 +339,29 @@ fn main() -> anyhow::Result<()> {
                 rounds,
                 dry_run,
                 ref secret,
+                post_to_discord,
             } => {
                 let pool_ref = pool.as_ref().expect("Process pool must be initialized for Run");
-                cmd_run(pool_ref, &args.project_id, scenario, usernames, rounds, dry_run, secret).await
+                let webhook = if post_to_discord {
+                    let url = std::env::var("DISCORD_TOURNAMENT_WEBHOOK").ok();
+                    if url.is_none() {
+                        log::warn!("--post-to-discord was specified, but the DISCORD_TOURNAMENT_WEBHOOK environment variable is not set.");
+                    }
+                    url
+                } else {
+                    None
+                };
+                cmd_run(
+                    pool_ref,
+                    &args.project_id,
+                    scenario,
+                    usernames,
+                    rounds,
+                    dry_run,
+                    secret,
+                    webhook,
+                )
+                .await
             }
             SubCommand::RunUnofficial {
                 ref scenario,
@@ -396,6 +419,16 @@ async fn cmd_run_unofficial(
     Ok(())
 }
 
+async fn post_to_discord(webhook_url: &str, message: &str) -> anyhow::Result<()> {
+    let client = reqwest::Client::new();
+    let mut map = HashMap::new();
+    map.insert("content", message);
+    let response = client.post(webhook_url).json(&map).send().await?;
+    let _ = response.error_for_status()?;
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
 async fn cmd_run(
     pool: &ProcessPool<WorkerTask, WorkerResponse>,
     project_id: &str,
@@ -404,6 +437,7 @@ async fn cmd_run(
     rounds: i32,
     dry_run: bool,
     secret: &str,
+    discord_webhook: Option<String>,
 ) -> anyhow::Result<()> {
     let db = FirestoreDb::new(project_id).await?;
     scenario::load_safe(scenario_name).expect("Unknown scenario");
@@ -455,11 +489,19 @@ async fn cmd_run(
     display_results(&results);
 
     if !dry_run {
-        upload_results(&db, project_id, &entrants, &results).await?;
+        let url = upload_results(&db, project_id, &entrants, &results).await?;
         
         log::info!("Writing updated incremental cache to Firestore");
         db.update_obj::<_, (), _>("tournament_incremental_cache", cache_doc_id, &cache, None, None, None)
             .await?;
+
+        if let Some(webhook_url) = discord_webhook.filter(|url| !url.is_empty()) {
+            log::info!("Posting results link to Discord webhook");
+            let msg = format!("New tournament results for {}: {}", scenario_name, url);
+            if let Err(e) = post_to_discord(&webhook_url, &msg).await {
+                log::warn!("Failed to post to Discord webhook: {}", e);
+            }
+        }
     }
 
     Ok(())
@@ -689,7 +731,7 @@ async fn upload_results(
     project_id: &str,
     entrants: &[Entrant],
     results: &TournamentResults,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<String> {
     log::info!("Uploading to database...");
 
     let tournament_id = format!(
@@ -719,12 +761,13 @@ async fn upload_results(
     db.create_obj::<_, (), _>("tournament_results", Some(&tournament_id), &results, None)
         .await?;
     println!();
-    if project_id == "oort-dev" {
-        println!("Uploaded to http://localhost:8080/tournament/{tournament_id}");
+    let url = if project_id == "oort-dev" {
+        format!("http://localhost:8080/tournament/{tournament_id}")
     } else {
-        println!("Uploaded to https://oort.rs/tournament/{tournament_id}");
-    }
-    Ok(())
+        format!("https://oort.rs/tournament/{tournament_id}")
+    };
+    println!("Uploaded to {url}");
+    Ok(url)
 }
 
 async fn get_entrants(
