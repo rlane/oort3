@@ -58,6 +58,14 @@ struct IncrementalCache {
     entries: Vec<CacheEntry>,
 }
 
+#[derive(Debug, Clone)]
+struct SimulationResult {
+    round: i32,
+    ai_indices: Vec<usize>,
+    seed: u32,
+    outcome: Result<Outcomes, String>,
+}
+
 fn get_code_hash(source_code: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(source_code.as_bytes());
@@ -78,7 +86,7 @@ fn hash_seed(seed: u32) -> u64 {
     u64::from_be_bytes(result[0..8].try_into().unwrap())
 }
 
-#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
 fn get_pair_outcomes(
     i: usize,
     j: usize,
@@ -88,7 +96,7 @@ fn get_pair_outcomes(
     cache: Option<&mut IncrementalCache>,
     to_simulate: &mut Vec<(i32, Vec<usize>, u32)>,
     sim_matchups_info: &mut Vec<(usize, usize, i32)>,
-    cached_outcomes: &mut Vec<(i32, Vec<usize>, u32, Result<Outcomes, String>)>,
+    cached_outcomes: &mut Vec<SimulationResult>,
     secret_hash: &str,
 ) {
     let expected_start_seed = get_start_seed(hash_i, hash_j, secret_hash);
@@ -125,7 +133,12 @@ fn get_pair_outcomes(
                 d = d.saturating_sub(1);
                 Outcomes::DRAW
             };
-            cached_outcomes.push((round, vec![i, j], start_seed.wrapping_add(round as u32), Ok(outcome)));
+            cached_outcomes.push(SimulationResult {
+                round,
+                ai_indices: vec![i, j],
+                seed: start_seed.wrapping_add(round as u32),
+                outcome: Ok(outcome),
+            });
         }
     }
 
@@ -137,20 +150,19 @@ fn get_pair_outcomes(
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn update_cache_from_simulations(
     cache: &mut IncrementalCache,
-    sim_outcomes: &[(i32, Vec<usize>, u32, Result<Outcomes, String>)],
+    sim_outcomes: &[SimulationResult],
     sim_matchups_info: &[(usize, usize, i32)],
     ai_hashes: &[String],
     secret_hash: &str,
 ) {
     let mut pair_results: HashMap<(usize, usize, i32), (u32, u32, u32)> = HashMap::new();
-    for (idx, (_, _, _, outcome_res)) in sim_outcomes.iter().enumerate() {
+    for (idx, outcome) in sim_outcomes.iter().enumerate() {
         let (i, j, target_rounds) = sim_matchups_info[idx];
         let counts = pair_results.entry((i, j, target_rounds)).or_insert((0, 0, 0));
-        if let Ok(outcome) = outcome_res {
-            match outcome {
+        if let Ok(outcome_val) = &outcome.outcome {
+            match outcome_val {
                 Outcomes::WIN => counts.0 += 1,
                 Outcomes::LOSS => counts.1 += 1,
                 Outcomes::DRAW => counts.2 += 1,
@@ -185,14 +197,13 @@ fn update_cache_from_simulations(
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn run_simulations_parallel(
     pool: &ProcessPool<WorkerTask, WorkerResponse>,
     scenario_name: &str,
     ais: &[AI],
     matchups: Vec<(i32, Vec<usize>, u32)>, // (round, indices, seed)
     progress: &indicatif::ProgressBar,
-) -> Vec<(i32, Vec<usize>, u32, Result<Outcomes, String>)> {
+) -> Vec<SimulationResult> {
     let ai_data: Vec<AI> = ais.to_vec();
 
     // 1. Register AIs with all workers
@@ -232,12 +243,12 @@ fn run_simulations_parallel(
             Ok(WorkerResponse::Error(err)) => Err(err),
             Err(err) => Err(err),
         };
-        results.push((
-            *round,
-            ai_indices.clone(),
-            *seed,
-            outcome_res,
-        ));
+        results.push(SimulationResult {
+            round: *round,
+            ai_indices: ai_indices.clone(),
+            seed: *seed,
+            outcome: outcome_res,
+        });
     }
     results
 }
@@ -638,39 +649,39 @@ fn run_tournament(
 
     outcomes.extend(cached_outcomes);
     outcomes.extend(sim_outcomes);
-    outcomes.sort_by_key(|x| (x.0, hash_seed(x.2), &ais[x.1[0]].name, &ais[x.1[1]].name));
+    outcomes.sort_by_key(|x| (x.round, hash_seed(x.seed), &ais[x.ai_indices[0]].name, &ais[x.ai_indices[1]].name));
 
     let mut crashes = Vec::new();
-    for (round, indices, seed, outcome_res) in outcomes {
-        let outcome = match outcome_res {
-            Ok(outcome) => outcome,
+    for outcome in outcomes {
+        let outcome_val = match outcome.outcome {
+            Ok(outcome_val) => outcome_val,
             Err(_) => {
                 crashes.push(oort_proto::TournamentCrash {
-                    seed,
-                    ais: indices.iter().map(|&idx| ais[idx].name.clone()).collect(),
+                    seed: outcome.seed,
+                    ais: outcome.ai_indices.iter().map(|&idx| ais[idx].name.clone()).collect(),
                 });
                 Outcomes::DRAW
             }
         };
-        let i0 = indices[0];
-        let i1 = indices[1];
+        let i0 = outcome.ai_indices[0];
+        let i1 = outcome.ai_indices[1];
         log::debug!(
             "{} vs {} seed {}: {:?}",
             ais[i0].name,
             ais[i1].name,
-            round,
-            outcome
+            outcome.round,
+            outcome_val
         );
-        let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], &outcome, &config);
+        let (r0, r1) = glicko2(&ratings[i0], &ratings[i1], &outcome_val, &config);
         ratings[i0] = r0;
         ratings[i1] = r1;
 
         let increment = 1.0 / (2.0 * rounds as f64);
-        if outcome == Outcomes::WIN {
+        if outcome_val == Outcomes::WIN {
             *pairings
                 .entry((ais[i0].name.clone(), ais[i1].name.clone()))
                 .or_default() += increment;
-        } else if outcome == Outcomes::LOSS {
+        } else if outcome_val == Outcomes::LOSS {
             *pairings
                 .entry((ais[i1].name.clone(), ais[i0].name.clone()))
                 .or_default() += increment;
