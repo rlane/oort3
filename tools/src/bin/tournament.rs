@@ -71,6 +71,13 @@ fn get_start_seed(hash0: &str, hash1: &str, secret_hash: &str) -> u32 {
     u32::from_be_bytes(result[0..4].try_into().unwrap())
 }
 
+fn hash_seed(seed: u32) -> u64 {
+    let mut hasher = Sha256::new();
+    hasher.update(seed.to_be_bytes());
+    let result = hasher.finalize();
+    u64::from_be_bytes(result[0..8].try_into().unwrap())
+}
+
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn get_pair_outcomes(
     i: usize,
@@ -82,14 +89,13 @@ fn get_pair_outcomes(
     to_simulate: &mut Vec<(i32, Vec<usize>, u32)>,
     sim_matchups_info: &mut Vec<(usize, usize, i32)>,
     cached_outcomes: &mut Vec<(i32, Vec<usize>, u32, Result<Outcomes, String>)>,
-    seeds: &[u32],
     secret_hash: &str,
 ) {
     let expected_start_seed = get_start_seed(hash_i, hash_j, secret_hash);
 
     if cache.is_none() {
         for round in 0..target_rounds {
-            to_simulate.push((round, vec![i, j], seeds[round as usize]));
+            to_simulate.push((round, vec![i, j], expected_start_seed.wrapping_add(round as u32)));
         }
         return;
     }
@@ -580,7 +586,6 @@ fn run_tournament(
     ai_hashes: &[String],
     secret_hash: &str,
 ) -> TournamentResults {
-    let seeds: Vec<u32> = (0..rounds).map(|_| rand::rng().random()).collect();
     let config = Glicko2Config::new();
     let mut pairings: HashMap<(String, String), f64> = HashMap::new();
     let mut ratings: Vec<Glicko2Rating> = Vec::new();
@@ -608,7 +613,6 @@ fn run_tournament(
                 &mut to_simulate,
                 &mut sim_matchups_info,
                 &mut cached_outcomes,
-                &seeds,
                 secret_hash,
             );
         }
@@ -634,7 +638,7 @@ fn run_tournament(
 
     outcomes.extend(cached_outcomes);
     outcomes.extend(sim_outcomes);
-    outcomes.sort_by_key(|x| x.0);
+    outcomes.sort_by_key(|x| (x.0, hash_seed(x.2), &ais[x.1[0]].name, &ais[x.1[1]].name));
 
     let mut crashes = Vec::new();
     for (round, indices, seed, outcome_res) in outcomes {
@@ -964,7 +968,7 @@ mod tests {
         }
 
         let ranking: Vec<String> = results.competitors.iter().map(|c| c.username.clone()).collect();
-        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot5", "bot4"]);
+        assert_eq!(ranking, vec!["bot0", "bot1", "bot2", "bot3", "bot4", "bot5"]);
     }
 
     fn test_incremental_cache(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
@@ -1004,6 +1008,55 @@ mod tests {
         let results3 = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut cache), &ai_hashes, &different_secret_hash);
         let win_rate3 = results3.win_matrix[idx0 * 6 + idx5];
         assert!((win_rate3 - 1.0).abs() < 1e-9);
+    }
+
+    fn test_cache_consistency(pool: &ProcessPool<WorkerTask, WorkerResponse>, ais: &[AI]) {
+        let ai_hashes: Vec<String> = ais.iter().map(|ai| get_code_hash(&ai.source_code)).collect();
+        let secret_hash = get_code_hash("");
+
+        // 1. Totally uncached (cache is None)
+        let results_uncached_none = run_tournament(pool, "fighter_duel", ais, 3, None, &ai_hashes, &secret_hash);
+
+        // 2. Initially empty cache (simulates all, populates cache)
+        let mut full_cache = IncrementalCache::default();
+        let results_uncached_empty = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut full_cache), &ai_hashes, &secret_hash);
+
+        // 3. Fully cached (uses populated cache)
+        let results_fully_cached = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut full_cache.clone()), &ai_hashes, &secret_hash);
+
+        // 4. Partially cached (uses populated cache for some, simulates others)
+        let mut partial_cache = full_cache.clone();
+        // Remove half of the entries to force a partial cache situation
+        partial_cache.entries.truncate(15);
+        let results_partially_cached = run_tournament(pool, "fighter_duel", ais, 3, Some(&mut partial_cache), &ai_hashes, &secret_hash);
+
+        // Verify that rankings are identical across all cases
+        let ranking_uncached_none: Vec<String> = results_uncached_none.competitors.iter().map(|c| c.username.clone()).collect();
+        let ranking_uncached_empty: Vec<String> = results_uncached_empty.competitors.iter().map(|c| c.username.clone()).collect();
+        let ranking_fully_cached: Vec<String> = results_fully_cached.competitors.iter().map(|c| c.username.clone()).collect();
+        let ranking_partially_cached: Vec<String> = results_partially_cached.competitors.iter().map(|c| c.username.clone()).collect();
+
+        assert_eq!(ranking_uncached_none, ranking_uncached_empty);
+        assert_eq!(ranking_uncached_none, ranking_fully_cached);
+        assert_eq!(ranking_uncached_none, ranking_partially_cached);
+
+        // Verify that Glicko-2 ratings are identical (within epsilon) across all cases
+        for i in 0..ais.len() {
+            let u = &results_uncached_none.competitors[i].username;
+            
+            let c_empty = results_uncached_empty.competitors.iter().find(|c| c.username == *u).unwrap();
+            let c_full = results_fully_cached.competitors.iter().find(|c| c.username == *u).unwrap();
+            let c_partial = results_partially_cached.competitors.iter().find(|c| c.username == *u).unwrap();
+
+            let r_none = results_uncached_none.competitors[i].rating;
+            let r_empty = c_empty.rating;
+            let r_full = c_full.rating;
+            let r_partial = c_partial.rating;
+
+            assert!((r_none - r_empty).abs() < 1e-9, "Rating mismatch for {}: uncached none ({}) vs uncached empty ({})", u, r_none, r_empty);
+            assert!((r_none - r_full).abs() < 1e-9, "Rating mismatch for {}: uncached none ({}) vs fully cached ({})", u, r_none, r_full);
+            assert!((r_none - r_partial).abs() < 1e-9, "Rating mismatch for {}: uncached none ({}) vs partially cached ({})", u, r_none, r_partial);
+        }
     }
 
     pub fn run_all_tests() -> anyhow::Result<()> {
@@ -1048,6 +1101,10 @@ mod tests {
         println!("Running test_incremental_cache...");
         test_incremental_cache(&pool, &ais);
         println!("test_incremental_cache passed.");
+
+        println!("Running test_cache_consistency...");
+        test_cache_consistency(&pool, &ais);
+        println!("test_cache_consistency passed.");
 
         Ok(())
     }
