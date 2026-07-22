@@ -6,3 +6,5 @@ pub mod planetary_defense_enemy;
 pub mod planetary_defense_initial;
 pub mod race_initial;
 pub mod race_solution;
+pub mod avoidance_initial;
+pub mod avoidance_solution;

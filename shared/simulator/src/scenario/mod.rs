@@ -1,4 +1,5 @@
 mod asteroid_duel;
+mod avoidance;
 mod belt;
 mod cruiser_defense;
 mod cruiser_duel;
@@ -170,6 +171,7 @@ pub fn load_safe(name: &str) -> Option<Box<dyn Scenario>> {
         "cruiser_defense" => Some(Box::new(cruiser_defense::CruiserDefense::new())),
         "planetary_defense" => Some(Box::new(planetary_defense::PlanetaryDefense::new())),
         "race" => Some(Box::new(race::Race::new())),
+        "avoidance" => Some(Box::new(avoidance::Avoidance::new())),
         // Testing
         "test" => Some(Box::new(test::TestScenario {})),
         "basic" => Some(Box::new(test::BasicScenario {})),
@@ -224,7 +226,7 @@ pub fn list() -> Vec<(String, Vec<String>)> {
         ),
         (
             "Challenge",
-            vec!["gunnery", "cruiser_defense", "planetary_defense", "race"],
+            vec!["gunnery", "cruiser_defense", "planetary_defense", "race", "avoidance"],
         ),
         ("Tournament", vec!["fighter_duel", "mini_fleet"]),
         (
