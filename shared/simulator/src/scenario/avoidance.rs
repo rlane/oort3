@@ -65,9 +65,7 @@ impl Scenario for Avoidance {
     fn tick(&mut self, sim: &mut Simulation) {
         let ship = sim.ships.iter()
             .map(|&handle| sim.ship(handle))
-            .filter(|ship| ship.data().team == 0)
-            .filter(|ship| ship.data().class == ShipClass::Fighter)
-            .next();
+            .filter(|ship| ship.data().team == 0).find(|ship| ship.data().class == ShipClass::Fighter);
         let target = self.target.unwrap();
         if let Some(ship) = ship {
             if (ship.position().vector - target.coords).magnitude() < 50.0 {
@@ -110,9 +108,7 @@ impl Scenario for Avoidance {
     fn status(&self, sim: &Simulation) -> Status {
         let alive = sim.ships.iter()
             .map(|&handle| sim.ship(handle))
-            .filter(|ship| ship.data().team == 0)
-            .filter(|ship| ship.data().class == ShipClass::Fighter)
-            .next()
+            .filter(|ship| ship.data().team == 0).find(|ship| ship.data().class == ShipClass::Fighter)
             .is_some();
         if !alive {
             return Status::Failed;
