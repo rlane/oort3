@@ -1,3 +1,5 @@
+### 0.87.0 - 2026-07-26
+
 - Added the "Avoidance" challenge scenario (by Quickmarble).
 
 ### 0.86.0 - 2026-06-17
